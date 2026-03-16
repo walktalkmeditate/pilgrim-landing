@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pilgrim — A Walking Practice</title>
+  <meta name="description" content="Pilgrim is a privacy-first iOS app for intentional walking as creative practice. No leaderboards. No calorie goals. Just you, the path, and whatever arises.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Pilgrim — A Walking Practice">
+  <meta property="og:description" content="A privacy-first iOS app for intentional walking as creative practice.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pilgrim — A Walking Practice">
+  <meta name="twitter:description" content="A privacy-first iOS app for intentional walking as creative practice.">
+  <meta name="twitter:image" content="assets/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/pilgrim-logo.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <!-- ==========================================
+       1. The Threshold (Hero)
+       ========================================== -->
+  <header class="hero section">
+    <div class="moon-phase" role="img" aria-label="Moon phase"></div>
+    <div class="particles"></div>
+
+    <img src="assets/pilgrim-logo.png" alt="Pilgrim logo" class="hero-logo logo-breathing" width="120" height="120">
+    <h1 class="hero-title">Pilgrim</h1>
+    <p class="hero-tagline">A walking practice</p>
+
+    <div class="hero-quotes" aria-live="polite" aria-label="Walking wisdom"></div>
+
+    <div class="scroll-hint" aria-hidden="true">
+      <span class="scroll-hint-text">begin walking</span>
+      <svg class="scroll-hint-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polyline points="4,7 10,13 16,7"/>
+      </svg>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ==========================================
+         2. The Philosophy
+         ========================================== -->
+    <section class="philosophy section" aria-label="Philosophy">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Walking is how we think</h2>
+
+        <p class="body-text reveal">
+          Long before we had screens, we had paths. The rhythm of footfall has always been
+          the rhythm of thought — each step a quiet negotiation between body and mind, between
+          the familiar and the unknown.
+        </p>
+
+        <p class="body-text reveal">
+          Pilgrim is built for the walks that change you. The ones where an idea surfaces
+          unbidden, where silence becomes a companion, where the world slows to the pace
+          of your breath.
+        </p>
+
+        <p class="anti-position reveal">
+          No leaderboards. No calorie goals. No social feeds. Just you, the path,
+          and whatever arises.
+        </p>
+      </div>
+    </section>
+
+    <!-- Footprint divider -->
+    <div class="divider-footprints" aria-hidden="true">
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+    </div>
+
+    <!-- ==========================================
+         3. The Practice
+         ========================================== -->
+    <section class="practice section" aria-label="The Practice">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Four moments of a walk</h2>
+
+        <div class="practice-grid">
+          <div class="practice-card practice-card--voice reveal reveal-delay-1">
+            <div class="practice-card-icon" aria-hidden="true">&#9834;</div>
+            <h3>Voice</h3>
+            <p>Capture what arises. A thought, a sound, a feeling — spoken into the wind and held for later.</p>
+          </div>
+
+          <div class="practice-card practice-card--stillness reveal reveal-delay-2">
+            <div class="practice-card-icon" aria-hidden="true">&#9675;</div>
+            <h3>Stillness</h3>
+            <p>Find your center. Pause mid-walk for a breath that returns you to where you are.</p>
+          </div>
+
+          <div class="practice-card practice-card--reflection reveal reveal-delay-3">
+            <div class="practice-card-icon" aria-hidden="true">&#10024;</div>
+            <h3>Reflection</h3>
+            <p>Receive inspiration. Words from fellow walkers and thinkers, arriving when you need them.</p>
+          </div>
+
+          <div class="practice-card practice-card--privacy reveal reveal-delay-4">
+            <div class="practice-card-icon" aria-hidden="true">&#9670;</div>
+            <h3>Privacy</h3>
+            <p>Your walk is yours alone. Everything stays on your device. No tracking, no cloud, no compromise.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         4. The Seasons
+         ========================================== -->
+    <section class="seasons section" aria-label="Seasons">
+      <div class="section-inner">
+        <h2 class="display-large reveal">A palette that breathes with the earth</h2>
+        <p class="seasons-description body-text reveal">
+          Pilgrim's colors shift with the seasons — warming in autumn, cooling in winter,
+          brightening through spring. The app feels different each time you open it,
+          because each day is different too.
+        </p>
+
+        <div class="seasons-grid reveal">
+          <div class="season-swatch" data-season="spring" style="background: #E8E4D8;">
+            <div class="season-name" style="color: #6B7A5F;">Spring</div>
+            <div class="season-colors">
+              <span class="season-dot" style="background: #8B9B7F;"></span>
+              <span class="season-dot" style="background: #C4A574;"></span>
+              <span class="season-dot" style="background: #A87B63;"></span>
+            </div>
+          </div>
+
+          <div class="season-swatch" data-season="summer" style="background: #EDE6D0;">
+            <div class="season-name" style="color: #7A8B4F;">Summer</div>
+            <div class="season-colors">
+              <span class="season-dot" style="background: #8BA06F;"></span>
+              <span class="season-dot" style="background: #D4A87A;"></span>
+              <span class="season-dot" style="background: #B87355;"></span>
+            </div>
+          </div>
+
+          <div class="season-swatch" data-season="autumn" style="background: #E4D8C4;">
+            <div class="season-name" style="color: #A0634B;">Autumn</div>
+            <div class="season-colors">
+              <span class="season-dot" style="background: #8B7355;"></span>
+              <span class="season-dot" style="background: #C47E50;"></span>
+              <span class="season-dot" style="background: #7A7B6F;"></span>
+            </div>
+          </div>
+
+          <div class="season-swatch" data-season="winter" style="background: #DDD8D0;">
+            <div class="season-name" style="color: #6B7380;">Winter</div>
+            <div class="season-colors">
+              <span class="season-dot" style="background: #7A7B80;"></span>
+              <span class="season-dot" style="background: #A09080;"></span>
+              <span class="season-dot" style="background: #8B7060;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         5. The Story
+         ========================================== -->
+    <section class="story section" aria-label="About">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Why Pilgrim exists</h2>
+
+        <p class="body-text reveal">
+          Walking saved my creative life. Not fitness walking, not destination walking —
+          just walking. The kind where you leave the house without knowing where you'll end up
+          and come back with something you didn't have before.
+        </p>
+
+        <p class="body-text reveal">
+          Pilgrim is the app I wished existed: a quiet companion for the practice of walking.
+          It captures voice memos when inspiration strikes, offers moments of stillness, and
+          respects the privacy of your inner landscape.
+        </p>
+
+        <p class="body-text reveal">
+          It's open-source and completely free — no subscriptions, no ads, no compromise.
+        </p>
+
+        <div class="story-links reveal">
+          <a href="https://walktalkmeditate.org" target="_blank" rel="noopener noreferrer">
+            Inspired by the practice of Walk, Talk, Meditate &#8599;
+          </a>
+          <a href="https://github.com/momentmaker/pilgrim-ios" target="_blank" rel="noopener noreferrer">
+            Open-source on GitHub &#8599;
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       6. The Horizon (Footer)
+       ========================================== -->
+  <footer class="horizon section">
+    <img src="assets/pilgrim-logo.png" alt="" class="horizon-logo" width="40" height="40" aria-hidden="true">
+    <p class="horizon-coming">Coming soon</p>
+
+    <div class="horizon-actions">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"></button>
+      <a href="https://github.com/momentmaker/pilgrim-landing" class="github-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">GitHub</a>
+    </div>
+
+    <p class="horizon-signoff">Made with intention</p>
+  </footer>
+
+  <!-- Scroll distance tracker -->
+  <div class="scroll-tracker" aria-label="Scroll distance" role="status"></div>
+
+  <!-- Scripts -->
+  <script src="js/seasonal.js"></script>
+  <script src="js/moon.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

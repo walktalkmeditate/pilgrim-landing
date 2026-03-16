@@ -1,0 +1,612 @@
+/* =============================================
+   Pilgrim Landing — Core Styles
+   ============================================= */
+
+/* --- Reset --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Color System --- */
+:root {
+  --parchment: #F5F0E8;
+  --parchment-secondary: #EDE6D8;
+  --parchment-tertiary: #E4DBC9;
+  --ink: #2C241E;
+  --stone: #8B7355;
+  --moss: #7A8B6F;
+  --rust: #A0634B;
+  --dawn: #C4956A;
+  --fog: #B8AFA2;
+
+  --transition-colors: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Cormorant Garamond', Georgia, serif;
+  --font-ui: 'Lato', 'Helvetica Neue', sans-serif;
+
+  --padding-xs: 0.25rem;
+  --padding-sm: 0.5rem;
+  --padding-md: 1rem;
+  --padding-lg: 1.5rem;
+  --padding-xl: 4rem;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --content-width: 720px;
+}
+
+[data-theme="dark"] {
+  --parchment: #1C1914;
+  --parchment-secondary: #262118;
+  --parchment-tertiary: #30291F;
+  --ink: #F0EBE1;
+  --stone: #B8976E;
+  --moss: #95A895;
+  --rust: #C47E63;
+  --dawn: #D4A87A;
+  --fog: #6B6359;
+}
+
+/* --- Base --- */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--parchment);
+  transition: var(--transition-colors);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Typography --- */
+.display-large {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 2.125rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.display-medium {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 1.75rem;
+  line-height: 1.3;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+
+.body-text {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.caption {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.micro {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 0.5625rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* --- Layout --- */
+.section {
+  padding: var(--padding-xl) var(--padding-md);
+}
+
+.section-inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
+/* --- Links --- */
+a {
+  color: var(--stone);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+a:hover {
+  border-bottom-color: var(--stone);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--stone);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* =============================================
+   Hero / Threshold
+   ============================================= */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: var(--padding-xl) var(--padding-md);
+}
+
+.hero-logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: var(--padding-lg);
+  border-radius: 22px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 3rem;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--padding-sm);
+}
+
+.hero-tagline {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  color: var(--stone);
+  font-style: italic;
+  margin-bottom: var(--padding-xl);
+}
+
+.hero-quotes {
+  position: relative;
+  height: 2.4em;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: var(--padding-xl);
+}
+
+.hero-quote {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 1.125rem;
+  color: var(--stone);
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.hero-quote.active {
+  opacity: 1;
+}
+
+.moon-phase {
+  position: absolute;
+  top: var(--padding-lg);
+  right: var(--padding-lg);
+  width: 28px;
+  height: 28px;
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: var(--padding-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--fog);
+}
+
+.scroll-hint-text {
+  font-family: var(--font-ui);
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.6;
+}
+
+.scroll-hint-chevron {
+  width: 20px;
+  height: 20px;
+  opacity: 0.4;
+}
+
+/* --- Particles container --- */
+.particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* =============================================
+   Philosophy
+   ============================================= */
+.philosophy {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+.philosophy .section-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding-xl);
+}
+
+.philosophy h2 {
+  color: var(--ink);
+}
+
+.philosophy p {
+  color: var(--ink);
+  max-width: 560px;
+}
+
+.philosophy .anti-position {
+  color: var(--stone);
+  font-style: italic;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+}
+
+/* --- Footprint divider --- */
+.divider-footprints {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+  opacity: 0.15;
+}
+
+.footprint {
+  width: 12px;
+  height: 20px;
+  color: var(--stone);
+}
+
+.footprint:nth-child(even) {
+  transform: translateY(6px) rotate(8deg);
+}
+
+.footprint:nth-child(odd) {
+  transform: translateY(-2px) rotate(-5deg);
+}
+
+/* =============================================
+   Practice
+   ============================================= */
+.practice {
+  padding-top: 3rem;
+  padding-bottom: 5rem;
+}
+
+.practice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--padding-lg);
+  margin-top: var(--padding-xl);
+}
+
+.practice-card {
+  background: var(--parchment-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--padding-lg);
+  transition: var(--transition-colors);
+}
+
+.practice-card-icon {
+  font-size: 1.5rem;
+  margin-bottom: var(--padding-sm);
+}
+
+.practice-card h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  margin-bottom: var(--padding-xs);
+}
+
+.practice-card p {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--stone);
+  line-height: 1.5;
+}
+
+.practice-card--voice h3 { color: var(--stone); }
+.practice-card--stillness h3 { color: var(--moss); }
+.practice-card--reflection h3 { color: var(--dawn); }
+.practice-card--privacy h3 { color: var(--rust); }
+
+/* =============================================
+   Seasons
+   ============================================= */
+.seasons {
+  padding-top: 3rem;
+  padding-bottom: 5rem;
+}
+
+.seasons h2 {
+  margin-bottom: var(--padding-md);
+}
+
+.seasons-description {
+  color: var(--stone);
+  margin-bottom: var(--padding-xl);
+  max-width: 480px;
+}
+
+.seasons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--padding-md);
+}
+
+.season-swatch {
+  border-radius: var(--radius-md);
+  padding: var(--padding-lg) var(--padding-md);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.season-swatch.active {
+  transform: scale(1.03);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.season-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--padding-sm);
+}
+
+.season-colors {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.season-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+/* =============================================
+   Story
+   ============================================= */
+.story {
+  padding-top: 3rem;
+  padding-bottom: 5rem;
+}
+
+.story h2 {
+  margin-bottom: var(--padding-lg);
+}
+
+.story p {
+  margin-bottom: var(--padding-md);
+  max-width: 560px;
+}
+
+.story-links {
+  margin-top: var(--padding-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding-sm);
+}
+
+.story-links a {
+  color: var(--stone);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  width: fit-content;
+}
+
+/* =============================================
+   Footer / Horizon
+   ============================================= */
+.horizon {
+  padding: 3rem var(--padding-md);
+  text-align: center;
+  border-top: 1px solid var(--parchment-tertiary);
+}
+
+.horizon-logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--padding-md);
+  border-radius: 8px;
+}
+
+.horizon-coming {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 1.125rem;
+  color: var(--fog);
+  font-style: italic;
+  margin-bottom: var(--padding-lg);
+}
+
+.horizon-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--padding-lg);
+  margin-bottom: var(--padding-lg);
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--parchment-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  color: var(--fog);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.theme-toggle:hover {
+  border-color: var(--stone);
+  color: var(--stone);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--stone);
+  outline-offset: 2px;
+}
+
+.horizon-signoff {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--fog);
+  opacity: 0.6;
+}
+
+.github-link {
+  color: var(--fog);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
+
+/* =============================================
+   Scroll Distance Tracker
+   ============================================= */
+.scroll-tracker {
+  position: fixed;
+  bottom: var(--padding-lg);
+  right: var(--padding-lg);
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  color: var(--fog);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.scroll-tracker.visible {
+  opacity: 0.6;
+}
+
+/* =============================================
+   Moon Phase
+   ============================================= */
+.moon-canvas {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--fog);
+  position: relative;
+  overflow: hidden;
+  opacity: 0.5;
+}
+
+.moon-shadow {
+  position: absolute;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--parchment);
+  border-radius: 50%;
+  transition: var(--transition-colors);
+}
+
+/* =============================================
+   Responsive
+   ============================================= */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-tagline {
+    font-size: 1.125rem;
+  }
+
+  .display-large {
+    font-size: 1.75rem;
+  }
+
+  .display-medium {
+    font-size: 1.375rem;
+  }
+
+  .practice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seasons-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--padding-sm);
+  }
+
+  .moon-phase {
+    top: var(--padding-md);
+    right: var(--padding-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: 3rem var(--padding-md);
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-quotes {
+    max-width: 300px;
+  }
+
+  .hero-quote {
+    font-size: 1rem;
+  }
+
+  .seasons-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .season-swatch {
+    padding: var(--padding-md) var(--padding-sm);
+  }
+}

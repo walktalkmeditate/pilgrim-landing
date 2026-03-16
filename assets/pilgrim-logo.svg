@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <g transform="translate(100,100)">
+    <!-- Ensō circle - brush stroke effect -->
+    <path d="M 60,0
+             C 60,33 33,60 0,60
+             C -33,60 -60,33 -60,0
+             C -60,-33 -33,-60 0,-60
+             C 33,-60 60,-33 60,0"
+          stroke="currentColor" stroke-width="6" stroke-linecap="round"
+          fill="none" opacity="0.9"
+          stroke-dasharray="360" stroke-dashoffset="20"/>
+    <!-- Brush tail - the opening in the ensō -->
+    <path d="M 56,20 C 62,14 66,6 64,-4"
+          stroke="currentColor" stroke-width="7" stroke-linecap="round"
+          fill="none" opacity="0.7"/>
+    <!-- Letter p - serif style -->
+    <g transform="translate(-18, 8)">
+      <!-- Vertical stem -->
+      <path d="M 0,-48 L 0,40" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/>
+      <!-- Top serif -->
+      <path d="M -8,-48 L 8,-48" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <!-- Bottom serif -->
+      <path d="M -8,40 L 8,40" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <!-- Bowl of the p -->
+      <path d="M 0,-48 C 0,-48 2,-50 10,-50
+               C 24,-50 34,-40 34,-28
+               C 34,-16 24,-6 10,-6
+               C 2,-6 0,-8 0,-8"
+            stroke="currentColor" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
