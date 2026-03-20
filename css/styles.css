@@ -494,6 +494,19 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
+.horizon-legal {
+  display: flex;
+  justify-content: center;
+  gap: var(--padding-lg);
+  margin-bottom: var(--padding-md);
+}
+
+.horizon-legal a {
+  color: var(--fog);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+}
+
 .horizon-signoff {
   font-family: var(--font-ui);
   font-size: 0.75rem;

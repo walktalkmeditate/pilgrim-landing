@@ -1,0 +1,118 @@
+/* =============================================
+   Legal Pages (Privacy Policy, Terms of Use)
+   ============================================= */
+
+.legal-header {
+  padding-top: 3rem;
+  padding-bottom: 2rem;
+  text-align: center;
+}
+
+.legal-home {
+  display: inline-block;
+  border-bottom: none;
+  margin-bottom: var(--padding-lg);
+}
+
+.legal-home:hover {
+  border-bottom: none;
+}
+
+.legal-logo {
+  border-radius: 10px;
+  transition: opacity 0.2s ease;
+}
+
+.legal-home:hover .legal-logo {
+  opacity: 0.8;
+}
+
+.legal-updated {
+  color: var(--fog);
+  margin-top: var(--padding-sm);
+}
+
+.legal-content {
+  padding-top: 0;
+  padding-bottom: 3rem;
+}
+
+.legal-section {
+  margin-bottom: var(--padding-xl);
+}
+
+.legal-section:last-child {
+  margin-bottom: 0;
+}
+
+.legal-section h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--ink);
+  margin-bottom: var(--padding-sm);
+}
+
+.legal-section p {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  margin-bottom: var(--padding-md);
+  max-width: 560px;
+}
+
+.legal-section p:last-child {
+  margin-bottom: 0;
+}
+
+.legal-section ul {
+  list-style: none;
+  padding-left: 0;
+  max-width: 560px;
+}
+
+.legal-section li {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  padding-left: 1.25rem;
+  position: relative;
+  margin-bottom: var(--padding-xs);
+}
+
+.legal-section li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--stone);
+  opacity: 0.5;
+}
+
+.legal-section li strong {
+  font-weight: 600;
+}
+
+.legal-footer {
+  padding: 2rem var(--padding-md);
+  text-align: center;
+  border-top: 1px solid var(--parchment-tertiary);
+}
+
+.legal-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--padding-lg);
+  margin-bottom: var(--padding-md);
+}
+
+.legal-footer-links a {
+  color: var(--fog);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+}
