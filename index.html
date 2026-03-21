@@ -32,6 +32,232 @@
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/animations.css">
+
+  <style>
+    /* =============================================
+       What Pilgrim Is Not
+       ============================================= */
+    .not-pilgrim {
+      padding-top: 3rem;
+      padding-bottom: 5rem;
+    }
+
+    .not-pilgrim h2 {
+      margin-bottom: var(--padding-xl);
+    }
+
+    .not-pilgrim-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--padding-lg);
+      max-width: 560px;
+    }
+
+    .not-pilgrim-list li {
+      font-family: var(--font-body);
+      font-size: 1.0625rem;
+      line-height: 1.55;
+      color: var(--ink);
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .not-pilgrim-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--fog);
+    }
+
+    .not-pilgrim-list strong {
+      font-weight: 600;
+      color: var(--stone);
+    }
+
+    /* =============================================
+       Screenshot Journey
+       ============================================= */
+    .journey {
+      padding-top: 3rem;
+      padding-bottom: 5rem;
+    }
+
+    .journey h2 {
+      margin-bottom: var(--padding-xl);
+    }
+
+    .journey-inner {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .journey-caption {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 300;
+      font-size: 1.0625rem;
+      color: var(--stone);
+      text-align: center;
+      padding: 2.5rem var(--padding-md);
+      max-width: 420px;
+    }
+
+    .journey-pair {
+      display: flex;
+      gap: var(--padding-lg);
+      justify-content: center;
+      width: 100%;
+    }
+
+    .journey-single {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .journey-screenshot {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+      display: block;
+    }
+
+    [data-theme="dark"] .journey-screenshot {
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .journey-pair {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .journey-screenshot {
+        max-width: 260px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .journey-screenshot {
+        max-width: 220px;
+      }
+    }
+
+    /* =============================================
+       Privacy Section
+       ============================================= */
+    .privacy-section {
+      padding-top: 3rem;
+      padding-bottom: 5rem;
+    }
+
+    .privacy-section h2 {
+      margin-bottom: var(--padding-md);
+    }
+
+    .privacy-section > .section-inner > .body-text {
+      color: var(--stone);
+      max-width: 480px;
+      margin-bottom: var(--padding-xl);
+    }
+
+    .privacy-features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--padding-lg);
+    }
+
+    .privacy-feature {
+      background: var(--parchment-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--padding-lg);
+      transition: background-color 0.3s ease;
+    }
+
+    .privacy-feature-icon {
+      font-size: 1.375rem;
+      margin-bottom: var(--padding-sm);
+    }
+
+    .privacy-feature h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--ink);
+      margin-bottom: var(--padding-xs);
+    }
+
+    .privacy-feature p {
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      color: var(--stone);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .privacy-features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* =============================================
+       App Store Badge
+       ============================================= */
+    .app-store-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      background: var(--ink);
+      color: var(--parchment);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0.625rem 1.25rem;
+      font-family: var(--font-ui);
+      font-size: 0.8125rem;
+      font-weight: 400;
+      text-decoration: none;
+      transition: opacity 0.2s ease, border-color 0.2s ease;
+      margin-bottom: var(--padding-lg);
+      letter-spacing: 0.01em;
+    }
+
+    .app-store-badge:hover {
+      opacity: 0.8;
+      border-bottom-color: transparent;
+    }
+
+    .app-store-badge-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .app-store-badge-text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .app-store-badge-sub {
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+      line-height: 1.2;
+    }
+
+    .app-store-badge-name {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+  </style>
 </head>
 <body>
 
@@ -84,6 +310,33 @@
       </div>
     </section>
 
+    <!-- ==========================================
+         3. What Pilgrim Is Not
+         ========================================== -->
+    <section class="not-pilgrim section" aria-label="What Pilgrim Is Not">
+      <div class="section-inner">
+        <h2 class="display-large reveal">What Pilgrim is not</h2>
+
+        <ul class="not-pilgrim-list">
+          <li class="reveal reveal-delay-1">
+            <strong>Not a fitness app.</strong> There are no calorie counters, no personal bests, no badges for streaks.
+          </li>
+          <li class="reveal reveal-delay-2">
+            <strong>Not a social platform.</strong> There is no feed, no following, no comparison.
+          </li>
+          <li class="reveal reveal-delay-3">
+            <strong>Not a data business.</strong> No analytics, no advertising, no behavioral profiling.
+          </li>
+          <li class="reveal reveal-delay-4">
+            <strong>Not a subscription.</strong> No paywall mid-walk, no features gated behind recurring payments.
+          </li>
+          <li class="reveal reveal-delay-5">
+            <strong>Not a cloud service.</strong> Your walks live on your phone.
+          </li>
+        </ul>
+      </div>
+    </section>
+
     <!-- Footprint divider -->
     <div class="divider-footprints" aria-hidden="true">
       <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
@@ -94,7 +347,7 @@
     </div>
 
     <!-- ==========================================
-         3. The Practice
+         4. The Practice
          ========================================== -->
     <section class="practice section" aria-label="The Practice">
       <div class="section-inner">
@@ -129,7 +382,63 @@
     </section>
 
     <!-- ==========================================
-         4. The Seasons
+         5. Screenshot Journey
+         ========================================== -->
+    <section class="journey section" aria-label="A walk through Pilgrim">
+      <div class="section-inner">
+        <h2 class="display-large reveal">A walk through Pilgrim</h2>
+      </div>
+
+      <div class="journey-inner">
+
+        <p class="journey-caption reveal">Set your intention. Begin walking.</p>
+
+        <div class="journey-pair reveal">
+          <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen" class="journey-screenshot">
+          <img src="assets/screenshots/02_active_walk.png" alt="Active walk screen" class="journey-screenshot">
+        </div>
+
+        <p class="journey-caption reveal">Pause. Breathe. Be still.</p>
+
+        <div class="journey-single reveal">
+          <img src="assets/screenshots/03_meditation.png" alt="Meditation screen" class="journey-screenshot">
+        </div>
+
+        <p class="journey-caption reveal">Your walk becomes a story.</p>
+
+        <div class="journey-pair reveal">
+          <img src="assets/screenshots/04_walk_summary.png" alt="Walk summary screen" class="journey-screenshot">
+          <img src="assets/screenshots/05_walk_stats.png" alt="Walk statistics screen" class="journey-screenshot">
+        </div>
+
+        <p class="journey-caption reveal">Every thought captured. Every step remembered.</p>
+
+        <div class="journey-pair reveal">
+          <img src="assets/screenshots/06_walk_activity.png" alt="Walk activity screen" class="journey-screenshot">
+          <img src="assets/screenshots/07_journal.png" alt="Journal screen" class="journey-screenshot">
+        </div>
+
+        <p class="journey-caption reveal">Collect seals. Make it yours.</p>
+
+        <div class="journey-pair reveal">
+          <img src="assets/screenshots/08_goshuin.png" alt="Goshuin collection screen" class="journey-screenshot">
+          <img src="assets/screenshots/09_settings.png" alt="Settings screen" class="journey-screenshot">
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footprint divider -->
+    <div class="divider-footprints" aria-hidden="true">
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+    </div>
+
+    <!-- ==========================================
+         6. The Seasons
          ========================================== -->
     <section class="seasons section" aria-label="Seasons">
       <div class="section-inner">
@@ -181,7 +490,50 @@
     </section>
 
     <!-- ==========================================
-         5. The Story
+         7. Privacy
+         ========================================== -->
+    <section class="privacy-section section" aria-label="Privacy">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Your walk is yours alone</h2>
+
+        <p class="body-text reveal">
+          Privacy is structural in Pilgrim, not a setting you have to find. The architecture
+          makes data collection impossible by design — your walks never leave your phone.
+        </p>
+
+        <div class="privacy-features">
+          <div class="privacy-feature reveal reveal-delay-1">
+            <div class="privacy-feature-icon" aria-hidden="true">&#127908;</div>
+            <h3>On-device transcription</h3>
+            <p>Voice memos are transcribed locally using Apple's on-device speech recognition. Your words never touch a server.</p>
+          </div>
+
+          <div class="privacy-feature reveal reveal-delay-2">
+            <div class="privacy-feature-icon" aria-hidden="true">&#9711;</div>
+            <h3>No accounts</h3>
+            <p>There is no login, no profile, no user ID. Pilgrim has no way to identify you even if it wanted to.</p>
+          </div>
+
+          <div class="privacy-feature reveal reveal-delay-3">
+            <div class="privacy-feature-icon" aria-hidden="true">&#10006;</div>
+            <h3>No analytics</h3>
+            <p>No usage tracking, no crash reporters that phone home, no third-party SDKs collecting behavioral data.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footprint divider -->
+    <div class="divider-footprints" aria-hidden="true">
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+    </div>
+
+    <!-- ==========================================
+         8. The Story
          ========================================== -->
     <section class="story section" aria-label="About">
       <div class="section-inner">
@@ -210,6 +562,9 @@
           <a href="https://github.com/momentmaker/pilgrim-ios" target="_blank" rel="noopener noreferrer">
             Open-source on GitHub &#8599;
           </a>
+          <a href="assets/pilgrim-press-kit.zip" download>
+            Press Kit &#8595;
+          </a>
         </div>
       </div>
     </section>
@@ -217,11 +572,18 @@
   </main>
 
   <!-- ==========================================
-       6. The Horizon (Footer)
+       9. The Horizon (Footer)
        ========================================== -->
   <footer class="horizon section">
     <img src="assets/pilgrim-logo.png" alt="" class="horizon-logo" width="40" height="40" aria-hidden="true">
-    <p class="horizon-coming">Coming soon</p>
+
+    <a href="#" class="app-store-badge" aria-label="Download on the App Store">
+      <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
+      <span class="app-store-badge-text">
+        <span class="app-store-badge-sub">Download on the</span>
+        <span class="app-store-badge-name">App Store</span>
+      </span>
+    </a>
 
     <div class="horizon-actions">
       <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"></button>
