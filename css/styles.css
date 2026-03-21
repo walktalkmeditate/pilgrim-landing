@@ -381,8 +381,19 @@ a:focus-visible {
 }
 
 .season-swatch.active {
-  transform: scale(1.03);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transform: scale(1.08);
+  animation: season-breathe 5s ease-in-out infinite;
+  outline: 2px solid var(--stone);
+  outline-offset: 3px;
+}
+
+@keyframes season-breathe {
+  0%, 100% {
+    box-shadow: 0 0 12px 2px rgba(196, 165, 116, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 24px 6px rgba(196, 165, 116, 0.45), 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .season-name {

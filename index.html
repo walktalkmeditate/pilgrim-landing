@@ -273,9 +273,14 @@
       padding-bottom: 5rem;
     }
 
+    .goshuin-section h2 {
+      margin-bottom: var(--padding-md);
+    }
+
     .goshuin-section p {
-      max-width: 560px;
-      margin-bottom: var(--padding-xl);
+      color: var(--stone);
+      max-width: 480px;
+      margin-bottom: var(--padding-lg);
     }
 
     .goshuin-visual {
@@ -283,6 +288,41 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+    }
+
+    .seal-hash {
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
+      font-size: 0.625rem;
+      color: var(--fog);
+      margin-top: 1rem;
+      letter-spacing: 0.04em;
+      word-break: break-all;
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    .seal-hash-label {
+      opacity: 0.4;
+    }
+
+    .seal-hash-value {
+      background: linear-gradient(
+        90deg,
+        var(--fog) 0%,
+        var(--stone) 45%,
+        var(--fog) 55%,
+        var(--fog) 100%
+      );
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: hash-shimmer 8s ease-in-out infinite;
+    }
+
+    @keyframes hash-shimmer {
+      0%, 100% { background-position: 100% 50%; }
+      50% { background-position: 0% 50%; }
     }
 
     .goshuin-seal {
@@ -297,9 +337,14 @@
       padding-bottom: 5rem;
     }
 
+    .soundscape-section h2 {
+      margin-bottom: var(--padding-md);
+    }
+
     .soundscape-section p {
-      max-width: 560px;
-      margin-bottom: var(--padding-xl);
+      color: var(--stone);
+      max-width: 480px;
+      margin-bottom: var(--padding-lg);
     }
 
     .soundscape-player {
@@ -493,14 +538,14 @@
 
         <div class="journey-pair reveal">
           <img src="assets/screenshots/06_walk_activity.png" alt="Voice transcription and activity timeline" class="journey-screenshot">
-          <img src="assets/screenshots/07_journal.png" alt="Journal showing walks as dots on an ink scroll path" class="journey-screenshot">
+          <img src="assets/screenshots/09_settings.png" alt="Settings with atmosphere and voice controls" class="journey-screenshot">
         </div>
 
         <p class="journey-caption reveal">Each walk earns a goshuin — a seal generated from your unique journey.</p>
 
         <div class="journey-pair reveal">
+          <img src="assets/screenshots/07_journal.png" alt="Journal showing walks as dots on an ink scroll path" class="journey-screenshot">
           <img src="assets/screenshots/08_goshuin.png" alt="Goshuin seal collection" class="journey-screenshot">
-          <img src="assets/screenshots/09_settings.png" alt="Settings with atmosphere and voice controls" class="journey-screenshot">
         </div>
 
       </div>
@@ -587,13 +632,13 @@
          ========================================== -->
     <section class="goshuin-section section" aria-label="Goshuin">
       <div class="section-inner">
-        <h2 class="display-large reveal">Every walk earns a seal</h2>
+        <h2 class="display-large reveal">Every walk leaves its mark</h2>
 
         <p class="body-text reveal">
-          In Japan, pilgrims collect <em>goshuin</em> — vermilion ink stamps given at temples along a route.
-          Each one is unique, hand-brushed in the moment. Pilgrim generates a digital seal for every walk,
-          derived from a SHA-256 hash of your route coordinates, distance, duration, and meditation time.
-          Every seal is cryptographically unique — verifiable, unrepeatable, yours.
+          In Japan, pilgrims collect <em>goshuin</em> — vermilion ink stamps given at temples
+          along a route. Each one is unique, hand-brushed in the moment. Pilgrim generates
+          a digital seal for every walk, derived from the unique fingerprint of your journey.
+          No two are alike. No two could be.
         </p>
 
         <div class="goshuin-visual reveal">
@@ -606,12 +651,12 @@
          ========================================== -->
     <section class="soundscape-section section" aria-label="Soundscape">
       <div class="section-inner">
-        <h2 class="display-large reveal">Walk with sound</h2>
+        <h2 class="display-large reveal">A landscape of sound</h2>
 
         <p class="body-text reveal">
-          Ambient soundscapes play softly while you walk — forest canopy, rainfall, ocean shore.
-          Voice guides offer spoken meditation prompts. Bells mark the start and end of walks.
-          Everything plays in the background, even when your screen is locked.
+          Forest canopy, rainfall, ocean shore — ambient soundscapes play softly as you walk.
+          Voice guides offer spoken meditation prompts. Bells mark the threshold between
+          stillness and motion. Everything continues in the background, even when your screen is dark.
         </p>
 
         <div class="soundscape-player reveal">
