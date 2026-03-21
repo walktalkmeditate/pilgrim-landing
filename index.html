@@ -372,6 +372,14 @@
       border-radius: 1px;
     }
 
+    .haiku-text::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 30px 12px rgba(210, 195, 170, 0.5);
+      pointer-events: none;
+    }
+
     .soundscape-section {
       padding-top: 3rem;
       padding-bottom: 5rem;
