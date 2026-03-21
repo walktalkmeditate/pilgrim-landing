@@ -286,20 +286,26 @@ a:focus-visible {
   justify-content: center;
   gap: 1.5rem;
   padding: 2rem 0;
-  opacity: 0.15;
 }
 
 .footprint {
   width: 12px;
   height: 20px;
   color: var(--stone);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.footprint:nth-child(even) {
+.footprint.visible {
+  opacity: 0.15;
+}
+
+.footprint.visible:nth-child(even) {
   transform: translateY(6px) rotate(8deg);
 }
 
-.footprint:nth-child(odd) {
+.footprint.visible:nth-child(odd) {
   transform: translateY(-2px) rotate(-5deg);
 }
 

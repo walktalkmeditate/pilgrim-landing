@@ -64,7 +64,7 @@
       var da = i === 0 ? '' : 'stroke-dasharray="'+dl+' '+gl+'"';
       var sw = i === 0 ? 1.5 : 0.8 + (bytes[i]%3)*0.3;
       var op = 0.7 - i * 0.06;
-      elements.push('<circle cx="'+cx+'" cy="'+cy+'" r="'+r.toFixed(1)+'" fill="none" stroke="'+sealColor+'" stroke-width="'+sw.toFixed(1)+'" opacity="'+op.toFixed(2)+'" '+da+'/>');
+      elements.push('<circle class="seal-el seal-ring" data-seal-tip="Distance walked \u2014 '+ringCount+' rings from '+(walkData.distance/1000).toFixed(1)+' km" cx="'+cx+'" cy="'+cy+'" r="'+r.toFixed(1)+'" fill="none" stroke="'+sealColor+'" stroke-width="'+sw.toFixed(1)+'" opacity="'+op.toFixed(2)+'" '+da+'/>');
     }
 
     var lineCount = 4 + (bytes[8] % 5);
@@ -79,7 +79,7 @@
       var y2 = cy + Math.sin(rad)*outerR*outer;
       var sw = 0.5 + (bytes[i]%3)*0.3;
       var op = 0.3 + (bytes[i+12]/255)*0.3;
-      elements.push('<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+sealColor+'" stroke-width="'+sw.toFixed(1)+'" opacity="'+op.toFixed(2)+'" stroke-linecap="round"/>');
+      elements.push('<line class="seal-el seal-line" data-seal-tip="Meditation \u2014 '+lineCount+' lines from '+(walkData.meditateDuration/60)+' min of stillness" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+sealColor+'" stroke-width="'+sw.toFixed(1)+'" opacity="'+op.toFixed(2)+'" stroke-linecap="round"/>');
     }
 
     var dotCount = 3 + (bytes[28] % 5);
@@ -90,7 +90,7 @@
       var x = cx + Math.cos(rad)*dist;
       var y = cy + Math.sin(rad)*dist;
       var dr = 1 + (bytes[i]%2);
-      elements.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+dr+'" fill="'+sealColor+'" opacity="0.35"/>');
+      elements.push('<circle class="seal-el seal-dot" data-seal-tip="Waypoints \u2014 '+dotCount+' moments marked along the route" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+dr+'" fill="'+sealColor+'" opacity="0.35"/>');
     }
 
     var alts = walkData.route.map(function(p){return p.alt;});
@@ -170,6 +170,23 @@
       });
     }, { threshold: 0.3 });
     observer.observe(svgEl);
+
+    var tip = document.createElement('div');
+    tip.className = 'seal-tooltip';
+    container.style.position = 'relative';
+    container.appendChild(tip);
+
+    svgEl.querySelectorAll('.seal-el').forEach(function(el) {
+      el.style.cursor = 'pointer';
+      el.style.pointerEvents = 'stroke';
+      el.addEventListener('mouseenter', function(e) {
+        tip.textContent = el.getAttribute('data-seal-tip');
+        tip.classList.add('visible');
+      });
+      el.addEventListener('mouseleave', function() {
+        tip.classList.remove('visible');
+      });
+    });
   }
 
   renderSeal();

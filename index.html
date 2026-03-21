@@ -290,6 +290,30 @@
       text-align: center;
     }
 
+    .seal-tooltip {
+      position: absolute;
+      bottom: -2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--stone);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .seal-tooltip.visible {
+      opacity: 1;
+    }
+
+    .seal-el:hover {
+      opacity: 1 !important;
+      filter: brightness(1.4);
+      transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+
     .seal-hash {
       font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace;
       font-size: 0.625rem;

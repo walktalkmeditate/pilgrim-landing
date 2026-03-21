@@ -65,15 +65,37 @@
     btn.appendChild(theme === 'dark' ? sunIcon() : moonIcon());
   }
 
-  // --- Quotes ---
-  var quotes = [
-    'The path is made by walking',
-    'Solvitur ambulando \u2014 it is solved by walking',
-    'Not all who wander are lost',
-    'Walk as if you are kissing the earth with your feet',
-    'Every journey begins with a single step',
-    'The journey of a thousand miles begins beneath your feet'
-  ];
+  // --- Quotes (time-aware) ---
+  var quotesByTime = {
+    morning: [
+      'The world is new this morning',
+      'Walk as if you are kissing the earth with your feet',
+      'Every day is a journey, and the journey itself is home',
+      'The morning wind spreads its fresh smell'
+    ],
+    afternoon: [
+      'The path is made by walking',
+      'Solvitur ambulando \u2014 it is solved by walking',
+      'Not all who wander are lost',
+      'Every journey begins with a single step'
+    ],
+    evening: [
+      'The day gives back what it borrowed from the light',
+      'Along this road goes no one \u2014 autumn evening',
+      'The journey of a thousand miles begins beneath your feet',
+      'We do not see nature with our eyes, but with our understandings and our hearts'
+    ],
+    night: [
+      'In the middle of the road of my life, I found myself in a dark wood',
+      'The night walked down the sky with the moon in her hand',
+      'I went to the woods because I wished to live deliberately',
+      'The stars are the land-marks of the universe'
+    ]
+  };
+
+  var hour = new Date().getHours();
+  var timeOfDay = hour >= 5 && hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+  var quotes = quotesByTime[timeOfDay];
 
   var currentQuoteIndex = 0;
   var quoteInterval = null;
@@ -180,6 +202,26 @@
     if (swatch) swatch.classList.add('active');
   }
 
+  // --- Footprint Walk Animation ---
+  function initFootprints() {
+    var dividers = document.querySelectorAll('.divider-footprints');
+    if (!dividers.length) return;
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var prints = entry.target.querySelectorAll('.footprint');
+          prints.forEach(function(p, i) {
+            setTimeout(function() { p.classList.add('visible'); }, i * 200);
+          });
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    dividers.forEach(function(d) { observer.observe(d); });
+  }
+
   // --- Parallax Screenshots ---
   function initParallax() {
     var pairs = document.querySelectorAll('.journey-pair');
@@ -208,6 +250,35 @@
     }, { passive: true });
   }
 
+  // --- Cursor Footprint Trail ---
+  function initCursorTrail() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var lastX = 0, lastY = 0;
+    var minDist = 40;
+
+    document.addEventListener('mousemove', function(e) {
+      var dx = e.clientX - lastX, dy = e.clientY - lastY;
+      if (dx * dx + dy * dy < minDist * minDist) return;
+      lastX = e.clientX;
+      lastY = e.clientY;
+
+      var dot = document.createElement('div');
+      dot.style.cssText = 'position:fixed;width:4px;height:4px;border-radius:50%;pointer-events:none;z-index:9999;' +
+        'background:var(--stone);opacity:0.12;transition:opacity 2s ease,transform 2s ease;' +
+        'left:' + e.clientX + 'px;top:' + e.clientY + 'px;transform:translate(-50%,-50%)';
+      document.body.appendChild(dot);
+
+      requestAnimationFrame(function() {
+        dot.style.opacity = '0';
+        dot.style.transform = 'translate(-50%,-50%) scale(0.3)';
+      });
+
+      setTimeout(function() { dot.remove(); }, 2200);
+    });
+  }
+
   // --- Init ---
   document.addEventListener('DOMContentLoaded', function () {
     setTheme(getPreferredTheme());
@@ -225,6 +296,8 @@
     initParticles();
     initSeasonsHighlight();
     initParallax();
+    initFootprints();
+    initCursorTrail();
 
     var toggleBtn = document.getElementById('theme-toggle');
     if (toggleBtn) {
