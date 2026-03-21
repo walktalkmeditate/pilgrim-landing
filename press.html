@@ -81,6 +81,32 @@
       color: var(--stone);
     }
 
+    .press-previews {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--padding-lg);
+      margin-bottom: var(--padding-xl);
+      max-width: 560px;
+    }
+
+    .press-preview {
+      text-align: center;
+    }
+
+    .press-preview video {
+      width: 100%;
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: var(--padding-sm);
+    }
+
+    .press-preview p {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--stone);
+      margin: 0;
+    }
+
     .press-icon {
       width: 120px;
       height: 120px;
@@ -100,6 +126,10 @@
 
     @media (max-width: 480px) {
       .press-assets {
+        grid-template-columns: 1fr;
+        max-width: 280px;
+      }
+      .press-previews {
         grid-template-columns: 1fr;
         max-width: 280px;
       }
@@ -172,6 +202,20 @@
         <h2>App icon</h2>
         <img src="assets/pilgrim-logo.png" alt="Pilgrim app icon" class="press-icon">
         <p><a href="assets/pilgrim-logo.png" download>Download icon (PNG)</a> &middot; <a href="assets/pilgrim-logo.svg" download>Download icon (SVG)</a></p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Video previews</h2>
+        <div class="press-previews">
+          <div class="press-preview">
+            <video src="assets/previews/01_app_preview.mp4" controls playsinline muted></video>
+            <p>App Preview &mdash; walk, meditate, record, reflect</p>
+          </div>
+          <div class="press-preview">
+            <video src="assets/previews/02_meditation_preview.mp4" controls playsinline muted></video>
+            <p>Meditation &mdash; breathing circle with Dusk voice guide</p>
+          </div>
+        </div>
       </section>
 
       <section class="legal-section">
