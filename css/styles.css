@@ -381,18 +381,20 @@ a:focus-visible {
 }
 
 .season-swatch.active {
-  transform: scale(1.08);
-  animation: season-breathe 5s ease-in-out infinite;
-  outline: 2px solid var(--stone);
-  outline-offset: 3px;
+  transform: scale(1.06);
+  animation: season-breathe 6s ease-in-out infinite;
 }
 
 @keyframes season-breathe {
   0%, 100% {
-    box-shadow: 0 0 12px 2px rgba(196, 165, 116, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 0 8px 1px rgba(196, 165, 116, 0.15),
+      0 0 20px 4px rgba(196, 165, 116, 0.08);
   }
   50% {
-    box-shadow: 0 0 24px 6px rgba(196, 165, 116, 0.45), 0 4px 24px rgba(0, 0, 0, 0.15);
+    box-shadow:
+      0 0 14px 3px rgba(196, 165, 116, 0.3),
+      0 0 36px 10px rgba(196, 165, 116, 0.12);
   }
 }
 
