@@ -960,7 +960,7 @@
       var picker = document.getElementById('soundscape-picker');
       if (!btn || !picker) return;
 
-      var audio = null, playing = false, fading = false;
+      var audio = null, playing = false;
       var currentId = 'deep-forest';
       var names = {
         'deep-forest': 'Deep Forest', 'gentle-stream': 'Gentle Stream',
@@ -970,31 +970,12 @@
       };
       var holdTimer = null;
 
-      function canFade() {
-        var test = new Audio();
-        test.volume = 0.5;
-        return test.volume === 0.5;
-      }
-      var supportsFade = canFade();
-
       function play(id) {
-        stop(true);
+        if (audio) { audio.pause(); audio = null; }
         currentId = id;
         audio = new Audio('https://cdn.pilgrimapp.org/audio/soundscape/' + id + '.aac');
         audio.loop = true;
-        if (supportsFade) {
-          audio.volume = 0;
-          audio.play().then(function() {
-            var vol = 0;
-            var fade = setInterval(function() {
-              vol = Math.min(1, vol + 0.04);
-              if (audio) audio.volume = vol;
-              if (vol >= 1) clearInterval(fade);
-            }, 60);
-          }).catch(function() {});
-        } else {
-          audio.play().catch(function() {});
-        }
+        audio.play().catch(function() {});
         playing = true;
         btn.classList.add('playing');
         btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
@@ -1002,23 +983,8 @@
         updatePickerActive();
       }
 
-      function stop(immediate) {
-        if (!audio) return;
-        if (supportsFade && !immediate) {
-          fading = true;
-          var fadeOut = setInterval(function() {
-            if (audio && audio.volume > 0.05) {
-              audio.volume -= 0.04;
-            } else {
-              clearInterval(fadeOut);
-              if (audio) { audio.pause(); audio = null; }
-              fading = false;
-            }
-          }, 60);
-        } else {
-          audio.pause();
-          audio = null;
-        }
+      function stop() {
+        if (audio) { audio.pause(); audio = null; }
         playing = false;
         btn.classList.remove('playing');
         btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
@@ -1043,9 +1009,7 @@
         if (holdTimer !== null) {
           clearTimeout(holdTimer);
           holdTimer = null;
-          if (!fading) {
-            if (!playing) { play(currentId); } else { stop(false); }
-          }
+          if (!playing) { play(currentId); } else { stop(); }
         }
       });
 
