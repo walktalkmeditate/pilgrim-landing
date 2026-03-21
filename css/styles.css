@@ -515,9 +515,23 @@ a:focus-visible {
 }
 
 .github-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--parchment-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
   color: var(--fog);
   font-family: var(--font-ui);
   font-size: 0.875rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.github-link:hover {
+  border-color: var(--stone);
+  color: var(--stone);
 }
 
 /* =============================================
