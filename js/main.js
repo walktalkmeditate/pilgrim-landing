@@ -180,6 +180,34 @@
     if (swatch) swatch.classList.add('active');
   }
 
+  // --- Parallax Screenshots ---
+  function initParallax() {
+    var pairs = document.querySelectorAll('.journey-pair');
+    if (!pairs.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    pairs.forEach(function(pair) {
+      var imgs = pair.querySelectorAll('.journey-screenshot');
+      if (imgs.length === 2) {
+        imgs[0].style.transition = 'transform 0.1s ease-out';
+        imgs[1].style.transition = 'transform 0.1s ease-out';
+      }
+    });
+
+    window.addEventListener('scroll', function() {
+      pairs.forEach(function(pair) {
+        var rect = pair.getBoundingClientRect();
+        var center = rect.top + rect.height / 2;
+        var viewCenter = window.innerHeight / 2;
+        var offset = (center - viewCenter) / window.innerHeight;
+        var imgs = pair.querySelectorAll('.journey-screenshot');
+        if (imgs.length === 2) {
+          imgs[0].style.transform = 'translateY(' + (offset * -12) + 'px)';
+          imgs[1].style.transform = 'translateY(' + (offset * 12) + 'px)';
+        }
+      });
+    }, { passive: true });
+  }
+
   // --- Init ---
   document.addEventListener('DOMContentLoaded', function () {
     setTheme(getPreferredTheme());
@@ -196,6 +224,7 @@
     initScrollTracker();
     initParticles();
     initSeasonsHighlight();
+    initParallax();
 
     var toggleBtn = document.getElementById('theme-toggle');
     if (toggleBtn) {

@@ -113,7 +113,7 @@
 
     var distKm = (walkData.distance/1000).toFixed(1);
 
-    var svg = '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="max-width:100%">';
+    var svg = '<svg class="seal-svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="max-width:100%">';
     svg += '<defs><filter id="seal-rough"><feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" seed="'+bytes[31]+'"/>';
     svg += '<feDisplacementMap in="SourceGraphic" scale="1.5"/></filter></defs>';
     svg += '<g transform="rotate('+rotation.toFixed(1)+' '+cx+' '+cy+')" filter="url(#seal-rough)">';
@@ -132,6 +132,44 @@
     svg += '</svg>';
 
     container.innerHTML = svg + '<p class="seal-hash"><span class="seal-hash-label">SHA-256</span> <span class="seal-hash-value">'+hash+'</span></p>';
+
+    var svgEl = container.querySelector('.seal-svg');
+    var strokes = svgEl.querySelectorAll('circle[stroke], line, polygon');
+    var dots = svgEl.querySelectorAll('circle[fill]:not([stroke])');
+
+    strokes.forEach(function(el, i) {
+      var len = el.tagName === 'circle' ? 2 * Math.PI * parseFloat(el.getAttribute('r')) :
+                el.tagName === 'line' ? Math.hypot(
+                  parseFloat(el.getAttribute('x2')) - parseFloat(el.getAttribute('x1')),
+                  parseFloat(el.getAttribute('y2')) - parseFloat(el.getAttribute('y1'))
+                ) : 800;
+      el.style.strokeDasharray = len;
+      el.style.strokeDashoffset = len;
+      el.style.transition = 'stroke-dashoffset ' + (1.2 + i * 0.15) + 's ease ' + (i * 0.18) + 's';
+    });
+
+    dots.forEach(function(el, i) {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.8s ease ' + (strokes.length * 0.18 + i * 0.12) + 's';
+    });
+
+    var hashEl = container.querySelector('.seal-hash');
+    if (hashEl) {
+      hashEl.style.opacity = '0';
+      hashEl.style.transition = 'opacity 1s ease ' + (strokes.length * 0.18 + dots.length * 0.12) + 's';
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          strokes.forEach(function(el) { el.style.strokeDashoffset = '0'; });
+          dots.forEach(function(el) { el.style.opacity = el.getAttribute('opacity') || '0.35'; });
+          if (hashEl) hashEl.style.opacity = '1';
+          observer.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+    observer.observe(svgEl);
   }
 
   renderSeal();

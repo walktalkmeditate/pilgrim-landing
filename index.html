@@ -332,6 +332,21 @@
     }
 
     /* Soundscape */
+    .haiku {
+      padding: 2rem 0;
+    }
+
+    .haiku-text {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 300;
+      font-size: 1.125rem;
+      line-height: 2;
+      color: var(--stone);
+      white-space: pre-line;
+      opacity: 0.8;
+    }
+
     .soundscape-section {
       padding-top: 3rem;
       padding-bottom: 5rem;
@@ -527,6 +542,10 @@
           <img src="assets/screenshots/03_meditation.png" alt="Meditation breathing circle in dark mode" class="journey-screenshot">
         </div>
 
+        <div class="journey-single reveal">
+          <video src="assets/previews/02_meditation_preview.mp4" class="journey-screenshot" autoplay muted loop playsinline></video>
+        </div>
+
         <p class="journey-caption reveal">Route, elevation, weather, intention — your walk becomes a story.</p>
 
         <div class="journey-pair reveal">
@@ -624,6 +643,13 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Seasonal haiku -->
+    <section class="haiku section" aria-label="Seasonal poem">
+      <div class="section-inner" style="text-align:center">
+        <p class="haiku-text reveal" id="seasonal-haiku"></p>
       </div>
     </section>
 
@@ -800,6 +826,20 @@
   <script src="js/main.js"></script>
   <script src="js/seal.js"></script>
   <script>
+    (function() {
+      var haiku = {
+        spring: 'Old pond —\na frog jumps in,\nsound of water.',
+        summer: 'Summer grasses —\nall that remains\nof warriors\u2019 dreams.',
+        autumn: 'Along this road\ngoes no one —\nautumn evening.',
+        winter: 'First winter rain —\neven the monkey\nseems to want a raincoat.'
+      };
+      var el = document.getElementById('seasonal-haiku');
+      if (el && window.SeasonalEngine) {
+        var s = window.SeasonalEngine.getCurrentSeason();
+        el.textContent = haiku[s] || haiku.spring;
+      }
+    })();
+
     (function() {
       const btn = document.getElementById('soundscape-toggle');
       if (!btn) return;
