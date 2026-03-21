@@ -452,6 +452,57 @@
     .soundscape-play-icon {
       font-size: 1rem;
     }
+
+    .soundscape-controls {
+      position: relative;
+      display: inline-block;
+    }
+
+    .soundscape-picker {
+      position: absolute;
+      bottom: calc(100% + 0.5rem);
+      left: 50%;
+      transform: translateX(-50%) scale(0.95);
+      background: var(--parchment-secondary);
+      border: 1px solid var(--parchment-tertiary);
+      border-radius: var(--radius-md);
+      padding: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      min-width: 180px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .soundscape-picker.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .soundscape-option {
+      background: none;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      font-family: var(--font-ui);
+      font-size: 0.8125rem;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .soundscape-option:hover {
+      background: var(--parchment-tertiary);
+    }
+
+    .soundscape-option.active {
+      color: var(--moss);
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -739,10 +790,21 @@
         </p>
 
         <div class="soundscape-player reveal">
-          <button type="button" class="soundscape-play-btn" id="soundscape-toggle" aria-label="Play ambient sound sample">
-            <span class="soundscape-play-icon">&#9654;</span>
-            <span class="soundscape-play-label">Close your eyes. Press play.</span>
-          </button>
+          <div class="soundscape-controls">
+            <button type="button" class="soundscape-play-btn" id="soundscape-toggle" aria-label="Play ambient sound sample">
+              <span class="soundscape-play-icon">&#9654;</span>
+              <span class="soundscape-play-label">Close your eyes. Press play.</span>
+            </button>
+            <div class="soundscape-picker" id="soundscape-picker">
+              <button type="button" class="soundscape-option" data-id="deep-forest">Deep Forest</button>
+              <button type="button" class="soundscape-option" data-id="gentle-stream">Gentle Stream</button>
+              <button type="button" class="soundscape-option" data-id="ocean-waves">Ocean Waves</button>
+              <button type="button" class="soundscape-option" data-id="morning-birds">Morning Birds</button>
+              <button type="button" class="soundscape-option" data-id="rain-forest">Rain Forest</button>
+              <button type="button" class="soundscape-option" data-id="evening-crickets">Evening Crickets</button>
+              <button type="button" class="soundscape-option" data-id="crackling-fire">Crackling Fire</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -894,41 +956,113 @@
     })();
 
     (function() {
-      const btn = document.getElementById('soundscape-toggle');
-      if (!btn) return;
-      let audio = null, playing = false;
+      var btn = document.getElementById('soundscape-toggle');
+      var picker = document.getElementById('soundscape-picker');
+      if (!btn || !picker) return;
 
-      btn.addEventListener('click', function() {
-        if (!playing) {
-          audio = new Audio('https://cdn.pilgrimapp.org/audio/soundscape/deep-forest.aac');
-          audio.loop = true;
+      var audio = null, playing = false, fading = false;
+      var currentId = 'deep-forest';
+      var names = {
+        'deep-forest': 'Deep Forest', 'gentle-stream': 'Gentle Stream',
+        'ocean-waves': 'Ocean Waves', 'morning-birds': 'Morning Birds',
+        'rain-forest': 'Rain Forest', 'evening-crickets': 'Evening Crickets',
+        'crackling-fire': 'Crackling Fire'
+      };
+      var holdTimer = null;
+
+      function canFade() {
+        var test = new Audio();
+        test.volume = 0.5;
+        return test.volume === 0.5;
+      }
+      var supportsFade = canFade();
+
+      function play(id) {
+        stop(true);
+        currentId = id;
+        audio = new Audio('https://cdn.pilgrimapp.org/audio/soundscape/' + id + '.aac');
+        audio.loop = true;
+        if (supportsFade) {
           audio.volume = 0;
           audio.play().then(function() {
             var vol = 0;
-            var fadeIn = setInterval(function() {
-              vol = Math.min(1, vol + 0.05);
-              audio.volume = vol;
-              if (vol >= 1) clearInterval(fadeIn);
-            }, 50);
+            var fade = setInterval(function() {
+              vol = Math.min(1, vol + 0.04);
+              if (audio) audio.volume = vol;
+              if (vol >= 1) clearInterval(fade);
+            }, 60);
           }).catch(function() {});
-          playing = true;
-          btn.classList.add('playing');
-          btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
-          btn.querySelector('.soundscape-play-label').textContent = 'Deep Forest \u2014 playing';
         } else {
+          audio.play().catch(function() {});
+        }
+        playing = true;
+        btn.classList.add('playing');
+        btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
+        btn.querySelector('.soundscape-play-label').textContent = names[id] + ' \u2014 playing';
+        updatePickerActive();
+      }
+
+      function stop(immediate) {
+        if (!audio) return;
+        if (supportsFade && !immediate) {
+          fading = true;
           var fadeOut = setInterval(function() {
-            if (audio.volume > 0.05) {
-              audio.volume -= 0.05;
+            if (audio && audio.volume > 0.05) {
+              audio.volume -= 0.04;
             } else {
               clearInterval(fadeOut);
-              audio.pause();
-              audio = null;
+              if (audio) { audio.pause(); audio = null; }
+              fading = false;
             }
-          }, 50);
-          playing = false;
-          btn.classList.remove('playing');
-          btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
-          btn.querySelector('.soundscape-play-label').textContent = 'Close your eyes. Press play.';
+          }, 60);
+        } else {
+          audio.pause();
+          audio = null;
+        }
+        playing = false;
+        btn.classList.remove('playing');
+        btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
+        btn.querySelector('.soundscape-play-label').textContent = 'Close your eyes. Press play.';
+      }
+
+      function updatePickerActive() {
+        picker.querySelectorAll('.soundscape-option').forEach(function(o) {
+          o.classList.toggle('active', o.dataset.id === currentId);
+        });
+      }
+      updatePickerActive();
+
+      btn.addEventListener('pointerdown', function() {
+        holdTimer = setTimeout(function() {
+          holdTimer = null;
+          picker.classList.toggle('open');
+        }, 500);
+      });
+
+      btn.addEventListener('pointerup', function() {
+        if (holdTimer !== null) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+          if (!fading) {
+            if (!playing) { play(currentId); } else { stop(false); }
+          }
+        }
+      });
+
+      btn.addEventListener('pointerleave', function() {
+        if (holdTimer !== null) { clearTimeout(holdTimer); holdTimer = null; }
+      });
+
+      picker.querySelectorAll('.soundscape-option').forEach(function(o) {
+        o.addEventListener('click', function() {
+          play(o.dataset.id);
+          picker.classList.remove('open');
+        });
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!btn.contains(e.target) && !picker.contains(e.target)) {
+          picker.classList.remove('open');
         }
       });
     })();
