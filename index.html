@@ -258,6 +258,78 @@
       font-weight: 700;
       line-height: 1.2;
     }
+
+    .journey-cta {
+      text-align: center;
+      padding: var(--padding-xl) 0 0;
+    }
+
+    /* Goshuin */
+    .goshuin-section {
+      padding-top: 3rem;
+      padding-bottom: 5rem;
+    }
+
+    .goshuin-section p {
+      max-width: 560px;
+      margin-bottom: var(--padding-xl);
+    }
+
+    .goshuin-visual {
+      display: flex;
+      justify-content: center;
+    }
+
+    .goshuin-seal {
+      width: 200px;
+      height: 200px;
+      opacity: 0.9;
+    }
+
+    /* Soundscape */
+    .soundscape-section {
+      padding-top: 3rem;
+      padding-bottom: 5rem;
+    }
+
+    .soundscape-section p {
+      max-width: 560px;
+      margin-bottom: var(--padding-xl);
+    }
+
+    .soundscape-player {
+      display: flex;
+      justify-content: center;
+    }
+
+    .soundscape-play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--padding-sm);
+      background: var(--parchment-secondary);
+      border: 1px solid var(--parchment-tertiary);
+      border-radius: var(--radius-lg);
+      padding: var(--padding-sm) var(--padding-lg);
+      cursor: pointer;
+      color: var(--stone);
+      font-family: var(--font-ui);
+      font-size: 0.875rem;
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.3s ease;
+    }
+
+    .soundscape-play-btn:hover {
+      border-color: var(--stone);
+      background: var(--parchment-tertiary);
+    }
+
+    .soundscape-play-btn.playing {
+      border-color: var(--moss);
+      color: var(--moss);
+    }
+
+    .soundscape-play-icon {
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -358,25 +430,25 @@
           <div class="practice-card practice-card--voice reveal reveal-delay-1">
             <div class="practice-card-icon" aria-hidden="true">&#9834;</div>
             <h3>Voice</h3>
-            <p>Capture what arises. A thought, a sound, a feeling — spoken into the wind and held for later.</p>
+            <p>Speak a thought mid-walk. It's recorded, timestamped, and transcribed on your phone. No audio ever leaves your device.</p>
           </div>
 
           <div class="practice-card practice-card--stillness reveal reveal-delay-2">
             <div class="practice-card-icon" aria-hidden="true">&#9675;</div>
             <h3>Stillness</h3>
-            <p>Find your center. Pause mid-walk for a breath that returns you to where you are.</p>
+            <p>A breathing circle guides you into meditation. Customizable rhythms. Voice guide packs with spoken prompts. Your meditation time is tracked separately from walking.</p>
           </div>
 
           <div class="practice-card practice-card--reflection reveal reveal-delay-3">
             <div class="practice-card-icon" aria-hidden="true">&#10024;</div>
             <h3>Reflection</h3>
-            <p>Receive inspiration. Words from fellow walkers and thinkers, arriving when you need them.</p>
+            <p>After your walk, six styles of writing prompts are generated from your own words. Copy them into ChatGPT, Claude, or any AI and turn a walk into writing.</p>
           </div>
 
           <div class="practice-card practice-card--privacy reveal reveal-delay-4">
             <div class="practice-card-icon" aria-hidden="true">&#9670;</div>
             <h3>Privacy</h3>
-            <p>Your walk is yours alone. Everything stays on your device. No tracking, no cloud, no compromise.</p>
+            <p>No accounts. No analytics. No cloud. The App Store privacy label shows near-zero data collection — and the source code is public for anyone to verify.</p>
           </div>
         </div>
       </div>
@@ -392,40 +464,50 @@
 
       <div class="journey-inner">
 
-        <p class="journey-caption reveal">Set your intention. Begin walking.</p>
+        <p class="journey-caption reveal">Choose a quote. Set an intention. Tap Wander.</p>
 
         <div class="journey-pair reveal">
-          <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen" class="journey-screenshot">
-          <img src="assets/screenshots/02_active_walk.png" alt="Active walk screen" class="journey-screenshot">
+          <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen with quote and moon phase" class="journey-screenshot">
+          <img src="assets/screenshots/02_active_walk.png" alt="Active walk showing live route on map" class="journey-screenshot">
         </div>
 
-        <p class="journey-caption reveal">Pause. Breathe. Be still.</p>
+        <p class="journey-caption reveal">The breathing circle appears. The world quiets.</p>
 
         <div class="journey-single reveal">
-          <img src="assets/screenshots/03_meditation.png" alt="Meditation screen" class="journey-screenshot">
+          <img src="assets/screenshots/03_meditation.png" alt="Meditation breathing circle in dark mode" class="journey-screenshot">
         </div>
 
-        <p class="journey-caption reveal">Your walk becomes a story.</p>
+        <p class="journey-caption reveal">Route, elevation, weather, intention — your walk becomes a story.</p>
 
         <div class="journey-pair reveal">
-          <img src="assets/screenshots/04_walk_summary.png" alt="Walk summary screen" class="journey-screenshot">
-          <img src="assets/screenshots/05_walk_stats.png" alt="Walk statistics screen" class="journey-screenshot">
+          <img src="assets/screenshots/04_walk_summary.png" alt="Walk summary with route map and milestone" class="journey-screenshot">
+          <img src="assets/screenshots/05_walk_stats.png" alt="Time breakdown showing walk, talk, and meditate" class="journey-screenshot">
         </div>
 
-        <p class="journey-caption reveal">Every thought captured. Every step remembered.</p>
+        <p class="journey-caption reveal">Voice recordings transcribed on your phone. AI prompts from your own words.</p>
 
         <div class="journey-pair reveal">
-          <img src="assets/screenshots/06_walk_activity.png" alt="Walk activity screen" class="journey-screenshot">
-          <img src="assets/screenshots/07_journal.png" alt="Journal screen" class="journey-screenshot">
+          <img src="assets/screenshots/06_walk_activity.png" alt="Voice transcription and activity timeline" class="journey-screenshot">
+          <img src="assets/screenshots/07_journal.png" alt="Journal showing walks as dots on an ink scroll path" class="journey-screenshot">
         </div>
 
-        <p class="journey-caption reveal">Collect seals. Make it yours.</p>
+        <p class="journey-caption reveal">Each walk earns a goshuin — a seal generated from your unique journey.</p>
 
         <div class="journey-pair reveal">
-          <img src="assets/screenshots/08_goshuin.png" alt="Goshuin collection screen" class="journey-screenshot">
-          <img src="assets/screenshots/09_settings.png" alt="Settings screen" class="journey-screenshot">
+          <img src="assets/screenshots/08_goshuin.png" alt="Goshuin seal collection" class="journey-screenshot">
+          <img src="assets/screenshots/09_settings.png" alt="Settings with atmosphere and voice controls" class="journey-screenshot">
         </div>
 
+      </div>
+
+      <div class="journey-cta reveal">
+        <a href="#" class="app-store-badge" aria-label="Download on the App Store">
+          <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
+          <span class="app-store-badge-text">
+            <span class="app-store-badge-sub">Download on the</span>
+            <span class="app-store-badge-name">App Store</span>
+          </span>
+        </a>
       </div>
     </section>
 
@@ -491,34 +573,92 @@
     </section>
 
     <!-- ==========================================
-         7. Privacy
+         7. Goshuin
+         ========================================== -->
+    <section class="goshuin-section section" aria-label="Goshuin">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Every walk earns a seal</h2>
+
+        <p class="body-text reveal">
+          In Japan, pilgrims collect <em>goshuin</em> — vermilion ink stamps given at temples along a route.
+          Each one is unique, hand-brushed in the moment. Pilgrim generates a digital seal for every walk,
+          derived from its unique data: distance, duration, weather, elevation. Your collection grows with your practice.
+        </p>
+
+        <div class="goshuin-visual reveal">
+          <svg class="goshuin-seal" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="var(--rust)" stroke-width="2" opacity="0.6"/>
+            <circle cx="100" cy="100" r="70" fill="none" stroke="var(--rust)" stroke-width="1" opacity="0.3"/>
+            <circle cx="100" cy="100" r="50" fill="none" stroke="var(--dawn)" stroke-width="1.5" opacity="0.4"/>
+            <text x="100" y="90" text-anchor="middle" font-family="var(--font-display)" font-size="28" font-weight="300" fill="var(--rust)" opacity="0.7">pilgrim</text>
+            <text x="100" y="120" text-anchor="middle" font-family="var(--font-ui)" font-size="9" letter-spacing="0.15em" fill="var(--fog)" text-transform="uppercase">8.2 KM &middot; 105 MIN</text>
+            <text x="100" y="140" text-anchor="middle" font-family="var(--font-ui)" font-size="8" fill="var(--fog)" opacity="0.6">CAMINO DE SANTIAGO</text>
+            <circle cx="100" cy="165" r="4" fill="var(--rust)" opacity="0.3"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         8. Soundscape
+         ========================================== -->
+    <section class="soundscape-section section" aria-label="Soundscape">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Walk with sound</h2>
+
+        <p class="body-text reveal">
+          Ambient soundscapes play softly while you walk — forest canopy, rainfall, ocean shore.
+          Voice guides offer spoken meditation prompts. Bells mark the start and end of walks.
+          Everything plays in the background, even when your screen is locked.
+        </p>
+
+        <div class="soundscape-player reveal">
+          <button type="button" class="soundscape-play-btn" id="soundscape-toggle" aria-label="Play ambient sound sample">
+            <span class="soundscape-play-icon">&#9654;</span>
+            <span class="soundscape-play-label">Listen to a forest soundscape</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footprint divider -->
+    <div class="divider-footprints" aria-hidden="true">
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
+    </div>
+
+    <!-- ==========================================
+         9. Privacy
          ========================================== -->
     <section class="privacy-section section" aria-label="Privacy">
       <div class="section-inner">
         <h2 class="display-large reveal">Your walk is yours alone</h2>
 
         <p class="body-text reveal">
-          Privacy is structural in Pilgrim, not a setting you have to find. The architecture
-          makes data collection impossible by design — your walks never leave your phone.
+          Privacy isn't a setting you toggle on. It's the architecture. There is no server that
+          knows who you are. There is no account to create. The code is open source for anyone to verify.
         </p>
 
         <div class="privacy-features">
           <div class="privacy-feature reveal reveal-delay-1">
             <div class="privacy-feature-icon" aria-hidden="true">&#127908;</div>
             <h3>On-device transcription</h3>
-            <p>Voice memos are transcribed locally using Apple's on-device speech recognition. Your words never touch a server.</p>
+            <p>WhisperKit transcribes your voice recordings locally. No audio is ever sent to a server.</p>
           </div>
 
           <div class="privacy-feature reveal reveal-delay-2">
             <div class="privacy-feature-icon" aria-hidden="true">&#9711;</div>
             <h3>No accounts</h3>
-            <p>There is no login, no profile, no user ID. Pilgrim has no way to identify you even if it wanted to.</p>
+            <p>No login, no profile, no user ID. Pilgrim cannot identify you even if it wanted to.</p>
           </div>
 
           <div class="privacy-feature reveal reveal-delay-3">
             <div class="privacy-feature-icon" aria-hidden="true">&#10006;</div>
             <h3>No analytics</h3>
-            <p>No usage tracking, no crash reporters that phone home, no third-party SDKs collecting behavioral data.</p>
+            <p>No usage tracking, no crash reporters, no third-party SDKs. The App Store privacy label confirms it.</p>
           </div>
         </div>
       </div>
@@ -608,5 +748,86 @@
   <script src="js/seasonal.js"></script>
   <script src="js/moon.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    (function() {
+      const btn = document.getElementById('soundscape-toggle');
+      if (!btn) return;
+      let ctx, playing = false, nodes = [];
+
+      function createForestSoundscape() {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        gain.connect(ctx.destination);
+
+        for (let i = 0; i < 6; i++) {
+          const osc = ctx.createOscillator();
+          const oscGain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          osc.type = 'sine';
+          osc.frequency.value = 180 + Math.random() * 300;
+          filter.type = 'lowpass';
+          filter.frequency.value = 400 + Math.random() * 200;
+          filter.Q.value = 0.5;
+          oscGain.gain.value = 0.02 + Math.random() * 0.02;
+          osc.connect(filter);
+          filter.connect(oscGain);
+          oscGain.connect(gain);
+          osc.start();
+
+          const lfo = ctx.createOscillator();
+          const lfoGain = ctx.createGain();
+          lfo.frequency.value = 0.05 + Math.random() * 0.15;
+          lfoGain.gain.value = 0.01;
+          lfo.connect(lfoGain);
+          lfoGain.connect(oscGain.gain);
+          lfo.start();
+
+          nodes.push(osc, lfo);
+        }
+
+        const noise = ctx.createBufferSource();
+        const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.015;
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 800;
+        noiseFilter.Q.value = 0.3;
+        noise.connect(noiseFilter);
+        noiseFilter.connect(gain);
+        noise.start();
+        nodes.push(noise);
+
+        gain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 2);
+        return gain;
+      }
+
+      let gainNode;
+      btn.addEventListener('click', function() {
+        if (!playing) {
+          gainNode = createForestSoundscape();
+          playing = true;
+          btn.classList.add('playing');
+          btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
+          btn.querySelector('.soundscape-play-label').textContent = 'Listening...';
+        } else {
+          if (gainNode) gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+          setTimeout(function() {
+            nodes.forEach(function(n) { try { n.stop(); } catch(e) {} });
+            nodes = [];
+            if (ctx) ctx.close();
+            ctx = null;
+          }, 1200);
+          playing = false;
+          btn.classList.remove('playing');
+          btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
+          btn.querySelector('.soundscape-play-label').textContent = 'Listen to a forest soundscape';
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
