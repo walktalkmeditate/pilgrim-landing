@@ -752,75 +752,35 @@
     (function() {
       const btn = document.getElementById('soundscape-toggle');
       if (!btn) return;
-      let ctx, playing = false, nodes = [];
+      let audio = null, playing = false;
 
-      function createForestSoundscape() {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        gain.connect(ctx.destination);
-
-        for (let i = 0; i < 6; i++) {
-          const osc = ctx.createOscillator();
-          const oscGain = ctx.createGain();
-          const filter = ctx.createBiquadFilter();
-          osc.type = 'sine';
-          osc.frequency.value = 180 + Math.random() * 300;
-          filter.type = 'lowpass';
-          filter.frequency.value = 400 + Math.random() * 200;
-          filter.Q.value = 0.5;
-          oscGain.gain.value = 0.02 + Math.random() * 0.02;
-          osc.connect(filter);
-          filter.connect(oscGain);
-          oscGain.connect(gain);
-          osc.start();
-
-          const lfo = ctx.createOscillator();
-          const lfoGain = ctx.createGain();
-          lfo.frequency.value = 0.05 + Math.random() * 0.15;
-          lfoGain.gain.value = 0.01;
-          lfo.connect(lfoGain);
-          lfoGain.connect(oscGain.gain);
-          lfo.start();
-
-          nodes.push(osc, lfo);
-        }
-
-        const noise = ctx.createBufferSource();
-        const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.015;
-        noise.buffer = noiseBuffer;
-        noise.loop = true;
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.value = 800;
-        noiseFilter.Q.value = 0.3;
-        noise.connect(noiseFilter);
-        noiseFilter.connect(gain);
-        noise.start();
-        nodes.push(noise);
-
-        gain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 2);
-        return gain;
-      }
-
-      let gainNode;
       btn.addEventListener('click', function() {
         if (!playing) {
-          gainNode = createForestSoundscape();
+          audio = new Audio('https://cdn.pilgrimapp.org/audio/soundscape/deep-forest.aac');
+          audio.loop = true;
+          audio.volume = 0;
+          audio.play().then(function() {
+            var vol = 0;
+            var fadeIn = setInterval(function() {
+              vol = Math.min(1, vol + 0.05);
+              audio.volume = vol;
+              if (vol >= 1) clearInterval(fadeIn);
+            }, 50);
+          }).catch(function() {});
           playing = true;
           btn.classList.add('playing');
           btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
-          btn.querySelector('.soundscape-play-label').textContent = 'Listening...';
+          btn.querySelector('.soundscape-play-label').textContent = 'Deep Forest';
         } else {
-          if (gainNode) gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
-          setTimeout(function() {
-            nodes.forEach(function(n) { try { n.stop(); } catch(e) {} });
-            nodes = [];
-            if (ctx) ctx.close();
-            ctx = null;
-          }, 1200);
+          var fadeOut = setInterval(function() {
+            if (audio.volume > 0.05) {
+              audio.volume -= 0.05;
+            } else {
+              clearInterval(fadeOut);
+              audio.pause();
+              audio = null;
+            }
+          }, 50);
           playing = false;
           btn.classList.remove('playing');
           btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
