@@ -363,7 +363,7 @@ a:focus-visible {
 
 .seasons-description {
   color: var(--stone);
-  margin-bottom: var(--padding-xl);
+  margin-bottom: var(--padding-lg);
   max-width: 480px;
 }
 
