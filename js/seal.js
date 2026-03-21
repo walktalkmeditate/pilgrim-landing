@@ -131,9 +131,7 @@
     svg += '<text x="'+cx+'" y="'+(cy+size*0.1)+'" text-anchor="middle" font-family="Lato, sans-serif" font-size="'+size*0.05+'" fill="#B8AFA2" letter-spacing="2">KM</text>';
     svg += '</svg>';
 
-    svg += '<p class="seal-hash" style="font-family:Lato,sans-serif;font-size:0.625rem;color:#B8AFA2;opacity:0.5;margin-top:1rem;word-break:break-all;max-width:240px;text-align:center">SHA-256: '+hash.substring(0,16)+'\u2026</p>';
-
-    container.innerHTML = svg;
+    container.innerHTML = svg + '<p style="font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace;font-size:0.6875rem;color:var(--fog);opacity:0.7;margin-top:1rem;letter-spacing:0.05em"><span style="opacity:0.5">SHA-256</span> '+hash.substring(0,24)+'\u2026</p>';
   }
 
   renderSeal();
