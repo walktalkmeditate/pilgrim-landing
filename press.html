@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Press Kit — Pilgrim</title>
+  <meta name="description" content="Press kit for Pilgrim, a privacy-first iOS app for intentional walking.">
+
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/pilgrim-logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/legal.css">
+
+  <style>
+    .press-boilerplate {
+      background: var(--parchment-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--padding-lg);
+      margin-bottom: var(--padding-xl);
+      font-family: var(--font-body);
+      font-size: 1.0625rem;
+      line-height: 1.65;
+      color: var(--ink);
+      max-width: 560px;
+    }
+
+    .press-facts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--padding-md);
+      margin-bottom: var(--padding-xl);
+      max-width: 560px;
+    }
+
+    .press-fact {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .press-fact-label {
+      font-family: var(--font-ui);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--fog);
+    }
+
+    .press-fact-value {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      color: var(--ink);
+    }
+
+    .press-assets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--padding-md);
+      margin-bottom: var(--padding-xl);
+    }
+
+    .press-asset {
+      text-align: center;
+    }
+
+    .press-asset img {
+      width: 100%;
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: var(--padding-sm);
+    }
+
+    .press-asset a {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--stone);
+    }
+
+    .press-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 22px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: var(--padding-lg);
+    }
+
+    @media (max-width: 768px) {
+      .press-facts {
+        grid-template-columns: 1fr;
+      }
+      .press-assets {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .press-assets {
+        grid-template-columns: 1fr;
+        max-width: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="legal-header section">
+    <a href="/" class="legal-home">
+      <img src="assets/pilgrim-logo.png" alt="Pilgrim logo" class="legal-logo" width="48" height="48">
+    </a>
+    <h1 class="display-large">Press Kit</h1>
+    <p class="legal-updated caption">Last updated: March 2026</p>
+  </header>
+
+  <main class="legal-content section">
+    <div class="section-inner">
+
+      <section class="legal-section">
+        <h2>One-paragraph description</h2>
+        <div class="press-boilerplate">
+          Pilgrim is a privacy-first iOS app for intentional walking. It records walking routes, captures voice
+          reflections that are transcribed entirely on-device, offers a dedicated meditation mode with animated
+          breathing, and generates digital goshuin seals inspired by Japanese pilgrimage stamps. There are no
+          accounts, no analytics, no cloud sync. Everything stays on the user's phone. It is open source under
+          GPLv3 and completely free.
+        </div>
+      </section>
+
+      <section class="legal-section">
+        <h2>Quick facts</h2>
+        <div class="press-facts">
+          <div class="press-fact">
+            <span class="press-fact-label">Developer</span>
+            <span class="press-fact-value">walk &middot; talk &middot; meditate</span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Price</span>
+            <span class="press-fact-value">Free, no subscriptions</span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Platform</span>
+            <span class="press-fact-value">iOS 18+, iPhone</span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">License</span>
+            <span class="press-fact-value">Open source (GPLv3)</span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Category</span>
+            <span class="press-fact-value">Health & Fitness</span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Website</span>
+            <span class="press-fact-value"><a href="https://pilgrimapp.org">pilgrimapp.org</a></span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Source code</span>
+            <span class="press-fact-value"><a href="https://github.com/walktalkmeditate/pilgrim-ios" target="_blank" rel="noopener noreferrer">GitHub</a></span>
+          </div>
+          <div class="press-fact">
+            <span class="press-fact-label">Contact</span>
+            <span class="press-fact-value"><a href="mailto:hello@pilgrimapp.org">hello@pilgrimapp.org</a></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="legal-section">
+        <h2>App icon</h2>
+        <img src="assets/pilgrim-logo.png" alt="Pilgrim app icon" class="press-icon">
+        <p><a href="assets/pilgrim-logo.png" download>Download icon (PNG)</a> &middot; <a href="assets/pilgrim-logo.svg" download>Download icon (SVG)</a></p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Screenshots</h2>
+        <p>Right-click any image to save, or download all below.</p>
+        <div class="press-assets">
+          <div class="press-asset">
+            <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen">
+            <a href="assets/screenshots/01_walk_start.png" download>Walk Start</a>
+          </div>
+          <div class="press-asset">
+            <img src="assets/screenshots/02_active_walk.png" alt="Active walk screen">
+            <a href="assets/screenshots/02_active_walk.png" download>Active Walk</a>
+          </div>
+          <div class="press-asset">
+            <img src="assets/screenshots/03_meditation.png" alt="Meditation screen">
+            <a href="assets/screenshots/03_meditation.png" download>Meditation</a>
+          </div>
+          <div class="press-asset">
+            <img src="assets/screenshots/04_walk_summary.png" alt="Walk summary screen">
+            <a href="assets/screenshots/04_walk_summary.png" download>Walk Summary</a>
+          </div>
+          <div class="press-asset">
+            <img src="assets/screenshots/07_journal.png" alt="Journal screen">
+            <a href="assets/screenshots/07_journal.png" download>Journal</a>
+          </div>
+          <div class="press-asset">
+            <img src="assets/screenshots/08_goshuin.png" alt="Goshuin seals">
+            <a href="assets/screenshots/08_goshuin.png" download>Goshuin Seals</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="legal-section">
+        <h2>What makes Pilgrim different</h2>
+        <ul>
+          <li>Voice transcription runs entirely on-device via WhisperKit — no audio ever leaves the phone</li>
+          <li>Digital goshuin seals generated from each walk's unique data (distance, weather, elevation)</li>
+          <li>Seasonal color palette shifts with the hemisphere — the app looks different in November than May</li>
+          <li>Celestial awareness — moon phases, zodiac signs, planetary hours woven into the walk context</li>
+          <li>Privacy nutrition label shows near-zero data collection</li>
+          <li>Open source — anyone can verify the privacy claims</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="legal-footer section">
+    <div class="legal-footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms of Use</a>
+    </div>
+    <p class="horizon-signoff">crafted with intention</p>
+  </footer>
+
+</body>
+</html>
