@@ -532,6 +532,11 @@
           because each day is different too.
         </p>
 
+        <p class="seasons-description body-text reveal" style="font-style:italic;color:var(--stone);font-size:0.9375rem">
+          This page uses the same seasonal engine. The colors you see right now
+          are tuned to today's date, time of day, and your hemisphere.
+        </p>
+
         <div class="seasons-grid reveal">
           <div class="season-swatch" data-season="spring" style="background: #E8E4D8;">
             <div class="season-name" style="color: #6B7A5F;">Spring</div>
@@ -582,19 +587,11 @@
         <p class="body-text reveal">
           In Japan, pilgrims collect <em>goshuin</em> — vermilion ink stamps given at temples along a route.
           Each one is unique, hand-brushed in the moment. Pilgrim generates a digital seal for every walk,
-          derived from its unique data: distance, duration, weather, elevation. Your collection grows with your practice.
+          derived from a SHA-256 hash of your route coordinates, distance, duration, and meditation time.
+          Every seal is cryptographically unique — verifiable, unrepeatable, yours.
         </p>
 
         <div class="goshuin-visual reveal">
-          <svg class="goshuin-seal" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="90" fill="none" stroke="var(--rust)" stroke-width="2" opacity="0.6"/>
-            <circle cx="100" cy="100" r="70" fill="none" stroke="var(--rust)" stroke-width="1" opacity="0.3"/>
-            <circle cx="100" cy="100" r="50" fill="none" stroke="var(--dawn)" stroke-width="1.5" opacity="0.4"/>
-            <text x="100" y="90" text-anchor="middle" font-family="var(--font-display)" font-size="28" font-weight="300" fill="var(--rust)" opacity="0.7">pilgrim</text>
-            <text x="100" y="120" text-anchor="middle" font-family="var(--font-ui)" font-size="9" letter-spacing="0.15em" fill="var(--fog)" text-transform="uppercase">8.2 KM &middot; 105 MIN</text>
-            <text x="100" y="140" text-anchor="middle" font-family="var(--font-ui)" font-size="8" fill="var(--fog)" opacity="0.6">CAMINO DE SANTIAGO</text>
-            <circle cx="100" cy="165" r="4" fill="var(--rust)" opacity="0.3"/>
-          </svg>
         </div>
       </div>
     </section>
@@ -615,7 +612,7 @@
         <div class="soundscape-player reveal">
           <button type="button" class="soundscape-play-btn" id="soundscape-toggle" aria-label="Play ambient sound sample">
             <span class="soundscape-play-icon">&#9654;</span>
-            <span class="soundscape-play-label">Listen to a forest soundscape</span>
+            <span class="soundscape-play-label">Close your eyes. Press play.</span>
           </button>
         </div>
       </div>
@@ -748,6 +745,7 @@
   <script src="js/seasonal.js"></script>
   <script src="js/moon.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/seal.js"></script>
   <script>
     (function() {
       const btn = document.getElementById('soundscape-toggle');
@@ -770,7 +768,7 @@
           playing = true;
           btn.classList.add('playing');
           btn.querySelector('.soundscape-play-icon').textContent = '\u25A0';
-          btn.querySelector('.soundscape-play-label').textContent = 'Deep Forest';
+          btn.querySelector('.soundscape-play-label').textContent = 'Deep Forest \u2014 playing';
         } else {
           var fadeOut = setInterval(function() {
             if (audio.volume > 0.05) {
@@ -784,7 +782,7 @@
           playing = false;
           btn.classList.remove('playing');
           btn.querySelector('.soundscape-play-icon').textContent = '\u25B6';
-          btn.querySelector('.soundscape-play-label').textContent = 'Listen to a forest soundscape';
+          btn.querySelector('.soundscape-play-label').textContent = 'Close your eyes. Press play.';
         }
       });
     })();
