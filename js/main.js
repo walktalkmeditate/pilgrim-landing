@@ -57,13 +57,7 @@
     }
   }
 
-  function updateThemeToggle(theme) {
-    var btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
-    while (btn.firstChild) btn.removeChild(btn.firstChild);
-    btn.appendChild(theme === 'dark' ? sunIcon() : moonIcon());
-  }
+  function updateThemeToggle() {}
 
   // --- Quotes (time-aware) ---
   var quotesByTime = {
@@ -299,12 +293,27 @@
     initFootprints();
     initCursorTrail();
 
-    var toggleBtn = document.getElementById('theme-toggle');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', function () {
+    var moonToggle = document.getElementById('moon-toggle');
+    if (moonToggle) {
+      moonToggle.addEventListener('click', function () {
         var current = document.documentElement.getAttribute('data-theme');
         setTheme(current === 'dark' ? 'light' : 'dark');
       });
+      moonToggle.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          moonToggle.click();
+        }
+      });
+      if (!localStorage.getItem('moonNudged')) {
+        setTimeout(function () {
+          moonToggle.classList.add('nudge');
+          moonToggle.addEventListener('animationend', function () {
+            moonToggle.classList.remove('nudge');
+          });
+          localStorage.setItem('moonNudged', '1');
+        }, 3000);
+      }
     }
   });
 })();

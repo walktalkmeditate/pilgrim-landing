@@ -220,11 +220,40 @@ a:focus-visible {
 }
 
 .moon-phase {
-  position: absolute;
+  position: fixed;
   top: var(--padding-lg);
   right: var(--padding-lg);
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  z-index: 100;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.moon-phase:hover {
+  transform: scale(1.15);
+}
+
+[data-theme="dark"] .moon-phase {
+  filter: drop-shadow(0 0 6px rgba(240, 235, 225, 0.3));
+}
+
+[data-theme="light"] .moon-phase {
+  opacity: 0.4;
+}
+
+[data-theme="light"] .moon-phase:hover {
+  opacity: 0.7;
+}
+
+.moon-phase.nudge {
+  animation: moon-nudge 0.5s ease-in-out 3;
+}
+
+@keyframes moon-nudge {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-8deg); }
 }
 
 .scroll-hint {

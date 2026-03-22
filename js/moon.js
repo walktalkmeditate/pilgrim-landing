@@ -27,7 +27,7 @@ function renderMoon(container) {
   container.setAttribute('aria-label', name);
   container.setAttribute('title', name);
 
-  const size = 28;
+  const size = 32;
   const half = size / 2;
 
   const canvas = document.createElement('canvas');
