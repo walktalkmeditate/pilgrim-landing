@@ -501,13 +501,14 @@
 
     .trail-flame {
       display: inline-block;
-      animation: flame-flicker 0.8s ease-in-out infinite alternate;
+      animation: flame-breathe 3s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 4px rgba(196, 140, 80, 0.4));
     }
 
-    @keyframes flame-flicker {
-      0% { transform: scale(0.9); opacity: 0.7; }
-      50% { transform: scale(1.1) rotate(3deg); opacity: 1; }
-      100% { transform: scale(0.95) rotate(-2deg); opacity: 0.8; }
+    @keyframes flame-breathe {
+      0% { transform: scale(0.95); opacity: 0.75; filter: drop-shadow(0 0 3px rgba(196, 140, 80, 0.3)); }
+      50% { transform: scale(1.05) rotate(1deg); opacity: 1; filter: drop-shadow(0 0 8px rgba(196, 140, 80, 0.5)); }
+      100% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; filter: drop-shadow(0 0 4px rgba(196, 140, 80, 0.35)); }
     }
 
     .soundscape-controls {
