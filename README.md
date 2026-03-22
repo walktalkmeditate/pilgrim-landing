@@ -1,6 +1,6 @@
 # Pilgrim — A Walking Practice
 
-Pre-launch landing page for [Pilgrim](https://github.com/momentmaker/pilgrim-ios), a privacy-first iOS app for intentional walking as creative practice.
+Landing page for [Pilgrim](https://github.com/momentmaker/pilgrim-ios), a privacy-first iOS app for intentional walking as creative practice.
 
 ## About
 

@@ -499,14 +499,22 @@ a:focus-visible {
   padding: 3rem var(--padding-md);
   text-align: center;
   border-top: 1px solid var(--parchment-tertiary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .horizon-logo {
-  width: 40px;
-  height: 40px;
-  margin-bottom: var(--padding-lg);
+  width: 36px;
+  height: 36px;
+  margin-bottom: var(--padding-md);
   border-radius: 8px;
   transition: box-shadow 0.3s ease;
+}
+
+.horizon .app-store-badge {
+  transform: scale(0.9);
+  margin-bottom: var(--padding-md);
 }
 
 .horizon-logo.heartbeat {
