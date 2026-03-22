@@ -546,13 +546,50 @@
 
     .trail-flame {
       display: inline-block;
-      animation: flame-breathe 3s ease-in-out infinite alternate;
+      position: relative;
+      width: 14px;
+      height: 18px;
+      vertical-align: middle;
+      margin-right: 2px;
     }
 
-    @keyframes flame-breathe {
-      0% { transform: scale(0.95); opacity: 0.75; }
-      50% { transform: scale(1.05) rotate(1deg); opacity: 1; }
-      100% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; }
+    .trail-flame-inner,
+    .trail-flame-outer {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      transform-origin: bottom center;
+    }
+
+    .trail-flame-outer {
+      width: 12px;
+      height: 16px;
+      margin-left: -6px;
+      background: linear-gradient(to top, var(--rust), rgba(196, 140, 80, 0.6), rgba(196, 165, 116, 0));
+      animation: flame-outer 2.5s ease-in-out infinite alternate;
+    }
+
+    .trail-flame-inner {
+      width: 6px;
+      height: 10px;
+      margin-left: -3px;
+      background: linear-gradient(to top, var(--stone), rgba(196, 165, 116, 0.4), transparent);
+      animation: flame-inner 2s ease-in-out infinite alternate;
+      z-index: 1;
+    }
+
+    @keyframes flame-outer {
+      0% { transform: scaleY(0.9) scaleX(0.95) rotate(-1deg); opacity: 0.7; }
+      33% { transform: scaleY(1.05) scaleX(1.02) rotate(1.5deg); opacity: 0.9; }
+      66% { transform: scaleY(0.95) scaleX(0.98) rotate(-0.5deg); opacity: 0.8; }
+      100% { transform: scaleY(1.02) scaleX(1) rotate(0.5deg); opacity: 0.85; }
+    }
+
+    @keyframes flame-inner {
+      0% { transform: scaleY(0.85) rotate(1deg); opacity: 0.6; }
+      50% { transform: scaleY(1.1) rotate(-1deg); opacity: 0.9; }
+      100% { transform: scaleY(0.9) rotate(0.5deg); opacity: 0.7; }
     }
 
     .soundscape-controls {
@@ -1199,7 +1236,12 @@
           streakEl.textContent = '';
           var flame = document.createElement('span');
           flame.className = 'trail-flame';
-          flame.textContent = '\uD83D\uDD25';
+          var outer = document.createElement('span');
+          outer.className = 'trail-flame-outer';
+          var inner = document.createElement('span');
+          inner.className = 'trail-flame-inner';
+          flame.appendChild(outer);
+          flame.appendChild(inner);
           streakEl.appendChild(flame);
           streakEl.appendChild(document.createTextNode(' ' + streak + ' days, the path unbroken'));
         }
