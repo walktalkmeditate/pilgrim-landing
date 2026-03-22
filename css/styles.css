@@ -504,71 +504,59 @@ a:focus-visible {
 .horizon-logo {
   width: 40px;
   height: 40px;
-  margin-bottom: var(--padding-md);
+  margin-bottom: var(--padding-lg);
   border-radius: 8px;
+  transition: box-shadow 0.3s ease;
 }
 
-.horizon-coming {
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: 1.125rem;
-  color: var(--fog);
-  font-style: italic;
-  margin-bottom: var(--padding-lg);
+.horizon-logo.heartbeat {
+  animation: logo-heartbeat 1.2s ease-in-out infinite alternate;
 }
 
-.horizon-actions {
+.horizon-links {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--padding-lg);
+  flex-wrap: wrap;
+  gap: var(--padding-sm);
   margin-bottom: var(--padding-lg);
 }
 
-.theme-toggle {
-  background: none;
-  border: 1px solid var(--parchment-tertiary);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.6rem;
-  cursor: pointer;
+.horizon-links a {
   color: var(--fog);
-  font-size: 1rem;
-  transition: border-color 0.2s ease, color 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.theme-toggle:hover {
-  border-color: var(--stone);
+.horizon-links a:hover {
   color: var(--stone);
 }
 
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--stone);
-  outline-offset: 2px;
-}
-
-.horizon-legal {
-  display: flex;
-  justify-content: center;
-  gap: var(--padding-lg);
-  margin-bottom: var(--padding-md);
-}
-
-.horizon-legal a {
+.horizon-sep {
   color: var(--fog);
-  font-family: var(--font-ui);
+  opacity: 0.3;
   font-size: 0.75rem;
+}
+
+.horizon-icon-link {
+  color: var(--fog);
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.horizon-icon-link:hover {
+  color: var(--stone);
 }
 
 .horizon-signoff {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.875rem;
   color: var(--fog);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .github-link {
