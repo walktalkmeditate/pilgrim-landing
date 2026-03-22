@@ -558,50 +558,21 @@
 
     .trail-flame {
       display: inline-block;
-      position: relative;
-      width: 14px;
-      height: 18px;
       vertical-align: middle;
-      margin-right: 2px;
+      margin-right: 3px;
+      animation: flame-dance 2.5s ease-in-out infinite alternate;
     }
 
-    .trail-flame-inner,
-    .trail-flame-outer {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      transform-origin: bottom center;
+    .trail-flame svg {
+      display: block;
+      filter: drop-shadow(0 0 3px rgba(196, 140, 80, 0.4));
     }
 
-    .trail-flame-outer {
-      width: 12px;
-      height: 16px;
-      margin-left: -6px;
-      background: linear-gradient(to top, var(--rust), rgba(196, 140, 80, 0.6), rgba(196, 165, 116, 0));
-      animation: flame-outer 2.5s ease-in-out infinite alternate;
-    }
-
-    .trail-flame-inner {
-      width: 6px;
-      height: 10px;
-      margin-left: -3px;
-      background: linear-gradient(to top, var(--stone), rgba(196, 165, 116, 0.4), transparent);
-      animation: flame-inner 2s ease-in-out infinite alternate;
-      z-index: 1;
-    }
-
-    @keyframes flame-outer {
-      0% { transform: scaleY(0.9) scaleX(0.95) rotate(-1deg); opacity: 0.7; }
-      33% { transform: scaleY(1.05) scaleX(1.02) rotate(1.5deg); opacity: 0.9; }
-      66% { transform: scaleY(0.95) scaleX(0.98) rotate(-0.5deg); opacity: 0.8; }
-      100% { transform: scaleY(1.02) scaleX(1) rotate(0.5deg); opacity: 0.85; }
-    }
-
-    @keyframes flame-inner {
-      0% { transform: scaleY(0.85) rotate(1deg); opacity: 0.6; }
-      50% { transform: scaleY(1.1) rotate(-1deg); opacity: 0.9; }
-      100% { transform: scaleY(0.9) rotate(0.5deg); opacity: 0.7; }
+    @keyframes flame-dance {
+      0% { transform: scaleY(0.92) scaleX(0.97) rotate(-1deg); }
+      33% { transform: scaleY(1.06) scaleX(1.01) rotate(1.5deg); }
+      66% { transform: scaleY(0.96) scaleX(0.99) rotate(-0.5deg); }
+      100% { transform: scaleY(1.03) scaleX(1) rotate(0.5deg); }
     }
 
     .soundscape-controls {
@@ -1248,12 +1219,40 @@
           streakEl.textContent = '';
           var flame = document.createElement('span');
           flame.className = 'trail-flame';
-          var outer = document.createElement('span');
-          outer.className = 'trail-flame-outer';
-          var inner = document.createElement('span');
-          inner.className = 'trail-flame-inner';
-          flame.appendChild(outer);
-          flame.appendChild(inner);
+          var fsvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          fsvg.setAttribute('width', '16');
+          fsvg.setAttribute('height', '20');
+          fsvg.setAttribute('viewBox', '0 0 16 20');
+          var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+          var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+          grad.setAttribute('id', 'flameGrad');
+          grad.setAttribute('x1', '0');
+          grad.setAttribute('y1', '1');
+          grad.setAttribute('x2', '0');
+          grad.setAttribute('y2', '0');
+          var s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+          s1.setAttribute('offset', '0%');
+          s1.setAttribute('stop-color', '#A87B63');
+          var s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+          s2.setAttribute('offset', '50%');
+          s2.setAttribute('stop-color', '#C4A574');
+          var s3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+          s3.setAttribute('offset', '100%');
+          s3.setAttribute('stop-color', 'rgba(196,165,116,0.2)');
+          grad.appendChild(s1);
+          grad.appendChild(s2);
+          grad.appendChild(s3);
+          defs.appendChild(grad);
+          fsvg.appendChild(defs);
+          var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', 'M8 0C8 0 2 7 2 12C2 15.3 4.7 18 8 18C11.3 18 14 15.3 14 12C14 7 8 0 8 0Z');
+          path.setAttribute('fill', 'url(#flameGrad)');
+          fsvg.appendChild(path);
+          var inner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          inner.setAttribute('d', 'M8 6C8 6 5 10 5 13C5 14.7 6.3 16 8 16C9.7 16 11 14.7 11 13C11 10 8 6 8 6Z');
+          inner.setAttribute('fill', 'rgba(245,235,220,0.4)');
+          fsvg.appendChild(inner);
+          flame.appendChild(fsvg);
           streakEl.appendChild(flame);
           streakEl.appendChild(document.createTextNode(' ' + streak + ' days, the path unbroken'));
         }
