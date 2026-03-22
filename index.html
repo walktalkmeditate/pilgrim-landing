@@ -454,32 +454,69 @@
     }
 
     .trail-section {
-      padding: 3rem 0 4rem;
+      padding: 4rem 0 5rem;
+    }
+
+    .trail-wide {
+      width: 100%;
+      padding: 0 var(--padding-lg);
+      margin-bottom: var(--padding-xl);
     }
 
     .trail-svg {
       width: 100%;
-      max-width: 700px;
-      height: 120px;
-      margin-bottom: var(--padding-lg);
+      height: 180px;
     }
 
-    .trail-svg path {
+    .trail-svg .trail-path {
       fill: none;
       stroke: var(--stone);
       stroke-width: 1.5;
       stroke-linecap: round;
+      opacity: 0.4;
+    }
+
+    .trail-svg .trail-marker {
+      fill: var(--stone);
       opacity: 0.5;
     }
 
-    .trail-svg circle {
+    .trail-svg .trail-marker-label {
+      font-family: var(--font-ui);
+      font-size: 9px;
+      fill: var(--fog);
+    }
+
+    .trail-svg .trail-head {
       fill: var(--stone);
+      opacity: 0.8;
+    }
+
+    .trail-svg .trail-head-pulse {
+      fill: var(--stone);
+      opacity: 0;
+      animation: trail-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes trail-pulse {
+      0%, 100% { opacity: 0; r: 5; }
+      50% { opacity: 0.3; r: 12; }
+    }
+
+    .trail-info {
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease 1.5s;
+    }
+
+    .trail-info.visible {
+      opacity: 1;
     }
 
     .trail-milestone {
       font-family: var(--font-display);
       font-style: italic;
-      font-size: 1.125rem;
+      font-size: 1.25rem;
       color: var(--stone);
       margin-bottom: var(--padding-sm);
     }
@@ -489,6 +526,7 @@
       font-size: 0.8125rem;
       color: var(--fog);
       cursor: pointer;
+      margin-bottom: var(--padding-xs);
     }
 
     .trail-streak {
@@ -496,19 +534,25 @@
       font-style: italic;
       font-size: 0.875rem;
       color: var(--stone);
+    }
+
+    .trail-walking {
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--fog);
+      opacity: 0.6;
       margin-top: var(--padding-sm);
     }
 
     .trail-flame {
       display: inline-block;
       animation: flame-breathe 3s ease-in-out infinite alternate;
-      filter: drop-shadow(0 0 4px rgba(196, 140, 80, 0.4));
     }
 
     @keyframes flame-breathe {
-      0% { transform: scale(0.95); opacity: 0.75; filter: drop-shadow(0 0 3px rgba(196, 140, 80, 0.3)); }
-      50% { transform: scale(1.05) rotate(1deg); opacity: 1; filter: drop-shadow(0 0 8px rgba(196, 140, 80, 0.5)); }
-      100% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; filter: drop-shadow(0 0 4px rgba(196, 140, 80, 0.35)); }
+      0% { transform: scale(0.95); opacity: 0.75; }
+      50% { transform: scale(1.05) rotate(1deg); opacity: 1; }
+      100% { transform: scale(0.98) rotate(-0.5deg); opacity: 0.85; }
     }
 
     .soundscape-controls {
@@ -962,11 +1006,14 @@
          10. The Collective Trail
          ========================================== -->
     <section class="trail-section section" aria-label="Collective trail">
-      <div class="section-inner" style="text-align:center">
-        <svg class="trail-svg" id="trail-svg" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"></svg>
-        <p class="trail-milestone reveal" id="trail-milestone"></p>
-        <p class="trail-stats reveal" id="trail-stats"></p>
-        <p class="trail-streak reveal" id="trail-streak"></p>
+      <div class="trail-wide">
+        <svg class="trail-svg" id="trail-svg" viewBox="0 0 1000 180" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      </div>
+      <div class="section-inner trail-info">
+        <p class="trail-milestone" id="trail-milestone"></p>
+        <p class="trail-stats" id="trail-stats"></p>
+        <p class="trail-streak" id="trail-streak"></p>
+        <p class="trail-walking" id="trail-walking"></p>
       </div>
     </section>
 
@@ -1015,14 +1062,18 @@
       var svg = document.getElementById('trail-svg');
       var milestoneEl = document.getElementById('trail-milestone');
       var statsEl = document.getElementById('trail-stats');
+      var streakEl = document.getElementById('trail-streak');
+      var walkingEl = document.getElementById('trail-walking');
+      var infoEl = document.querySelector('.trail-info');
       if (!svg || !milestoneEl || !statsEl) return;
 
       var imperial = false;
       var cachedStats = null;
+      var NS = 'http://www.w3.org/2000/svg';
 
       var routes = [
         { name: 'Kumano Kodo', km: 40 },
-        { name: 'Via Francigena stage', km: 100 },
+        { name: 'Via Francigena', km: 100 },
         { name: 'Camino de Santiago', km: 800 },
         { name: 'Shikoku 88 Temples', km: 1200 },
         { name: 'Te Araroa', km: 3000 },
@@ -1043,50 +1094,89 @@
         return 'The first steps, taken together.';
       }
 
-      function drawTrail(km) {
-        var maxKm = 2000;
-        var progress = Math.min(km / maxKm, 1);
-        if (progress === 0) progress = 0.05;
-        var w = 800, h = 200;
-        var segments = 6;
-        var points = [];
-        for (var i = 0; i <= segments; i++) {
-          var x = (i / segments) * w * progress;
-          var y = h / 2 + Math.sin(i * 1.8 + 0.5) * 50 + (i % 2 === 0 ? -20 : 20);
-          points.push([x, y]);
+      function pointOnPath(pathEl, frac) {
+        var len = pathEl.getTotalLength();
+        var pt = pathEl.getPointAtLength(len * frac);
+        return { x: pt.x, y: pt.y };
+      }
+
+      function drawTrail(km, isWalkingNow) {
+        var maxKm = Math.max(km * 1.5, 200);
+        var w = 1000, h = 180, pad = 40;
+        var progress = Math.min(km / maxKm, 0.92);
+        if (progress < 0.08) progress = 0.08;
+
+        var pts = [];
+        var segs = 10;
+        for (var i = 0; i <= segs; i++) {
+          var x = pad + (i / segs) * (w - pad * 2) * progress;
+          var y = h / 2 + Math.sin(i * 0.9 + 0.3) * 35 + Math.cos(i * 1.7) * 15;
+          pts.push([x, y]);
         }
-        if (points.length < 2) return;
-        var d = 'M ' + points[0][0] + ' ' + points[0][1];
-        for (var j = 1; j < points.length; j++) {
-          var cx = (points[j - 1][0] + points[j][0]) / 2;
-          var cy1 = points[j - 1][1], cy2 = points[j][1];
-          d += ' C ' + cx + ' ' + cy1 + ', ' + cx + ' ' + cy2 + ', ' + points[j][0] + ' ' + points[j][1];
-        }
-        var last = points[points.length - 1];
 
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-        var pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+        for (var j = 1; j < pts.length; j++) {
+          var cx = (pts[j-1][0] + pts[j][0]) / 2;
+          d += ' C ' + cx + ' ' + pts[j-1][1] + ', ' + cx + ' ' + pts[j][1] + ', ' + pts[j][0] + ' ' + pts[j][1];
+        }
+
+        var pathEl = document.createElementNS(NS, 'path');
         pathEl.setAttribute('d', d);
+        pathEl.setAttribute('class', 'trail-path');
         svg.appendChild(pathEl);
 
-        var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        dot.setAttribute('cx', last[0]);
-        dot.setAttribute('cy', last[1]);
-        dot.setAttribute('r', '4');
-        dot.setAttribute('opacity', '0.7');
-        svg.appendChild(dot);
+        var totalLen = pathEl.getTotalLength();
 
-        var len = pathEl.getTotalLength();
-        pathEl.style.strokeDasharray = len;
-        pathEl.style.strokeDashoffset = len;
+        routes.forEach(function(route) {
+          if (route.km > km || route.km > maxKm) return;
+          var frac = (route.km / maxKm) * progress / progress;
+          frac = Math.min(route.km / maxKm, progress) / progress;
+          var pt = pointOnPath(pathEl, frac);
+          var marker = document.createElementNS(NS, 'circle');
+          marker.setAttribute('cx', pt.x);
+          marker.setAttribute('cy', pt.y);
+          marker.setAttribute('r', '3');
+          marker.setAttribute('class', 'trail-marker');
+          svg.appendChild(marker);
+          var label = document.createElementNS(NS, 'text');
+          label.setAttribute('x', pt.x);
+          label.setAttribute('y', pt.y - 10);
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('class', 'trail-marker-label');
+          label.textContent = route.name;
+          svg.appendChild(label);
+        });
+
+        var last = pts[pts.length - 1];
+        var head = document.createElementNS(NS, 'circle');
+        head.setAttribute('cx', last[0]);
+        head.setAttribute('cy', last[1]);
+        head.setAttribute('r', '4');
+        head.setAttribute('class', 'trail-head');
+        svg.appendChild(head);
+
+        if (isWalkingNow) {
+          var pulse = document.createElementNS(NS, 'circle');
+          pulse.setAttribute('cx', last[0]);
+          pulse.setAttribute('cy', last[1]);
+          pulse.setAttribute('r', '5');
+          pulse.setAttribute('class', 'trail-head-pulse');
+          svg.appendChild(pulse);
+        }
+
+        pathEl.style.strokeDasharray = totalLen;
+        pathEl.style.strokeDashoffset = totalLen;
+
         var obs = new IntersectionObserver(function(entries) {
           if (entries[0].isIntersecting) {
-            pathEl.style.transition = 'stroke-dashoffset 2.5s ease';
+            pathEl.style.transition = 'stroke-dashoffset 3s ease';
             pathEl.style.strokeDashoffset = '0';
+            if (infoEl) infoEl.classList.add('visible');
             obs.disconnect();
           }
-        }, { threshold: 0.3 });
+        }, { threshold: 0.2 });
         obs.observe(svg);
       }
 
@@ -1104,7 +1194,6 @@
         if (hours > 0) parts.push(hours + ' hrs stillness');
         statsEl.textContent = parts.join(' \u00B7 ');
 
-        var streakEl = document.getElementById('trail-streak');
         var streak = data.streak_days || 0;
         if (streakEl && streak > 1) {
           streakEl.textContent = '';
@@ -1115,16 +1204,19 @@
           streakEl.appendChild(document.createTextNode(' ' + streak + ' days, the path unbroken'));
         }
 
-        drawTrail(km);
-
+        var isWalkingNow = false;
         if (data.last_walk_at) {
           var lastWalk = new Date(data.last_walk_at);
           var diffMs = Date.now() - lastWalk.getTime();
           if (diffMs < 3600000) {
+            isWalkingNow = true;
             var logo = document.querySelector('.hero-logo');
             if (logo) logo.classList.add('heartbeat');
+            if (walkingEl) walkingEl.textContent = 'someone is walking right now';
           }
         }
+
+        drawTrail(km, isWalkingNow);
       }
 
       statsEl.addEventListener('click', function() {
@@ -1137,6 +1229,7 @@
         .then(renderStats)
         .catch(function() {
           milestoneEl.textContent = 'The path is beginning.';
+          if (infoEl) infoEl.classList.add('visible');
         });
     })();
 
