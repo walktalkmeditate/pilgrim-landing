@@ -491,6 +491,25 @@
       cursor: pointer;
     }
 
+    .trail-streak {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 0.875rem;
+      color: var(--stone);
+      margin-top: var(--padding-sm);
+    }
+
+    .trail-flame {
+      display: inline-block;
+      animation: flame-flicker 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes flame-flicker {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.1) rotate(3deg); opacity: 1; }
+      100% { transform: scale(0.95) rotate(-2deg); opacity: 0.8; }
+    }
+
     .soundscape-controls {
       position: relative;
       display: inline-block;
@@ -946,6 +965,7 @@
         <svg class="trail-svg" id="trail-svg" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"></svg>
         <p class="trail-milestone reveal" id="trail-milestone"></p>
         <p class="trail-stats reveal" id="trail-stats"></p>
+        <p class="trail-streak reveal" id="trail-streak"></p>
       </div>
     </section>
 
@@ -1082,6 +1102,17 @@
         var parts = [walks + ' walks', distStr + ' ' + unit];
         if (hours > 0) parts.push(hours + ' hrs stillness');
         statsEl.textContent = parts.join(' \u00B7 ');
+
+        var streakEl = document.getElementById('trail-streak');
+        var streak = data.streak_days || 0;
+        if (streakEl && streak > 1) {
+          streakEl.textContent = '';
+          var flame = document.createElement('span');
+          flame.className = 'trail-flame';
+          flame.textContent = '\uD83D\uDD25';
+          streakEl.appendChild(flame);
+          streakEl.appendChild(document.createTextNode(' ' + streak + ' days, the path unbroken'));
+        }
 
         drawTrail(km);
       }
