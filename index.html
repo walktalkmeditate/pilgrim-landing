@@ -1015,12 +1015,11 @@
         for (var i = routes.length - 1; i >= 0; i--) {
           if (km >= routes[i].km) {
             var times = km / routes[i].km;
-            if (times >= 2) return 'Together, ' + Math.floor(times) + ' ' + routes[i].name + 's walked.';
+            if (times >= 2) return 'Together, the ' + routes[i].name + ' walked ' + Math.floor(times) + ' times.';
             return 'Together, one ' + routes[i].name + ' complete.';
           }
         }
-        var pct = Math.floor((km / routes[0].km) * 100);
-        return pct + '% of our first ' + routes[0].name + '.';
+        return 'The first steps, taken together.';
       }
 
       function drawTrail(km) {
