@@ -1116,6 +1116,15 @@
         }
 
         drawTrail(km);
+
+        if (data.last_walk_at) {
+          var lastWalk = new Date(data.last_walk_at);
+          var diffMs = Date.now() - lastWalk.getTime();
+          if (diffMs < 3600000) {
+            var logo = document.querySelector('.hero-logo');
+            if (logo) logo.classList.add('heartbeat');
+          }
+        }
       }
 
       statsEl.addEventListener('click', function() {

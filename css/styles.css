@@ -165,6 +165,15 @@ a:focus-visible {
   border-radius: 22px;
 }
 
+.hero-logo.heartbeat {
+  animation: logo-heartbeat 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes logo-heartbeat {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(196, 165, 116, 0); }
+  100% { transform: scale(1.03); box-shadow: 0 0 16px 4px rgba(196, 165, 116, 0.25); }
+}
+
 .hero-title {
   font-family: var(--font-display);
   font-weight: 300;
