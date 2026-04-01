@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Walking Practice — Pilgrim</title>
+  <meta name="description" content="A simple guide to walking as practice. Walk, talk, meditate. No app required — but Pilgrim is a quiet companion if you want one.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="A Walking Practice — Pilgrim">
+  <meta property="og:description" content="A simple guide to walking as practice. Walk, talk, meditate.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://pilgrimapp.org/guide">
+  <meta property="og:image" content="https://pilgrimapp.org/assets/og-image.png">
+  <link rel="canonical" href="https://pilgrimapp.org/guide">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="A Walking Practice — Pilgrim">
+  <meta name="twitter:description" content="A simple guide to walking as practice. Walk, talk, meditate.">
+  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/pilgrim-logo.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Analytics -->
+  <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <style>
+    .guide {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 var(--padding-md);
+    }
+
+    .guide-header {
+      text-align: center;
+      padding: 6rem var(--padding-md) 3rem;
+    }
+
+    .guide-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      margin-bottom: var(--padding-lg);
+      animation: guide-breathe 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes guide-breathe {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.02); }
+    }
+
+    .guide-header h1 {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: 2.5rem;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+      margin-bottom: var(--padding-lg);
+    }
+
+    .guide-header .attribution {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-style: italic;
+      font-size: 1.125rem;
+      color: var(--ink);
+      max-width: 420px;
+      margin: 0 auto var(--padding-sm);
+      line-height: 1.8;
+    }
+
+    .guide-header .attribution-source {
+      font-family: var(--font-ui);
+      font-size: 0.6875rem;
+      color: var(--fog);
+      letter-spacing: 0.05em;
+    }
+
+    .guide-header .epigraph {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-style: italic;
+      font-size: 1.15rem;
+      color: var(--stone);
+      max-width: 400px;
+      margin: 2rem auto 0;
+      line-height: 1.6;
+    }
+
+    .guide-divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--stone), transparent);
+      margin: 3.5rem auto;
+    }
+
+    .guide-section {
+      margin-bottom: 1rem;
+    }
+
+    .guide-section .pillar-label {
+      font-family: var(--font-ui);
+      font-weight: 400;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--stone);
+      margin-bottom: 0.75rem;
+    }
+
+    .guide-section h2 {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: 1.75rem;
+      color: var(--ink);
+      margin-bottom: 1.25rem;
+    }
+
+    .guide-section p {
+      font-family: var(--font-body);
+      font-size: 1.0625rem;
+      line-height: 1.75;
+      color: var(--ink);
+      margin-bottom: 1.25rem;
+    }
+
+    .guide-section p.quiet {
+      color: var(--fog);
+      font-style: italic;
+    }
+
+    .guide-section p.quiet a {
+      color: var(--fog);
+      border-bottom-color: var(--fog);
+    }
+
+    .guide-breath {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--fog);
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .guide-pillars {
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--stone);
+      padding: 1rem 0;
+    }
+
+    .guide-closing {
+      text-align: center;
+      padding: 2rem 0 6rem;
+    }
+
+    .guide-closing p {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-size: 1.25rem;
+      color: var(--ink);
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .guide-closing .walk-well {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.125rem;
+      color: var(--stone);
+    }
+
+    .guide-app-link {
+      display: inline-block;
+      margin-top: 2.5rem;
+      padding: 0.75rem 2rem;
+      font-family: var(--font-ui);
+      font-size: 0.875rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      color: var(--parchment);
+      background-color: var(--stone);
+      border-radius: var(--radius-sm);
+      border-bottom: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .guide-app-link:hover {
+      opacity: 0.85;
+      border-bottom: none;
+    }
+
+    .guide-back {
+      position: fixed;
+      top: 1.5rem;
+      left: 1.5rem;
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--fog);
+      text-decoration: none;
+      border-bottom: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s ease;
+      z-index: 10;
+    }
+
+    .guide-back:hover {
+      color: var(--stone);
+      border-bottom: none;
+    }
+
+    /* Scroll reveal */
+    .guide-reveal {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .guide-reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Share button */
+    .guide-share {
+      display: inline-block;
+      margin-top: 1.5rem;
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--fog);
+      cursor: pointer;
+      border: none;
+      background: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s ease;
+    }
+
+    .guide-share:hover {
+      color: var(--stone);
+    }
+
+    .guide-share-toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      color: var(--parchment);
+      background: var(--ink);
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-sm);
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .guide-share-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 480px) {
+      .guide-header {
+        padding-top: 4rem;
+        padding-bottom: 2rem;
+      }
+
+      .guide-header h1 {
+        font-size: 2rem;
+      }
+
+      .guide-section h2 {
+        font-size: 1.5rem;
+      }
+
+      .guide-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .guide-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+
+      .guide-logo {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="moon-phase" role="button" tabindex="0" aria-label="Toggle dark mode" id="moon-toggle"></div>
+  <a href="/" class="guide-back">&larr; pilgrimapp.org</a>
+
+  <div class="guide">
+
+    <header class="guide-header">
+      <img src="assets/pilgrim-logo.png" alt="Pilgrim" class="guide-logo" width="64" height="64">
+      <h1>A Walking Practice</h1>
+      <p class="attribution">Wanderer, there is no road,<br>the road is made by walking.</p>
+      <p class="attribution-source">Antonio Machado</p>
+      <p class="epigraph">A guide to walking with intention.<br>No app required.</p>
+    </header>
+
+    <div class="guide-pillars guide-reveal">walk &middot; talk &middot; meditate</div>
+
+    <div class="guide-divider"></div>
+
+    <!-- BEFORE -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Before</div>
+      <h2>Prepare to leave</h2>
+
+      <p>Choose a path you won't need to navigate. Somewhere familiar enough that your mind can wander while your feet stay sure. A park loop, a neighborhood route, a trail you know.</p>
+
+      <p>Leave the earbuds behind. Or don't &mdash; there are no rules here. But consider it. The sounds of the path are part of the practice.</p>
+
+      <p>Set an intention if one arises. A question you're carrying, a feeling you want to sit with, a word. Or set nothing at all. Both are valid. The walk will find its own shape.</p>
+
+      <p class="quiet">In Pilgrim, you can set an intention before each walk. It becomes part of the walk's record &mdash; a thread to follow or release.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- WALK -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Walk</div>
+      <h2>The first five minutes are restless</h2>
+
+      <p>That's normal. Your body is still at your desk. Your mind is still in the last conversation. Walk through it. Don't try to be present &mdash; just keep walking.</p>
+
+      <p>Somewhere around minute seven or eight, something shifts. Your pace finds itself. Your breathing deepens without you deciding it should. The world gets a little wider.</p>
+
+      <p>Notice what you notice. The light on a wall. A bird you can't name. The weight of your feet. You don't need to do anything with these observations. Just let them arrive.</p>
+
+      <p>There is no correct pace. There is no minimum distance. A twenty-minute walk around the block is as real as a twenty-mile pilgrimage. The practice is the walking, not the achievement.</p>
+
+      <p class="quiet">Pilgrim tracks your route, distance, and altitude quietly in the background. It's there if you want it later, invisible while you walk.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- TALK -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Talk</div>
+      <h2>Speak what arises</h2>
+
+      <p>This is the part most people skip, and it might be the most powerful.</p>
+
+      <p>As you walk, thoughts will come. Not the organized thoughts of a journal entry &mdash; the raw, half-formed ones. The ones that dissolve if you wait until you get home to write them down.</p>
+
+      <p>Speak them. Out loud, into the air, to no one. Your voice on the path is different from your voice at a desk. It's less edited. Closer to what you actually think.</p>
+
+      <p>You might feel strange at first. That passes. Everyone assumes you're on a phone call anyway.</p>
+
+      <p>Listen back later. You'll hear things you didn't know you were thinking.</p>
+
+      <p class="quiet">Pilgrim records voice notes during walks and transcribes them on your device using WhisperKit. Nothing is uploaded, nothing leaves your phone. Your thoughts stay yours.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- MEDITATE -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Meditate</div>
+      <h2>Stop when the walk asks you to stop</h2>
+
+      <p>There will be a moment &mdash; maybe at a bench, a clearing, a quiet corner &mdash; where the walk invites you to be still. Follow that invitation.</p>
+
+      <p>Sit or stand. Close your eyes if you want. Feel the air on your skin. Notice that your body is warm from walking. Notice that your mind is quieter than when you left.</p>
+
+      <p>Follow your breath. Not forcefully &mdash; just notice it. In, out. The path continues inside.</p>
+
+      <p>Two minutes is enough. Twenty minutes is enough. There is no timer to beat.</p>
+
+      <p class="quiet">Pilgrim has a meditation mode with a breathing circle, ambient soundscapes, and optional voice guides. It holds the space so you can let go of holding it yourself.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- RETURN -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Return</div>
+      <h2>The walk leaves a mark</h2>
+
+      <p>When you're done, notice what shifted. You might not be able to name it. That's fine. The body knows things the mind takes days to catch up with.</p>
+
+      <p>The Japanese pilgrimage tradition has a practice called <em>goshuin</em> &mdash; a vermilion seal stamped into a pilgrim's journal at each temple visited. It marks that you were here, on this day, on this path.</p>
+
+      <p>Every walk deserves that kind of acknowledgment. Not a leaderboard. Not a calorie count. A seal. A mark that says: <em>I walked today, and it mattered.</em></p>
+
+      <p class="quiet">Pilgrim generates a unique digital goshuin for each walk &mdash; derived from the walk's distance, duration, weather, and elevation. Your collection grows with your practice, like a goshuinch&#333;.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- RHYTHM -->
+    <section class="guide-section guide-reveal">
+      <div class="pillar-label">Rhythm</div>
+      <h2>Tomorrow's walk will be different</h2>
+
+      <p>Some days the walk is joyful. Some days it's heavy. Some days you'll talk the entire time. Some days you'll say nothing.</p>
+
+      <p>There is no streak to maintain. No optimal frequency. Walk when you need to. The practice doesn't judge your consistency &mdash; it welcomes your return.</p>
+
+      <p>Over time, you'll notice the seasons shifting in your walks. The light changes. The sounds change. Your questions change. The goshuin seals in your collection will tell a story you couldn't have planned.</p>
+
+      <p class="quiet">Pilgrim weaves moon phases, planetary hours, and seasonal color shifts into each walk's context. Not because they matter objectively &mdash; but because they remind you that you're walking on a living planet, in a particular moment that won't come again.</p>
+    </section>
+
+    <div class="guide-divider"></div>
+
+    <!-- CLOSING -->
+    <div class="guide-closing guide-reveal">
+      <img src="assets/pilgrim-logo.png" alt="" class="guide-logo" width="48" height="48" aria-hidden="true" style="margin-bottom: 1.5rem;">
+
+      <p>You don't need an app to walk with intention.<br>But if you'd like a quiet companion for the path,<br>Pilgrim is here.</p>
+
+      <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="guide-app-link">Walk with Pilgrim</a>
+
+      <br><br>
+
+      <button class="guide-share" onclick="shareGuide()">Share this guide</button>
+
+      <br><br>
+
+      <span class="walk-well">Walk well.</span>
+    </div>
+
+    <div class="guide-share-toast" id="share-toast">Link copied</div>
+
+  </div>
+
+  <script src="js/moon.js"></script>
+  <script src="js/seasonal.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Scroll reveal for guide sections
+    (function () {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      document.querySelectorAll('.guide-reveal').forEach(function (el) {
+        observer.observe(el);
+      });
+    })();
+
+    // Share guide
+    function shareGuide() {
+      var url = 'https://pilgrimapp.org/guide';
+      if (navigator.share) {
+        navigator.share({ title: 'A Walking Practice', url: url });
+      } else {
+        navigator.clipboard.writeText(url).then(function () {
+          var toast = document.getElementById('share-toast');
+          toast.classList.add('show');
+          setTimeout(function () { toast.classList.remove('show'); }, 2000);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
