@@ -85,6 +85,14 @@ Create the file at `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/found.h
 
       <!--
         Approved entries get pasted here, newest first.
+
+        Placeholder lifecycle:
+        - First real entry arrives: paste it ABOVE the .archive-empty paragraph
+          (keep the placeholder — it still reads true, since only one find exists).
+        - Second real entry arrives: DELETE the .archive-empty paragraph entirely
+          (the archive is visibly a thing now and no longer needs the vow).
+        - Third and beyond: paste newest-first at the top of this section.
+
         Shape:
         <article class="find">
           <p class="find-head">Card 023 · Portland · Powell's</p>
@@ -99,7 +107,7 @@ Create the file at `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/found.h
     <section class="invite">
       <h2>Did you find one?</h2>
 
-      <p>
+      <p class="intro">
         If a card found you, leave a note. Names and emails are not asked for
         and will not be collected. Your story joins the archive.
       </p>
@@ -162,7 +170,7 @@ Create the file at `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/css/fou
   /* Ink */
   --ink:       #2B241F;   /* dark umber — body text */
   --ink-soft:  #3C2E24;   /* warm sepia — headings */
-  --ink-fog:   #8A8076;   /* fog gray — tiny accent text */
+  --ink-fog:   #756A60;   /* fog gray — 4.68:1 on paper (WCAG AA for small text) */
 
   /* Ground */
   --paper:     #F6F1E6;   /* parchment — page background */
@@ -230,10 +238,9 @@ h2 {
   margin: 0 0 1.2em;
 }
 
-/* Intro and invite body paragraphs share styling */
+/* Intro and invite body paragraphs share the .intro class */
 
-.intro,
-section.invite p {
+.intro {
   font-size: clamp(17px, 1.8vw, 19px);
   margin: 0 0 1.4em;
 }

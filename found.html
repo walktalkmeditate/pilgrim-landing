@@ -44,6 +44,14 @@
 
       <!--
         Approved entries get pasted here, newest first.
+
+        Placeholder lifecycle:
+        - First real entry arrives: paste it ABOVE the .archive-empty paragraph
+          (keep the placeholder — it still reads true, since only one find exists).
+        - Second real entry arrives: DELETE the .archive-empty paragraph entirely
+          (the archive is visibly a thing now and no longer needs the vow).
+        - Third and beyond: paste newest-first at the top of this section.
+
         Shape:
         <article class="find">
           <p class="find-head">Card 023 · Portland · Powell's</p>

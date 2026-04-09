@@ -159,11 +159,9 @@ The full `<main>` body:
     <h2>Where the cards have been found</h2>
 
     <p class="archive-empty">
-      <em>
-        No cards have yet been found.<br>
-        The first cards ship in Spring 2026.<br>
-        When one finds you, leave a note — yours will be the first.
-      </em>
+      No cards have yet been found.<br>
+      The first cards ship in Spring 2026.<br>
+      When one finds you, leave a note — yours will be the first.
     </p>
 
     <!--
@@ -267,7 +265,7 @@ Pulled from `pilgrim-cards/plan.md` lines 64–70 (the card's own color system):
   /* Ink */
   --ink:       #2B241F;   /* dark umber — body text */
   --ink-soft:  #3C2E24;   /* warm sepia — headings */
-  --ink-fog:   #8A8076;   /* fog gray — tiny accent text */
+  --ink-fog:   #756A60;   /* fog gray — 4.68:1 on paper, passes WCAG AA for small text */
 
   /* Ground */
   --paper:     #F6F1E6;   /* parchment — page background */
@@ -288,7 +286,7 @@ Pulled from `pilgrim-cards/plan.md` lines 64–70 (the card's own color system):
   :root {
     --ink:       #EDE4CF;         /* warm cream */
     --ink-soft:  #D8CCAF;
-    --ink-fog:   #867B6B;
+    --ink-fog:   #958A7A;         /* bumped from #867B6B for AA on dark paper */
     --paper:     #1E1913;         /* deep umber ground */
     --paper-dim: #251F17;
     --rule:      #3A2F22;
@@ -308,7 +306,7 @@ All sizes use `clamp()` so type scales smoothly from 320px phones to 1440px disp
 | `h2` | Cormorant | `clamp(18px, 2.4vw, 22px)` | 1.3 | 400 italic | sentence |
 | `.intro` | Cormorant | `clamp(17px, 1.8vw, 19px)` | 1.55 | 400 | regular |
 | `.archive-empty` | Cormorant | `clamp(16px, 1.7vw, 18px)` | 1.55 | 400 italic | regular |
-| `.find-head` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.3 | 500 | regular |
+| `.find-head` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.3 | 400 | regular, `--ink-soft` color |
 | `.find-book` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.4 | 400 | regular |
 | `.find-story` blockquote | Cormorant | `clamp(17px, 1.8vw, 19px)` | 1.55 | 400 italic | regular |
 | `.about-link` text | Lato Light | 11px | 1.3 | 300 | letter-spaced 0.04em |
@@ -374,8 +372,12 @@ Semantic HTML does most of the work. No ARIA beyond what the browser infers from
 
 ### Color contrast
 
-- **Light mode:** `#2B241F` on `#F6F1E6` is ~12.4:1 (AAA body text). `#8A8076` on `#F6F1E6` is ~4.7:1 — just above AA Large, and used only for the tiny footer and About Pilgrim link.
-- **Dark mode:** `#EDE4CF` on `#1E1913` is ~13.1:1 (AAA). The dark-mode fog gray `#867B6B` on `#1E1913` is ~4.6:1 — verify during implementation and bump to `#958A7A` if it falls short.
+All contrast ratios are computed per WCAG 2.1 relative luminance and verified against Lighthouse (score 100/100 on the shipped page).
+
+- **Light mode body** (`#2B241F` on `#F6F1E6`): 13.56:1 — AAA.
+- **Light mode fog gray** (`#756A60` on `#F6F1E6`): 4.68:1 — passes AA for normal text. An earlier draft of this spec specified `#8A8076` and claimed 4.7:1; the actual computed ratio for `#8A8076` is 3.43:1, which fails AA. The shipped value is `#756A60`.
+- **Dark mode body** (`#EDE4CF` on `#1E1913`): 13.79:1 — AAA.
+- **Dark mode fog gray** (`#958A7A` on `#1E1913`): 5.15:1 — passes AA. The initial candidate `#867B6B` gave only 4.20:1 and was bumped before shipping.
 
 ### Focus, motion, and fallbacks
 
