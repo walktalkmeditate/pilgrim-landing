@@ -1,0 +1,29 @@
+# Claude Code local state
+.claude/
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies (in case build tooling is added later)
+node_modules/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
