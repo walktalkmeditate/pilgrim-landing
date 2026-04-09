@@ -1,0 +1,204 @@
+/* /found — a quiet sibling to pilgrim-landing.
+   Self-contained. No imports, no shared state with styles.css. */
+
+:root {
+  /* Ink */
+  --ink:       #2B241F;   /* dark umber — body text */
+  --ink-soft:  #3C2E24;   /* warm sepia — headings */
+  --ink-fog:   #756A60;   /* fog gray — 4.68:1 on paper (WCAG AA for small text) */
+
+  /* Ground */
+  --paper:     #F6F1E6;   /* parchment — page background */
+  --paper-dim: #EFE8D7;   /* dim parchment */
+  --rule:      #D4CBB8;   /* thin rule for borders */
+
+  /* Type */
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans:  "Lato", -apple-system, system-ui, sans-serif;
+
+  /* Rhythm */
+  --measure: 620px;
+  --gutter:  clamp(24px, 5vw, 48px);
+  --leading: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:       #EDE4CF;
+    --ink-soft:  #D8CCAF;
+    --ink-fog:   #958A7A;   /* bumped from #867B6B for AA contrast on dark paper */
+    --paper:     #1E1913;
+    --paper-dim: #251F17;
+    --rule:      #3A2F22;
+  }
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: var(--leading);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  padding: clamp(64px, 10vh, 140px) var(--gutter);
+}
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* Headings */
+
+h1 {
+  font-size: clamp(32px, 6vw, 44px);
+  line-height: 1.15;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin: 0 0 1.2em;
+}
+
+h2 {
+  font-size: clamp(18px, 2.4vw, 22px);
+  line-height: 1.3;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 1.2em;
+}
+
+/* Intro and invite body paragraphs share the .intro class */
+
+.intro {
+  font-size: clamp(17px, 1.8vw, 19px);
+  margin: 0 0 1.4em;
+}
+
+/* Body link affordance — underlined via border-bottom, no transition */
+
+.intro a,
+.leave-note a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink);
+}
+
+/* About Pilgrim link — tiny, centered, Lato Light */
+
+.about-link {
+  margin: 2.4em 0 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.about-link a {
+  color: var(--ink-fog);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+}
+
+/* Archive and invite section spacing */
+
+section.archive,
+section.invite {
+  margin-top: clamp(80px, 12vh, 140px);
+}
+
+/* Archive empty placeholder */
+
+.archive-empty {
+  text-align: center;
+  color: var(--ink-fog);
+  font-size: clamp(16px, 1.7vw, 18px);
+  font-style: italic;
+  margin: 2em 0;
+}
+
+/* Archive entries */
+
+article.find {
+  margin: 0 0 3em;
+}
+
+article.find .find-head {
+  font-size: clamp(15px, 1.6vw, 17px);
+  line-height: 1.3;
+  color: var(--ink-soft);
+  margin: 0 0 .2em;
+}
+
+article.find .find-book {
+  font-size: clamp(15px, 1.6vw, 17px);
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0 0 .8em;
+}
+
+article.find .find-story {
+  font-size: clamp(17px, 1.8vw, 19px);
+  font-style: italic;
+  color: var(--ink);
+  margin: 0;
+  padding-left: 1.2em;
+  border-left: 1px solid var(--rule);
+}
+
+/* Primary leave-a-note link (mailto) */
+
+.leave-note {
+  margin-top: 2em;
+}
+
+/* Mailto fallback for finders without a configured email client */
+
+.leave-note-fallback {
+  font-size: 14px;
+  color: var(--ink-fog);
+  margin-top: 0.8em;
+}
+
+.leave-note-fallback code {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink-fog);
+}
+
+/* Footer — echoes the card back signature */
+
+footer {
+  max-width: var(--measure);
+  margin: clamp(120px, 16vh, 200px) auto 0;
+  padding-top: 2em;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 10.5px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+  text-transform: lowercase;
+  margin: 0;
+}
+
+/* Reduced motion — no-op here by design, but declares intent */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
