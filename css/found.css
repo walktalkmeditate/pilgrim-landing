@@ -137,7 +137,7 @@ article.find .find-head {
   margin: 0 0 .2em;
 }
 
-article.find .find-book {
+article.find .find-context {
   font-size: clamp(15px, 1.6vw, 17px);
   line-height: 1.4;
   color: var(--ink);
@@ -167,10 +167,10 @@ article.find .find-story {
   margin-top: 0.8em;
 }
 
-.leave-note-fallback code {
+.leave-note-fallback .addr {
   font-family: var(--sans);
   font-size: 14px;
-  color: var(--ink-fog);
+  color: var(--ink);
 }
 
 /* Footer — echoes the card back signature */

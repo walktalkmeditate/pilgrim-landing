@@ -96,7 +96,7 @@ Create the file at `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/found.h
         Shape:
         <article class="find">
           <p class="find-head">Card 023 · Portland · Powell's</p>
-          <p class="find-book">in a copy of <cite>The Snow Leopard</cite>.</p>
+          <p class="find-context">in a copy of <cite>The Snow Leopard</cite>.</p>
           <blockquote class="find-story">
             "I was having a terrible week and this felt like someone knew."
           </blockquote>
@@ -108,18 +108,24 @@ Create the file at `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/found.h
       <h2>Did you find one?</h2>
 
       <p class="intro">
-        If a card found you, leave a note. Names and emails are not asked for
-        and will not be collected. Your story joins the archive.
+        If a card found you, leave a note. Where you found it, what the
+        card said, what happened — any or all of it, in whatever words
+        feel right.
+      </p>
+
+      <p class="intro">
+        Names and emails are not asked for and will not be collected.
+        Your story joins the archive.
       </p>
 
       <p class="leave-note">
-        <a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AThe%20book%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
+        <a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
           Leave a note →
         </a>
       </p>
 
       <p class="leave-note-fallback">
-        or write to <code>found@pilgrimapp.org</code>
+        or write to <span class="addr">found@pilgrimapp.org</span>
       </p>
     </section>
 
@@ -302,7 +308,7 @@ article.find .find-head {
   margin: 0 0 .2em;
 }
 
-article.find .find-book {
+article.find .find-context {
   font-size: clamp(15px, 1.6vw, 17px);
   line-height: 1.4;
   color: var(--ink);
@@ -332,10 +338,10 @@ article.find .find-story {
   margin-top: 0.8em;
 }
 
-.leave-note-fallback code {
+.leave-note-fallback .addr {
   font-family: var(--sans);
   font-size: 14px;
-  color: var(--ink-fog);
+  color: var(--ink);
 }
 
 /* Footer — echoes the card back signature */
@@ -457,7 +463,6 @@ Expected: the OS default email client opens a new compose window with:
   (Write as much or as little as you like.)
 
   Where: 
-  The book: 
   What the card said (or its number): 
   What happened: 
 

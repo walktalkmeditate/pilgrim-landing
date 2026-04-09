@@ -62,7 +62,7 @@ Finders submit via `mailto:`. There is no `<form>` element on the page.
 ### The link
 
 ```html
-<a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AThe%20book%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
+<a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
   Leave a note →
 </a>
 ```
@@ -75,7 +75,6 @@ Their email client opens a new draft addressed to `found@pilgrimapp.org`, with t
 (Write as much or as little as you like.)
 
 Where: 
-The book: 
 What the card said (or its number): 
 What happened: 
 
@@ -102,9 +101,11 @@ Using GH Issues as a pseudo-database was considered and rejected. Issues require
 
 The subject mirrors the plan's inversion framing: the card finds you, not the other way around. *"I found one of your cards"* reads literally but re-asserts a marketing dynamic (your cards, from you the sender) that the project is built to dissolve. Skipped.
 
-### Body prompts: four labeled fields, each one word
+### Body prompts: three labeled fields, each a fragment
 
-The four prompts — `Where`, `The book`, `What the card said (or its number)`, `What happened` — serve operational purposes (telling the project owner which design/quote traveled to which venue) without reading as a form. Each label is one or a few words; the email recipient can delete any of them and write freely. The bracketing parentheticals at the top and bottom — *"(Write as much or as little as you like.)"* and *"(Photos welcome.)"* — frame the body as a permission slip, not a ticket.
+The three prompts — `Where`, `What the card said (or its number)`, `What happened` — serve operational purposes (telling the project owner which design traveled to which venue) without reading as a form. Each label is one or a few words; the email recipient can delete any of them and write freely. The bracketing parentheticals at the top and bottom — *"(Write as much or as little as you like.)"* and *"(Photos welcome.)"* — frame the body as a permission slip, not a ticket.
+
+An earlier draft included a fourth prompt labeled `The book`, assuming every card would be slipped inside a book. Removed because the project's outreach scope always included non-book venues — hostel seat pockets, community bulletin boards, cairns, Camino albergues, train carriages — and a "book" prompt would have read as prescriptive (and slightly alienating) to a finder who picked up a card from one of those. Book titles and other resting-place context, when relevant, naturally fit inside `What happened` or `Where`.
 
 ### Photos: welcomed in email, not displayed on page
 
@@ -125,11 +126,13 @@ A small subset of finders — mostly corporate Windows environments and some web
 
 ```html
 <p class="leave-note-fallback">
-  or write to <code>found@pilgrimapp.org</code>
+  or write to <span class="addr">found@pilgrimapp.org</span>
 </p>
 ```
 
-Styled small and gray, visually recessive but selectable for copy-paste. The `<code>` element makes the address visually unambiguous as "this is an address, copy this."
+The `<span class="addr">` is styled in Lato sans-serif at `--ink` color (darker than the surrounding `--ink-fog` fallback text) so it reads as the emphasized element of the line, visually distinct from the "or write to" prose. Not styled as a link (no underline, no link semantics) — the primary `Leave a note →` link already provides the clickable mailto path; the fallback's job is to make the address visible and selectable for users whose mailto is broken. An earlier draft wrapped the address in `<a href="mailto:...">` with a border-bottom underline; removed because the underline read as "too link-like" and broke the page's austere register, and because having two mailto links in the same section was semantically noisy. The primary link does the clicking; the fallback span does the showing.
+
+Notable: the `<code>` tag is also intentionally absent. An earlier draft used `<code>` to render the address in a monospaced font, but `<code>` is semantically for source code or computer-interpretable strings; an email address isn't source code. `<span class="addr">` is the accurate element.
 
 ## Page structure and copy
 
@@ -169,7 +172,7 @@ The full `<main>` body:
       Shape:
       <article class="find">
         <p class="find-head">Card 023 · Portland · Powell's</p>
-        <p class="find-book">in a copy of <cite>The Snow Leopard</cite>.</p>
+        <p class="find-context">in a copy of <cite>The Snow Leopard</cite>.</p>
         <blockquote class="find-story">
           "I was having a terrible week and this felt like someone knew."
         </blockquote>
@@ -180,19 +183,25 @@ The full `<main>` body:
   <section class="invite">
     <h2>Did you find one?</h2>
 
-    <p>
-      If a card found you, leave a note. Names and emails are not asked for
-      and will not be collected. Your story joins the archive.
+    <p class="intro">
+      If a card found you, leave a note. Where you found it, what the
+      card said, what happened — any or all of it, in whatever words
+      feel right.
+    </p>
+
+    <p class="intro">
+      Names and emails are not asked for and will not be collected.
+      Your story joins the archive.
     </p>
 
     <p class="leave-note">
-      <a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AThe%20book%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
+      <a href="mailto:found@pilgrimapp.org?subject=A%20card%20found%20me&body=(Write%20as%20much%20or%20as%20little%20as%20you%20like.)%0A%0AWhere%3A%20%0AWhat%20the%20card%20said%20(or%20its%20number)%3A%20%0AWhat%20happened%3A%20%0A%0A(Photos%20welcome.)">
         Leave a note →
       </a>
     </p>
 
     <p class="leave-note-fallback">
-      or write to <code>found@pilgrimapp.org</code>
+      or write to <span class="addr">found@pilgrimapp.org</span>
     </p>
   </section>
 
@@ -228,7 +237,7 @@ Approved entries follow this exact HTML:
 ```html
 <article class="find">
   <p class="find-head">Card 023 · Portland · Powell's</p>
-  <p class="find-book">in a copy of <cite>The Snow Leopard</cite>.</p>
+  <p class="find-context">in a copy of <cite>The Snow Leopard</cite>.</p>
   <blockquote class="find-story">
     "I was having a terrible week and this felt like someone knew."
   </blockquote>
@@ -307,7 +316,7 @@ All sizes use `clamp()` so type scales smoothly from 320px phones to 1440px disp
 | `.intro` | Cormorant | `clamp(17px, 1.8vw, 19px)` | 1.55 | 400 | regular |
 | `.archive-empty` | Cormorant | `clamp(16px, 1.7vw, 18px)` | 1.55 | 400 italic | regular |
 | `.find-head` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.3 | 400 | regular, `--ink-soft` color |
-| `.find-book` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.4 | 400 | regular |
+| `.find-context` | Cormorant | `clamp(15px, 1.6vw, 17px)` | 1.4 | 400 | regular |
 | `.find-story` blockquote | Cormorant | `clamp(17px, 1.8vw, 19px)` | 1.55 | 400 italic | regular |
 | `.about-link` text | Lato Light | 11px | 1.3 | 300 | letter-spaced 0.04em |
 | `footer p` | Lato Light | 10.5px | 1.3 | 300 | lowercase, letter-spaced 0.04em |
