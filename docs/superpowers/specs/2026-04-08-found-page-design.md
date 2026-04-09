@@ -171,7 +171,7 @@ The full `<main>` body:
       Shape:
       <article class="find">
         <p class="find-head">Card 023 · Portland · Powell's</p>
-        <p class="find-book">in a copy of <em>The Snow Leopard</em>.</p>
+        <p class="find-book">in a copy of <cite>The Snow Leopard</cite>.</p>
         <blockquote class="find-story">
           "I was having a terrible week and this felt like someone knew."
         </blockquote>
@@ -230,7 +230,7 @@ Approved entries follow this exact HTML:
 ```html
 <article class="find">
   <p class="find-head">Card 023 · Portland · Powell's</p>
-  <p class="find-book">in a copy of <em>The Snow Leopard</em>.</p>
+  <p class="find-book">in a copy of <cite>The Snow Leopard</cite>.</p>
   <blockquote class="find-story">
     "I was having a terrible week and this felt like someone knew."
   </blockquote>
