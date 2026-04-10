@@ -512,6 +512,38 @@ a:focus-visible {
   transition: box-shadow 0.3s ease;
 }
 
+/* Footer logo cycles through the 9 Pilgrim guide variants as a slow
+   crossfade (~8s per logo, 2s transitions). Each variant is a real
+   iOS alternate app icon — Default, Breeze, River, Sage, Ember, Drift,
+   Stone, Dusk, Dark — loosely ordered as a walker's day from sunrise
+   to night. See the IIFE in index.html that drives the .active class. */
+.horizon-logo-cycle {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.horizon-logo-cycle img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+}
+
+.horizon-logo-cycle img.active {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .horizon-logo-cycle img {
+    transition: none;
+  }
+}
+
 .horizon .app-store-badge {
   transform: scale(0.9);
   margin-bottom: var(--padding-md);

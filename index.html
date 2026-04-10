@@ -1196,7 +1196,17 @@
        9. The Horizon (Footer)
        ========================================== -->
   <footer class="horizon section">
-    <img src="assets/pilgrim-logo.png" alt="" class="horizon-logo" id="footer-logo" width="40" height="40" aria-hidden="true">
+    <div class="horizon-logo horizon-logo-cycle" id="footer-logo" aria-hidden="true">
+      <img src="assets/logos/pilgrim-default.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-breeze.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-river.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-sage.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-ember.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-drift.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-stone.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-dusk.png" alt="" width="36" height="36">
+      <img src="assets/logos/pilgrim-dark.png" alt="" width="36" height="36">
+    </div>
 
     <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store">
       <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
@@ -1460,6 +1470,33 @@
         var s = window.SeasonalEngine.getCurrentSeason();
         el.textContent = haiku[s] || haiku.spring;
       }
+    })();
+
+    // Footer logo crossfade cycle — walks through the 9 Pilgrim guide
+    // variants as a slow ambient loop (8s per logo, 2s crossfade).
+    // Reduced-motion users just see a single randomly chosen variant.
+    (function() {
+      var cycle = document.querySelector('.horizon-logo-cycle');
+      if (!cycle) return;
+      var imgs = cycle.querySelectorAll('img');
+      if (imgs.length === 0) return;
+
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (prefersReducedMotion) {
+        var pick = Math.floor(Math.random() * imgs.length);
+        imgs[pick].classList.add('active');
+        return;
+      }
+
+      imgs[0].classList.add('active');
+      var idx = 0;
+      setInterval(function() {
+        imgs[idx].classList.remove('active');
+        idx = (idx + 1) % imgs.length;
+        imgs[idx].classList.add('active');
+      }, 8000);
     })();
 
     (function() {
