@@ -285,15 +285,20 @@
     if (window.innerWidth < 640) return;
 
     var walker = document.getElementById('page-walker');
-    var walkerFigure = document.getElementById('page-walker-figure');
+    var walkerWrapper = document.getElementById('page-walker-figure-wrapper');
     var trailWalked = document.getElementById('page-walker-trail-walked');
     var cairn = document.querySelector('.page-cairn');
     var cairnStones = document.getElementById('page-cairn-stones');
     var cairnLabel = document.getElementById('page-cairn-label');
     var cairnWhisper = document.getElementById('page-cairn-whisper');
 
-    if (!walker || !walkerFigure || !trailWalked || !cairn ||
+    if (!walker || !walkerWrapper || !trailWalked || !cairn ||
         !cairnStones || !cairnLabel || !cairnWhisper) return;
+
+    // Match the moon's top offset (--padding-lg = 1.5rem) so the walker
+    // starts at the same Y as the moon-phase theme toggle on the right.
+    var topOffsetPx = parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.5;
+    var bottomOffsetPx = topOffsetPx;
 
     var prefersReducedMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -420,10 +425,11 @@
       var percent = Math.min(1, Math.max(0, scrollTop / docHeight));
       var viewportH = window.innerHeight;
 
-      // Walker rides from 10% to 90% of viewport height as scroll
-      // progresses from 0% to 100%.
-      var walkerY = (0.10 + percent * 0.80) * viewportH;
-      walkerFigure.style.top = walkerY + 'px';
+      // Walker starts at the moon's Y (topOffsetPx from top) and
+      // descends to near the bottom of the viewport as scroll
+      // progresses. Same padding on both ends so the range is centered.
+      var walkerY = topOffsetPx + percent * (viewportH - topOffsetPx - bottomOffsetPx);
+      walkerWrapper.style.top = walkerY + 'px';
       trailWalked.style.height = walkerY + 'px';
 
       // First-visit reveal: fade the walker in after the reader has

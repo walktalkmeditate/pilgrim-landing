@@ -702,29 +702,33 @@ a:focus-visible {
   transition: height 0.2s ease-out;
 }
 
-.page-walker-figure {
+/* Figure is wrapped in its own layer so the top-position update from
+   JS doesn't fight with the transform-driven bob animation. JS sets
+   top on this wrapper, the inner SVG runs its own continuous bob. */
+.page-walker-figure-wrapper {
   position: absolute;
   left: 50%;
-  top: 10%;
-  transform: translate(-50%, -50%);
+  top: var(--padding-lg);
+  transform: translateX(-50%);
   will-change: top;
-  transition: top 0.15s ease-out;
+}
+
+.page-walker-figure {
+  display: block;
   color: var(--fog);
+  animation: page-walker-bob 560ms ease-in-out infinite;
+  transform-origin: center 60%;
 }
 
-/* Walking motion is continuous while the walker is visible — a
-   subtle bob with a slight left-right rock so the figure reads as
-   mid-stride rather than static. Two-beat 520ms cycle matches a
-   human walking cadence without being distracting. */
-.page-walker.visible .page-walker-figure {
-  animation: page-walker-bob 520ms ease-in-out infinite;
-}
-
+/* Two-beat walking bob — vertical lift plus a left-right sway that
+   reads clearly as mid-stride at 28px. Made deliberately obvious
+   (4px lift, ±3deg sway) rather than subtle, because the scale is
+   too small for micro-motion to be legible. */
 @keyframes page-walker-bob {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
-  25%      { transform: translate(-50%, -50%) translateY(-2px) rotate(-1.4deg); }
-  50%      { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
-  75%      { transform: translate(-50%, -50%) translateY(-2px) rotate(1.4deg); }
+  0%, 100% { transform: translateY(0)    rotate(0deg); }
+  25%      { transform: translateY(-4px) rotate(-3deg); }
+  50%      { transform: translateY(0)    rotate(0deg); }
+  75%      { transform: translateY(-4px) rotate(3deg); }
 }
 
 /* Bow overrides the bob on arrival — scale down briefly, then back. */
@@ -733,9 +737,9 @@ a:focus-visible {
 }
 
 @keyframes page-walker-bow {
-  0%   { transform: translate(-50%, -50%) scale(1); }
-  40%  { transform: translate(-50%, -50%) scale(0.82); }
-  100% { transform: translate(-50%, -50%) scale(1); }
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.82); }
+  100% { transform: scale(1); }
 }
 
 @media (max-width: 640px) {
@@ -744,9 +748,9 @@ a:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .page-walker { transition: none; }
-  .page-walker-figure { transition: none; }
+  .page-walker-figure-wrapper { transition: none; }
   .page-walker-trail-walked { transition: none; }
-  .page-walker.visible .page-walker-figure,
+  .page-walker-figure,
   .page-walker.bowing .page-walker-figure {
     animation: none;
   }

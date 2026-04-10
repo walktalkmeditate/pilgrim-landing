@@ -1252,21 +1252,18 @@
     <div class="page-walker-trail">
       <div class="page-walker-trail-walked" id="page-walker-trail-walked"></div>
     </div>
-    <svg class="page-walker-figure" id="page-walker-figure"
-         viewBox="0 0 24 24" width="28" height="28"
-         fill="none" stroke="currentColor" stroke-width="2.4"
-         stroke-linecap="round" stroke-linejoin="round">
-      <!-- head -->
-      <circle cx="12" cy="4" r="2.2" fill="currentColor" stroke="none"/>
-      <!-- torso -->
-      <line class="walker-body" x1="12" y1="7" x2="12" y2="14"/>
-      <!-- legs (animated via CSS) -->
-      <line class="walker-leg walker-leg-front" x1="12" y1="14" x2="15.5" y2="21"/>
-      <line class="walker-leg walker-leg-back"  x1="12" y1="14" x2="8.5"  y2="21"/>
-      <!-- arms (animated via CSS) -->
-      <line class="walker-arm walker-arm-front" x1="12" y1="9" x2="15.5" y2="11.5"/>
-      <line class="walker-arm walker-arm-back"  x1="12" y1="9" x2="8.5"  y2="11.5"/>
-    </svg>
+    <!-- Wrapper holds the top-position (updated by JS on scroll); the inner
+         SVG runs its own continuous bob animation on transform so the two
+         don't fight. -->
+    <div class="page-walker-figure-wrapper" id="page-walker-figure-wrapper">
+      <!-- Walking figure — Material Design walk icon (Apache 2.0, Pictogrammers).
+           Filled silhouette reads far better than stroked lines at small size. -->
+      <svg class="page-walker-figure" id="page-walker-figure"
+           viewBox="0 0 24 24" width="28" height="28"
+           fill="currentColor">
+        <path d="M7.5,5.5A2,2 0 0,0 9.5,3.5A2,2 0 0,0 7.5,1.5A2,2 0 0,0 5.5,3.5A2,2 0 0,0 7.5,5.5M5.75,8.9L3,23H5.1L6.85,15L9,17V23H11V15.5L8.85,13.5L9.5,10.5C10.8,12 12.8,13 15,13V11C13.1,11 11.5,10 10.7,8.6L9.7,7C9.35,6.4 8.7,6 8,6C7.75,6 7.5,6.05 7.25,6.15L2,8.3V13H4V9.65L5.75,8.9Z"/>
+      </svg>
+    </div>
   </div>
 
   <!-- Scroll distance tracker -->
