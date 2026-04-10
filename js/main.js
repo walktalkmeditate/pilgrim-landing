@@ -299,8 +299,12 @@
 
     // Match the moon's top offset (--padding-lg = 1.5rem) so the walker
     // starts at the same Y as the moon-phase theme toggle on the right.
-    var topOffsetPx = parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.5;
-    var bottomOffsetPx = topOffsetPx;
+    // Recomputed on every position update via currentTopOffset() so
+    // changes to root font size (user zoom, responsive adjustments)
+    // stay in sync with the actual moon position.
+    function currentTopOffset() {
+      return parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.5;
+    }
 
     // --- Whisper catalog (mirrored from iOS WhisperCatalog.swift) ---
     // 21 curated audio gifts, seven moods. Clicking the walker plays
@@ -525,10 +529,13 @@
       var percent = Math.min(1, Math.max(0, scrollTop / docHeight));
       var viewportH = window.innerHeight;
 
-      // Walker starts at the moon's Y (topOffsetPx from top) and
+      // Walker starts at the moon's Y (topOffset from top) and
       // descends to near the bottom of the viewport as scroll
       // progresses. Same padding on both ends so the range is centered.
-      var walkerY = topOffsetPx + percent * (viewportH - topOffsetPx - bottomOffsetPx);
+      // Recomputed every call so runtime zoom/font-size changes stay
+      // aligned with the moon toggle.
+      var topOffset = currentTopOffset();
+      var walkerY = topOffset + percent * (viewportH - topOffset * 2);
       walkerWrapper.style.top = walkerY + 'px';
       trailWalked.style.height = walkerY + 'px';
       return percent;
@@ -548,12 +555,15 @@
       // First-visit reveal: fade the walker in after the reader has
       // actually begun scrolling (roughly 15 scroll events in). Avoids
       // popping them into a just-loaded page and mirrors the app's
-      // tone of "joining a walk already in progress".
+      // tone of "joining a walk already in progress". Only .visible
+      // is added here — .walking was already added by enterWalking()
+      // above, and the idle timer will flip to .meditating naturally
+      // when the reader pauses. Adding .meditating here would leave
+      // the walker in both states at once until the timer fired.
       if (isFirstVisit && !walkerRevealed) {
         scrollCount++;
         if (scrollCount >= 15) {
           walker.classList.add('visible');
-          walker.classList.add('meditating');
           walkerRevealed = true;
         }
       }

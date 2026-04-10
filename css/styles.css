@@ -712,9 +712,11 @@ a:focus-visible {
    Page Walker — the page is a walk
    ============================================= */
 /* A tiny walking figure lives in the left margin of the viewport.
-   It descends the page as the reader scrolls, bobs continuously
-   while visible, and plants a stone on the footer cairn when
-   arriving at the bottom. See initPageWalker() in main.js. */
+   It descends the page as the reader scrolls, bobs while the reader
+   is actively scrolling, stops and breathes (meditates) when the
+   reader pauses to read, and plants a stone on the footer cairn
+   when arriving at the bottom. Clickable — plays one of 21 curated
+   whispers from the CDN. See initPageWalker() in main.js. */
 .page-walker {
   position: fixed;
   left: 20px;
