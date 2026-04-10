@@ -65,6 +65,9 @@
       "Collective walking counter across pilgrimage routes",
       "GPX import for pilgrimage routes",
       "Live Activities on lock screen",
+      "Home Screen widget with a daily walking mantra",
+      "Whispers — anonymous audio gifts placed along walking routes with proximity detection",
+      "Cairns — virtual stone cairns placed at meaningful spots, stackable by other walkers across seven tiers",
       "No accounts required",
       "No cloud storage — all data on-device",
       "No analytics or telemetry",
@@ -129,6 +132,14 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using WhisperKit (based on OpenAI's Whisper model). Nothing is uploaded to any server. Your voice recordings and transcriptions stay on your phone."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I leave something behind on a walking path for other walkers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pilgrim lets you leave anonymous traces along your walking paths. Place a whisper — a curated audio gift from seven moods like presence, gratitude, or courage — at a meaningful spot on the map. Or stack a virtual cairn of stones at a place worth remembering. When any walker passes within range of a whisper or cairn, their phone gives a quiet haptic pulse. No accounts, no identities, no tracking — just small offerings on the land."
         }
       }
     ]
@@ -858,6 +869,32 @@
     </section>
 
     <!-- ==========================================
+         4.5. Traces — Whispers & Cairns
+         ========================================== -->
+    <section class="traces section" aria-label="Whispers and Cairns">
+      <div class="section-inner">
+        <h2 class="display-large reveal">The path remembers</h2>
+        <p class="body-text reveal" style="max-width: 640px; margin: 0 auto 3rem; text-align: center;">
+          Most walks vanish the moment they end. Pilgrim gives you a way to leave something small behind — and to feel what other walkers left before you. No accounts. No identities. Just traces on the land.
+        </p>
+
+        <div class="practice-grid">
+          <div class="practice-card reveal reveal-delay-1">
+            <div class="practice-card-icon" aria-hidden="true">&#9835;</div>
+            <h3>Whispers</h3>
+            <p>Small audio gifts left at a place on the map. Twenty-one voices across seven moods — presence, wonder, gratitude, compassion, courage, lightness, stillness. Walk close to any whisper, yours or another walker's, and feel it arrive as a quiet pulse.</p>
+          </div>
+
+          <div class="practice-card reveal reveal-delay-2">
+            <div class="practice-card-icon" aria-hidden="true">&#9650;</div>
+            <h3>Cairns</h3>
+            <p>A pile of virtual stones at a meaningful spot. Place your own or add to a cairn left by someone who passed before you. Seven tiers from a faint trace to the eternal cairn that glows at 108 stones.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
          5. Screenshot Journey
          ========================================== -->
     <section class="journey section" aria-label="A walk through Pilgrim">
@@ -871,7 +908,7 @@
 
         <div class="journey-pair reveal">
           <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen with quote and moon phase" class="journey-screenshot">
-          <img src="assets/screenshots/02_active_walk.png" alt="Active walk showing live route on map" class="journey-screenshot">
+          <img src="assets/screenshots/02_active_walk.png" alt="Active walk with full-screen map and a quiet minimized stats bar at the bottom" class="journey-screenshot">
         </div>
 
         <p class="journey-caption reveal">The breathing circle appears. The world quiets.</p>
@@ -1120,6 +1157,10 @@
           It's open-source and completely free — no subscriptions, no ads, no compromise.
         </p>
 
+        <p class="body-text reveal">
+          If a walk ever gives you something worth sharing — a thought, a correction, a story — write to me at <a href="mailto:walk@plgr.im" style="color:var(--stone)" data-umami-event="click-contact-email">walk@plgr.im</a>.
+        </p>
+
         <div class="story-links reveal">
           <a href="https://walktalkmeditate.org" target="_blank" rel="noopener noreferrer">
             Inspired by the practice of Walk, Talk, Meditate &#8599;
@@ -1181,6 +1222,8 @@
       <a href="/compare.html">Compare</a>
       <span class="horizon-sep">&middot;</span>
       <a href="https://podcast.pilgrimapp.org" target="_blank" rel="noopener">Podcast</a>
+      <span class="horizon-sep">&middot;</span>
+      <a href="mailto:walk@plgr.im" data-umami-event="click-contact-footer">Contact</a>
     </div>
 
     <p class="horizon-signoff reveal">crafted with intention</p>
