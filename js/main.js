@@ -286,19 +286,106 @@
 
     var walker = document.getElementById('page-walker');
     var walkerWrapper = document.getElementById('page-walker-figure-wrapper');
+    var walkerFigure = document.getElementById('page-walker-figure');
+    var walkerWhisperTitle = document.getElementById('page-walker-whisper-title');
     var trailWalked = document.getElementById('page-walker-trail-walked');
     var cairn = document.querySelector('.page-cairn');
     var cairnStones = document.getElementById('page-cairn-stones');
     var cairnLabel = document.getElementById('page-cairn-label');
     var cairnWhisper = document.getElementById('page-cairn-whisper');
 
-    if (!walker || !walkerWrapper || !trailWalked || !cairn ||
-        !cairnStones || !cairnLabel || !cairnWhisper) return;
+    if (!walker || !walkerWrapper || !walkerFigure || !walkerWhisperTitle ||
+        !trailWalked || !cairn || !cairnStones || !cairnLabel || !cairnWhisper) return;
 
     // Match the moon's top offset (--padding-lg = 1.5rem) so the walker
     // starts at the same Y as the moon-phase theme toggle on the right.
     var topOffsetPx = parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.5;
     var bottomOffsetPx = topOffsetPx;
+
+    // --- Whisper catalog (mirrored from iOS WhisperCatalog.swift) ---
+    // 21 curated audio gifts, seven moods. Clicking the walker plays
+    // a random one from the CDN. Kept in sync with the iOS app
+    // catalog by hand — if you add a whisper there, copy it here too.
+    var WHISPER_CDN_BASE = 'https://cdn.pilgrimapp.org/audio/whisper/';
+    var WHISPERS = [
+      { file: 'whisper-presence-1',  title: 'What do you see right now?',               duration: 6 },
+      { file: 'whisper-presence-2',  title: 'Feel your feet on the earth',              duration: 8 },
+      { file: 'whisper-presence-3',  title: 'You are here',                             duration: 5 },
+      { file: 'whisper-lightness-1', title: 'You are doing great',                      duration: 6 },
+      { file: 'whisper-lightness-2', title: 'Whatever you were worrying about can wait', duration: 8 },
+      { file: 'whisper-lightness-3', title: 'Take a breath',                            duration: 8 },
+      { file: 'whisper-wonder-1',    title: 'Something extraordinary is happening',     duration: 7 },
+      { file: 'whisper-wonder-2',    title: 'The light left its source long ago',       duration: 7 },
+      { file: 'whisper-wonder-3',    title: 'You are spinning through space',           duration: 9 },
+      { file: 'whisper-gratitude-1', title: 'Thank the one who planted this tree',      duration: 8 },
+      { file: 'whisper-gratitude-2', title: 'Your body carried you here',               duration: 8 },
+      { file: 'whisper-gratitude-3', title: 'This moment is a gift',                    duration: 6 },
+      { file: 'whisper-compassion-1',title: 'Others have walked here with heavy hearts',duration: 6 },
+      { file: 'whisper-compassion-2',title: 'Set something down',                       duration: 6 },
+      { file: 'whisper-compassion-3',title: 'The path does not ask you to be perfect',  duration: 8 },
+      { file: 'whisper-courage-1',   title: 'The next step is the only one that matters', duration: 6 },
+      { file: 'whisper-courage-2',   title: 'What you seek is also seeking you',        duration: 6 },
+      { file: 'whisper-courage-3',   title: 'You already know the answer',              duration: 7 },
+      { file: 'whisper-stillness-1', title: 'Be still',                                 duration: 3 },
+      { file: 'whisper-stillness-2', title: 'Breathe',                                  duration: 4 },
+      { file: 'whisper-stillness-3', title: 'You are an animal on the earth',           duration: 6 }
+    ];
+
+    var currentAudio = null;
+    var lastWhisperIndex = -1;
+
+    function playRandomWhisper() {
+      // Stop any whisper still playing so clicks don't pile up.
+      if (currentAudio) {
+        try { currentAudio.pause(); } catch (e) {}
+        currentAudio = null;
+      }
+
+      // Pick a different whisper than last time so repeat clicks
+      // feel varied. Only matters after the first click.
+      var idx;
+      do {
+        idx = Math.floor(Math.random() * WHISPERS.length);
+      } while (idx === lastWhisperIndex && WHISPERS.length > 1);
+      lastWhisperIndex = idx;
+      var w = WHISPERS[idx];
+
+      var audio = new Audio(WHISPER_CDN_BASE + w.file + '.aac');
+      audio.volume = 0.85;
+      currentAudio = audio;
+
+      walkerWhisperTitle.textContent = '"' + w.title + '"';
+      walkerWhisperTitle.classList.add('visible');
+      walker.classList.add('whispering');
+
+      var cleanup = function() {
+        if (currentAudio === audio) {
+          currentAudio = null;
+          walker.classList.remove('whispering');
+          setTimeout(function() {
+            if (!currentAudio) walkerWhisperTitle.classList.remove('visible');
+          }, 600);
+        }
+      };
+      audio.addEventListener('ended', cleanup);
+      audio.addEventListener('error', function() {
+        console.warn('[page-walker] whisper playback failed for', w.file);
+        cleanup();
+      });
+
+      audio.play().catch(function(err) {
+        console.warn('[page-walker] whisper play() rejected:', err);
+        cleanup();
+      });
+    }
+
+    walkerFigure.addEventListener('click', playRandomWhisper);
+    walkerFigure.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        playRandomWhisper();
+      }
+    });
 
     var prefersReducedMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -412,15 +499,28 @@
     var walkerRevealed = !isFirstVisit;
     var hasArrived = false;
     var scrollCount = 0;
+    var idleTimer = null;
 
     if (!isFirstVisit) {
       walker.classList.add('visible');
+      walker.classList.add('meditating');  // start at rest
     }
 
-    function updateWalker() {
+    function enterWalking() {
+      if (prefersReducedMotion) return;
+      walker.classList.remove('meditating');
+      walker.classList.add('walking');
+    }
+
+    function enterMeditating() {
+      walker.classList.remove('walking');
+      walker.classList.add('meditating');
+    }
+
+    function updateWalkerPosition() {
       var scrollTop = window.scrollY || document.documentElement.scrollTop;
       var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (docHeight <= 0) return;
+      if (docHeight <= 0) return 0;
 
       var percent = Math.min(1, Math.max(0, scrollTop / docHeight));
       var viewportH = window.innerHeight;
@@ -431,6 +531,19 @@
       var walkerY = topOffsetPx + percent * (viewportH - topOffsetPx - bottomOffsetPx);
       walkerWrapper.style.top = walkerY + 'px';
       trailWalked.style.height = walkerY + 'px';
+      return percent;
+    }
+
+    function onScrollOrResize() {
+      var percent = updateWalkerPosition();
+
+      // Scroll-gated walking: enter walking state on every scroll
+      // event, set an idle timer that transitions to meditating
+      // after ~1.5s of stillness. Scroll again → cancel timer,
+      // back to walking.
+      enterWalking();
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(enterMeditating, 1500);
 
       // First-visit reveal: fade the walker in after the reader has
       // actually begun scrolling (roughly 15 scroll events in). Avoids
@@ -440,6 +553,7 @@
         scrollCount++;
         if (scrollCount >= 15) {
           walker.classList.add('visible');
+          walker.classList.add('meditating');
           walkerRevealed = true;
         }
       }
@@ -468,9 +582,11 @@
       }
     }
 
-    updateWalker();
-    window.addEventListener('scroll', updateWalker, { passive: true });
-    window.addEventListener('resize', updateWalker, { passive: true });
+    // Initial position (don't trigger the walking state machine —
+    // the reader hasn't actually scrolled yet).
+    updateWalkerPosition();
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
   }
 
   // --- Init ---
