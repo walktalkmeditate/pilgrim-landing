@@ -1253,15 +1253,19 @@
       <div class="page-walker-trail-walked" id="page-walker-trail-walked"></div>
     </div>
     <svg class="page-walker-figure" id="page-walker-figure"
-         viewBox="0 0 24 24" width="22" height="22"
-         fill="none" stroke="currentColor" stroke-width="1.9"
+         viewBox="0 0 24 24" width="28" height="28"
+         fill="none" stroke="currentColor" stroke-width="2.4"
          stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="13.5" cy="4" r="1.8" fill="currentColor" stroke="none"/>
-      <path d="M13.5 6.2 L11 12 L13 14"/>
-      <path d="M11 9 L8 10"/>
-      <path d="M11 10 L15 12"/>
-      <path d="M13 14 L15.5 20"/>
-      <path d="M13 14 L10 19.5"/>
+      <!-- head -->
+      <circle cx="12" cy="4" r="2.2" fill="currentColor" stroke="none"/>
+      <!-- torso -->
+      <line class="walker-body" x1="12" y1="7" x2="12" y2="14"/>
+      <!-- legs (animated via CSS) -->
+      <line class="walker-leg walker-leg-front" x1="12" y1="14" x2="15.5" y2="21"/>
+      <line class="walker-leg walker-leg-back"  x1="12" y1="14" x2="8.5"  y2="21"/>
+      <!-- arms (animated via CSS) -->
+      <line class="walker-arm walker-arm-front" x1="12" y1="9" x2="15.5" y2="11.5"/>
+      <line class="walker-arm walker-arm-back"  x1="12" y1="9" x2="8.5"  y2="11.5"/>
     </svg>
   </div>
 

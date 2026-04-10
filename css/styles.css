@@ -643,15 +643,15 @@ a:focus-visible {
    Page Walker — the page is a walk
    ============================================= */
 /* A tiny walking figure lives in the left margin of the viewport.
-   It descends the page as the reader scrolls, animated only while
-   scrolling, and plants a stone on the footer cairn when arriving
-   at the bottom. See initPageWalker() in main.js. */
+   It descends the page as the reader scrolls, bobs continuously
+   while visible, and plants a stone on the footer cairn when
+   arriving at the bottom. See initPageWalker() in main.js. */
 .page-walker {
   position: fixed;
   left: 20px;
   top: 0;
   bottom: 0;
-  width: 24px;
+  width: 28px;
   pointer-events: none;
   z-index: 50;
   opacity: 0;
@@ -663,6 +663,9 @@ a:focus-visible {
   opacity: 1;
 }
 
+/* Dashed trail runs the full height behind the walker. Colors use
+   color-mix rather than element opacity to avoid the parent-opacity
+   multiplication that would wash out the walked overlay. */
 .page-walker-trail {
   position: absolute;
   left: 50%;
@@ -672,22 +675,30 @@ a:focus-visible {
   transform: translateX(-0.5px);
   background-image: linear-gradient(
     to bottom,
-    currentColor 0%,
-    currentColor 50%,
+    rgba(160, 152, 138, 0.35) 0%,
+    rgba(160, 152, 138, 0.35) 50%,
     transparent 50%
   );
-  background-size: 1px 4px;
-  opacity: 0.22;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--fog) 35%, transparent) 0%,
+    color-mix(in srgb, var(--fog) 35%, transparent) 50%,
+    transparent 50%
+  );
+  background-size: 1px 5px;
 }
 
+/* Solid fill that grows as the walker descends — reveals "walked so
+   far" as a dark solid overlay on top of the dashed base. Rendered
+   with higher alpha than the dashed trail so the contrast is visible. */
 .page-walker-trail-walked {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: 0;
-  background: currentColor;
-  opacity: 0.45;
+  background: rgba(160, 152, 138, 0.75);
+  background: color-mix(in srgb, var(--fog) 75%, transparent);
   transition: height 0.2s ease-out;
 }
 
@@ -701,22 +712,29 @@ a:focus-visible {
   color: var(--fog);
 }
 
-.page-walker.walking .page-walker-figure {
-  animation: page-walker-bob 380ms ease-in-out infinite;
+/* Walking motion is continuous while the walker is visible — a
+   subtle bob with a slight left-right rock so the figure reads as
+   mid-stride rather than static. Two-beat 520ms cycle matches a
+   human walking cadence without being distracting. */
+.page-walker.visible .page-walker-figure {
+  animation: page-walker-bob 520ms ease-in-out infinite;
 }
 
 @keyframes page-walker-bob {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50%      { transform: translate(-50%, -50%) translateY(-1.5px); }
+  0%, 100% { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
+  25%      { transform: translate(-50%, -50%) translateY(-2px) rotate(-1.4deg); }
+  50%      { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
+  75%      { transform: translate(-50%, -50%) translateY(-2px) rotate(1.4deg); }
 }
 
+/* Bow overrides the bob on arrival — scale down briefly, then back. */
 .page-walker.bowing .page-walker-figure {
   animation: page-walker-bow 900ms ease-in-out;
 }
 
 @keyframes page-walker-bow {
   0%   { transform: translate(-50%, -50%) scale(1); }
-  40%  { transform: translate(-50%, -50%) scale(0.86); }
+  40%  { transform: translate(-50%, -50%) scale(0.82); }
   100% { transform: translate(-50%, -50%) scale(1); }
 }
 
@@ -728,7 +746,7 @@ a:focus-visible {
   .page-walker { transition: none; }
   .page-walker-figure { transition: none; }
   .page-walker-trail-walked { transition: none; }
-  .page-walker.walking .page-walker-figure,
+  .page-walker.visible .page-walker-figure,
   .page-walker.bowing .page-walker-figure {
     animation: none;
   }

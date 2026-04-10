@@ -407,7 +407,6 @@
     var walkerRevealed = !isFirstVisit;
     var hasArrived = false;
     var scrollCount = 0;
-    var walkingClearTimer = null;
 
     if (!isFirstVisit) {
       walker.classList.add('visible');
@@ -426,17 +425,6 @@
       var walkerY = (0.10 + percent * 0.80) * viewportH;
       walkerFigure.style.top = walkerY + 'px';
       trailWalked.style.height = walkerY + 'px';
-
-      // Walk animation: add class while scrolling, clear after 150ms
-      // of no new scroll events so the walker freezes when the reader
-      // pauses to read.
-      if (!prefersReducedMotion) {
-        walker.classList.add('walking');
-        if (walkingClearTimer) clearTimeout(walkingClearTimer);
-        walkingClearTimer = setTimeout(function() {
-          walker.classList.remove('walking');
-        }, 160);
-      }
 
       // First-visit reveal: fade the walker in after the reader has
       // actually begun scrolling (roughly 15 scroll events in). Avoids
