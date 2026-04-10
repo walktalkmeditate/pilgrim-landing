@@ -273,6 +273,212 @@
     });
   }
 
+  // --- Page Walker + Cairn ---
+  // The walker figure lives in the left margin and descends the page
+  // as the reader scrolls. It walks (bobs) only while scroll is active.
+  // On reaching the footer for the first time this session it bows,
+  // drops a fresh stone onto the footer cairn, and — if the visit
+  // crossed a tier threshold — whispers "Your cairn has grown."
+  // Persistence is via localStorage; one stone per day max.
+  // The tier system mirrors CairnTier.swift in the iOS app.
+  function initPageWalker() {
+    if (window.innerWidth < 640) return;
+
+    var walker = document.getElementById('page-walker');
+    var walkerFigure = document.getElementById('page-walker-figure');
+    var trailWalked = document.getElementById('page-walker-trail-walked');
+    var cairn = document.querySelector('.page-cairn');
+    var cairnStones = document.getElementById('page-cairn-stones');
+    var cairnLabel = document.getElementById('page-cairn-label');
+    var cairnWhisper = document.getElementById('page-cairn-whisper');
+
+    if (!walker || !walkerFigure || !trailWalked || !cairn ||
+        !cairnStones || !cairnLabel || !cairnWhisper) return;
+
+    var prefersReducedMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // --- Tier helpers (port of CairnTier.swift) ---
+    function tierFor(visits) {
+      if (visits >= 108) return 'eternal';
+      if (visits >= 77) return 'sacred';
+      if (visits >= 42) return 'great';
+      if (visits >= 12) return 'large';
+      if (visits >= 7) return 'medium';
+      if (visits >= 3) return 'small';
+      return 'faint';
+    }
+
+    function mantraFor(tier) {
+      return {
+        faint:   'The path begins',
+        small:   "You've been here before",
+        medium:  'The path remembers you',
+        large:   'Quiet devotion',
+        great:   'Walker',
+        sacred:  'A sacred walk',
+        eternal: 'Solvitur ambulando'
+      }[tier];
+    }
+
+    // Visible stone count caps at 8 — the visual grows for the first
+    // eight visits and then tier names carry the rest of the meaning,
+    // culminating in the glowing "eternal" tier at visit 108.
+    function stonesForVisits(visits) {
+      return Math.max(0, Math.min(8, visits));
+    }
+
+    // --- Persistence ---
+    var VISITS_KEY = 'pilgrimCairnVisits';
+    var LAST_DATE_KEY = 'pilgrimCairnLastDate';
+    var FIRST_DATE_KEY = 'pilgrimCairnFirstDate';
+
+    var storedVisits = 0;
+    var isNewVisit = false;
+    try {
+      storedVisits = parseInt(localStorage.getItem(VISITS_KEY) || '0', 10) || 0;
+      var lastDate = localStorage.getItem(LAST_DATE_KEY);
+      var today = new Date().toISOString().slice(0, 10);
+      if (lastDate !== today) {
+        isNewVisit = true;
+        localStorage.setItem(VISITS_KEY, String(storedVisits + 1));
+        localStorage.setItem(LAST_DATE_KEY, today);
+        if (!localStorage.getItem(FIRST_DATE_KEY)) {
+          localStorage.setItem(FIRST_DATE_KEY, today);
+        }
+      }
+    } catch (e) {
+      // localStorage unavailable — behave as a first-visit every time
+      storedVisits = 0;
+      isNewVisit = true;
+    }
+
+    var currentVisits = isNewVisit ? storedVisits + 1 : storedVisits;
+    var currentTier = tierFor(currentVisits);
+    var previousTier = tierFor(storedVisits);
+    var tierChanged = isNewVisit && currentTier !== previousTier;
+    var isFirstVisit = currentVisits === 1;
+
+    // --- Cairn rendering ---
+    // Eight-stone pyramid stacked in a 60x40 viewBox. Position and
+    // size are tuned to read as a wabi-sabi pile rather than a neat
+    // pyramid — slight horizontal offsets on every other stone.
+    var STONE_LAYOUT = [
+      { cx: 30, cy: 35, rx: 11, ry: 3.2 },  // 1 — base
+      { cx: 31, cy: 29, rx: 8.5, ry: 2.8 }, // 2
+      { cx: 29, cy: 24, rx: 6.8, ry: 2.5 }, // 3
+      { cx: 31, cy: 19, rx: 5.5, ry: 2.2 }, // 4
+      { cx: 29, cy: 15, rx: 4.4, ry: 1.9 }, // 5
+      { cx: 31, cy: 11, rx: 3.6, ry: 1.7 }, // 6
+      { cx: 30, cy: 8,  rx: 2.9, ry: 1.4 }, // 7
+      { cx: 30, cy: 5,  rx: 2.2, ry: 1.1 }  // 8 — crown
+    ];
+    var SVG_NS_LOCAL = 'http://www.w3.org/2000/svg';
+
+    function renderCairn(stoneCount, animateLast) {
+      while (cairnStones.firstChild) cairnStones.removeChild(cairnStones.firstChild);
+      for (var i = 0; i < stoneCount; i++) {
+        var layout = STONE_LAYOUT[i];
+        var el = document.createElementNS(SVG_NS_LOCAL, 'ellipse');
+        el.setAttribute('cx', layout.cx);
+        el.setAttribute('cy', layout.cy);
+        el.setAttribute('rx', layout.rx);
+        el.setAttribute('ry', layout.ry);
+        el.setAttribute('class', 'stone');
+        if (i === stoneCount - 1 && animateLast && !prefersReducedMotion) {
+          el.classList.add('dropping');
+        }
+        cairnStones.appendChild(el);
+      }
+      cairn.classList.toggle('eternal', currentTier === 'eternal');
+      cairnLabel.textContent = mantraFor(currentTier);
+    }
+
+    // Initial render: if this is a new visit, show the PREVIOUS state
+    // so the walker can drop the new stone on arrival. Otherwise show
+    // the full current state right away.
+    var initialStones = isNewVisit
+      ? stonesForVisits(storedVisits)
+      : stonesForVisits(currentVisits);
+    renderCairn(initialStones, false);
+    cairn.classList.add('visible');
+
+    // --- Walker scroll logic ---
+    var walkerRevealed = !isFirstVisit;
+    var hasArrived = false;
+    var scrollCount = 0;
+    var walkingClearTimer = null;
+
+    if (!isFirstVisit) {
+      walker.classList.add('visible');
+    }
+
+    function updateWalker() {
+      var scrollTop = window.scrollY || document.documentElement.scrollTop;
+      var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) return;
+
+      var percent = Math.min(1, Math.max(0, scrollTop / docHeight));
+      var viewportH = window.innerHeight;
+
+      // Walker rides from 10% to 90% of viewport height as scroll
+      // progresses from 0% to 100%.
+      var walkerY = (0.10 + percent * 0.80) * viewportH;
+      walkerFigure.style.top = walkerY + 'px';
+      trailWalked.style.height = walkerY + 'px';
+
+      // Walk animation: add class while scrolling, clear after 150ms
+      // of no new scroll events so the walker freezes when the reader
+      // pauses to read.
+      if (!prefersReducedMotion) {
+        walker.classList.add('walking');
+        if (walkingClearTimer) clearTimeout(walkingClearTimer);
+        walkingClearTimer = setTimeout(function() {
+          walker.classList.remove('walking');
+        }, 160);
+      }
+
+      // First-visit reveal: fade the walker in after the reader has
+      // actually begun scrolling (roughly 15 scroll events in). Avoids
+      // popping them into a just-loaded page and mirrors the app's
+      // tone of "joining a walk already in progress".
+      if (isFirstVisit && !walkerRevealed) {
+        scrollCount++;
+        if (scrollCount >= 15) {
+          walker.classList.add('visible');
+          walkerRevealed = true;
+        }
+      }
+
+      // Arrival: when the walker reaches the bottom for the first time
+      // this session, bow and plant a new stone if it's a new visit.
+      if (!hasArrived && percent >= 0.95) {
+        hasArrived = true;
+        walker.classList.add('bowing');
+        setTimeout(function() {
+          walker.classList.remove('bowing');
+        }, 900);
+
+        if (isNewVisit) {
+          // Drop the new stone (the Nth stone where N = stonesForVisits(currentVisits))
+          renderCairn(stonesForVisits(currentVisits), true);
+
+          if (tierChanged && !isFirstVisit) {
+            cairnWhisper.textContent = 'Your cairn has grown.';
+            cairnWhisper.classList.add('visible');
+            setTimeout(function() {
+              cairnWhisper.classList.remove('visible');
+            }, 4200);
+          }
+        }
+      }
+    }
+
+    updateWalker();
+    window.addEventListener('scroll', updateWalker, { passive: true });
+    window.addEventListener('resize', updateWalker, { passive: true });
+  }
+
   // --- Init ---
   document.addEventListener('DOMContentLoaded', function () {
     setTheme(getPreferredTheme());
@@ -292,6 +498,7 @@
     initParallax();
     initFootprints();
     initCursorTrail();
+    initPageWalker();
 
     var moonToggle = document.getElementById('moon-toggle');
     if (moonToggle) {

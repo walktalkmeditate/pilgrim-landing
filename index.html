@@ -1237,7 +1237,33 @@
     </div>
 
     <p class="horizon-signoff reveal">crafted with intention</p>
+
+    <!-- Persistent cairn — grows one stone per day visited, tiered
+         through the seven CairnTier levels. Populated by initPageWalker(). -->
+    <div class="page-cairn" aria-label="Your cairn">
+      <svg class="page-cairn-stones" id="page-cairn-stones" viewBox="0 0 60 40" width="56" height="38" aria-hidden="true"></svg>
+      <p class="page-cairn-label" id="page-cairn-label"></p>
+      <p class="page-cairn-whisper" id="page-cairn-whisper"></p>
+    </div>
   </footer>
+
+  <!-- Page walker — tracks scroll as a pilgrimage; see initPageWalker() -->
+  <div class="page-walker" id="page-walker" aria-hidden="true">
+    <div class="page-walker-trail">
+      <div class="page-walker-trail-walked" id="page-walker-trail-walked"></div>
+    </div>
+    <svg class="page-walker-figure" id="page-walker-figure"
+         viewBox="0 0 24 24" width="22" height="22"
+         fill="none" stroke="currentColor" stroke-width="1.9"
+         stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="13.5" cy="4" r="1.8" fill="currentColor" stroke="none"/>
+      <path d="M13.5 6.2 L11 12 L13 14"/>
+      <path d="M11 9 L8 10"/>
+      <path d="M11 10 L15 12"/>
+      <path d="M13 14 L15.5 20"/>
+      <path d="M13 14 L10 19.5"/>
+    </svg>
+  </div>
 
   <!-- Scroll distance tracker -->
   <div class="scroll-tracker" aria-label="Scroll distance" role="status"></div>

@@ -640,6 +640,191 @@ a:focus-visible {
 }
 
 /* =============================================
+   Page Walker — the page is a walk
+   ============================================= */
+/* A tiny walking figure lives in the left margin of the viewport.
+   It descends the page as the reader scrolls, animated only while
+   scrolling, and plants a stone on the footer cairn when arriving
+   at the bottom. See initPageWalker() in main.js. */
+.page-walker {
+  position: fixed;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+  color: var(--fog);
+}
+
+.page-walker.visible {
+  opacity: 1;
+}
+
+.page-walker-trail {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background-image: linear-gradient(
+    to bottom,
+    currentColor 0%,
+    currentColor 50%,
+    transparent 50%
+  );
+  background-size: 1px 4px;
+  opacity: 0.22;
+}
+
+.page-walker-trail-walked {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0;
+  background: currentColor;
+  opacity: 0.45;
+  transition: height 0.2s ease-out;
+}
+
+.page-walker-figure {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  transform: translate(-50%, -50%);
+  will-change: top;
+  transition: top 0.15s ease-out;
+  color: var(--fog);
+}
+
+.page-walker.walking .page-walker-figure {
+  animation: page-walker-bob 380ms ease-in-out infinite;
+}
+
+@keyframes page-walker-bob {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50%      { transform: translate(-50%, -50%) translateY(-1.5px); }
+}
+
+.page-walker.bowing .page-walker-figure {
+  animation: page-walker-bow 900ms ease-in-out;
+}
+
+@keyframes page-walker-bow {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  40%  { transform: translate(-50%, -50%) scale(0.86); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@media (max-width: 640px) {
+  .page-walker { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-walker { transition: none; }
+  .page-walker-figure { transition: none; }
+  .page-walker-trail-walked { transition: none; }
+  .page-walker.walking .page-walker-figure,
+  .page-walker.bowing .page-walker-figure {
+    animation: none;
+  }
+}
+
+/* =============================================
+   Page Cairn — the reward for arriving
+   ============================================= */
+/* Persisted across visits via localStorage. Tiered through the same
+   seven steps as the iOS app's CairnTier, with the eternal tier
+   glowing at 108 visits. Sits in the footer after "crafted with
+   intention" as the very last thing on the page. */
+.page-cairn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: var(--padding-lg);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.page-cairn.visible {
+  opacity: 1;
+}
+
+.page-cairn-stones {
+  color: var(--fog);
+  overflow: visible;
+}
+
+.page-cairn-stones .stone {
+  fill: currentColor;
+  opacity: 0.55;
+  transform-origin: center;
+}
+
+.page-cairn-stones .stone.dropping {
+  animation: page-cairn-stone-drop 680ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes page-cairn-stone-drop {
+  0%   { transform: translateY(-24px); opacity: 0; }
+  60%  { transform: translateY(2px);   opacity: 0.55; }
+  100% { transform: translateY(0);     opacity: 0.55; }
+}
+
+.page-cairn.eternal .page-cairn-stones .stone {
+  opacity: 0.85;
+  filter: drop-shadow(0 0 3px rgba(196, 165, 116, 0.35));
+  animation: page-cairn-eternal-glow 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes page-cairn-eternal-glow {
+  from { filter: drop-shadow(0 0 2px rgba(196, 165, 116, 0.2)); }
+  to   { filter: drop-shadow(0 0 8px rgba(196, 165, 116, 0.6)); }
+}
+
+.page-cairn-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.78rem;
+  color: var(--fog);
+  margin: var(--padding-xs) 0 0 0;
+  opacity: 0.65;
+  letter-spacing: 0.02em;
+}
+
+.page-cairn-whisper {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.72rem;
+  color: var(--stone);
+  margin: 4px 0 0 0;
+  min-height: 1em;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.page-cairn-whisper.visible {
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-cairn-stones .stone.dropping,
+  .page-cairn.eternal .page-cairn-stones .stone {
+    animation: none;
+  }
+  .page-cairn-stones .stone.dropping {
+    transform: none;
+    opacity: 0.55;
+  }
+}
+
+/* =============================================
    Moon Phase
    ============================================= */
 .moon-canvas {
