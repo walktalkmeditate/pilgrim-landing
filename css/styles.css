@@ -394,6 +394,75 @@ a:focus-visible {
 .practice-card--privacy h3 { color: var(--rust); }
 
 /* =============================================
+   Traces — Whispers & Cairns (1.2.0 feature section)
+   ============================================= */
+/* Distinct visual treatment from .practice-card so this doesn't read
+   as a second copy of "Four moments of a walk" directly above it.
+   Centered single column, tall card layout with generous icons that
+   carry real visual weight, subtle top border instead of a filled
+   background. Feels like featured content, not a list. */
+.traces-inner {
+  text-align: center;
+}
+
+.traces-heading {
+  margin-bottom: var(--padding-md);
+}
+
+.traces-lede {
+  max-width: 36rem;
+  margin: 0 auto var(--padding-xl);
+  color: var(--stone);
+}
+
+.traces-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--padding-lg);
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.traces-card {
+  border-top: 1px solid var(--parchment-tertiary);
+  padding: var(--padding-lg) var(--padding-md) var(--padding-md);
+  text-align: center;
+}
+
+.traces-card:last-child {
+  border-bottom: 1px solid var(--parchment-tertiary);
+}
+
+.traces-card-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--fog);
+  margin-bottom: var(--padding-sm);
+  opacity: 0.75;
+}
+
+.traces-card-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  margin: 0 0 var(--padding-sm);
+  letter-spacing: 0.01em;
+}
+
+.traces-card-title--whispers { color: var(--stone); }
+.traces-card-title--cairns   { color: var(--moss); }
+
+.traces-card p {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--stone);
+  line-height: 1.65;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+/* =============================================
    Seasons
    ============================================= */
 .seasons {
@@ -759,7 +828,7 @@ a:focus-visible {
   border-radius: 50%;
   border: 1px solid var(--fog);
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0.5);
+  transform: translate(-50%, -50%) scale(0.7);
   pointer-events: none;
 }
 
@@ -767,10 +836,15 @@ a:focus-visible {
   animation: page-walker-breathe 5500ms ease-in-out infinite;
 }
 
+/* Breath cycle: inhale (grow), brief hold, exhale (shrink).
+   Peak scale 1.45 — so at 28px base the circle tops out around
+   ~40px diameter, snug around the 28px walker rather than engulfing
+   it. Feels like the walker's own breath rather than a loud halo. */
 @keyframes page-walker-breathe {
-  0%, 100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.5); }
-  30%      { opacity: 0.35; transform: translate(-50%, -50%) scale(1.5); }
-  60%      { opacity: 0.28; transform: translate(-50%, -50%) scale(2.1); }
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
+  45%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
+  55%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
 }
 
 /* Whispering: during audio playback of a whisper, the walker has

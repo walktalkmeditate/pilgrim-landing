@@ -872,22 +872,38 @@
          4.5. Traces — Whispers & Cairns
          ========================================== -->
     <section class="traces section" aria-label="Whispers and Cairns">
-      <div class="section-inner">
-        <h2 class="display-large reveal">The path remembers</h2>
-        <p class="body-text reveal" style="max-width: 640px; margin: 0 auto 3rem; text-align: center;">
+      <div class="section-inner traces-inner">
+        <h2 class="display-large reveal traces-heading">The path remembers</h2>
+        <p class="body-text reveal traces-lede">
           Most walks vanish the moment they end. Pilgrim gives you a way to leave something small behind — and to feel what other walkers left before you. No accounts. No identities. Just traces on the land.
         </p>
 
-        <div class="practice-grid">
-          <div class="practice-card reveal reveal-delay-1">
-            <div class="practice-card-icon" aria-hidden="true">&#9835;</div>
-            <h3>Whispers</h3>
+        <div class="traces-cards">
+          <div class="traces-card reveal reveal-delay-1">
+            <div class="traces-card-icon" aria-hidden="true">
+              <!-- Sound ripple — three nested arcs emanating, suggesting audio -->
+              <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="24" r="2.5" fill="currentColor" stroke="none"/>
+                <path d="M18 18 Q22 24 18 30"/>
+                <path d="M25 14 Q32 24 25 34"/>
+                <path d="M32 10 Q42 24 32 38"/>
+              </svg>
+            </div>
+            <h3 class="traces-card-title traces-card-title--whispers">Whispers</h3>
             <p>Small audio gifts left at a place on the map. Twenty-one voices across seven moods — presence, wonder, gratitude, compassion, courage, lightness, stillness. Walk close to any whisper, yours or another walker's, and feel it arrive as a quiet pulse.</p>
           </div>
 
-          <div class="practice-card reveal reveal-delay-2">
-            <div class="practice-card-icon" aria-hidden="true">&#9650;</div>
-            <h3>Cairns</h3>
+          <div class="traces-card reveal reveal-delay-2">
+            <div class="traces-card-icon" aria-hidden="true">
+              <!-- Stacked stones — three ellipses piled as a cairn -->
+              <svg viewBox="0 0 48 48" width="40" height="40" fill="currentColor">
+                <ellipse cx="24" cy="38" rx="14" ry="4"/>
+                <ellipse cx="24" cy="28" rx="10" ry="3.3"/>
+                <ellipse cx="24" cy="19" rx="7" ry="2.6"/>
+                <ellipse cx="24" cy="11" rx="4.5" ry="2"/>
+              </svg>
+            </div>
+            <h3 class="traces-card-title traces-card-title--cairns">Cairns</h3>
             <p>A pile of virtual stones at a meaningful spot. Place your own or add to a cairn left by someone who passed before you. Seven tiers from a faint trace to the eternal cairn that glows at 108 stones.</p>
           </div>
         </div>
@@ -1260,13 +1276,20 @@
     <div class="page-walker-figure-wrapper" id="page-walker-figure-wrapper">
       <div class="page-walker-breath" aria-hidden="true"></div>
       <!-- Walking figure — Material Design walk icon (Apache 2.0, Pictogrammers).
-           Clickable to play a random whisper from the collection. -->
+           Clickable to play a random whisper from the collection.
+           The source path is left-skewed in its 0..24 viewBox (figure
+           lives roughly x=2..15, center at x≈8.5), so we wrap it in a
+           <g transform> that shifts it right by 3.5 units — now the
+           figure's visual center lines up with the viewBox center at 12,
+           which is where the meditation breath circle is anchored. -->
       <svg class="page-walker-figure" id="page-walker-figure"
            viewBox="0 0 24 24" width="28" height="28"
            fill="currentColor"
            role="button" tabindex="0"
            aria-label="Play a whisper from the Pilgrim collection">
-        <path d="M7.5,5.5A2,2 0 0,0 9.5,3.5A2,2 0 0,0 7.5,1.5A2,2 0 0,0 5.5,3.5A2,2 0 0,0 7.5,5.5M5.75,8.9L3,23H5.1L6.85,15L9,17V23H11V15.5L8.85,13.5L9.5,10.5C10.8,12 12.8,13 15,13V11C13.1,11 11.5,10 10.7,8.6L9.7,7C9.35,6.4 8.7,6 8,6C7.75,6 7.5,6.05 7.25,6.15L2,8.3V13H4V9.65L5.75,8.9Z"/>
+        <g transform="translate(3.5 0)">
+          <path d="M7.5,5.5A2,2 0 0,0 9.5,3.5A2,2 0 0,0 7.5,1.5A2,2 0 0,0 5.5,3.5A2,2 0 0,0 7.5,5.5M5.75,8.9L3,23H5.1L6.85,15L9,17V23H11V15.5L8.85,13.5L9.5,10.5C10.8,12 12.8,13 15,13V11C13.1,11 11.5,10 10.7,8.6L9.7,7C9.35,6.4 8.7,6 8,6C7.75,6 7.5,6.05 7.25,6.15L2,8.3V13H4V9.65L5.75,8.9Z"/>
+        </g>
       </svg>
       <div class="page-walker-whisper-title" id="page-walker-whisper-title" aria-live="polite"></div>
     </div>
