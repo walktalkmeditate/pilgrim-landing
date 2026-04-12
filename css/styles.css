@@ -925,9 +925,27 @@ a:focus-visible {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--fog);
+  border: 1px solid var(--dawn);
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.7);
+  pointer-events: none;
+}
+
+/* Rings 2 and 3 — pseudo-elements on .page-walker-breath. Each is the
+   same 28px circle, anchored at the walker's center, animated by its
+   own keyframe so the peak scale/opacity can differ per ring. */
+.page-walker-breath::before,
+.page-walker-breath::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid var(--dawn);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
   pointer-events: none;
 }
 
@@ -935,14 +953,39 @@ a:focus-visible {
   animation: page-walker-breathe 5500ms ease-in-out infinite;
 }
 
-/* Breath cycle: inhale (grow), brief hold, exhale (shrink).
-   Peak scale 1.45 — so at 28px base the circle tops out around
-   ~40px diameter, snug around the 28px walker rather than engulfing
-   it. Feels like the walker's own breath rather than a loud halo. */
+/* Staggered 0.4s / 0.8s delays mean the three rings are always at
+   different phases of the breath cycle — reads as a continuous
+   outward wave rather than three discrete pulses. */
+.page-walker.meditating .page-walker-breath::before {
+  animation: page-walker-breathe-mid 5500ms ease-in-out 0.4s infinite;
+}
+
+.page-walker.meditating .page-walker-breath::after {
+  animation: page-walker-breathe-outer 5500ms ease-in-out 0.8s infinite;
+}
+
+/* Breath cycle: inhale (grow), brief hold, exhale (shrink). Peak scale
+   1.45 on the inner ring — about a 40px diameter, snug around the 28px
+   walker. Middle and outer rings peak larger and fainter so the breath
+   dissipates outward into the page. */
 @keyframes page-walker-breathe {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
   45%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
   55%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
+}
+
+@keyframes page-walker-breathe-mid {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
+  45%  { opacity: 0.28; transform: translate(-50%, -50%) scale(1.85); }
+  55%  { opacity: 0.28; transform: translate(-50%, -50%) scale(1.85); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
+}
+
+@keyframes page-walker-breathe-outer {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
+  45%  { opacity: 0.16; transform: translate(-50%, -50%) scale(2.35); }
+  55%  { opacity: 0.16; transform: translate(-50%, -50%) scale(2.35); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
 }
 
