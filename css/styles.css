@@ -1054,6 +1054,9 @@ a:focus-visible {
   .page-walker-trail-walked { transition: none; }
   .page-walker.walking .page-walker-figure,
   .page-walker.meditating .page-walker-breath,
+  .page-walker.meditating .page-walker-breath::before,
+  .page-walker.meditating .page-walker-breath::after,
+  .page-walker.meditating .page-walker-figure,
   .page-walker.bowing .page-walker-figure {
     animation: none;
   }
