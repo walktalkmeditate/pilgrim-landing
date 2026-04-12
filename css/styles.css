@@ -964,42 +964,42 @@ a:focus-visible {
   animation: page-walker-breathe-outer 5500ms ease-in-out 0.8s infinite;
 }
 
-/* Breath cycle: inhale (grow), brief hold, exhale (shrink). Peak scale
-   1.45 on the inner ring — about a 40px diameter, snug around the 28px
-   walker. Middle and outer rings peak larger and fainter so the breath
-   dissipates outward into the page. */
+/* Breath cycle: inhale (grow), brief hold, exhale (shrink). All three
+   rings stay close to the walker — the inner ring barely exceeds the
+   28px silhouette, the outer ring only reaches ~45px. Opacities are
+   deliberately faint so the breath reads as a whisper of movement
+   rather than a broadcast signal. */
 @keyframes page-walker-breathe {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
-  45%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
-  55%  { opacity: 0.42; transform: translate(-50%, -50%) scale(1.45); }
+  45%  { opacity: 0.3;  transform: translate(-50%, -50%) scale(1.15); }
+  55%  { opacity: 0.3;  transform: translate(-50%, -50%) scale(1.15); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
 }
 
 @keyframes page-walker-breathe-mid {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
-  45%  { opacity: 0.28; transform: translate(-50%, -50%) scale(1.85); }
-  55%  { opacity: 0.28; transform: translate(-50%, -50%) scale(1.85); }
+  45%  { opacity: 0.18; transform: translate(-50%, -50%) scale(1.35); }
+  55%  { opacity: 0.18; transform: translate(-50%, -50%) scale(1.35); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
 }
 
 @keyframes page-walker-breathe-outer {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
-  45%  { opacity: 0.16; transform: translate(-50%, -50%) scale(2.35); }
-  55%  { opacity: 0.16; transform: translate(-50%, -50%) scale(2.35); }
+  45%  { opacity: 0.09; transform: translate(-50%, -50%) scale(1.55); }
+  55%  { opacity: 0.09; transform: translate(-50%, -50%) scale(1.55); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.85); }
 }
 
 /* During meditation the walker silhouette gently rises with each
-   inhale and settles on the exhale — 1.5px of lift, synced to ring 1's
-   peak at 45%–55% of the breath cycle. Translation-only; no scale,
-   so the silhouette's proportions stay honest. */
+   inhale and settles on the exhale — a single pixel of lift, synced
+   to ring 1's peak. Small enough you only notice it if you're looking. */
 .page-walker.meditating .page-walker-figure {
   animation: page-walker-meditate-rise 5500ms ease-in-out infinite;
 }
 
 @keyframes page-walker-meditate-rise {
-  0%, 100% { transform: translateY(0);    }
-  45%, 55% { transform: translateY(-1.5px);}
+  0%, 100% { transform: translateY(0);  }
+  45%, 55% { transform: translateY(-1px);}
 }
 
 /* Whispering: during audio playback of a whisper, the walker has
