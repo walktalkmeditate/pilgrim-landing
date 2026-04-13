@@ -307,7 +307,7 @@
     }
 
     // --- Whisper catalog (mirrored from iOS WhisperCatalog.swift) ---
-    // 21 curated audio gifts, seven intentions. Clicking the walker plays
+    // 21 curated audio gifts, seven energies. Clicking the walker plays
     // a random one from the CDN. Kept in sync with the iOS app
     // catalog by hand — if you add a whisper there, copy it here too.
     var WHISPER_CDN_BASE = 'https://cdn.pilgrimapp.org/audio/whisper/';
