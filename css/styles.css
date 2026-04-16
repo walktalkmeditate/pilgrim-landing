@@ -450,8 +450,9 @@ a:focus-visible {
   letter-spacing: 0.01em;
 }
 
-.traces-card-title--whispers { color: var(--rust); }
-.traces-card-title--cairns   { color: var(--moss); }
+.traces-card-title--whispers  { color: var(--rust); }
+.traces-card-title--cairns    { color: var(--moss); }
+.traces-card-title--reliquary { color: var(--stone); }
 
 /* Animated icons — bring the traces to life. The whispers icon ripples
    outward in sequence like sound from its source; the cairns icon
@@ -536,13 +537,514 @@ a:focus-visible {
   50%      { transform: translateY(-0.8px);}
 }
 
+/* =============================================
+   Reliquary route reveal — when the section scrolls into view,
+   a walking route draws itself across the card, then six photo
+   pins drop onto the route in staggered succession, each landing
+   with a soft anchor-ring ripple. Hooks into the existing .reveal/
+   .revealed system (no new JS needed).
+   ============================================= */
+.reliquary-route {
+  max-width: 38rem;
+  margin: var(--padding-lg) auto 0;
+  padding: 0 var(--padding-sm);
+  color: var(--ink);
+  /* Delay of the last pin's landing animation. Used to time the
+     end-marker seal so it stamps just after the final photo pins in.
+     If you add/remove pins, update this to the last pin's --pin-delay. */
+  --last-pin-delay: 3.9s;
+}
+
+.reliquary-route-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.reliquary-pin-group {
+  opacity: 0;
+}
+
+.reliquary-route.revealed .reliquary-pin-group {
+  animation: reliquary-pin-group-enter 0.01s linear forwards;
+  animation-delay: var(--pin-delay);
+}
+
+@keyframes reliquary-pin-group-enter {
+  to { opacity: 1; }
+}
+
+.reliquary-pin-photo {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  stroke: var(--parchment);
+  stroke-width: 2.5;
+  transition: filter 0.3s ease;
+}
+
+.reliquary-route.revealed .reliquary-pin-photo {
+  animation: reliquary-pin-photo-land 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--pin-delay);
+}
+
+@keyframes reliquary-pin-photo-land {
+  0%   { transform: scale(0);    }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1);    }
+}
+
+/* Hover glow — uses filter only (no animation, no transform) so the
+   landing animation's forwards fill state isn't clobbered. Previously
+   the hover pulse animation displaced the landing animation and the
+   pins re-played from scale(0) when hover ended → the blink bug. */
+.reliquary-pin-group.is-active .reliquary-pin-photo {
+  filter: url(#reliquary-pin-shadow) drop-shadow(0 0 8px rgba(245, 230, 200, 0.75));
+}
+
+.reliquary-pin-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0;
+}
+
+.reliquary-route.revealed .reliquary-pin-ripple {
+  animation: reliquary-pin-ripple-expand 1.1s ease-out forwards;
+  animation-delay: calc(var(--pin-delay) + 0.15s);
+}
+
+@keyframes reliquary-pin-ripple-expand {
+  0%   { opacity: 0.65; transform: scale(0.45); }
+  100% { opacity: 0;    transform: scale(2.4);  }
+}
+
+/* Time + distance labels above each pin — micro-type in Lato.
+   Uses --ink / --stone which invert with light/dark mode so labels
+   stay legible against the page background. */
+.reliquary-pin-time,
+.reliquary-pin-dist {
+  font-family: var(--font-accent, 'Lato', sans-serif);
+  opacity: 0;
+  pointer-events: none;
+  transition: fill 0.3s ease;
+  letter-spacing: 0.04em;
+}
+.reliquary-pin-time {
+  font-size: 8.5px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.reliquary-pin-dist {
+  font-size: 6.8px;
+  font-weight: 400;
+  fill: var(--stone);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reliquary-route.revealed .reliquary-pin-time,
+.reliquary-route.revealed .reliquary-pin-dist {
+  animation: reliquary-label-fade-in 0.8s ease forwards;
+  animation-delay: calc(var(--pin-delay) + 0.35s);
+}
+
+@keyframes reliquary-label-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 0.85; transform: translateY(0); }
+}
+
+.reliquary-pin-group {
+  cursor: pointer;
+}
+
+/* Active labels — brighten the text via `fill` rather than opacity.
+   Animation fill-mode:forwards controls opacity, so fighting it via
+   CSS opacity caused flicker; fill is independent. */
+.reliquary-pin-group.is-active .reliquary-pin-time,
+.reliquary-pin-group.is-active .reliquary-pin-dist {
+  fill: var(--ink);
+}
+
+/* Footprints — tiny ellipses generated along the route by JS.
+   Staggered reveal so the walker appears to actually walk across. */
+.reliquary-footprint {
+  opacity: 0;
+  fill: var(--ink);
+}
+.reliquary-footprint ellipse {
+  opacity: 0.6;
+}
+.reliquary-route.revealed .reliquary-footprint {
+  animation: reliquary-footprint-step 0.6s ease-out forwards;
+  animation-delay: var(--fp-delay, 0s);
+}
+/* Opacity-only reveal — CSS `transform` here would override the SVG
+   `transform` attribute that positions each footprint along the route,
+   which caused all 22 to stack at the origin. */
+@keyframes reliquary-footprint-step {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Start/end markers */
+.reliquary-endpoint-core {
+  fill: var(--moss, #8a9a70);
+  opacity: 0;
+}
+.reliquary-endpoint-pulse {
+  fill: none;
+  stroke: var(--moss, #8a9a70);
+  stroke-width: 1;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.reliquary-route.revealed .reliquary-endpoint-core {
+  animation: reliquary-endpoint-fade 0.5s ease forwards;
+  animation-delay: 0.1s;
+}
+.reliquary-route.revealed .reliquary-endpoint-pulse {
+  animation: reliquary-endpoint-pulse-out 2.6s ease-out infinite;
+  animation-delay: 1s;
+}
+@keyframes reliquary-endpoint-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes reliquary-endpoint-pulse-out {
+  0%   { opacity: 0.6; transform: scale(1);   }
+  100% { opacity: 0;   transform: scale(3.2); }
+}
+
+.reliquary-endpoint-seal-ring,
+.reliquary-endpoint-seal-mark {
+  fill: none;
+  stroke: var(--rust, #a05d3e);
+  opacity: 0;
+}
+.reliquary-endpoint-seal-ring {
+  stroke-width: 1.6;
+}
+.reliquary-endpoint-seal-mark {
+  stroke-width: 0.6;
+}
+.reliquary-route.revealed .reliquary-endpoint-seal-ring {
+  animation: reliquary-seal-appear 0.6s ease forwards;
+  animation-delay: calc(var(--last-pin-delay) + 0.5s);
+}
+.reliquary-route.revealed .reliquary-endpoint-seal-mark {
+  animation: reliquary-seal-appear 0.6s ease forwards;
+  animation-delay: calc(var(--last-pin-delay) + 0.7s);
+}
+@keyframes reliquary-seal-appear {
+  from { opacity: 0; }
+  to   { opacity: 0.85; }
+}
+
+/* Filmstrip below the route — rounded-square thumbnails with soft
+   borders and drop shadows, matching the walk.pilgrimapp.org share
+   page aesthetic. */
+.reliquary-filmstrip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.7rem;
+  max-width: 34rem;
+  margin: 1.25rem auto 0;
+  padding: 0.4rem 0.2rem;
+  list-style: none;
+}
+.reliquary-filmstrip li {
+  margin: 0;
+  padding: 0;
+}
+.reliquary-filmstrip-item {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  /* Fallback for browsers without color-mix (Safari < 16.2, Chrome < 111,
+     Firefox < 113). A translucent stone approximation. */
+  border: 1px solid rgba(139, 115, 85, 0.35);
+  border: 1px solid color-mix(in srgb, var(--stone) 35%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18),
+              0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: transform 0.25s ease,
+              box-shadow 0.25s ease,
+              border-color 0.25s ease,
+              opacity 0.4s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.reliquary-route.revealed .reliquary-filmstrip-item {
+  animation: reliquary-filmstrip-enter 0.6s ease forwards;
+}
+.reliquary-filmstrip li:nth-child(1) .reliquary-filmstrip-item { animation-delay: 2.55s; }
+.reliquary-filmstrip li:nth-child(2) .reliquary-filmstrip-item { animation-delay: 2.85s; }
+.reliquary-filmstrip li:nth-child(3) .reliquary-filmstrip-item { animation-delay: 3.15s; }
+.reliquary-filmstrip li:nth-child(4) .reliquary-filmstrip-item { animation-delay: 3.45s; }
+.reliquary-filmstrip li:nth-child(5) .reliquary-filmstrip-item { animation-delay: 3.75s; }
+.reliquary-filmstrip li:nth-child(6) .reliquary-filmstrip-item { animation-delay: 4.05s; }
+
+@keyframes reliquary-filmstrip-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.reliquary-filmstrip-item img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.reliquary-filmstrip-item:hover,
+.reliquary-filmstrip-item:focus-visible,
+.reliquary-filmstrip-item.is-active {
+  transform: translateY(-3px) scale(1.04);
+  border-color: var(--stone);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28),
+              0 3px 8px rgba(0, 0, 0, 0.18);
+  outline: none;
+}
+
+/* Walk summary stat line */
+.reliquary-stat-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 32rem;
+  margin: 1.4rem auto 0;
+  padding: 0;
+  font-family: var(--font-accent, 'Lato', sans-serif);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog, #c9b895);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.reliquary-stat-line em {
+  font-style: italic;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  font-family: var(--font-display, 'Cormorant Garamond', serif);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.reliquary-stat-sep {
+  opacity: 0.45;
+}
+.reliquary-route.revealed .reliquary-stat-line {
+  transition-delay: 4.5s;
+  opacity: 1;
+}
+
+/* Lightbox — fullscreen dialog with backdrop blur */
+.reliquary-lightbox {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(560px, 92vw);
+  max-height: 90vh;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 1rem;
+  background: var(--parchment-secondary, #efe3cf);
+  color: var(--ink, #2c241a);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.reliquary-lightbox::backdrop {
+  background: rgba(20, 14, 8, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.reliquary-lightbox figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.reliquary-lightbox-image {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  /* contain so non-square photos show fully rather than cropping —
+     important if this is ever repurposed for real user walk photos. */
+  object-fit: contain;
+  background: var(--ink);
+}
+.reliquary-lightbox figcaption {
+  padding: 1rem 1.2rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-accent, 'Lato', sans-serif);
+  text-align: center;
+}
+.reliquary-lightbox-time {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.reliquary-lightbox-dist {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.reliquary-lightbox-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 14, 8, 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  /* Always light — the translucent dark background doesn't flip,
+     so the X icon shouldn't either. Hardcoded because var(--parchment)
+     inverts to the dark page bg color in dark mode. */
+  color: #F5F0E8;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.reliquary-lightbox-close:hover,
+.reliquary-lightbox-close:focus-visible {
+  background: rgba(20, 14, 8, 0.75);
+  transform: scale(1.06);
+  outline: none;
+}
+
+/* Pin labels become unreadable below ~560px (8.5px SVG font scales to
+   ~5.5px on a 375px viewport). The filmstrip + stat line still tell
+   the story; drop the per-pin labels rather than squint-invite them. */
+@media (max-width: 560px) {
+  .reliquary-pin-time,
+  .reliquary-pin-dist {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reliquary-pin-group,
+  .reliquary-pin-photo,
+  .reliquary-pin-ripple,
+  .reliquary-pin-time,
+  .reliquary-pin-dist,
+  .reliquary-footprint,
+  .reliquary-endpoint-core,
+  .reliquary-endpoint-pulse,
+  .reliquary-endpoint-seal-ring,
+  .reliquary-endpoint-seal-mark,
+  .reliquary-filmstrip-item,
+  .reliquary-stat-line {
+    animation: none !important;
+  }
+  .reliquary-pin-group,
+  .reliquary-pin-time,
+  .reliquary-pin-dist,
+  .reliquary-footprint,
+  .reliquary-endpoint-core,
+  .reliquary-endpoint-seal-ring,
+  .reliquary-endpoint-seal-mark,
+  .reliquary-stat-line {
+    opacity: 1;
+  }
+  .reliquary-filmstrip-item {
+    opacity: 0.82;
+    transform: none;
+  }
+  .reliquary-pin-photo {
+    transform: scale(1);
+  }
+  .reliquary-pin-ripple,
+  .reliquary-endpoint-pulse {
+    opacity: 0;
+  }
+}
+
+/* Reliquary — a memory anchored to a place on the land.
+   The pin holds steady (it is an anchor). The photo inside breathes
+   softly, a held memory. Two rings ripple outward in staggered
+   succession from the pin's base, so the echo is always in motion. */
+.traces-card-icon--reliquary {
+  color: var(--stone);
+  opacity: 0.9;
+}
+
+.traces-card-icon--reliquary svg {
+  overflow: visible;
+}
+
+.reliquary-photo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: traces-reliquary-photo-breathe 5.4s ease-in-out infinite;
+}
+
+.reliquary-anchor-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: traces-reliquary-anchor-ring 4.6s ease-out infinite;
+}
+
+.reliquary-anchor-ring:nth-of-type(1) { animation-delay: 0s;    }
+.reliquary-anchor-ring:nth-of-type(2) { animation-delay: 2.3s;  }
+
+@keyframes traces-reliquary-photo-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 1px rgba(92, 79, 61, 0.15));
+    transform: scale(0.92);
+  }
+  50% {
+    filter: drop-shadow(0 0 4px rgba(92, 79, 61, 0.45));
+    transform: scale(1.1);
+  }
+}
+
+@keyframes traces-reliquary-anchor-ring {
+  0%   { opacity: 0;   transform: scale(0.55); }
+  20%  { opacity: 0.7; }
+  100% { opacity: 0;   transform: scale(1.7);  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .traces-card-icon--whispers svg,
   .traces-card-icon--whispers svg circle,
   .traces-card-icon--whispers svg path,
   .traces-card-icon--cairns svg,
-  .traces-card-icon--cairns svg ellipse {
+  .traces-card-icon--cairns svg ellipse,
+  .traces-card-icon--reliquary .reliquary-photo,
+  .traces-card-icon--reliquary .reliquary-anchor-ring {
     animation: none;
+  }
+  .traces-card-icon--reliquary .reliquary-anchor-ring {
+    opacity: 0.4;
   }
   .traces-card-icon--whispers svg path {
     opacity: 0.85;
