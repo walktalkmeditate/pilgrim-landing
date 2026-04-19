@@ -1,0 +1,206 @@
+/* /circles — quiet sibling to pilgrim-landing.
+   Self-contained. No imports, no shared state with styles.css.
+   Mirrors the typographic conventions of /found. */
+
+:root {
+  /* Ink */
+  --ink:       #2B241F;
+  --ink-soft:  #3C2E24;
+  --ink-fog:   #756A60;
+
+  /* Ground */
+  --paper:     #F6F1E6;
+  --paper-dim: #EFE8D7;
+  --rule:      #D4CBB8;
+
+  /* Type */
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans:  "Lato", -apple-system, system-ui, sans-serif;
+
+  /* Rhythm */
+  --measure: 620px;
+  --gutter:  clamp(24px, 5vw, 48px);
+  --leading: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:       #EDE4CF;
+    --ink-soft:  #D8CCAF;
+    --ink-fog:   #958A7A;
+    --paper:     #1E1913;
+    --paper-dim: #251F17;
+    --rule:      #3A2F22;
+  }
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: var(--leading);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  padding: clamp(64px, 10vh, 140px) var(--gutter);
+}
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* Headings */
+
+h1 {
+  font-size: clamp(32px, 6vw, 44px);
+  line-height: 1.15;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin: 0 0 1.2em;
+}
+
+h2 {
+  font-size: clamp(18px, 2.4vw, 22px);
+  line-height: 1.3;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 1.2em;
+}
+
+/* Intro paragraph */
+
+.intro {
+  font-size: clamp(17px, 1.8vw, 19px);
+  margin: 0 0 1.4em;
+}
+
+/* Next-walk block */
+
+section.next-walk,
+section.expect {
+  margin-top: clamp(64px, 10vh, 120px);
+}
+
+.walk-when {
+  font-size: clamp(20px, 2.4vw, 24px);
+  color: var(--ink-soft);
+  margin: 0 0 0.6em;
+}
+
+.walk-when strong {
+  font-weight: 400;
+}
+
+.walk-where,
+.walk-detail {
+  font-size: clamp(17px, 1.8vw, 19px);
+  margin: 0 0 0.6em;
+}
+
+.walk-contact {
+  font-size: clamp(17px, 1.8vw, 19px);
+  margin: 1.2em 0 0;
+}
+
+.walk-contact .phone {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+.walk-ics {
+  margin: 1.6em 0 0;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.walk-ics a {
+  color: var(--ink-fog);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+}
+
+/* What-to-expect list */
+
+section.expect ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+section.expect li {
+  font-size: clamp(17px, 1.8vw, 19px);
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+  position: relative;
+}
+
+section.expect li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--ink-fog);
+  font-size: 1.6em;
+  line-height: 1;
+  top: -0.05em;
+}
+
+/* App line — small, quiet, end of page */
+
+.app-line {
+  margin: clamp(80px, 12vh, 140px) 0 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+}
+
+.app-line a {
+  color: var(--ink-fog);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+}
+
+/* Footer */
+
+footer {
+  max-width: var(--measure);
+  margin: clamp(120px, 16vh, 200px) auto 0;
+  padding-top: 2em;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 10.5px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+  text-transform: lowercase;
+  margin: 0;
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
