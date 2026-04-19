@@ -104,10 +104,19 @@ section.expect {
   margin: 0 0 0.6em;
 }
 
-.walk-where a {
-  color: var(--ink);
+.walk-map {
+  margin: 0.2em 0 0.6em;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.walk-map a {
+  color: var(--ink-fog);
   text-decoration: none;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
 }
 
 .walk-contact {

@@ -24,10 +24,10 @@ BEGIN:VEVENT
 UID:pilgrim-circle-austin-2026-05-03@pilgrimapp.org
 DTSTAMP:20260418T220000Z
 DTSTART;TZID=America/Chicago:20260503T080000
-DTEND;TZID=America/Chicago:20260503T090000
+DTEND;TZID=America/Chicago:20260503T093000
 SUMMARY:Pilgrim Circle — Austin
 LOCATION:Whole Foods (second-floor outdoor patio)\, 525 N Lamar Blvd\, Austin\, TX
-DESCRIPTION:Monthly walking circle around Lady Bird Lake. 3-mile loop\, about an hour. The first 20 minutes are silent. Text Frank at (512) 677-7822 if you can't find us.\n\nMore: https://pilgrimapp.org/circles
+DESCRIPTION:Monthly walking circle around Lady Bird Lake. 3-4 mile loop\, about 1.5 hours. The first 20 minutes are silent. Text Frank at (512) 677-7822 if you can't find us.\n\nMore: https://pilgrimapp.org/circles
 URL:https://pilgrimapp.org/circles
 END:VEVENT
 END:VCALENDAR
