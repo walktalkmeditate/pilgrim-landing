@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now — Pilgrim</title>
+  <meta name="description" content="A quiet view of who is walking with the Pilgrim collective right now.">
+
+  <link rel="canonical" href="https://pilgrimapp.org/now">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Pilgrim. Now.">
+  <meta property="og:description" content="A quiet view of who is walking with the Pilgrim collective right now.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pilgrimapp.org/now">
+  <meta property="og:image" content="https://pilgrimapp.org/assets/og-now.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pilgrim. Now.">
+  <meta name="twitter:description" content="A quiet view of who is walking with the Pilgrim collective right now.">
+  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-now.png">
+
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/pilgrim-logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Lato:wght@300&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/now.css">
+</head>
+<body>
+
+  <main>
+
+    <h1>Now.</h1>
+
+    <section class="active" aria-live="polite">
+      <p class="active-line" id="active-line">
+        <span class="muted">Listening for the collective…</span>
+      </p>
+      <p class="silent-line" id="silent-line" hidden>
+        And many more walking quietly, who chose not to be counted.
+      </p>
+    </section>
+
+    <section class="streak" id="streak-section" hidden>
+      <p class="streak-line" id="streak-line"></p>
+    </section>
+
+    <section class="cumulative" id="cumulative-section" hidden>
+      <p class="cumulative-line" id="cumulative-line"></p>
+      <p class="milestone-line" id="milestone-line"></p>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>pilgrim · a walking companion · pilgrimapp.org</p>
+  </footer>
+
+  <script>
+    (function () {
+      var PILGRIMAGES = [
+        { name: 'Kumano Kodo',         km: 70   },
+        { name: 'St. Olav Way',        km: 643  },
+        { name: 'Camino de Santiago',  km: 800  },
+        { name: 'Shikoku Henro',       km: 1200 },
+        { name: 'Via Francigena',      km: 1900 },
+        { name: 'Appalachian Trail',   km: 3525 },
+        { name: 'Pacific Crest Trail', km: 4265 }
+      ];
+
+      function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+      function findMilestone(totalKm) {
+        var walked = null, next = null;
+        for (var i = 0; i < PILGRIMAGES.length; i++) {
+          if (totalKm >= PILGRIMAGES[i].km) walked = PILGRIMAGES[i];
+          else { next = PILGRIMAGES[i]; break; }
+        }
+        return { walked: walked, next: next };
+      }
+
+      function el(tag, text) {
+        var e = document.createElement(tag);
+        if (text != null) e.textContent = text;
+        return e;
+      }
+
+      function renderActive(active) {
+        var line = document.getElementById('active-line');
+        var silent = document.getElementById('silent-line');
+        if (active > 0) {
+          line.replaceChildren(
+            document.createTextNode('About '),
+            el('strong', String(active)),
+            document.createTextNode(' people walking with you, right now.')
+          );
+          silent.hidden = false;
+        } else {
+          line.replaceChildren(
+            document.createTextNode('The path is quiet on the counter right now.'),
+            el('br'),
+            document.createTextNode('Many are walking quietly anyway, who chose not to be counted.'),
+            el('br'),
+            el('em', 'You could be one of them.')
+          );
+          silent.hidden = true;
+        }
+      }
+
+      function renderStreak(days) {
+        var section = document.getElementById('streak-section');
+        var line = document.getElementById('streak-line');
+        if (days && days > 0) {
+          line.textContent = 'Someone has walked every day for ' + days + ' days in a row.';
+          section.hidden = false;
+        } else {
+          section.hidden = true;
+        }
+      }
+
+      function renderCumulative(walks, distanceKm) {
+        var section = document.getElementById('cumulative-section');
+        var line = document.getElementById('cumulative-line');
+        var milestone = document.getElementById('milestone-line');
+
+        if (!walks || walks <= 0) {
+          section.hidden = true;
+          return;
+        }
+
+        line.replaceChildren(
+          document.createTextNode('Since launch, '),
+          el('strong', fmt(walks)),
+          document.createTextNode(' walks have been taken with the collective.')
+        );
+
+        var ms = findMilestone(distanceKm || 0);
+        var nodes = [];
+        if (ms.walked) {
+          var times = (distanceKm / ms.walked.km).toFixed(1);
+          nodes.push(document.createTextNode('Together, we have walked the ' + ms.walked.name + ' ' + times + ' times.'));
+          if (ms.next) {
+            var togo = ms.next.km - distanceKm;
+            nodes.push(el('br'));
+            nodes.push(document.createTextNode('Next: the ' + ms.next.name + ' (' + fmt(togo) + ' km to go).'));
+          }
+        } else if (ms.next) {
+          var firstTogo = ms.next.km - (distanceKm || 0);
+          nodes.push(document.createTextNode('Walking toward the first milestone: the ' + ms.next.name + ' (' + fmt(firstTogo) + ' km to go).'));
+        }
+        milestone.replaceChildren.apply(milestone, nodes);
+
+        section.hidden = false;
+      }
+
+      function render(d) {
+        renderActive(d.estimated_active || 0);
+        renderStreak(d.streak_days || 0);
+        renderCumulative(d.total_walks || 0, d.total_distance_km || 0);
+      }
+
+      function fetchNow() {
+        fetch('https://walk.pilgrimapp.org/api/now', { cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(render)
+          .catch(function () { /* keep last render */ });
+      }
+
+      fetchNow();
+      setInterval(fetchNow, 30000);
+    })();
+  </script>
+
+</body>
+</html>
