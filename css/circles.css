@@ -104,6 +104,12 @@ section.expect {
   margin: 0 0 0.6em;
 }
 
+.walk-where a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink);
+}
+
 .walk-contact {
   font-size: clamp(17px, 1.8vw, 19px);
   margin: 1.2em 0 0;
