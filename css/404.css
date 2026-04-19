@@ -1,0 +1,100 @@
+/* /404 — quiet sibling to /now and /circles. Self-contained. */
+
+:root {
+  --ink:       #2B241F;
+  --ink-soft:  #3C2E24;
+  --ink-fog:   #756A60;
+
+  --paper:     #F6F1E6;
+  --paper-dim: #EFE8D7;
+  --rule:      #D4CBB8;
+
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans:  "Lato", -apple-system, system-ui, sans-serif;
+
+  --measure: 620px;
+  --gutter:  clamp(24px, 5vw, 48px);
+  --leading: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:       #EDE4CF;
+    --ink-soft:  #D8CCAF;
+    --ink-fog:   #958A7A;
+    --paper:     #1E1913;
+    --paper-dim: #251F17;
+    --rule:      #3A2F22;
+  }
+}
+
+html { background: var(--paper); }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: var(--leading);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  padding: clamp(64px, 10vh, 140px) var(--gutter);
+}
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  text-align: center;
+}
+
+h1 {
+  font-size: clamp(56px, 11vw, 96px);
+  line-height: 1.05;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 clamp(64px, 10vh, 120px);
+  letter-spacing: -0.01em;
+}
+
+.prose {
+  font-size: clamp(20px, 2.4vw, 24px);
+  color: var(--ink-soft);
+  margin: 0 0 clamp(48px, 8vh, 96px);
+  line-height: 1.5;
+}
+
+.back {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.back a {
+  color: var(--ink-fog);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1px;
+}
+
+footer {
+  max-width: var(--measure);
+  margin: clamp(120px, 16vh, 200px) auto 0;
+  padding-top: 2em;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 10.5px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+  text-transform: lowercase;
+  margin: 0;
+}
