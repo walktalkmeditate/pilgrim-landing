@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!--
+  Renders assets/og-circles.png (1200×630) via Chrome headless.
+
+  From repo root:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless --disable-gpu --hide-scrollbars \
+      --force-device-scale-factor=1 \
+      --window-size=1200,670 \
+      --screenshot=/tmp/og-raw.png \
+      --virtual-time-budget=5000 \
+      "file://$(pwd)/scripts/render-og-circles.html"
+    convert /tmp/og-raw.png -crop 1200x630+0+0 +repage assets/og-circles.png
+
+  The 670px window height + crop avoids Chrome's ~40px bottom clipping.
+  Keep this file and assets/og-circles.svg in sync when editing the mark.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
