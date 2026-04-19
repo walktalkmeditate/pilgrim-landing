@@ -685,6 +685,16 @@
       margin-top: var(--padding-sm);
     }
 
+    .trail-walking a {
+      color: inherit;
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .trail-walking a:hover {
+      opacity: 1;
+    }
+
     .trail-flame {
       display: inline-block;
       vertical-align: middle;
@@ -1737,7 +1747,19 @@
             if (logo) logo.classList.add('heartbeat');
             var footerLogo = document.getElementById('footer-logo');
             if (footerLogo) footerLogo.classList.add('heartbeat');
-            if (walkingEl) walkingEl.textContent = 'someone is walking right now';
+          }
+        }
+
+        if (walkingEl) {
+          walkingEl.replaceChildren();
+          var active = data.estimated_active || 0;
+          if (active > 0 || isWalkingNow) {
+            var nowLink = document.createElement('a');
+            nowLink.href = '/now';
+            nowLink.textContent = active > 0
+              ? 'about ' + active + ' people walking with you right now →'
+              : 'someone walked within the last hour →';
+            walkingEl.appendChild(nowLink);
           }
         }
 
@@ -1749,7 +1771,7 @@
         if (cachedStats) renderStats(cachedStats);
       });
 
-      fetch('https://walk.pilgrimapp.org/api/counter')
+      fetch('https://walk.pilgrimapp.org/api/now')
         .then(function(r) { return r.json(); })
         .then(renderStats)
         .catch(function() {
