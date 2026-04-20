@@ -84,7 +84,8 @@ h2 {
 /* Next-walk block */
 
 section.next-walk,
-section.expect {
+section.expect,
+section.mailing-list {
   margin-top: clamp(64px, 10vh, 120px);
 }
 
@@ -144,6 +145,17 @@ section.expect {
   text-decoration: none;
   border-bottom: 1px solid var(--rule);
   padding-bottom: 1px;
+}
+
+/* Mailing-list — "stop" line, styled like other quiet-meta lines */
+
+.mailing-list-unsub {
+  margin: 1em 0 0;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
 }
 
 /* What-to-expect list */
