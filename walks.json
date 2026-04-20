@@ -3,6 +3,7 @@
   "cities": {
     "austin": {
       "display_name": "Austin",
+      "signed_by": "Frank",
       "next_walk": {
         "date": "2026-05-02",
         "time": "8:00 AM",
