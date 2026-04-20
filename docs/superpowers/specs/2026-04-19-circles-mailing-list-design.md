@@ -99,13 +99,13 @@ Draft welcome copy (plain text):
 ```
 Subject: You're on the list.
 
-You're on the list for Pilgrim Circles.
+Thanks for writing.
 
-I'll write once, the day before each walk — where to meet, what the
-weather looks like, one note. No other emails.
+I'll write the day before each walk — where to meet, what the weather
+looks like, one note. That's it.
 
-If you ever want off, reply "stop" or use the unsubscribe link at the
-bottom of any email.
+Reply "stop" any time, or use the unsubscribe link at the bottom of
+any email.
 
 — Frank
 ```
@@ -181,7 +181,30 @@ Whichever comes first. Good enough in practice; not perfect. Acceptable failure 
 
 **One campaign template** (`content/pilgrim-circles/day-before.template.md`, lives in the `listmonk/` repo) — plaintext with `{{date_pretty}}`, `{{time}}`, `{{meeting_place}}`, `{{map_url}}`, `{{loop}}`, `{{frank_note}}` placeholders, plus Listmonk's standard `{{unsubscribe_url}}` footer. Rendered by `circles-send.ts` at send time.
 
-Built-in Listmonk unsubscribe link stays in the footer of campaign emails (required for Gmail/Yahoo bulk-sender compliance). Copy should be quiet plain-text, not a button.
+Draft day-before template:
+```
+Subject: Tomorrow's walk.
+
+Tomorrow, {{date_pretty}} at {{time}}.
+
+{{meeting_place}}
+
+{{map_url}}
+
+We'll walk {{loop}}.
+
+{{ if frank_note }}{{ frank_note }}
+
+{{ end }}— Frank
+
+--
+unsubscribe: {{unsubscribe_url}}
+or reply "stop"
+```
+
+Frank can edit the template file freely; the placeholders are the only load-bearing parts.
+
+Built-in Listmonk unsubscribe link stays in the footer of campaign emails (required for Gmail/Yahoo bulk-sender compliance). Copy is quiet plain-text, not a button.
 
 ### 5. `listmonk/scripts/circles-send.ts`
 
@@ -215,21 +238,26 @@ Add one `<section class="mailing-list">` block between the existing `<section cl
 
 ```html
 <section class="mailing-list">
-  <h2>Day-before reminder</h2>
+  <h2>Before each walk</h2>
   <p>
     Email <a href="mailto:circles@plgr.im?subject=add%20me">circles@plgr.im</a>
-    and I'll write the day before each walk — where to meet, what the
+    and I&rsquo;ll write the day before &mdash; where to meet, what the
     weather looks like, one note. Nothing else.
   </p>
   <p class="mailing-list-unsub">
-    Reply "stop" any time.
+    Reply &ldquo;stop&rdquo; any time.
   </p>
 </section>
 ```
 
-`css/circles.css` — reuse existing `section` spacing. Add only `.mailing-list-unsub { font-size: 0.9em; opacity: 0.7; }` or similar quiet styling.
+`css/circles.css` — follow the file's existing conventions:
+
+- Add `section.mailing-list` to the margin-top rule alongside `section.next-walk, section.expect` so spacing matches other sections.
+- Style `.mailing-list-unsub` like the other quiet-meta lines already in the file (`.walk-ics`, `.walk-map`, `.app-line`): Lato 300, 13px, `letter-spacing: 0.04em`, `color: var(--ink-fog)`, top margin `1em`. No `opacity` — use the `--ink-fog` token the rest of the file uses.
 
 The `?subject=add me` is a courtesy hint; the Worker does not require it.
+
+Heading choice note: `<h2>Before each walk</h2>` matches the existing `<h2>Next walk</h2>` / `<h2>What to expect</h2>` pattern (short noun phrases in italic Cormorant per the stylesheet). "Day-before reminder" was the earlier draft — dropped because "reminder" reads as tool-speak and breaks the pattern.
 
 ## Data flow — end-to-end scenarios
 
