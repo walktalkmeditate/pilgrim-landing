@@ -146,10 +146,12 @@ Document the SES region and identity name in a note for the team (or in a follow
 
 ```bash
 cd /Users/rubberduck/GitHub/momentmaker/plgrim
-npm install --save-dev vitest @cloudflare/vitest-pool-workers
+npm install --save-dev vitest@^3 @cloudflare/vitest-pool-workers@^0.12
 ```
 
 Expected: `package-lock.json` updates, `node_modules/vitest` appears.
+
+Version note: `@cloudflare/vitest-pool-workers@0.14+` requires `vitest@^4` and no longer exports `/config`. Pin to the `0.12.x` / `vitest@3.x` pair until we're ready to upgrade both together.
 
 - [ ] **Step 2: Add `test` scripts to `package.json`**
 
@@ -996,11 +998,11 @@ And in the `[vars]` block (create if missing; currently the file has no `[vars]`
 
 ```toml
 [vars]
-LISTMONK_CIRCLES_LIST_ID = "7"
+LISTMONK_CIRCLES_LIST_ID = "6"
 FRANK_FORWARD_ADDRESS = "fr@nkzhu.com"
 ```
 
-Replace `"7"` with the actual list ID from Task 1.
+List ID is `6` (from Task 1).
 
 - [ ] **Step 2: Verify Frank's address in CF Email Routing**
 
@@ -1628,10 +1630,8 @@ Leave `frank_note` empty for now — Frank can fill it before running the send.
 Open `listmonk/.env` (or create if missing). Add:
 
 ```
-LISTMONK_CIRCLES_LIST_ID=7
+LISTMONK_CIRCLES_LIST_ID=6
 ```
-
-(Replace `7` with the actual list ID from Task 1.)
 
 - [ ] **Step 3: Smoke test — render preview only, don't send**
 
