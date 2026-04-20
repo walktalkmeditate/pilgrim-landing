@@ -56,6 +56,85 @@ Expected outcome: a `Pilgrim Circles` list visible in Listmonk admin with a know
 
 ---
 
+## Task 1b: Verify `plgr.im` as a sending identity in AWS SES
+
+**Files:** none — AWS + Cloudflare DNS configuration.
+
+**Why:** Listmonk's SMTP backend is already AWS SES (used for other projects). For Listmonk to send campaigns *from* `circles@plgr.im`, the `plgr.im` domain must be a verified identity in SES (DKIM-signed, SPF-aligned). Without this, campaign sends will fail DMARC alignment and land in spam — or SES will reject them outright.
+
+This does NOT affect the Worker's `message.reply()` welcome/unsub-ack path — those go out via Cloudflare Email Workers on CF's own infrastructure, using CF's DKIM key. SES is only for the campaign path.
+
+- [ ] **Step 1: Create the SES domain identity**
+
+In the AWS SES console (in the same region Listmonk is configured to use — check `listmonk/.env` or Listmonk admin → Settings → SMTP to confirm the region):
+
+1. Go to Verified identities → Create identity.
+2. Choose "Domain".
+3. Domain: `plgr.im`.
+4. Leave "Use a custom MAIL FROM domain" unchecked for now (can add later; not required for the feature to work).
+5. Easy DKIM: enabled, RSA_2048_BIT. Let SES generate the keys.
+6. Create identity.
+
+SES will show three DKIM CNAME records that need to be published in DNS.
+
+- [ ] **Step 2: Add the DKIM CNAMEs to Cloudflare DNS**
+
+Cloudflare dashboard → `plgr.im` zone → DNS → Records. For each of the three CNAMEs SES gave you:
+
+- **Type:** CNAME
+- **Name:** `<token>._domainkey` (paste exactly what SES shows — do not append `.plgr.im`, Cloudflare handles that)
+- **Target:** `<token>.dkim.amazonses.com` (the full target SES provides)
+- **Proxy status:** DNS only (grey cloud, NOT orange) — DKIM CNAMEs must not be proxied.
+- **TTL:** Auto.
+
+Save each. Back in SES, the identity should move from "pending" to "verified" within a few minutes (sometimes faster).
+
+- [ ] **Step 3: Update the SPF record to include SES**
+
+Still in Cloudflare DNS, find the existing `TXT` record at `plgr.im` starting with `v=spf1`. It likely already contains `include:_spf.mx.cloudflare.net` for Email Routing. Add `include:amazonses.com` alongside it, keeping the terminator (`~all` or `-all`) at the end.
+
+Example — if current is:
+```
+v=spf1 include:_spf.mx.cloudflare.net ~all
+```
+Change to:
+```
+v=spf1 include:_spf.mx.cloudflare.net include:amazonses.com ~all
+```
+
+Save. SPF changes propagate within minutes.
+
+- [ ] **Step 4: Confirm SES is not in sandbox mode**
+
+AWS SES console → Account dashboard. If the banner says "Your account is in the sandbox", you can only send to verified recipient addresses — which means your own gmail test address would need to be added as a verified identity too. For real list sending, request production access via the "Request production access" button; approval typically takes a few hours.
+
+If Listmonk is already sending campaigns for other projects from this AWS account, the account is already out of sandbox. Skip this step in that case.
+
+- [ ] **Step 5: Verify Listmonk's configured sender can use `plgr.im`**
+
+In Listmonk admin → Settings → SMTP: confirm the SMTP settings point to the SES endpoint (e.g., `email-smtp.us-east-1.amazonaws.com`) and the credentials are set. No changes should be needed — Listmonk sends via SES based on whatever `From` address the campaign specifies, and SES will accept `circles@plgr.im` once the domain is verified.
+
+- [ ] **Step 6: Send a test from Listmonk admin**
+
+In Listmonk admin, create a tiny test campaign:
+- Name: `SES verification test`
+- Subject: `test`
+- From email: `circles@plgr.im`
+- List: any list with just your own verified email on it
+- Body: anything
+
+Send. Verify the email arrives. Open the raw headers — look for:
+- `Authentication-Results: ... dkim=pass ... spf=pass`
+- `DKIM-Signature: ... d=plgr.im ...`
+
+If both pass, SES setup is complete. Delete the test campaign.
+
+- [ ] **Step 7: No commit — all configuration is in AWS/CF dashboards**
+
+Document the SES region and identity name in a note for the team (or in a follow-up commit to a deployment README if your team tracks infra this way).
+
+---
+
 ## Task 2: Update `pilgrim-landing/circles.html` + `css/circles.css`
 
 **Files:**
@@ -1005,7 +1084,7 @@ Open `wrangler.toml`. Append to the file:
 ```toml
 [[send_email]]
 name = "SEND_EMAIL"
-destination_address = "FRANK_FORWARD_ADDRESS_PLACEHOLDER"
+destination_address = "fr@nkzhu.com"
 ```
 
 And in the `[vars]` block (create if missing; currently the file has no `[vars]` block, so add one):
@@ -1013,17 +1092,14 @@ And in the `[vars]` block (create if missing; currently the file has no `[vars]`
 ```toml
 [vars]
 LISTMONK_CIRCLES_LIST_ID = "7"
-FRANK_FORWARD_ADDRESS = "frank@example.com"
-# MAPBOX_* / other vars: see existing sections above if present
+FRANK_FORWARD_ADDRESS = "fr@nkzhu.com"
 ```
 
-Replace `"7"` with the actual list ID from Task 1. Replace `"frank@example.com"` with Frank's real forwarding address (the user will provide this; if unknown at plan-execution time, use a placeholder and note it must be set before deploy).
+Replace `"7"` with the actual list ID from Task 1.
 
-Also replace `destination_address = "FRANK_FORWARD_ADDRESS_PLACEHOLDER"` with Frank's actual email (CF requires a concrete verified address for `destination_address`-restricted send bindings).
+- [ ] **Step 2: Verify Frank's address in CF Email Routing**
 
-- [ ] **Step 2: Verify Frank's address is verified in CF Email Routing**
-
-Go to the Cloudflare dashboard → `plgr.im` zone → Email → Email Routing → Destination addresses. Add Frank's address if it isn't there. CF sends a verification email; open it and click the verification link.
+Go to the Cloudflare dashboard → `plgr.im` zone → Email → Email Routing → Destination addresses. Add `fr@nkzhu.com` if it isn't there. CF sends a verification email; open it and click the verification link.
 
 - [ ] **Step 3: Set Listmonk secrets via wrangler**
 
@@ -1717,6 +1793,7 @@ If Step 6 required fixing something in plgrim or listmonk, commit with a message
   - Spec §4 (Listmonk config) → Task 1 (list + attribute)
   - Spec §5 (`circles-send.ts`) → Task 13
   - Spec §6 (`circles.html` + CSS) → Task 2
+  - Campaign deliverability (SES domain auth for `plgr.im`) → Task 1b (prereq for Task 13/14 campaign send)
   - Scenarios A-E → verified in Task 11 and Task 14 Step 6
   - Error handling → covered in `email.ts` (Task 8 Step 2) and `circles-send.ts` (Task 13 Step 4)
 - **Placeholder scan:** Frank's forwarding address is a placeholder in Task 9 — user must provide before deploy. Listmonk list ID is a placeholder until Task 1 runs. Both documented, both actionable.
