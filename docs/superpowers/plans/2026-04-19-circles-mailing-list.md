@@ -17,7 +17,7 @@
 
 Each task below begins with a `cd` line naming the repo. Commit from within that repo.
 
-**Verification method:** Unit tests via `vitest` in `plgrim/` and `listmonk/`. Pure functions (`classify`, `stripQuotedReply`, YAML validator, template renderer) get the most coverage. Integration paths (email handler, CLI) are verified by manual smoke tests after deploy. Final end-to-end in Task 14.
+**Verification method:** Unit tests via `vitest` in `plgrim/` and `listmonk/`. Pure functions (`classify`, `stripQuotedReply`, YAML validator, template renderer) get the most coverage. Integration paths (email handler, CLI) are verified by manual smoke tests after deploy. Final end-to-end in Task 13. The public `/circles` page is updated LAST (Task 14), only after the full pipeline has been verified — no visitor should see the `circles@plgr.im` address on the live site until mail sent to it actually works.
 
 ---
 
@@ -135,102 +135,7 @@ Document the SES region and identity name in a note for the team (or in a follow
 
 ---
 
-## Task 2: Update `pilgrim-landing/circles.html` + `css/circles.css`
-
-**Files:**
-- Modify: `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/circles.html` — insert new `<section class="mailing-list">` between `<section class="expect">` (line 85–94) and `<p class="app-line">` (line 96–99)
-- Modify: `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/css/circles.css` — extend `section.next-walk, section.expect` rule and add `.mailing-list-unsub` rule
-
-- [ ] **Step 1: Insert the mailing-list section in `circles.html`**
-
-```bash
-cd /Users/rubberduck/GitHub/momentmaker/pilgrim-landing
-```
-
-Find this line in `circles.html`:
-```html
-    <p class="app-line">
-```
-
-Immediately above it, add:
-```html
-    <section class="mailing-list">
-      <h2>Before each walk</h2>
-      <p>
-        Email <a href="mailto:circles@plgr.im?subject=add%20me">circles@plgr.im</a>
-        and I&rsquo;ll write the day before &mdash; where to meet, what the
-        weather looks like, one note. Nothing else.
-      </p>
-      <p class="mailing-list-unsub">
-        Reply &ldquo;stop&rdquo; any time.
-      </p>
-    </section>
-
-```
-
-(Blank line after `</section>` to separate from `<p class="app-line">`.)
-
-- [ ] **Step 2: Update `css/circles.css` — margin-top rule**
-
-Find this block (around lines 86–89):
-```css
-section.next-walk,
-section.expect {
-  margin-top: clamp(64px, 10vh, 120px);
-}
-```
-
-Replace with:
-```css
-section.next-walk,
-section.expect,
-section.mailing-list {
-  margin-top: clamp(64px, 10vh, 120px);
-}
-```
-
-- [ ] **Step 3: Append the `.mailing-list-unsub` rule**
-
-Find the end of the `.walk-ics a` block (around line 147). Below it, before the `/* What-to-expect list */` comment, add:
-
-```css
-/* Mailing-list — "stop" line, styled like other quiet-meta lines */
-
-.mailing-list-unsub {
-  margin: 1em 0 0;
-  font-family: var(--sans);
-  font-weight: 300;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: var(--ink-fog);
-}
-```
-
-- [ ] **Step 4: Verify visually**
-
-Run a local static server:
-```bash
-python3 -m http.server 8765
-```
-
-Open http://localhost:8765/circles.html in a browser. Confirm:
-- A new "Before each walk" section appears between "What to expect" and the bottom "Free in the App Store" line.
-- Section spacing matches the other sections (big margin-top).
-- The `circles@plgr.im` link is a mailto link (hover shows the URL).
-- The "Reply 'stop' any time." text is small and muted, matching `.walk-ics` / `.app-line` style.
-
-Stop the server with Ctrl-C when done.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add circles.html css/circles.css
-git commit -m "feat(circles): add mailing-list section with mailto link"
-```
-
----
-
-## Task 3: Add `vitest` test harness to `plgrim/`
+## Task 2: Add `vitest` test harness to `plgrim/`
 
 **Files:**
 - Modify: `/Users/rubberduck/GitHub/momentmaker/plgrim/package.json`
@@ -306,7 +211,7 @@ git commit -m "chore(plgrim): add vitest test harness"
 
 ---
 
-## Task 4: Worker module — `strip-quoted.ts` (TDD)
+## Task 3: Worker module — `strip-quoted.ts` (TDD)
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/plgrim/src/circles/strip-quoted.ts`
@@ -420,7 +325,7 @@ git commit -m "feat(plgrim): strip quoted reply text before unsub-keyword scan"
 
 ---
 
-## Task 5: Worker module — `classify.ts` (TDD)
+## Task 4: Worker module — `classify.ts` (TDD)
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/plgrim/src/circles/classify.ts`
@@ -539,7 +444,7 @@ git commit -m "feat(plgrim): classify inbound circles email into action"
 
 ---
 
-## Task 6: Worker module — `listmonk.ts` API client (TDD)
+## Task 5: Worker module — `listmonk.ts` API client (TDD)
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/plgrim/src/circles/listmonk.ts`
@@ -754,7 +659,7 @@ git commit -m "feat(plgrim): Listmonk API client for circles list"
 
 ---
 
-## Task 7: Worker module — `reply.ts` + `forward.ts`
+## Task 6: Worker module — `reply.ts` + `forward.ts`
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/plgrim/src/circles/reply.ts`
@@ -877,7 +782,7 @@ export async function forwardToFrank(
 npm test
 ```
 
-Expected: all prior tests still pass. No new tests added in this task — `reply.ts` and `forward.ts` are thin wrappers whose real behavior is exercised in end-to-end verification (Task 11); unit-testing `message.reply()` and `SEND_EMAIL.send()` stubs adds mock-maintenance without catching real bugs.
+Expected: all prior tests still pass. No new tests added in this task — `reply.ts` and `forward.ts` are thin wrappers whose real behavior is exercised in end-to-end verification (Task 10); unit-testing `message.reply()` and `SEND_EMAIL.send()` stubs adds mock-maintenance without catching real bugs.
 
 - [ ] **Step 6: Commit**
 
@@ -888,7 +793,7 @@ git commit -m "feat(plgrim): welcome/unsub-ack replies + forward-to-Frank"
 
 ---
 
-## Task 8: Worker email handler — `email.ts` + `types.ts` update + `index.ts` wiring
+## Task 7: Worker email handler — `email.ts` + `types.ts` update + `index.ts` wiring
 
 **Files:**
 - Modify: `/Users/rubberduck/GitHub/momentmaker/plgrim/src/types.ts` — extend `Env`
@@ -1053,7 +958,7 @@ Keep everything else intact.
 npm test
 ```
 
-Expected: all existing tests still pass. `email.ts` has no unit tests in this task — it's integration-wiring that the end-to-end verification in Task 11 covers.
+Expected: all existing tests still pass. `email.ts` has no unit tests in this task — it's integration-wiring that the end-to-end verification in Task 10 covers.
 
 - [ ] **Step 5: Typecheck**
 
@@ -1072,7 +977,7 @@ git commit -m "feat(plgrim): email() handler dispatching circles classify/reply/
 
 ---
 
-## Task 9: `wrangler.toml` config + secrets
+## Task 8: `wrangler.toml` config + secrets
 
 **Files:**
 - Modify: `/Users/rubberduck/GitHub/momentmaker/plgrim/wrangler.toml`
@@ -1132,7 +1037,7 @@ Note: secrets are not in the commit (wrangler stores them server-side). Only the
 
 ---
 
-## Task 10: Deploy plgrim + configure CF Email Routing
+## Task 9: Deploy plgrim + configure CF Email Routing
 
 **Files:** none in-repo; configuration happens in CF dashboard.
 
@@ -1164,11 +1069,11 @@ If a catch-all rule exists, it now only catches addresses other than `circles@pl
 
 - [ ] **Step 5: No commit — this is dashboard config**
 
-(Document the routing rule in a README or deploy note if your team tracks infra changes; otherwise just note it in commit history as part of Task 11's E2E test commit.)
+(Document the routing rule in a README or deploy note if your team tracks infra changes; otherwise just note it in commit history as part of Task 10's E2E test commit.)
 
 ---
 
-## Task 11: Manual E2E test of the Worker
+## Task 10: Manual E2E test of the Worker
 
 **Files:** none — operational verification.
 
@@ -1229,7 +1134,7 @@ No code changes expected in this task. If any issues surfaced and required a fix
 
 ---
 
-## Task 12: `listmonk/` — walk YAML loader + template renderer (TDD)
+## Task 11: `listmonk/` — walk YAML loader + template renderer (TDD)
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/scripts/lib/circles.ts` — types, YAML loader, validator, template renderer, date formatter
@@ -1486,13 +1391,13 @@ git commit -m "feat(listmonk): walk YAML loader + template renderer"
 
 ---
 
-## Task 13: `listmonk/` — `circles-send.ts` CLI
+## Task 12: `listmonk/` — `circles-send.ts` CLI
 
 **Files:**
 - Modify: `/Users/rubberduck/GitHub/momentmaker/listmonk/scripts/lib/listmonk-api.ts` — extend `createCampaign` to accept a `query` filter (Listmonk supports scoping a campaign to a subscriber query)
 - Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/scripts/circles-send.ts`
 - Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/content/pilgrim-circles/day-before.template.md`
-- Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/content/pilgrim-circles/walks/` (empty directory — first walk file comes in Task 14)
+- Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/content/pilgrim-circles/walks/` (empty directory — first walk file comes in Task 13)
 - Modify: `/Users/rubberduck/GitHub/momentmaker/listmonk/package.json` — add `circles:send` script
 
 - [ ] **Step 1: Extend `createCampaign` to accept an optional `query`**
@@ -1695,7 +1600,7 @@ git commit -m "feat(listmonk): circles-send CLI for day-before campaign"
 
 ---
 
-## Task 14: First walk file + smoke test + final E2E
+## Task 13: First walk file + smoke test + final E2E
 
 **Files:**
 - Create: `/Users/rubberduck/GitHub/momentmaker/listmonk/content/pilgrim-circles/walks/2026-05-03.yaml`
@@ -1769,7 +1674,7 @@ git commit -m "feat(listmonk): first pilgrim-circles walk (2026-05-03)"
 
 - [ ] **Step 6: Final end-to-end smoke**
 
-Now that the Worker is deployed (Task 10) and the send script works (Step 4 above), do one last full cycle:
+Now that the Worker is deployed (Task 9) and the send script works (Step 4 above), do one last full cycle:
 
 1. From a fresh gmail address, email `circles@plgr.im` (any subject/body). Confirm welcome reply.
 2. Verify Listmonk admin shows the new subscriber on the real `Pilgrim Circles` list.
@@ -1784,17 +1689,131 @@ If Step 6 required fixing something in plgrim or listmonk, commit with a message
 
 ---
 
+## Task 14: Update `pilgrim-landing/circles.html` + `css/circles.css` (LAST — after E2E passes)
+
+**Gate:** Do not start this task until Task 13 Step 6 passed cleanly. The `/circles` page is the public-facing entry point to this whole pipeline. If it ships before the pipeline is verified, visitors will email `circles@plgr.im` and get nothing back.
+
+**Files:**
+- Modify: `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/circles.html` — insert new `<section class="mailing-list">` between `<section class="expect">` and `<p class="app-line">`
+- Modify: `/Users/rubberduck/GitHub/momentmaker/pilgrim-landing/css/circles.css` — extend `section.next-walk, section.expect` rule and add `.mailing-list-unsub` rule
+
+- [ ] **Step 1: Confirm E2E is clean**
+
+Open the previous task's notes and verify Task 13 Step 6 passed without regressions. If there are any open fixes (uncommitted, or commits that didn't fully resolve an issue), stop and fix those first.
+
+- [ ] **Step 2: Insert the mailing-list section in `circles.html`**
+
+```bash
+cd /Users/rubberduck/GitHub/momentmaker/pilgrim-landing
+```
+
+Find this line in `circles.html`:
+```html
+    <p class="app-line">
+```
+
+Immediately above it, add:
+```html
+    <section class="mailing-list">
+      <h2>Before each walk</h2>
+      <p>
+        Email <a href="mailto:circles@plgr.im?subject=add%20me">circles@plgr.im</a>
+        and I&rsquo;ll write the day before &mdash; where to meet, what the
+        weather looks like, one note. Nothing else.
+      </p>
+      <p class="mailing-list-unsub">
+        Reply &ldquo;stop&rdquo; any time.
+      </p>
+    </section>
+
+```
+
+(Blank line after `</section>` to separate from `<p class="app-line">`.)
+
+- [ ] **Step 3: Update `css/circles.css` — margin-top rule**
+
+Find this block (around lines 86–89):
+```css
+section.next-walk,
+section.expect {
+  margin-top: clamp(64px, 10vh, 120px);
+}
+```
+
+Replace with:
+```css
+section.next-walk,
+section.expect,
+section.mailing-list {
+  margin-top: clamp(64px, 10vh, 120px);
+}
+```
+
+- [ ] **Step 4: Append the `.mailing-list-unsub` rule**
+
+Find the end of the `.walk-ics a` block (around line 147). Below it, before the `/* What-to-expect list */` comment, add:
+
+```css
+/* Mailing-list — "stop" line, styled like other quiet-meta lines */
+
+.mailing-list-unsub {
+  margin: 1em 0 0;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+}
+```
+
+- [ ] **Step 5: Verify visually**
+
+Run a local static server:
+```bash
+python3 -m http.server 8765
+```
+
+Open http://localhost:8765/circles.html in a browser. Confirm:
+- A new "Before each walk" section appears between "What to expect" and the bottom "Free in the App Store" line.
+- Section spacing matches the other sections (big margin-top).
+- The `circles@plgr.im` link is a mailto link (hover shows the URL).
+- The "Reply 'stop' any time." text is small and muted, matching `.walk-ics` / `.app-line` style.
+
+Stop the server with Ctrl-C when done.
+
+- [ ] **Step 6: One more live round-trip test before commit**
+
+Click the `mailto` link in the live preview, send a test subscribe email from a fresh gmail account (one that isn't already on the list). Confirm welcome reply arrives. Then unsubscribe with `stop` and confirm ack. This verifies the HTML link lands the user at the right address and the pipeline still works.
+
+- [ ] **Step 7: Commit + deploy**
+
+```bash
+git add circles.html css/circles.css
+git commit -m "feat(circles): add mailing-list section with mailto link"
+git push
+```
+
+If `pilgrim-landing` has automatic deploy on push (Cloudflare Pages / similar), the change goes live within ~1 minute. Otherwise trigger the deploy manually per whatever process this repo uses.
+
+- [ ] **Step 8: Final verification against production**
+
+Load https://pilgrimapp.org/circles in a browser. Confirm the new section is live and the mailto link works.
+
+Feature is now shipped.
+
+---
+
 ## Self-review notes (check before starting execution)
 
 - **Spec coverage:**
-  - Spec §1 (plgrim Worker) → Tasks 3–10
-  - Spec §2 (CF Email Routing) → Task 10 Step 2
-  - Spec §3 (dispatch logic) → Task 5 (`classify`) + Task 4 (`stripQuoted`)
+  - Spec §1 (plgrim Worker) → Tasks 2–9
+  - Spec §2 (CF Email Routing) → Task 9 Step 2
+  - Spec §3 (dispatch logic) → Task 4 (`classify`) + Task 3 (`stripQuoted`)
   - Spec §4 (Listmonk config) → Task 1 (list + attribute)
-  - Spec §5 (`circles-send.ts`) → Task 13
-  - Spec §6 (`circles.html` + CSS) → Task 2
-  - Campaign deliverability (SES domain auth for `plgr.im`) → Task 1b (prereq for Task 13/14 campaign send)
-  - Scenarios A-E → verified in Task 11 and Task 14 Step 6
-  - Error handling → covered in `email.ts` (Task 8 Step 2) and `circles-send.ts` (Task 13 Step 4)
-- **Placeholder scan:** Frank's forwarding address is a placeholder in Task 9 — user must provide before deploy. Listmonk list ID is a placeholder until Task 1 runs. Both documented, both actionable.
-- **Type consistency:** `ClassifyInput`, `Action`, `Walk` types defined once and reused. `createListmonkClient` signature consistent between definition (Task 6) and call site (Task 8).
+  - Spec §5 (`circles-send.ts`) → Task 12
+  - Spec §6 (`circles.html` + CSS) → Task 14 (intentionally last — ship the page only after the pipeline is verified)
+  - Campaign deliverability (SES domain auth for `plgr.im`) → Task 1b (prereq for Task 12/13 campaign send)
+  - Scenarios A-E → verified in Task 10 and Task 13 Step 6
+  - Error handling → covered in `email.ts` (Task 7 Step 2) and `circles-send.ts` (Task 12 Step 4)
+- **Placeholder scan:** `fr@nkzhu.com` is the forwarding address wired in Task 8. Listmonk list ID is a placeholder until Task 1 runs. Both documented, both actionable.
+- **Type consistency:** `ClassifyInput`, `Action`, `Walk` types defined once and reused. `createListmonkClient` signature consistent between definition (Task 5) and call site (Task 7).
