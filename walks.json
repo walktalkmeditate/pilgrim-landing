@@ -1,0 +1,16 @@
+{
+  "default_city": "austin",
+  "cities": {
+    "austin": {
+      "display_name": "Austin",
+      "next_walk": {
+        "date": "2026-05-02",
+        "time": "8:00 AM",
+        "meeting_place": "Whole Foods, second-floor outdoor patio, downtown Austin",
+        "map_url": "https://maps.app.goo.gl/rMoJSE2wYfeReAUW6",
+        "loop": "Lady Bird Lake, ~3 miles, about 1.5 hours",
+        "frank_note": ""
+      }
+    }
+  }
+}
