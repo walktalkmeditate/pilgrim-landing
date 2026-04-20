@@ -96,9 +96,10 @@
     <section class="mailing-list">
       <h2>Before each walk</h2>
       <p>
-        Email <a href="mailto:circles@plgr.im?subject=add%20me">circles@plgr.im</a>
-        and I&rsquo;ll write the day before &mdash; where to meet, what the
-        weather looks like, one note. Nothing else.
+        A quiet channel for walk updates: write to
+        <a href="mailto:circles@plgr.im?subject=add%20me">circles@plgr.im</a>
+        and I&rsquo;ll send a note the day before each walk &mdash; where to meet,
+        what the weather looks like, one line. Nothing else.
       </p>
       <p class="mailing-list-unsub">
         Reply &ldquo;stop&rdquo; any time.
@@ -106,7 +107,8 @@
     </section>
 
     <p class="share-link">
-      Share this page: <a href="https://plgr.im/circles">plgr.im/circles</a>
+      Share this page:
+      <button type="button" class="share-button" id="share-btn" data-url="https://plgr.im/circles">plgr.im/circles</button>
     </p>
 
     <p class="app-line">
@@ -119,6 +121,20 @@
   <footer>
     <p>pilgrim · a walking companion · pilgrimapp.org</p>
   </footer>
+
+  <script>
+    (function () {
+      var btn = document.getElementById('share-btn');
+      if (!btn || !navigator.clipboard) return;
+      btn.addEventListener('click', function () {
+        navigator.clipboard.writeText(btn.dataset.url).then(function () {
+          var original = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = original; }, 1500);
+        });
+      });
+    })();
+  </script>
 
 </body>
 </html>
