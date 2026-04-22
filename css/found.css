@@ -107,11 +107,43 @@ h2 {
   padding-bottom: 1px;
 }
 
-/* Archive and invite section spacing */
+/* Archive, invite, and card-editions section spacing */
 
 section.archive,
-section.invite {
+section.invite,
+section.card-editions {
   margin-top: clamp(80px, 12vh, 140px);
+}
+
+/* Card editions — a gallery of what the cards look like, newest-first */
+
+figure.card-edition {
+  margin: 0 0 3em;
+}
+
+/* Mat board — image sits inset from a parchment frame, thin rule outer edge */
+
+.card-mat {
+  background: var(--paper-dim);
+  border: 1px solid var(--rule);
+  padding: clamp(18px, 4vw, 32px);
+}
+
+.card-mat img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+figure.card-edition figcaption {
+  margin-top: 1.2em;
+  text-align: center;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+  text-transform: lowercase;
 }
 
 /* Archive empty placeholder */
