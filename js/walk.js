@@ -5,6 +5,7 @@
     "https://cdn.jsdelivr.net/gh/walktalkmeditate/rubberduck-walk@main/feed.json";
   const DUCK_GIF = "assets/duck/duck.gif";
   const SVG_NS = "http://www.w3.org/2000/svg";
+  const STALE_FEED_DAYS = 10; // show a different state line if the feed stops updating
 
   function ageClass(ageDays) {
     if (ageDays <= 30) return "walk-entry--age-recent";
@@ -63,9 +64,22 @@
     return el;
   }
 
+  function feedAgeDays(feed) {
+    if (!feed.generatedAt) return 0;
+    const generated = new Date(feed.generatedAt).getTime();
+    if (Number.isNaN(generated)) return 0;
+    return Math.floor((Date.now() - generated) / (1000 * 60 * 60 * 24));
+  }
+
   function renderStateLine(feed) {
     const el = document.getElementById("walk-state-line");
     if (!el) return;
+
+    if (feedAgeDays(feed) >= STALE_FEED_DAYS) {
+      el.textContent = "The duck is resting elsewhere.";
+      return;
+    }
+
     const d = feed.duck;
     if (d.mode === "resting") {
       el.textContent = `The duck is resting at ${d.stageName}.`;
@@ -109,8 +123,12 @@
     polyline.setAttribute("class", "walk-map-route");
     svg.append(polyline);
 
+    // Only plot entries that belong to the currently-displayed route.
+    // After a route switch, old entries still live in the feed but their
+    // coords project outside this route's bounding box — hide them on the map.
     for (const entry of feed.entries) {
       if (!entry.coords) continue;
+      if (entry.route !== feed.duck.route) continue;
       const [x, y] = project(entry.coords);
       const c = document.createElementNS(SVG_NS, "circle");
       c.setAttribute("cx", String(x));
