@@ -1737,3 +1737,22 @@ a:focus-visible {
     padding: var(--padding-md) var(--padding-sm);
   }
 }
+
+.horizon-duck {
+  display: inline-block;
+  margin-top: 1.25rem;
+  opacity: 0.55;
+  transition: opacity 300ms ease;
+  line-height: 0;
+}
+
+.horizon-duck img {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.horizon-duck:hover,
+.horizon-duck:focus-visible {
+  opacity: 0.9;
+}
