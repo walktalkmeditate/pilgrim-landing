@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The duck walks</title>
+  <meta name="description" content="A rubber duck walking a pilgrimage route.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/walk.css">
+</head>
+<body class="walk-body">
+  <main class="walk-main">
+    <section class="walk-map-wrap" aria-label="The duck's current location">
+      <svg class="walk-map" id="walk-map" viewBox="0 0 600 400" role="img" aria-label="Route map">
+        <!-- populated by walk.js -->
+      </svg>
+      <p class="walk-state-line" id="walk-state-line" aria-live="polite">…</p>
+    </section>
+
+    <section class="walk-feed" id="walk-feed" aria-label="The duck's offerings">
+      <!-- populated by walk.js -->
+    </section>
+
+    <p class="walk-tagline">a question cannot be asked unless there is already the potentiality of the answer</p>
+  </main>
+
+  <script src="js/walk.js" defer></script>
+</body>
+</html>
