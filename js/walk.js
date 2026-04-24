@@ -18,11 +18,11 @@
 
   // Layout constants (matching CalligraphyPathRenderer's verticalSpacing/maxMeander/topInset).
   const VERTICAL_SPACING = 124;
-  const MAX_MEANDER = 38;
+  const MAX_MEANDER = 14;
   const TOP_INSET = 40;
   const BOTTOM_INSET = 72;
-  const BASE_STROKE = 1.6;
-  const MAX_STROKE = 4.2;
+  const STROKE_MIN = 1.6;
+  const STROKE_MAX = 3.6;
   const PATH_WIDTH = 110;
   const PATH_WIDTH_MOBILE = 54;
 
@@ -141,6 +141,90 @@
     }
   }
 
+  function renderStatsLine(feed) {
+    const el = document.getElementById("walk-stats-line");
+    if (!el) return;
+    const d = feed.duck;
+    const parts = [];
+    if (typeof d.daysOnRoute === "number") {
+      parts.push(`day ${Math.max(1, d.daysOnRoute)}`);
+    }
+    if (typeof d.kmFromStart === "number" && typeof d.totalKm === "number") {
+      parts.push(`${formatKm(d.kmFromStart)} of ${d.totalKm} km`);
+    } else if (typeof d.kmFromStart === "number") {
+      parts.push(`${formatKm(d.kmFromStart)} km`);
+    }
+    if (parts.length === 0) {
+      el.textContent = "";
+      return;
+    }
+    el.textContent = "";
+    parts.forEach((p, i) => {
+      if (i > 0) {
+        const sep = document.createElement("span");
+        sep.className = "walk-stats-sep";
+        sep.setAttribute("aria-hidden", "true");
+        sep.textContent = "·";
+        el.append(sep);
+      }
+      const span = document.createElement("span");
+      span.textContent = p;
+      el.append(span);
+    });
+  }
+
+  function formatKm(v) {
+    if (v >= 10) return String(Math.round(v));
+    return v.toFixed(1).replace(/\.0$/, "");
+  }
+
+  // Draw a small moon SVG for a given date, sized to inline with meta text.
+  function buildEntryMoon(iso) {
+    if (!window.Moon || typeof window.Moon.getMoonPhase !== "function") return null;
+    const phase = window.Moon.getMoonPhase(new Date(iso + "T12:00:00Z"));
+    const size = 11;
+    const half = size / 2;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "walk-entry-moon");
+    svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+    svg.setAttribute("width", String(size));
+    svg.setAttribute("height", String(size));
+
+    const bg = document.createElementNS(SVG_NS, "circle");
+    bg.setAttribute("cx", String(half));
+    bg.setAttribute("cy", String(half));
+    bg.setAttribute("r", String(half));
+    bg.setAttribute("fill", "currentColor");
+    bg.setAttribute("fill-opacity", "0.65");
+    svg.append(bg);
+
+    const shadow = document.createElementNS(SVG_NS, "path");
+    let d;
+    if (phase < 0.5) {
+      const sweep = 1 - phase * 4;
+      d = [
+        `M ${half} 0`,
+        `A ${half} ${half} 0 0 1 ${half} ${size}`,
+        `C ${half + half * sweep} ${half + half * 0.55}, ${half + half * sweep} ${half - half * 0.55}, ${half} 0`,
+        "Z",
+      ].join(" ");
+    } else {
+      const sweep = (phase - 0.5) * 4 - 1;
+      d = [
+        `M ${half} ${size}`,
+        `A ${half} ${half} 0 0 1 ${half} 0`,
+        `C ${half - half * sweep} ${half - half * 0.55}, ${half - half * sweep} ${half + half * 0.55}, ${half} ${size}`,
+        "Z",
+      ].join(" ");
+    }
+    shadow.setAttribute("d", d);
+    shadow.setAttribute("fill", "var(--walk-parchment)");
+    svg.append(shadow);
+
+    svg.setAttribute("aria-label", window.Moon.getMoonPhaseName(phase));
+    return svg;
+  }
+
   // ---- Entry card ----
 
   function buildEntryCard(entry) {
@@ -163,8 +247,39 @@
       ja.textContent = kanji;
       stage.append(ja);
     }
-    meta.append(date, stage);
+    const moon = buildEntryMoon(entry.date);
+    meta.append(date);
+    if (moon) meta.append(moon);
+    meta.append(stage);
     el.append(meta);
+
+    // Sub-meta: weather + distance-from-last on their own soft line
+    const subBits = [];
+    if (entry.weather) subBits.push({ cls: "walk-entry-weather", text: entry.weather });
+    if (typeof entry.kmSinceLastEntry === "number" && entry.kmSinceLastEntry > 0) {
+      subBits.push({
+        cls: "walk-entry-km",
+        text: `${formatKm(entry.kmSinceLastEntry)} km from the last offering`,
+      });
+    }
+    if (subBits.length > 0) {
+      const sub = document.createElement("div");
+      sub.className = "walk-entry-meta-sub";
+      subBits.forEach((b, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "walk-stats-sep";
+          sep.setAttribute("aria-hidden", "true");
+          sep.textContent = "·";
+          sub.append(sep);
+        }
+        const span = document.createElement("span");
+        span.className = b.cls;
+        span.textContent = b.text;
+        sub.append(span);
+      });
+      el.append(sub);
+    }
 
     const glyph = document.createElement("div");
     glyph.className = "walk-entry-glyph";
@@ -195,29 +310,24 @@
 
   // ---- SVG path + dots ----
 
-  function buildBrushSegment(a, b, strokeWidth, swayEntry, fiber) {
+  // Build a single curved stroke segment between two dots. Uses a filter
+  // for organic brush-edge variation instead of stacking multiple paths.
+  function buildBrushSegment(a, b, strokeWidth, swayEntry) {
     const midY = (a.cy + b.cy) / 2;
-    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.85;
+    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6;
     const cp1x = a.cx + sway;
-    const cp1y = midY - VERTICAL_SPACING * 0.22;
+    const cp1y = midY - VERTICAL_SPACING * 0.18;
     const cp2x = b.cx - sway;
-    const cp2y = midY + VERTICAL_SPACING * 0.22;
+    const cp2y = midY + VERTICAL_SPACING * 0.18;
 
-    // Ink-brush taper: width varies along segment. Approximate with two
-    // half-widths (start & end) and a smooth taper between.
-    const startHalf = strokeWidth * (0.55 + fiber * 0.2);
-    const endHalf = strokeWidth * (0.85 - fiber * 0.1);
-
-    const d = [
-      `M ${a.cx - startHalf} ${a.cy}`,
-      `C ${cp1x - startHalf} ${cp1y}, ${cp2x - endHalf} ${cp2y}, ${b.cx - endHalf} ${b.cy}`,
-      `L ${b.cx + endHalf} ${b.cy}`,
-      `C ${cp2x + endHalf} ${cp2y}, ${cp1x + startHalf} ${cp1y}, ${a.cx + startHalf} ${a.cy}`,
-      "Z",
-    ].join(" ");
+    const d = `M ${a.cx} ${a.cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.cx} ${b.cy}`;
 
     const seg = document.createElementNS(SVG_NS, "path");
     seg.setAttribute("d", d);
+    seg.setAttribute("stroke-width", String(strokeWidth));
+    seg.setAttribute("stroke-linecap", "round");
+    seg.setAttribute("stroke-linejoin", "round");
+    seg.setAttribute("fill", "none");
     return seg;
   }
 
@@ -237,34 +347,30 @@
       index: i,
     }));
 
-    // Path segments (main + two fiber layers).
+    // Path segments — one stroked curve per pair, plus a thin fiber overlay
+    // offset slightly for an optical brush-hair effect.
     for (let i = 0; i < positions.length - 1; i++) {
       const a = positions[i];
       const b = positions[i + 1];
       const t = positions.length > 1 ? i / (positions.length - 1) : 0;
-      const width = BASE_STROKE + (MAX_STROKE - BASE_STROKE) * (1 - t) * 0.75;
+      // Newer segments thicker; older segments thinner (ink drying out).
+      const width = STROKE_MIN + (STROKE_MAX - STROKE_MIN) * (1 - t);
 
-      // Main ink stroke
-      const main = buildBrushSegment(a, b, width, a.entry, 0);
+      const main = buildBrushSegment(a, b, width, a.entry);
       main.setAttribute("filter", "url(#brush-fiber)");
-      let cls = "walk-path-segment";
-      if (t > 0.7) cls += " walk-path-segment--oldest";
-      else if (t > 0.4) cls += " walk-path-segment--older";
+      let cls = "walk-path-stroke";
+      if (t > 0.7) cls += " walk-path-stroke--oldest";
+      else if (t > 0.4) cls += " walk-path-stroke--older";
       main.setAttribute("class", cls);
       main.style.setProperty("--seg-i", String(i));
       svg.append(main);
 
-      // Fiber overlays — thinner paths at low opacity for brush-hair effect
-      const fiber1 = buildBrushSegment(a, b, width * 0.42, b.entry, 0.6);
-      fiber1.setAttribute("class", "walk-path-fiber");
-      fiber1.style.setProperty("--seg-i", String(i));
-      svg.append(fiber1);
-
-      const fiber2 = buildBrushSegment(a, b, width * 0.28, a.entry, -0.8);
-      fiber2.setAttribute("class", "walk-path-fiber");
-      fiber2.setAttribute("transform", "translate(0.6, 0)");
-      fiber2.style.setProperty("--seg-i", String(i));
-      svg.append(fiber2);
+      // Single thin fiber overlay, offset 0.6px for brush-hair texture
+      const fiber = buildBrushSegment(a, b, Math.max(0.6, width * 0.35), b.entry);
+      fiber.setAttribute("class", "walk-path-fiber");
+      fiber.setAttribute("transform", "translate(0.6, 0.3)");
+      fiber.style.setProperty("--seg-i", String(i));
+      svg.append(fiber);
     }
 
     // Dots
@@ -368,42 +474,47 @@
 
   // ---- Moon + theme + constellation ----
 
+  // Theme cycle: each click advances light → dark → constellation → light.
+  const THEME_MODES = ["light", "dark", "constellation"];
+
+  function applyMode(mode) {
+    // Map mode to the two orthogonal switches: data-theme + body.constellation
+    if (mode === "constellation") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.body.classList.add("constellation");
+    } else {
+      document.documentElement.setAttribute("data-theme", mode);
+      document.body.classList.remove("constellation");
+    }
+  }
+
+  function currentMode() {
+    if (document.body.classList.contains("constellation")) return "constellation";
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+
   function initMoonAndTheme() {
     const moonBtn = document.getElementById("walk-moon");
     if (!moonBtn) return;
 
-    // Restore saved theme
-    const saved = localStorage.getItem("pilgrim-theme");
-    if (saved === "dark" || saved === "light") {
-      document.documentElement.setAttribute("data-theme", saved);
+    const saved = localStorage.getItem("pilgrim-mode");
+    let mode;
+    if (saved && THEME_MODES.includes(saved)) {
+      mode = saved;
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      document.documentElement.setAttribute("data-theme", "dark");
+      mode = "dark";
+    } else {
+      mode = "light";
     }
+    applyMode(mode);
     renderMoonInto(moonBtn);
 
-    // Single click — toggle light/dark
-    let clickCount = 0;
-    let clickTimer = null;
     moonBtn.addEventListener("click", () => {
-      clickCount++;
-      clearTimeout(clickTimer);
-      clickTimer = setTimeout(() => {
-        if (clickCount === 1) {
-          const current = document.documentElement.getAttribute("data-theme");
-          const next = current === "dark" ? "light" : "dark";
-          document.documentElement.setAttribute("data-theme", next);
-          localStorage.setItem("pilgrim-theme", next);
-          renderMoonInto(moonBtn);
-        }
-        clickCount = 0;
-      }, 380);
-
-      // Triple-click → constellation
-      if (clickCount >= 3) {
-        clearTimeout(clickTimer);
-        clickCount = 0;
-        document.body.classList.toggle("constellation");
-      }
+      const i = THEME_MODES.indexOf(currentMode());
+      const next = THEME_MODES[(i + 1) % THEME_MODES.length];
+      applyMode(next);
+      localStorage.setItem("pilgrim-mode", next);
+      renderMoonInto(moonBtn);
     });
   }
 
@@ -435,6 +546,7 @@
     }
 
     renderStateLine(feed);
+    renderStatsLine(feed);
 
     const entries = (feed.entries ?? [])
       .filter((e) => e.route === feed.duck.route)

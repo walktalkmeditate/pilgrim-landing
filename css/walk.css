@@ -208,6 +208,22 @@
   margin: 0;
 }
 
+.walk-stats-line {
+  font-family: var(--font-ui, "Lato"), "Helvetica Neue", sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--walk-ink-softer);
+  margin: 0.7rem 0 0;
+  font-weight: 500;
+}
+
+.walk-stats-sep {
+  display: inline-block;
+  margin: 0 0.5rem;
+  opacity: 0.55;
+}
+
 /* ---- Journey ---- */
 
 .walk-journey {
@@ -235,18 +251,18 @@
   overflow: visible;
 }
 
-/* Brush stroke fiber layers — multiple overlapping paths at low opacity
-   produce a sumi-e fiber effect */
-.walk-path-segment {
-  fill: var(--walk-ink);
-  fill-opacity: 0.52;
+/* Brush-stroke segments — stroked bezier per pair of dots */
+.walk-path-stroke {
+  stroke: var(--walk-ink);
+  stroke-opacity: 0.65;
 }
-.walk-path-segment--older { fill-opacity: 0.30; }
-.walk-path-segment--oldest { fill-opacity: 0.14; }
+.walk-path-stroke--older { stroke-opacity: 0.40; }
+.walk-path-stroke--oldest { stroke-opacity: 0.22; }
 
 .walk-path-fiber {
-  fill: var(--walk-ink);
-  fill-opacity: 0.18;
+  stroke: var(--walk-ink);
+  stroke-opacity: 0.18;
+  stroke-linecap: round;
 }
 
 /* Dot layers */
@@ -289,7 +305,7 @@
 }
 
 /* Draw-in animation — the path & dots appear as if being written. */
-.walk-path-segment,
+.walk-path-stroke,
 .walk-path-fiber {
   opacity: 0;
   animation: walk-appear 700ms ease-out forwards;
@@ -298,8 +314,7 @@
 
 .walk-dot-group {
   opacity: 0;
-  transform-origin: center;
-  animation: walk-dot-appear 550ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation: walk-appear 550ms ease-out forwards;
   animation-delay: calc(var(--dot-i, 0) * 180ms + 350ms);
 }
 
@@ -312,10 +327,6 @@
 @keyframes walk-appear {
   from { opacity: 0; }
   to   { opacity: 1; }
-}
-@keyframes walk-dot-appear {
-  from { opacity: 0; transform: scale(0.4); }
-  to   { opacity: 1; transform: scale(1); }
 }
 
 /* Entries — right column */
@@ -339,12 +350,39 @@
   display: flex;
   gap: 0.6rem;
   align-items: baseline;
+  flex-wrap: wrap;
   font-size: 0.7rem;
   color: var(--walk-ink-softer);
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-family: var(--font-ui, "Lato"), "Helvetica Neue", sans-serif;
   font-weight: 500;
+}
+
+.walk-entry-moon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.walk-entry-weather,
+.walk-entry-km {
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: none;
+  font-style: italic;
+  font-family: var(--font-display, "Cormorant Garamond"), Georgia, serif;
+  font-size: 0.85rem;
+  color: var(--walk-ink-softer);
+}
+
+.walk-entry-meta-sub {
+  flex-basis: 100%;
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  margin-top: 0.1rem;
 }
 
 .walk-entry-date {
@@ -495,6 +533,43 @@
   letter-spacing: 0.04em;
   margin: 0;
 }
+.walk-source {
+  margin: 1.5rem 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-family: var(--font-ui, "Lato"), "Helvetica Neue", sans-serif;
+}
+.walk-source a {
+  color: var(--walk-ink-faintest);
+  text-decoration: none;
+  transition: color 300ms ease;
+  padding: 0.3rem 0.6rem;
+}
+.walk-source a:hover,
+.walk-source a:focus-visible {
+  color: var(--walk-ink-softer);
+  outline: none;
+}
+
+/* Goshuin accumulator — one red ink seal per completed route */
+.walk-goshuin-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 0 0 2rem;
+  min-height: 0;
+}
+.walk-goshuin-row:empty { display: none; }
+.walk-goshuin {
+  width: 42px;
+  height: 42px;
+  opacity: 0.78;
+  transform: rotate(-3deg);
+  filter: url(#sumi-dot-3);
+}
+.walk-goshuin + .walk-goshuin { transform: rotate(2deg); }
+.walk-goshuin + .walk-goshuin + .walk-goshuin { transform: rotate(-4deg); }
 
 /* ---- Constellation mode (triple-click the moon) ---- */
 
