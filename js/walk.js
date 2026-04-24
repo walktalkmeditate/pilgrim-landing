@@ -11,14 +11,14 @@
   const FEED_URL =
     "https://cdn.jsdelivr.net/gh/walktalkmeditate/rubberduck-walk@main/feed.json";
   const DUCK_GIF = "assets/duck/duck.gif";
-  const DUCK_LINK = "https://chiefrubberduck.com";
+  const DUCK_LINK = "https://chiefrubberduck.org";
   const SVG_NS = "http://www.w3.org/2000/svg";
   const XLINK_NS = "http://www.w3.org/1999/xlink";
   const STALE_FEED_DAYS = 10;
 
   // Layout constants (matching CalligraphyPathRenderer's verticalSpacing/maxMeander/topInset).
   const VERTICAL_SPACING = 124;
-  const MAX_MEANDER = 14;
+  const MAX_MEANDER = 32;  // ~1/4 of vertical spacing, like the app
   const TOP_INSET = 40;
   const BOTTOM_INSET = 72;
   const STROKE_MIN = 1.6;
@@ -176,6 +176,71 @@
   function formatKm(v) {
     if (v >= 10) return String(Math.round(v));
     return v.toFixed(1).replace(/\.0$/, "");
+  }
+
+  // Render the duck's real geographic route as a faint watermark behind the
+  // page. Always draws the full outline so there's geographic context even
+  // at stage 1; overlays the walked portion more prominently.
+  function renderBgMap(feed) {
+    const container = document.getElementById("walk-bgmap");
+    if (!container) return;
+    const path = feed.routePath ? feed.routePath[feed.duck.route] : null;
+    if (!Array.isArray(path) || path.length < 2) return;
+
+    const currentStage = Math.max(1, Math.min(path.length, feed.duck.stage));
+    const walked = path.slice(0, currentStage);
+
+    const allLons = path.map((p) => p[0]);
+    const allLats = path.map((p) => p[1]);
+    const frameLonMin = Math.min(...allLons);
+    const frameLonMax = Math.max(...allLons);
+    const frameLatMin = Math.min(...allLats);
+    const frameLatMax = Math.max(...allLats);
+    const lonRange = frameLonMax - frameLonMin || 1;
+    const latRange = frameLatMax - frameLatMin || 1;
+
+    const W = 800;
+    const H = 800;
+    const PAD = 60;
+
+    function project(lon, lat) {
+      const x = PAD + ((lon - frameLonMin) / lonRange) * (W - 2 * PAD);
+      const y = PAD + ((frameLatMax - lat) / latRange) * (H - 2 * PAD);
+      return [x, y];
+    }
+
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    svg.setAttribute("class", "walk-bgmap-svg");
+
+    // Full outline of the route (geographic context — faint)
+    const fullPts = path.map((p) => project(p[0], p[1]).join(",")).join(" ");
+    const full = document.createElementNS(SVG_NS, "polyline");
+    full.setAttribute("points", fullPts);
+    full.setAttribute("class", "walk-bgmap-full");
+    svg.append(full);
+
+    // Walked portion (only if >= 2 points — else just show the current-pos dot)
+    if (walked.length >= 2) {
+      const walkedPts = walked.map((p) => project(p[0], p[1]).join(",")).join(" ");
+      const w = document.createElementNS(SVG_NS, "polyline");
+      w.setAttribute("points", walkedPts);
+      w.setAttribute("class", "walk-bgmap-walked");
+      svg.append(w);
+    }
+
+    // Mark duck's current position
+    const last = project(walked[walked.length - 1][0], walked[walked.length - 1][1]);
+    const dot = document.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("cx", String(last[0]));
+    dot.setAttribute("cy", String(last[1]));
+    dot.setAttribute("r", "5");
+    dot.setAttribute("class", "walk-bgmap-duck");
+    svg.append(dot);
+
+    while (container.firstChild) container.removeChild(container.firstChild);
+    container.append(svg);
   }
 
   // Draw a small moon SVG for a given date, sized to inline with meta text.
@@ -444,10 +509,11 @@
       }
     }
 
-    // Duck marker — wrapped in an <a> that links to chiefrubberduck.com
+    // Duck marker — wrapped in an <a> that links to chiefrubberduck.org.
+    // The duck's center sits on the dot's center so it reads as perched on it.
     if (positions.length > 0) {
       const top = positions[0];
-      const duckSize = 34;
+      const duckSize = 36;
 
       const anchor = document.createElementNS(SVG_NS, "a");
       anchor.setAttribute("class", "walk-duck-link");
@@ -461,7 +527,7 @@
       img.setAttribute("href", DUCK_GIF);
       img.setAttribute("class", "walk-duck-marker");
       img.setAttribute("x", String(top.cx - duckSize / 2));
-      img.setAttribute("y", String(top.cy - duckSize * 0.95));
+      img.setAttribute("y", String(top.cy - duckSize / 2));
       img.setAttribute("width", String(duckSize));
       img.setAttribute("height", String(duckSize));
 
@@ -547,6 +613,7 @@
 
     renderStateLine(feed);
     renderStatsLine(feed);
+    renderBgMap(feed);
 
     const entries = (feed.entries ?? [])
       .filter((e) => e.route === feed.duck.route)
