@@ -422,11 +422,14 @@
   // for organic brush-edge variation instead of stacking multiple paths.
   function buildBrushSegment(a, b, strokeWidth, swayEntry) {
     const midY = (a.cy + b.cy) / 2;
+    // Control-point offset scales with the actual segment height so the curve
+    // looks the same whether entries are 100px or 300px apart.
+    const segHeight = Math.abs(b.cy - a.cy) || VERTICAL_SPACING;
     const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6;
     const cp1x = a.cx + sway;
-    const cp1y = midY - VERTICAL_SPACING * 0.18;
+    const cp1y = midY - segHeight * 0.18;
     const cp2x = b.cx - sway;
-    const cp2y = midY + VERTICAL_SPACING * 0.18;
+    const cp2y = midY + segHeight * 0.18;
 
     const d = `M ${a.cx} ${a.cy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.cx} ${b.cy}`;
 
@@ -439,7 +442,7 @@
     return seg;
   }
 
-  function buildPathSvg(entries, totalHeight, pathWidth, isNewestPulsing) {
+  function buildPathSvg(entries, totalHeight, pathWidth, isNewestPulsing, centers) {
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("class", "walk-path");
     svg.setAttribute("viewBox", `0 0 ${pathWidth} ${totalHeight}`);
@@ -448,9 +451,13 @@
 
     const centerX = pathWidth / 2;
 
+    // When `centers` is passed in (measured from real card positions), use
+    // those Y values so the dots align with entries regardless of how tall
+    // each card's body copy ends up on any viewport. Fallback to the old
+    // fixed-spacing math is kept for defensive callers.
     const positions = entries.map((entry, i) => ({
       cx: centerX + meanderOffset(entry) * (pathWidth / PATH_WIDTH),
-      cy: TOP_INSET + i * VERTICAL_SPACING + VERTICAL_SPACING / 2,
+      cy: centers ? centers[i] : TOP_INSET + i * VERTICAL_SPACING + VERTICAL_SPACING / 2,
       entry,
       index: i,
     }));
@@ -907,28 +914,36 @@
     const pathWidth = window.matchMedia("(max-width: 640px)").matches
       ? PATH_WIDTH_MOBILE
       : PATH_WIDTH;
-
-    const totalHeight = TOP_INSET + entries.length * VERTICAL_SPACING + BOTTOM_INSET;
     const isRecent = feedAgeDays(feed) < STALE_FEED_DAYS;
 
-    const { svg, positions } = buildPathSvg(entries, totalHeight, pathWidth, isRecent);
-
+    // Phase 1 — render the entry cards in natural flex-column flow so each one
+    // is exactly as tall as its content needs, regardless of how the body copy
+    // wraps at the current viewport. The old approach placed cards at fixed
+    // VERTICAL_SPACING intervals with position: absolute, which overlapped on
+    // narrow screens where poems wrapped to 3-4 lines.
     const entriesCol = document.createElement("div");
     entriesCol.className = "walk-entries";
-    entriesCol.style.position = "relative";
-    entriesCol.style.height = `${totalHeight}px`;
-
-    for (let i = 0; i < entries.length; i++) {
-      const card = buildEntryCard(entries[i]);
-      card.style.position = "absolute";
-      card.style.left = "0";
-      card.style.right = "0";
-      card.style.top = `${positions[i].cy - 14}px`;
+    const cards = entries.map((entry) => {
+      const card = buildEntryCard(entry);
       entriesCol.append(card);
-    }
-
-    journey.append(svg);
+      return card;
+    });
     journey.append(entriesCol);
+
+    // Phase 2 — measure each card's meta-row center. Anchoring to the meta
+    // row (the date/stage line) reads better than the geometric center: the
+    // dot sits at the entry's "header" line no matter how long the body is.
+    const colRect = entriesCol.getBoundingClientRect();
+    const centers = cards.map((card) => {
+      const anchor = card.querySelector(".walk-entry-meta") || card;
+      const r = anchor.getBoundingClientRect();
+      return r.top - colRect.top + r.height / 2;
+    });
+    const totalHeight = entriesCol.offsetHeight + BOTTOM_INSET;
+
+    // Phase 3 — build the SVG path with measured dot positions.
+    const { svg } = buildPathSvg(entries, totalHeight, pathWidth, isRecent, centers);
+    journey.insertBefore(svg, entriesCol);
   }
 
   if (document.readyState === "loading") {

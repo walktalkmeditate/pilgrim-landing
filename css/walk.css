@@ -421,6 +421,17 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 .walk-entries {
   grid-column: 2;
   padding-left: 1.4rem;
+  padding-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
+}
+@media (max-width: 640px) {
+  .walk-entries {
+    padding-left: 0.9rem;
+    padding-top: 1.5rem;
+    gap: 2rem;
+  }
 }
 
 .walk-entry {
