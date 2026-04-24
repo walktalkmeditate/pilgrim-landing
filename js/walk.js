@@ -930,6 +930,14 @@
     });
     journey.append(entriesCol);
 
+    // Wait for fonts to load before measuring — text rendered in the fallback
+    // font has different line-height and glyph widths than Cormorant Garamond,
+    // so measuring pre-font-ready gives us card heights that become wrong the
+    // moment the real font paints, and dots end up misaligned from entries.
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch { /* no-op */ }
+    }
+
     // Phase 2 — measure each card's meta-row center. Anchoring to the meta
     // row (the date/stage line) reads better than the geometric center: the
     // dot sits at the entry's "header" line no matter how long the body is.
