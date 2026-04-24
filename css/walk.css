@@ -187,6 +187,7 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
   align-items: center;
   gap: 0.4rem;
   text-decoration: none;
+  border-bottom: none;
   font-family: var(--font-display, "Cormorant Garamond"), Georgia, serif;
   font-size: 0.85rem;
   font-variant: small-caps;
@@ -199,10 +200,12 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 }
 
 .walk-back:hover,
+.walk-back:focus,
 .walk-back:focus-visible {
   color: var(--walk-ink);
   opacity: 1;
   outline: none;
+  border-bottom-color: transparent;
 }
 
 .walk-moon {
@@ -627,13 +630,16 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 .walk-source a {
   color: var(--walk-ink-faintest);
   text-decoration: none;
+  border-bottom: none;
   transition: color 300ms ease;
   padding: 0.3rem 0.6rem;
 }
 .walk-source a:hover,
+.walk-source a:focus,
 .walk-source a:focus-visible {
   color: var(--walk-ink-softer);
   outline: none;
+  border-bottom-color: transparent;
 }
 
 /* Goshuin accumulator — one red ink seal per completed route */
