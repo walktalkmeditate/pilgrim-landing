@@ -458,7 +458,7 @@
 
   // Build a single curved stroke segment between two dots. Uses a filter
   // for organic brush-edge variation instead of stacking multiple paths.
-  function buildBrushSegment(a, b, strokeWidth, swayEntry, dayGap) {
+  function buildBrushSegment(a, b, strokeWidth, swayEntry, dayGap, pathWidth) {
     const midY = (a.cy + b.cy) / 2;
     // Control-point offset scales with the actual segment height so the curve
     // looks the same whether entries are 100px or 300px apart.
@@ -472,7 +472,11 @@
     //   3+ days → pace up to 3.00 (dramatic sweeping arc)
     const gap = typeof dayGap === "number" ? dayGap : 1;
     const pace = Math.min(3, 0.25 + gap * 0.85);
-    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6 * pace;
+    // Scale sway to the viewBox width so the curve bows the same fraction
+    // of column width on both desktop (viewBox=110) and mobile (viewBox=54).
+    // Without this, the unscaled sway overflowed the narrow mobile column.
+    const widthScale = (pathWidth || PATH_WIDTH) / PATH_WIDTH;
+    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6 * pace * widthScale;
     const cp1x = a.cx + sway;
     const cp1y = midY - segHeight * 0.18;
     const cp2x = b.cx - sway;
@@ -521,7 +525,7 @@
       // first), so dayGap measures the rest/travel time between writings.
       const dayGap = daysBetween(a.entry.date, b.entry.date);
 
-      const main = buildBrushSegment(a, b, width, a.entry, dayGap);
+      const main = buildBrushSegment(a, b, width, a.entry, dayGap, pathWidth);
       main.setAttribute("filter", "url(#brush-fiber)");
       let cls = "walk-path-stroke";
       if (t > 0.7) cls += " walk-path-stroke--oldest";
@@ -531,7 +535,7 @@
       svg.append(main);
 
       // Single thin fiber overlay, offset 0.6px for brush-hair texture
-      const fiber = buildBrushSegment(a, b, Math.max(0.6, width * 0.35), b.entry, dayGap);
+      const fiber = buildBrushSegment(a, b, Math.max(0.6, width * 0.35), b.entry, dayGap, pathWidth);
       fiber.setAttribute("class", "walk-path-fiber");
       fiber.setAttribute("transform", "translate(0.6, 0.3)");
       fiber.style.setProperty("--seg-i", String(i));
