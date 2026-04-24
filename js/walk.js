@@ -726,12 +726,13 @@
     setTimeout(step, 4000);
   }
 
-  // Long-press anywhere on .walk-main → leave an ephemeral sumi-e mark at
-  // the pointer position. Fades over 3s. Ignores links and buttons so normal
-  // interactions still work.
+  // Long-press anywhere on the page → leave an ephemeral sumi-e mark at the
+  // pointer position. Fades over 3s. Ignores links, buttons, and the moon
+  // toggle so normal interactions still work. Listeners are on document (not
+  // .walk-main) so the feature works in the wide side gutters too — on a
+  // 1400px viewport the centered main is only 780px wide, leaving 310px of
+  // gutter on each side that would otherwise be dead.
   function installLongPressBrush() {
-    const main = document.querySelector(".walk-main");
-    if (!main) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const THRESHOLD_MS = 450;
     const MOVE_TOL = 12;
@@ -740,7 +741,7 @@
     const cancel = () => {
       if (timer) { clearTimeout(timer); timer = null; }
     };
-    main.addEventListener("pointerdown", (e) => {
+    document.addEventListener("pointerdown", (e) => {
       if (e.target.closest("a, button, input, [role=button]")) return;
       startX = e.clientX; startY = e.clientY;
       timer = setTimeout(() => {
@@ -748,10 +749,9 @@
         timer = null;
       }, THRESHOLD_MS);
     });
-    main.addEventListener("pointerup", cancel);
-    main.addEventListener("pointercancel", cancel);
-    main.addEventListener("pointerleave", cancel);
-    main.addEventListener("pointermove", (e) => {
+    document.addEventListener("pointerup", cancel);
+    document.addEventListener("pointercancel", cancel);
+    document.addEventListener("pointermove", (e) => {
       if (!timer) return;
       if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOL) cancel();
     });
