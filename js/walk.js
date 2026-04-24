@@ -178,6 +178,52 @@
     return v.toFixed(1).replace(/\.0$/, "");
   }
 
+  // Render a small red-ink goshuin at bottom-left showing the current stage's
+  // kanji — matches the OG card's composition so the two feel like one artifact.
+  function renderStageSeal(feed) {
+    const el = document.getElementById("walk-stage-seal");
+    if (!el) return;
+    const kanji = kanjiFor(feed.duck.stageName);
+    if (!kanji) {
+      el.hidden = true;
+      return;
+    }
+    // Size kanji by character count — 2 chars largest, 3 medium, 4+ smaller.
+    const chars = [...kanji].length;
+    const fontSize = chars <= 2 ? 26 : chars === 3 ? 20 : chars === 4 ? 16 : 13;
+
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 80 94");
+    svg.setAttribute("aria-hidden", "true");
+
+    const outer = document.createElementNS(SVG_NS, "rect");
+    outer.setAttribute("class", "walk-stage-seal-frame");
+    outer.setAttribute("x", "4");
+    outer.setAttribute("y", "4");
+    outer.setAttribute("width", "72");
+    outer.setAttribute("height", "86");
+    svg.append(outer);
+
+    const inner = document.createElementNS(SVG_NS, "rect");
+    inner.setAttribute("class", "walk-stage-seal-frame-inner");
+    inner.setAttribute("x", "8");
+    inner.setAttribute("y", "8");
+    inner.setAttribute("width", "64");
+    inner.setAttribute("height", "78");
+    svg.append(inner);
+
+    const text = document.createElementNS(SVG_NS, "text");
+    text.setAttribute("class", "walk-stage-seal-kanji");
+    text.setAttribute("x", "40");
+    text.setAttribute("y", "52");
+    text.setAttribute("font-size", String(fontSize));
+    text.textContent = kanji;
+    svg.append(text);
+
+    while (el.firstChild) el.removeChild(el.firstChild);
+    el.append(svg);
+  }
+
   // Render the duck's real geographic route as a faint watermark behind the
   // page. Always draws the full outline so there's geographic context even
   // at stage 1; overlays the walked portion more prominently.
@@ -614,6 +660,7 @@
     renderStateLine(feed);
     renderStatsLine(feed);
     renderBgMap(feed);
+    renderStageSeal(feed);
 
     const entries = (feed.entries ?? [])
       .filter((e) => e.route === feed.duck.route)

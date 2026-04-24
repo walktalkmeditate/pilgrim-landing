@@ -642,6 +642,59 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
   border-bottom-color: transparent;
 }
 
+/* Current-stage goshuin — hand-stamped seal at bottom-left, mirrors the OG */
+.walk-stage-seal {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  width: 72px;
+  height: 84px;
+  transform: rotate(-4deg);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.walk-stage-seal svg {
+  width: 100%;
+  height: 100%;
+}
+.walk-stage-seal-frame {
+  fill: none;
+  stroke: var(--walk-red-seal);
+  stroke-width: 1.6;
+  stroke-opacity: 0.8;
+}
+.walk-stage-seal-frame-inner {
+  fill: none;
+  stroke: var(--walk-red-seal);
+  stroke-width: 1.1;
+  stroke-opacity: 0.6;
+}
+.walk-stage-seal-kanji {
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "MS Mincho", serif;
+  font-weight: 600;
+  fill: var(--walk-red-seal);
+  fill-opacity: 0.85;
+  text-anchor: middle;
+}
+
+@media (max-width: 640px) {
+  .walk-stage-seal {
+    width: 54px;
+    height: 64px;
+    bottom: 1.25rem;
+    left: 1rem;
+  }
+}
+
+[data-theme="dark"] .walk-stage-seal-frame,
+[data-theme="dark"] .walk-stage-seal-frame-inner { stroke-opacity: 0.5; }
+[data-theme="dark"] .walk-stage-seal-kanji { fill-opacity: 0.6; }
+
+body.constellation .walk-stage-seal-frame,
+body.constellation .walk-stage-seal-frame-inner { stroke-opacity: 0.75; }
+body.constellation .walk-stage-seal-kanji { fill-opacity: 0.85; }
+
 /* Goshuin accumulator — one red ink seal per completed route */
 .walk-goshuin-row {
   display: flex;
