@@ -1741,18 +1741,41 @@ a:focus-visible {
 .horizon-duck {
   display: inline-block;
   margin-top: 1.25rem;
-  opacity: 0.55;
+  opacity: 0.6;
   transition: opacity 300ms ease;
   line-height: 0;
+  text-decoration: none;
+  position: relative;
+  width: 24px;
+  height: 24px;
 }
 
 .horizon-duck img {
   display: block;
   width: 24px;
   height: 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 250ms ease;
+}
+
+.horizon-duck .horizon-duck-animated {
+  opacity: 0;
 }
 
 .horizon-duck:hover,
 .horizon-duck:focus-visible {
-  opacity: 0.9;
+  opacity: 1;
+  outline: none;
+}
+
+.horizon-duck:hover .horizon-duck-static,
+.horizon-duck:focus-visible .horizon-duck-static {
+  opacity: 0;
+}
+
+.horizon-duck:hover .horizon-duck-animated,
+.horizon-duck:focus-visible .horizon-duck-animated {
+  opacity: 1;
 }

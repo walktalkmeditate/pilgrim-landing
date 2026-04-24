@@ -377,14 +377,20 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 }
 
 /* Duck marker — the clickable easter egg */
-.walk-duck-link { cursor: pointer; }
+.walk-duck-link {
+  cursor: pointer;
+  text-decoration: none;
+  outline: none;
+}
 .walk-duck-marker {
   pointer-events: auto;
-  transition: transform 300ms ease;
+  transition: transform 320ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 .walk-duck-link:hover .walk-duck-marker,
 .walk-duck-link:focus-visible .walk-duck-marker {
-  transform: translateY(-2px) scale(1.04);
+  transform: translateX(3px);
 }
 
 /* Draw-in animation — the path & dots appear as if being written. */
