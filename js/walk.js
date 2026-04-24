@@ -756,26 +756,107 @@
       if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOL) cancel();
     });
   }
+  // Calligraphy brush primitives — seven distinct stroke shapes inspired by
+  // CJK brush fundamentals. Random pick combined with random scale, rotation,
+  // width, opacity, and occasional red ink makes every long-press feel like
+  // a real gesture instead of a stamped macro.
+  const BRUSH_STROKES = [
+    // Horizontal flick (ichi, 一)
+    { d: "M 10 26 C 26 12, 52 10, 72 22 C 92 30, 108 30, 114 26" },
+    // S-curve sweep
+    { d: "M 10 30 C 30 10, 60 42, 90 18 C 105 8, 112 15, 115 20" },
+    // Hook with kick
+    { d: "M 10 22 C 40 20, 70 22, 90 28 L 108 42" },
+    // Left-falling taper (pie, 丿)
+    { d: "M 100 10 C 80 18, 45 30, 12 45" },
+    // Right-falling taper (na, 乀)
+    { d: "M 12 10 C 40 20, 75 30, 108 45" },
+    // Dry-brush (horizontal flick, broken into dashes)
+    { d: "M 10 26 C 26 12, 52 10, 72 22 C 92 30, 108 30, 114 26", dasharray: "3 4 6 3 8 3 5 5" },
+    // Comma curl
+    { d: "M 10 22 C 40 12, 80 20, 95 30 C 100 35, 98 40, 92 42" },
+  ];
+
   function spawnBrushMark(x, y) {
+    // Constellation mode swaps the ink stroke for a tiny starburst so the
+    // gesture matches the cosmic palette of the mode.
+    if (document.body.classList.contains("constellation")) {
+      spawnStarPuff(x, y);
+      return;
+    }
+    const stroke = BRUSH_STROKES[Math.floor(Math.random() * BRUSH_STROKES.length)];
+    // 1-in-15 presses draw in vermilion — the same red the goshuin seal uses.
+    // A tiny echo of the stamp, for anyone pressing often enough to notice.
+    const isRed = Math.random() < 1 / 15;
+    const color = isRed ? "var(--walk-red-seal, #a43a2e)" : "var(--walk-ink, #2c241e)";
+    const strokeWidth = 4 + Math.random() * 5;       // 4-9 — bold to fine
+    const strokeOpacity = 0.4 + Math.random() * 0.3; // 0.4-0.7 — fresh to dry
+    const scale = 0.7 + Math.random() * 0.6;         // 0.7-1.3
+    const rot = Math.random() * 360 - 180;           // full direction range
+
     const mark = document.createElementNS(SVG_NS, "svg");
     mark.setAttribute("class", "walk-brush-mark");
     mark.setAttribute("viewBox", "0 0 120 50");
     mark.setAttribute("aria-hidden", "true");
     mark.style.left = x + "px";
     mark.style.top = y + "px";
-    mark.style.setProperty("--mark-rot", (Math.random() * 60 - 30) + "deg");
+    mark.style.setProperty("--mark-rot", rot + "deg");
+    mark.style.setProperty("--mark-scale", String(scale));
+
     const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", "M 10 26 C 26 12, 52 10, 72 22 C 92 30, 108 30, 114 26");
+    path.setAttribute("d", stroke.d);
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", "currentColor");
-    path.setAttribute("stroke-width", "6");
+    path.setAttribute("stroke-width", String(strokeWidth));
     path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-opacity", "0.55");
+    path.setAttribute("stroke-opacity", String(strokeOpacity));
     path.setAttribute("filter", "url(#brush-fiber)");
-    path.style.color = "var(--walk-ink, #2c241e)";
+    if (stroke.dasharray) path.setAttribute("stroke-dasharray", stroke.dasharray);
+    path.style.color = color;
     mark.append(path);
     document.body.append(mark);
     setTimeout(() => mark.remove(), 3100);
+
+    // 30% of presses scatter 1-3 satellite dots near the stroke — the gesture
+    // feels kinetic instead of clinical. Inherits the stroke's color so red
+    // strokes get red splatters.
+    if (Math.random() < 0.3) {
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        const ox = (Math.random() - 0.5) * 80;
+        const oy = (Math.random() - 0.5) * 50;
+        spawnSplatterDot(x + ox, y + oy, color);
+      }
+    }
+  }
+
+  function spawnSplatterDot(x, y, color) {
+    const dot = document.createElement("div");
+    dot.className = "walk-splatter";
+    dot.setAttribute("aria-hidden", "true");
+    dot.style.left = x + "px";
+    dot.style.top = y + "px";
+    dot.style.setProperty("--size", (2 + Math.random() * 3) + "px");
+    dot.style.color = color;
+    document.body.append(dot);
+    setTimeout(() => dot.remove(), 2900);
+  }
+
+  function spawnStarPuff(x, y) {
+    const count = 3 + Math.floor(Math.random() * 3); // 3-5 dots
+    for (let i = 0; i < count; i++) {
+      const star = document.createElement("div");
+      star.className = "walk-star-puff";
+      star.setAttribute("aria-hidden", "true");
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 4 + Math.random() * 22;
+      star.style.left = (x + Math.cos(angle) * radius) + "px";
+      star.style.top = (y + Math.sin(angle) * radius) + "px";
+      star.style.setProperty("--size", (2 + Math.random() * 3) + "px");
+      star.style.setProperty("--delay", (Math.random() * 180) + "ms");
+      document.body.append(star);
+      setTimeout(() => star.remove(), 1900);
+    }
   }
 
   // ---- Main ----
