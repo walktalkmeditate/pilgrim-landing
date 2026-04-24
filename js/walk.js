@@ -576,6 +576,21 @@
 
       anchor.append(img);
       svg.append(anchor);
+
+      // Click the duck → a tiny sumi-e plink ring blooms around her center and
+      // fades. The anchor opens chiefrubberduck.org in a new tab (target=_blank)
+      // so this page keeps running and the ring animates to completion.
+      anchor.addEventListener("click", () => {
+        const cx = parseFloat(img.getAttribute("x")) + parseFloat(img.getAttribute("width")) / 2;
+        const cy = parseFloat(img.getAttribute("y")) + parseFloat(img.getAttribute("height")) / 2;
+        const ring = document.createElementNS(SVG_NS, "circle");
+        ring.setAttribute("class", "walk-duck-plink");
+        ring.setAttribute("cx", String(cx));
+        ring.setAttribute("cy", String(cy));
+        ring.setAttribute("r", "4");
+        svg.append(ring);
+        setTimeout(() => ring.remove(), 700);
+      });
     }
 
     return { svg, positions };
@@ -588,9 +603,11 @@
 
   function applyMode(mode) {
     // Map mode to the two orthogonal switches: data-theme + body.constellation
+    const wasConstellation = document.body.classList.contains("constellation");
     if (mode === "constellation") {
       document.documentElement.setAttribute("data-theme", "dark");
       document.body.classList.add("constellation");
+      if (!wasConstellation) scheduleShootingStar();
     } else {
       document.documentElement.setAttribute("data-theme", mode);
       document.body.classList.remove("constellation");
@@ -633,10 +650,126 @@
     }
   }
 
+  // ---- Ambient delights: shooting stars, seasonal drift, long-press ink ----
+
+  // Schedule the next shooting star while constellation mode is on; the
+  // recursion exits the moment the body class goes away, so toggling back to
+  // light/dark mode stops the stream without needing explicit cleanup.
+  function scheduleShootingStar() {
+    if (!document.body.classList.contains("constellation")) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const delay = 12000 + Math.random() * 21000;
+    setTimeout(() => {
+      spawnShootingStar();
+      scheduleShootingStar();
+    }, delay);
+  }
+  function spawnShootingStar() {
+    if (!document.body.classList.contains("constellation")) return;
+    const star = document.createElement("div");
+    star.className = "walk-shooting-star";
+    star.style.top = (Math.random() * 45) + "vh";
+    star.style.left = (Math.random() * 75) + "vw";
+    star.style.setProperty("--sx", (180 + Math.random() * 240) + "px");
+    star.style.setProperty("--sy", (100 + Math.random() * 160) + "px");
+    document.body.append(star);
+    setTimeout(() => star.remove(), 1000);
+  }
+
+  // Seasonal drift — spawn one particle every 12s. Respects reduced-motion.
+  const DRIFT_SYMBOLS = { spring: "🌸", autumn: "🍁", winter: "❄" };
+  function currentSeason() {
+    const m = new Date().getMonth() + 1;
+    if (m >= 3 && m <= 5) return "spring";
+    if (m >= 6 && m <= 8) return "summer";
+    if (m >= 9 && m <= 11) return "autumn";
+    return "winter";
+  }
+  function spawnDriftParticle() {
+    const season = currentSeason();
+    const el = document.createElement("div");
+    el.className = "walk-drift";
+    if (season === "summer") {
+      el.classList.add("walk-drift--firefly");
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.top = (55 + Math.random() * 25) + "vh";
+      el.style.setProperty("--drift", (Math.random() * 80 - 40) + "px");
+    } else {
+      el.textContent = DRIFT_SYMBOLS[season];
+      el.style.fontSize = (12 + Math.random() * 12) + "px";
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.setProperty("--drift", (Math.random() * 200 - 100) + "px");
+      el.style.setProperty("--rot", Math.random() * 360 + "deg");
+      el.style.animationDuration = (18 + Math.random() * 8) + "s";
+    }
+    document.body.append(el);
+    setTimeout(() => el.remove(), 30000);
+  }
+  function startSeasonalDrift() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Stagger the first one so it doesn't compete with the draw-in animation.
+    setTimeout(spawnDriftParticle, 4000);
+    setInterval(spawnDriftParticle, 12000);
+  }
+
+  // Long-press anywhere on .walk-main → leave an ephemeral sumi-e mark at
+  // the pointer position. Fades over 3s. Ignores links and buttons so normal
+  // interactions still work.
+  function installLongPressBrush() {
+    const main = document.querySelector(".walk-main");
+    if (!main) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const THRESHOLD_MS = 450;
+    const MOVE_TOL = 12;
+    let timer = null;
+    let startX = 0, startY = 0;
+    const cancel = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+    main.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("a, button, input, [role=button]")) return;
+      startX = e.clientX; startY = e.clientY;
+      timer = setTimeout(() => {
+        spawnBrushMark(startX, startY);
+        timer = null;
+      }, THRESHOLD_MS);
+    });
+    main.addEventListener("pointerup", cancel);
+    main.addEventListener("pointercancel", cancel);
+    main.addEventListener("pointerleave", cancel);
+    main.addEventListener("pointermove", (e) => {
+      if (!timer) return;
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOL) cancel();
+    });
+  }
+  function spawnBrushMark(x, y) {
+    const mark = document.createElementNS(SVG_NS, "svg");
+    mark.setAttribute("class", "walk-brush-mark");
+    mark.setAttribute("viewBox", "0 0 120 50");
+    mark.setAttribute("aria-hidden", "true");
+    mark.style.left = x + "px";
+    mark.style.top = y + "px";
+    mark.style.setProperty("--mark-rot", (Math.random() * 60 - 30) + "deg");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M 10 26 C 26 12, 52 10, 72 22 C 92 30, 108 30, 114 26");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "6");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-opacity", "0.55");
+    path.setAttribute("filter", "url(#brush-fiber)");
+    path.style.color = "var(--walk-ink, #2c241e)";
+    mark.append(path);
+    document.body.append(mark);
+    setTimeout(() => mark.remove(), 3100);
+  }
+
   // ---- Main ----
 
   async function main() {
     initMoonAndTheme();
+    startSeasonalDrift();
+    installLongPressBrush();
 
     const journey = document.querySelector(".walk-journey");
     const empty = document.getElementById("walk-empty");
