@@ -853,7 +853,9 @@ body.constellation .walk-breathe {
   z-index: 1;
   will-change: transform, opacity;
   user-select: none;
-  animation: walk-drift-fall linear forwards;
+  /* Default 22s duration so the CSS is self-sufficient; JS overrides
+     per-particle to randomize between 18-26s. */
+  animation: walk-drift-fall 22s linear forwards;
 }
 @keyframes walk-drift-fall {
   0%   { opacity: 0;   transform: translateY(0) translateX(0) rotate(var(--rot, 0deg)); }
@@ -921,11 +923,19 @@ body.constellation .walk-breathe {
   stroke-width: 1.3;
   stroke-opacity: 0;
   pointer-events: none;
+  /* Use transform:scale instead of animating the `r` attribute — Safari 16
+     and earlier don't support CSS animation of SVG geometry attributes. The
+     circle is drawn at r=4 by JS; CSS scales it up to 5.5× (effective r=22).
+     `vector-effect: non-scaling-stroke` keeps the stroke at 1.3 throughout
+     so the ripple stays thin instead of thickening as it expands. */
+  transform-box: fill-box;
+  transform-origin: center;
+  vector-effect: non-scaling-stroke;
   animation: walk-duck-plink 620ms ease-out forwards;
 }
 @keyframes walk-duck-plink {
-  0%   { stroke-opacity: 0.6; r: 4; }
-  100% { stroke-opacity: 0;   r: 22; }
+  0%   { stroke-opacity: 0.6; transform: scale(1); }
+  100% { stroke-opacity: 0;   transform: scale(5.5); }
 }
 @media (prefers-reduced-motion: reduce) {
   .walk-duck-marker { transition: none; }

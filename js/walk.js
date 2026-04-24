@@ -585,6 +585,7 @@
         const cy = parseFloat(img.getAttribute("y")) + parseFloat(img.getAttribute("height")) / 2;
         const ring = document.createElementNS(SVG_NS, "circle");
         ring.setAttribute("class", "walk-duck-plink");
+        ring.setAttribute("aria-hidden", "true");
         ring.setAttribute("cx", String(cx));
         ring.setAttribute("cy", String(cy));
         ring.setAttribute("r", "4");
@@ -652,22 +653,29 @@
 
   // ---- Ambient delights: shooting stars, seasonal drift, long-press ink ----
 
-  // Schedule the next shooting star while constellation mode is on; the
-  // recursion exits the moment the body class goes away, so toggling back to
-  // light/dark mode stops the stream without needing explicit cleanup.
+  // Schedule the next shooting star while constellation mode is on. Each
+  // scheduler run captures a token; if the user toggles constellation off and
+  // back on, a fresh scheduler starts with a new token and any previously
+  // pending timer sees its token was superseded and exits. Without this,
+  // rapid off/on cycles would stack concurrent chains.
+  let shootingStarToken = 0;
   function scheduleShootingStar() {
     if (!document.body.classList.contains("constellation")) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const delay = 12000 + Math.random() * 21000;
-    setTimeout(() => {
+    const myToken = ++shootingStarToken;
+    const step = () => {
+      if (myToken !== shootingStarToken) return;
+      if (!document.body.classList.contains("constellation")) return;
       spawnShootingStar();
-      scheduleShootingStar();
-    }, delay);
+      setTimeout(step, 12000 + Math.random() * 21000);
+    };
+    setTimeout(step, 12000 + Math.random() * 21000);
   }
   function spawnShootingStar() {
     if (!document.body.classList.contains("constellation")) return;
     const star = document.createElement("div");
     star.className = "walk-shooting-star";
+    star.setAttribute("aria-hidden", "true");
     star.style.top = (Math.random() * 45) + "vh";
     star.style.left = (Math.random() * 75) + "vw";
     star.style.setProperty("--sx", (180 + Math.random() * 240) + "px");
@@ -689,6 +697,7 @@
     const season = currentSeason();
     const el = document.createElement("div");
     el.className = "walk-drift";
+    el.setAttribute("aria-hidden", "true");
     if (season === "summer") {
       el.classList.add("walk-drift--firefly");
       el.style.left = Math.random() * 100 + "vw";
@@ -707,9 +716,14 @@
   }
   function startSeasonalDrift() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Stagger the first one so it doesn't compete with the draw-in animation.
-    setTimeout(spawnDriftParticle, 4000);
-    setInterval(spawnDriftParticle, 12000);
+    // Stagger the first particle past the draw-in animation, then keep a
+    // steady 12s cadence. Recursive setTimeout instead of setInterval so the
+    // first→second gap matches every subsequent gap.
+    const step = () => {
+      spawnDriftParticle();
+      setTimeout(step, 12000);
+    };
+    setTimeout(step, 4000);
   }
 
   // Long-press anywhere on .walk-main → leave an ephemeral sumi-e mark at
