@@ -115,6 +115,26 @@
     });
   }
 
+  // Absolute days between two ISO date strings (date-only, UTC-normalized).
+  function daysBetween(isoA, isoB) {
+    if (!isoA || !isoB) return 0;
+    const a = new Date(isoA + "T00:00:00Z").getTime();
+    const b = new Date(isoB + "T00:00:00Z").getTime();
+    if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+    return Math.abs((b - a) / 86_400_000);
+  }
+
+  // Long-form origin date: "April 22, 2026"
+  function formatOriginDate(iso) {
+    const d = new Date(iso + "T00:00:00Z");
+    return d.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
   function feedAgeDays(feed) {
     if (!feed.generatedAt) return 0;
     const generated = new Date(feed.generatedAt).getTime();
@@ -416,16 +436,43 @@
     return el;
   }
 
+  // Origin note — a quiet serif line beneath the oldest entry, marking where
+  // the duck began. Leading kanji 鴨 ("duck") in vermilion so the origin
+  // carries the same ink color as the goshuin at the bottom-left corner.
+  function buildOriginNote(oldest) {
+    if (!oldest) return null;
+    const div = document.createElement("div");
+    div.className = "walk-origin";
+    const duck = document.createElement("span");
+    duck.className = "walk-origin-duck";
+    duck.setAttribute("aria-hidden", "true");
+    duck.textContent = "鴨";
+    const text = document.createElement("span");
+    text.className = "walk-origin-text";
+    text.textContent = `the duck began on ${formatOriginDate(oldest.date)} · ${oldest.stageName}.`;
+    div.append(duck, text);
+    return div;
+  }
+
   // ---- SVG path + dots ----
 
   // Build a single curved stroke segment between two dots. Uses a filter
   // for organic brush-edge variation instead of stacking multiple paths.
-  function buildBrushSegment(a, b, strokeWidth, swayEntry) {
+  function buildBrushSegment(a, b, strokeWidth, swayEntry, dayGap) {
     const midY = (a.cy + b.cy) / 2;
     // Control-point offset scales with the actual segment height so the curve
     // looks the same whether entries are 100px or 300px apart.
     const segHeight = Math.abs(b.cy - a.cy) || VERTICAL_SPACING;
-    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6;
+    // Days between the two entries amplify the sway — same-day entries draw
+    // as tight straight-ish segments (continuous motion), multi-day gaps draw
+    // as wide sweeping arcs (rest days). Geometry encodes cadence.
+    //   0 days  → pace 0.25 (barely curved whisper)
+    //   1 day   → pace 1.10 (normal)
+    //   2 days  → pace 1.95
+    //   3+ days → pace up to 3.00 (dramatic sweeping arc)
+    const gap = typeof dayGap === "number" ? dayGap : 1;
+    const pace = Math.min(3, 0.25 + gap * 0.85);
+    const sway = (meanderHash(swayEntry) - 0.5) * MAX_MEANDER * 0.6 * pace;
     const cp1x = a.cx + sway;
     const cp1y = midY - segHeight * 0.18;
     const cp2x = b.cx - sway;
@@ -470,8 +517,11 @@
       const t = positions.length > 1 ? i / (positions.length - 1) : 0;
       // Newer segments thicker; older segments thinner (ink drying out).
       const width = STROKE_MIN + (STROKE_MAX - STROKE_MIN) * (1 - t);
+      // Days between these two entries — b is older than a (feed is newest-
+      // first), so dayGap measures the rest/travel time between writings.
+      const dayGap = daysBetween(a.entry.date, b.entry.date);
 
-      const main = buildBrushSegment(a, b, width, a.entry);
+      const main = buildBrushSegment(a, b, width, a.entry, dayGap);
       main.setAttribute("filter", "url(#brush-fiber)");
       let cls = "walk-path-stroke";
       if (t > 0.7) cls += " walk-path-stroke--oldest";
@@ -481,7 +531,7 @@
       svg.append(main);
 
       // Single thin fiber overlay, offset 0.6px for brush-hair texture
-      const fiber = buildBrushSegment(a, b, Math.max(0.6, width * 0.35), b.entry);
+      const fiber = buildBrushSegment(a, b, Math.max(0.6, width * 0.35), b.entry, dayGap);
       fiber.setAttribute("class", "walk-path-fiber");
       fiber.setAttribute("transform", "translate(0.6, 0.3)");
       fiber.style.setProperty("--seg-i", String(i));
@@ -916,6 +966,15 @@
       : PATH_WIDTH;
     const isRecent = feedAgeDays(feed) < STALE_FEED_DAYS;
 
+    // Pre-compute day-gap between each entry and its neighbor above. Feed is
+    // newest-first, so entries[i-1] is later in time than entries[i]. A 0-day
+    // gap means same-day entries (tight continuous walking); bigger gaps are
+    // rest/silent days and will draw as wider arcs AND leave more vertical
+    // space between cards, so the path geometry reads as walking cadence.
+    for (let i = 1; i < entries.length; i++) {
+      entries[i]._dayGap = daysBetween(entries[i - 1].date, entries[i].date);
+    }
+
     // Phase 1 — render the entry cards in natural flex-column flow so each one
     // is exactly as tall as its content needs, regardless of how the body copy
     // wraps at the current viewport. The old approach placed cards at fixed
@@ -925,9 +984,23 @@
     entriesCol.className = "walk-entries";
     const cards = entries.map((entry) => {
       const card = buildEntryCard(entry);
+      // Top margin scales with dayGap so rest days breathe visually. Caps at
+      // 3 days; anything longer is still just a long sweeping arc.
+      if (entry._dayGap && entry._dayGap > 0) {
+        const extra = Math.min(3, entry._dayGap) * 0.7;
+        card.style.marginTop = extra + "rem";
+      }
       entriesCol.append(card);
       return card;
     });
+
+    // Origin note — rendered as the last flex item in the column so it sits
+    // below the oldest entry. It has no dot (the SVG path ends at the last
+    // dot), it's purely a small serif inscription marking where the duck
+    // began. Vermilion 鴨 (the duck kanji) as a colored leading mark.
+    const origin = buildOriginNote(entries[entries.length - 1]);
+    if (origin) entriesCol.append(origin);
+
     journey.append(entriesCol);
 
     // Wait for fonts to load before measuring — text rendered in the fallback

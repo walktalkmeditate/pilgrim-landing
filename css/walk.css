@@ -434,6 +434,39 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
   }
 }
 
+/* Origin note — sits below the oldest entry in the flex column, no dot.
+   Fades in on a gentle delay so it rewards the scroll rather than competing
+   with the first render. Leading 鴨 kanji colored like the goshuin seal. */
+.walk-origin {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  font-family: var(--font-display, "Cormorant Garamond"), Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--walk-ink-softer);
+  opacity: 0;
+  animation: walk-origin-fade 1400ms ease-out 800ms forwards;
+}
+.walk-origin-duck {
+  color: var(--walk-red-seal);
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", serif;
+  font-style: normal;
+  font-size: 1.25em;
+  line-height: 1;
+  font-weight: 500;
+  opacity: 0.88;
+}
+.walk-origin-text { letter-spacing: 0.02em; }
+@keyframes walk-origin-fade {
+  to { opacity: 0.72; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .walk-origin { animation: none; opacity: 0.72; }
+}
+
 .walk-entry {
   display: flex;
   flex-direction: column;
@@ -527,14 +560,16 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 
 /* Kind-specific entry treatments */
 
-.walk-entry--silence .walk-entry-body::after {
-  content: "( silence )";
-  font-style: italic;
-  opacity: 0.42;
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
-  color: var(--walk-stone);
+/* A silence is a silence — no "( silence )" label announcing itself.
+   The entry is just the meta row + a faint glyph; no body. The shorter
+   card compresses the gap to the next dot, which reads as "a quiet day". */
+.walk-entry--silence .walk-entry-body { display: none; }
+.walk-entry--silence .walk-entry-glyph {
+  opacity: 0.35;
+  font-size: 1.05rem;
 }
+.walk-entry--silence .walk-entry-stage,
+.walk-entry--silence .walk-entry-date { opacity: 0.55; }
 
 .walk-entry--threshold {
   padding: 0.75rem 0;
