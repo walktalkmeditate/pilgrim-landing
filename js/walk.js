@@ -837,7 +837,10 @@
     dot.setAttribute("aria-hidden", "true");
     dot.style.left = centerX + "px";
     dot.style.top = centerY + "px";
-    dot.style.setProperty("--size", (2 + Math.random() * 3) + "px");
+    // Bumped from 2-5px to 5-10px — the sumi-dot filter needs enough pixel
+    // area to read as an ink droplet; anything smaller gets fragmented into
+    // near-invisible speckle by the displacement map.
+    dot.style.setProperty("--size", (5 + Math.random() * 5) + "px");
     dot.style.setProperty("--dx", dx + "px");
     dot.style.setProperty("--dy", dy + "px");
     // Stagger each dot slightly so they don't all launch at once.

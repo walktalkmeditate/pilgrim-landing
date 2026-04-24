@@ -910,14 +910,16 @@ body.constellation .walk-breathe {
    get red splatters. */
 .walk-splatter {
   position: fixed;
-  width: var(--size, 3px);
-  height: var(--size, 3px);
+  width: var(--size, 6px);
+  height: var(--size, 6px);
   border-radius: 50%;
   background: currentColor;
   pointer-events: none;
   z-index: 3;
   opacity: 0;
-  filter: url(#sumi-dot-3);
+  /* sumi-dot (gentler than sumi-dot-3) gives the edge a slight organic
+     irregularity without fragmenting small dots. */
+  filter: url(#sumi-dot);
   transform: translate(-50%, -50%);
   animation: walk-splatter-fly 2700ms ease-out forwards;
   animation-delay: var(--delay, 0ms);
