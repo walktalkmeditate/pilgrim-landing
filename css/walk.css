@@ -692,10 +692,13 @@ body.constellation .walk-bgmap-duck { fill: #e8dfc6; fill-opacity: 0.75; }
 
 @media (max-width: 640px) {
   .walk-stage-seal {
-    width: 58px;
-    height: 58px;
-    bottom: 1.25rem;
-    left: 1rem;
+    /* Smaller + fainter on mobile so the seal doesn't sit on top of the
+       centered footer tagline. Still visible, just more ghostly. */
+    width: 48px;
+    height: 48px;
+    bottom: 1rem;
+    left: 0.75rem;
+    opacity: 0.55;
   }
 }
 
