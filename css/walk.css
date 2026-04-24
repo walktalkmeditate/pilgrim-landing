@@ -903,8 +903,11 @@ body.constellation .walk-breathe {
   .walk-brush-mark { display: none; }
 }
 
-/* Satellite splatter — 1-3 sprinkled dots near the stroke 30% of presses.
-   Uses currentColor so red strokes get red splatters. */
+/* Satellite splatter — 1-3 ink dots fleck outward from the stroke center.
+   Dots start AT the stroke origin and animate to their destination
+   (--dx, --dy) during the first 18% of the animation, reading as ink
+   flecking off the brush as it lifts. Uses currentColor so red strokes
+   get red splatters. */
 .walk-splatter {
   position: fixed;
   width: var(--size, 3px);
@@ -915,13 +918,27 @@ body.constellation .walk-breathe {
   z-index: 3;
   opacity: 0;
   filter: url(#sumi-dot-3);
-  transform: translate(-50%, -50%) scale(0.3);
-  animation: walk-splatter-bloom 2800ms ease-out forwards;
+  transform: translate(-50%, -50%);
+  animation: walk-splatter-fly 2700ms ease-out forwards;
+  animation-delay: var(--delay, 0ms);
 }
-@keyframes walk-splatter-bloom {
-  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.3); }
-  22%  { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.1); }
+@keyframes walk-splatter-fly {
+  0%   {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, 0) scale(0.4);
+  }
+  18%  {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) scale(1);
+  }
+  55%  {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) scale(1.15);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .walk-splatter { display: none; }

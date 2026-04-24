@@ -817,29 +817,34 @@
     document.body.append(mark);
     setTimeout(() => mark.remove(), 3100);
 
-    // 30% of presses scatter 1-3 satellite dots near the stroke — the gesture
-    // feels kinetic instead of clinical. Inherits the stroke's color so red
-    // strokes get red splatters.
+    // 30% of presses fleck 1-3 ink dots outward from the stroke center.
+    // Dots start AT the stroke origin and fly to their destination during the
+    // opening of the animation — reads as ink flecking off the brush as it
+    // lifts, which is the right mental model for the deliberate 450ms hold.
     if (Math.random() < 0.3) {
       const count = 1 + Math.floor(Math.random() * 3);
       for (let i = 0; i < count; i++) {
-        const ox = (Math.random() - 0.5) * 80;
-        const oy = (Math.random() - 0.5) * 50;
-        spawnSplatterDot(x + ox, y + oy, color);
+        const dx = (Math.random() - 0.5) * 80;
+        const dy = (Math.random() - 0.5) * 50;
+        spawnSplatterDot(x, y, dx, dy, color);
       }
     }
   }
 
-  function spawnSplatterDot(x, y, color) {
+  function spawnSplatterDot(centerX, centerY, dx, dy, color) {
     const dot = document.createElement("div");
     dot.className = "walk-splatter";
     dot.setAttribute("aria-hidden", "true");
-    dot.style.left = x + "px";
-    dot.style.top = y + "px";
+    dot.style.left = centerX + "px";
+    dot.style.top = centerY + "px";
     dot.style.setProperty("--size", (2 + Math.random() * 3) + "px");
+    dot.style.setProperty("--dx", dx + "px");
+    dot.style.setProperty("--dy", dy + "px");
+    // Stagger each dot slightly so they don't all launch at once.
+    dot.style.setProperty("--delay", (Math.random() * 80) + "ms");
     dot.style.color = color;
     document.body.append(dot);
-    setTimeout(() => dot.remove(), 2900);
+    setTimeout(() => dot.remove(), 3000);
   }
 
   function spawnStarPuff(x, y) {
