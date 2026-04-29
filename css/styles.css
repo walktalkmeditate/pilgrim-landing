@@ -539,7 +539,7 @@ a:focus-visible {
 
 /* =============================================
    Reliquary route reveal — when the section scrolls into view,
-   a walking route draws itself across the card, then six photo
+   a walking route draws itself across the card, then seven photo
    pins drop onto the route in staggered succession, each landing
    with a soft anchor-ring ripple. Hooks into the existing .reveal/
    .revealed system (no new JS needed).
@@ -750,9 +750,9 @@ a:focus-visible {
    page aesthetic. */
 .reliquary-filmstrip {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.7rem;
-  max-width: 34rem;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.55rem;
+  max-width: 36rem;
   margin: 1.25rem auto 0;
   padding: 0.4rem 0.2rem;
   list-style: none;
@@ -790,11 +790,12 @@ a:focus-visible {
   animation: reliquary-filmstrip-enter 0.6s ease forwards;
 }
 .reliquary-filmstrip li:nth-child(1) .reliquary-filmstrip-item { animation-delay: 2.55s; }
-.reliquary-filmstrip li:nth-child(2) .reliquary-filmstrip-item { animation-delay: 2.85s; }
-.reliquary-filmstrip li:nth-child(3) .reliquary-filmstrip-item { animation-delay: 3.15s; }
-.reliquary-filmstrip li:nth-child(4) .reliquary-filmstrip-item { animation-delay: 3.45s; }
-.reliquary-filmstrip li:nth-child(5) .reliquary-filmstrip-item { animation-delay: 3.75s; }
-.reliquary-filmstrip li:nth-child(6) .reliquary-filmstrip-item { animation-delay: 4.05s; }
+.reliquary-filmstrip li:nth-child(2) .reliquary-filmstrip-item { animation-delay: 2.80s; }
+.reliquary-filmstrip li:nth-child(3) .reliquary-filmstrip-item { animation-delay: 3.05s; }
+.reliquary-filmstrip li:nth-child(4) .reliquary-filmstrip-item { animation-delay: 3.30s; }
+.reliquary-filmstrip li:nth-child(5) .reliquary-filmstrip-item { animation-delay: 3.55s; }
+.reliquary-filmstrip li:nth-child(6) .reliquary-filmstrip-item { animation-delay: 3.80s; }
+.reliquary-filmstrip li:nth-child(7) .reliquary-filmstrip-item { animation-delay: 4.05s; }
 
 @keyframes reliquary-filmstrip-enter {
   from { opacity: 0; transform: translateY(8px); }

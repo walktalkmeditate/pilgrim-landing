@@ -943,7 +943,7 @@
         </p>
 
         <!-- Route reveal: when this section scrolls into view, a footprint
-             trail walks across the card, six photo pins drop onto the route
+             trail walks across the card, seven photo pins drop onto the route
              with ripples, each labeled with the time + distance it was taken.
              Hover a pin (or its filmstrip twin below) to feel the
              bidirectional coupling that the actual app implements between
@@ -951,9 +951,8 @@
         <div class="reliquary-route reveal">
           <svg class="reliquary-route-svg" viewBox="0 0 600 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
-              <!-- Six photo thumbnails — swap the href values in
-                   assets/reliquary/ with any curated CC0 photos.
-                   Square crop, ~400x400 works well at this scale. -->
+              <!-- Seven photo thumbnails from a real walk. Square crop
+                   via xMidYMid slice; portraits and landscapes both work. -->
               <pattern id="reliquary-photo-1" patternContentUnits="objectBoundingBox" width="1" height="1">
                 <image href="assets/reliquary/photo-1.jpg" width="1" height="1" preserveAspectRatio="xMidYMid slice"/>
               </pattern>
@@ -971,6 +970,9 @@
               </pattern>
               <pattern id="reliquary-photo-6" patternContentUnits="objectBoundingBox" width="1" height="1">
                 <image href="assets/reliquary/photo-6.jpg" width="1" height="1" preserveAspectRatio="xMidYMid slice"/>
+              </pattern>
+              <pattern id="reliquary-photo-7" patternContentUnits="objectBoundingBox" width="1" height="1">
+                <image href="assets/reliquary/photo-7.jpg" width="1" height="1" preserveAspectRatio="xMidYMid slice"/>
               </pattern>
 
               <!-- A soft drop shadow so pins sit ON the route,
@@ -1029,100 +1031,110 @@
                     d="M 565 107 L 575 107 M 565 110 L 575 110 M 565 113 L 575 113"/>
             </g>
 
-            <!-- Six photo pins dropping into place along the route.
+            <!-- Seven photo pins dropping into place along the route.
                  Each carries a timestamp and distance label (a real
                  walker's morning), and data attributes for the
                  bidirectional coupling wired up in reliquary.js. -->
             <g class="reliquary-pin-group" data-pin-index="0"
                style="--pin-delay: 2.4s"
-               data-time="7:38 AM" data-distance="0.4 km">
-              <circle class="reliquary-pin-ripple" cx="85" cy="95" r="17"/>
-              <circle class="reliquary-pin-photo" cx="85" cy="95" r="17" fill="url(#reliquary-photo-1)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="85" y="57" text-anchor="middle">7:38 AM</text>
-              <text class="reliquary-pin-dist" x="85" y="70" text-anchor="middle">0.4 km</text>
+               data-time="6:42 AM" data-distance="1.1 km">
+              <circle class="reliquary-pin-ripple" cx="60" cy="115" r="17"/>
+              <circle class="reliquary-pin-photo" cx="60" cy="115" r="17" fill="url(#reliquary-photo-1)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="60" y="77" text-anchor="middle">6:42 AM</text>
+              <text class="reliquary-pin-dist" x="60" y="90" text-anchor="middle">1.1 km</text>
             </g>
             <g class="reliquary-pin-group" data-pin-index="1"
-               style="--pin-delay: 2.7s"
-               data-time="7:55 AM" data-distance="1.3 km">
-              <circle class="reliquary-pin-ripple" cx="180" cy="130" r="17"/>
-              <circle class="reliquary-pin-photo" cx="180" cy="130" r="17" fill="url(#reliquary-photo-2)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="180" y="92" text-anchor="middle">7:55 AM</text>
-              <text class="reliquary-pin-dist" x="180" y="105" text-anchor="middle">1.3 km</text>
+               style="--pin-delay: 2.65s"
+               data-time="8:24 AM" data-distance="5.0 km">
+              <circle class="reliquary-pin-ripple" cx="145" cy="140" r="17"/>
+              <circle class="reliquary-pin-photo" cx="145" cy="140" r="17" fill="url(#reliquary-photo-2)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="145" y="102" text-anchor="middle">8:24 AM</text>
+              <text class="reliquary-pin-dist" x="145" y="115" text-anchor="middle">5.0 km</text>
             </g>
             <g class="reliquary-pin-group" data-pin-index="2"
-               style="--pin-delay: 3.0s"
-               data-time="8:14 AM" data-distance="2.7 km">
-              <circle class="reliquary-pin-ripple" cx="285" cy="105" r="17"/>
-              <circle class="reliquary-pin-photo" cx="285" cy="105" r="17" fill="url(#reliquary-photo-3)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="285" y="67" text-anchor="middle">8:14 AM</text>
-              <text class="reliquary-pin-dist" x="285" y="80" text-anchor="middle">2.7 km</text>
+               style="--pin-delay: 2.9s"
+               data-time="10:08 AM" data-distance="9.2 km">
+              <circle class="reliquary-pin-ripple" cx="225" cy="108" r="17"/>
+              <circle class="reliquary-pin-photo" cx="225" cy="108" r="17" fill="url(#reliquary-photo-3)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="225" y="70" text-anchor="middle">10:08 AM</text>
+              <text class="reliquary-pin-dist" x="225" y="83" text-anchor="middle">9.2 km</text>
             </g>
             <g class="reliquary-pin-group" data-pin-index="3"
-               style="--pin-delay: 3.3s"
-               data-time="8:31 AM" data-distance="4.1 km">
-              <circle class="reliquary-pin-ripple" cx="385" cy="80" r="17"/>
-              <circle class="reliquary-pin-photo" cx="385" cy="80" r="17" fill="url(#reliquary-photo-4)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="385" y="42" text-anchor="middle">8:31 AM</text>
-              <text class="reliquary-pin-dist" x="385" y="55" text-anchor="middle">4.1 km</text>
+               style="--pin-delay: 3.15s"
+               data-time="12:18 PM" data-distance="13.4 km">
+              <circle class="reliquary-pin-ripple" cx="305" cy="85" r="17"/>
+              <circle class="reliquary-pin-photo" cx="305" cy="85" r="17" fill="url(#reliquary-photo-4)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="305" y="47" text-anchor="middle">12:18 PM</text>
+              <text class="reliquary-pin-dist" x="305" y="60" text-anchor="middle">13.4 km</text>
             </g>
             <g class="reliquary-pin-group" data-pin-index="4"
-               style="--pin-delay: 3.6s"
-               data-time="8:44 AM" data-distance="5.2 km">
-              <circle class="reliquary-pin-ripple" cx="470" cy="130" r="17"/>
-              <circle class="reliquary-pin-photo" cx="470" cy="130" r="17" fill="url(#reliquary-photo-5)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="470" y="92" text-anchor="middle">8:44 AM</text>
-              <text class="reliquary-pin-dist" x="470" y="105" text-anchor="middle">5.2 km</text>
+               style="--pin-delay: 3.4s"
+               data-time="2:46 PM" data-distance="16.7 km">
+              <circle class="reliquary-pin-ripple" cx="385" cy="115" r="17"/>
+              <circle class="reliquary-pin-photo" cx="385" cy="115" r="17" fill="url(#reliquary-photo-5)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="385" y="77" text-anchor="middle">2:46 PM</text>
+              <text class="reliquary-pin-dist" x="385" y="90" text-anchor="middle">16.7 km</text>
             </g>
             <g class="reliquary-pin-group" data-pin-index="5"
+               style="--pin-delay: 3.65s"
+               data-time="4:31 PM" data-distance="20.1 km">
+              <circle class="reliquary-pin-ripple" cx="465" cy="92" r="17"/>
+              <circle class="reliquary-pin-photo" cx="465" cy="92" r="17" fill="url(#reliquary-photo-6)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="465" y="54" text-anchor="middle">4:31 PM</text>
+              <text class="reliquary-pin-dist" x="465" y="67" text-anchor="middle">20.1 km</text>
+            </g>
+            <g class="reliquary-pin-group" data-pin-index="6"
                style="--pin-delay: 3.9s"
-               data-time="8:51 AM" data-distance="6.1 km">
-              <circle class="reliquary-pin-ripple" cx="555" cy="112" r="17"/>
-              <circle class="reliquary-pin-photo" cx="555" cy="112" r="17" fill="url(#reliquary-photo-6)" filter="url(#reliquary-pin-shadow)"/>
-              <text class="reliquary-pin-time" x="555" y="74" text-anchor="middle">8:51 AM</text>
-              <text class="reliquary-pin-dist" x="555" y="87" text-anchor="middle">6.1 km</text>
+               data-time="6:14 PM" data-distance="23.2 km">
+              <circle class="reliquary-pin-ripple" cx="545" cy="128" r="17"/>
+              <circle class="reliquary-pin-photo" cx="545" cy="128" r="17" fill="url(#reliquary-photo-7)" filter="url(#reliquary-pin-shadow)"/>
+              <text class="reliquary-pin-time" x="545" y="90" text-anchor="middle">6:14 PM</text>
+              <text class="reliquary-pin-dist" x="545" y="103" text-anchor="middle">23.2 km</text>
             </g>
           </svg>
 
-          <!-- Filmstrip: same 6 photos in a horizontal row. Hovering a
+          <!-- Filmstrip: same 7 photos in a horizontal row. Hovering a
                thumbnail highlights its twin on the route; hovering a pin
                above highlights the corresponding thumbnail. Mirrors the
                bidirectional carousel ↔ map coupling in the real app. -->
           <ul class="reliquary-filmstrip" role="list">
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="0"
-                        aria-label="Photo taken at 7:38 AM, 0.4 km into the walk">
+                        aria-label="Photo taken at 6:42 AM, 1.1 km into the walk">
               <img src="assets/reliquary/photo-1.jpg" alt=""/>
             </button></li>
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="1"
-                        aria-label="Photo taken at 7:55 AM, 1.3 km into the walk">
+                        aria-label="Photo taken at 8:24 AM, 5.0 km into the walk">
               <img src="assets/reliquary/photo-2.jpg" alt=""/>
             </button></li>
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="2"
-                        aria-label="Photo taken at 8:14 AM, 2.7 km into the walk">
+                        aria-label="Photo taken at 10:08 AM, 9.2 km into the walk">
               <img src="assets/reliquary/photo-3.jpg" alt=""/>
             </button></li>
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="3"
-                        aria-label="Photo taken at 8:31 AM, 4.1 km into the walk">
+                        aria-label="Photo taken at 12:18 PM, 13.4 km into the walk">
               <img src="assets/reliquary/photo-4.jpg" alt=""/>
             </button></li>
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="4"
-                        aria-label="Photo taken at 8:44 AM, 5.2 km into the walk">
+                        aria-label="Photo taken at 2:46 PM, 16.7 km into the walk">
               <img src="assets/reliquary/photo-5.jpg" alt=""/>
             </button></li>
             <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="5"
-                        aria-label="Photo taken at 8:51 AM, 6.1 km into the walk">
+                        aria-label="Photo taken at 4:31 PM, 20.1 km into the walk">
               <img src="assets/reliquary/photo-6.jpg" alt=""/>
+            </button></li>
+            <li><button type="button" class="reliquary-filmstrip-item" data-pin-index="6"
+                        aria-label="Photo taken at 6:14 PM, 23.2 km into the walk">
+              <img src="assets/reliquary/photo-7.jpg" alt=""/>
             </button></li>
           </ul>
 
           <!-- Walk summary footer — a real walker's stat line -->
           <p class="reliquary-stat-line">
-            <span>6.4&nbsp;km</span>
+            <span>23.2&nbsp;km</span>
             <span class="reliquary-stat-sep" aria-hidden="true">·</span>
-            <span>84&nbsp;minutes</span>
+            <span>dawn&nbsp;to&nbsp;dusk</span>
             <span class="reliquary-stat-sep" aria-hidden="true">·</span>
-            <span>6 relics pinned</span>
-            <span class="reliquary-stat-sep" aria-hidden="true">·</span>
-            <span><em>Camino Francés</em></span>
+            <span>7 relics pinned</span>
           </p>
         </div>
 
