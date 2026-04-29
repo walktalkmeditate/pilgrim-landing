@@ -159,24 +159,6 @@
   <!-- Analytics -->
   <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
 
-  <!-- Meta Pixel Code -->
-  <script>
-  !function(f,b,e,v,n,t,s)
-  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-  n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];
-  s.parentNode.insertBefore(t,s)}(window, document,'script',
-  'https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', '935787415952463');
-  fbq('track', 'PageView');
-  </script>
-  <noscript><img height="1" width="1" style="display:none"
-  src="https://www.facebook.com/tr?id=935787415952463&ev=PageView&noscript=1"
-  /></noscript>
-  <!-- End Meta Pixel Code -->
-
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/animations.css">
@@ -1917,18 +1899,6 @@
           picker.classList.remove('open');
         }
       });
-    })();
-  </script>
-
-  <!-- Meta Pixel: App Store outbound click as Lead conversion -->
-  <script>
-    (function() {
-      document.addEventListener('click', function(e) {
-        var link = e.target.closest('a[href*="apps.apple.com"]');
-        if (!link) return;
-        if (typeof fbq !== 'function') return;
-        fbq('track', 'Lead', { content_name: 'App Store Click' });
-      }, true);
     })();
   </script>
 </body>
