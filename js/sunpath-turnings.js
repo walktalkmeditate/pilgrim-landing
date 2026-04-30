@@ -57,13 +57,32 @@
     }[turning] || '';
   }
 
-  function turningHeading(turning) {
+  function turningName(turning) {
     return {
-      'spring-equinox':  'Today is the spring equinox',
-      'summer-solstice': 'Today is the summer solstice',
-      'autumn-equinox':  'Today is the autumn equinox',
-      'winter-solstice': 'Today is the winter solstice'
+      'spring-equinox':  'spring equinox',
+      'summer-solstice': 'summer solstice',
+      'autumn-equinox':  'autumn equinox',
+      'winter-solstice': 'winter solstice'
     }[turning] || '';
+  }
+
+  function turningHeading(turning, state) {
+    var name = turningName(turning);
+    if (!name) return '';
+    if (state === 'past')   return 'The ' + name + ' has passed';
+    if (state === 'future') return 'The coming ' + name;
+    return 'Today is the ' + name;
+  }
+
+  function pilgrimagesSubheading(state) {
+    if (state === 'past')   return 'Pilgrimages that walked';
+    if (state === 'future') return 'Pilgrimages on the day';
+    return 'Pilgrimages happening today';
+  }
+
+  function appCalloutLead(state) {
+    if (state === 'past' || state === 'future') return 'Walking on a turning? ';
+    return 'Walking today? ';
   }
 
   // Permalink pages pin a year via window.__sunpathForce.date; everywhere
@@ -75,6 +94,19 @@
       if (!isNaN(d)) return d.getUTCFullYear();
     }
     return new Date().getUTCFullYear();
+  }
+
+  // Tense for the flourish copy. On the live /sunpath/ page there is no
+  // __sunpathForce, and the flourish only renders when today actually IS
+  // the turning, so default to 'today'. On a permalink page we have the
+  // exact instant — compare to now (24h window matches sunpath-temporal.js).
+  function temporalState() {
+    if (!window.__sunpathForce || !window.__sunpathForce.date) return 'today';
+    var instant = new Date(window.__sunpathForce.date);
+    if (isNaN(instant.getTime())) return 'today';
+    var delta = instant.getTime() - Date.now();
+    if (Math.abs(delta) / 3600000 < 24) return 'today';
+    return delta < 0 ? 'past' : 'future';
   }
 
   // --- Render ---------------------------------------------------------------
@@ -102,11 +134,14 @@
   function renderFlourish(container, turning, event) {
     clearChildren(container);
 
+    var state = temporalState();
+    container.dataset.temporalState = state;
+
     var inner = htmlEl('div', 'sunpath-flourish-inner');
 
     var heading = htmlEl('h2', 'sunpath-flourish-heading');
     heading.appendChild(htmlEl('span', 'sunpath-flourish-kanji', turningKanji(turning)));
-    heading.appendChild(htmlEl('span', 'sunpath-flourish-title', turningHeading(turning)));
+    heading.appendChild(htmlEl('span', 'sunpath-flourish-title', turningHeading(turning, state)));
     inner.appendChild(heading);
 
     if (event.facts && event.facts.length) {
@@ -120,10 +155,12 @@
       inner.appendChild(factsList);
     }
 
-    // Quiet Pilgrim app callout — only shown on turning days.
+    // Quiet Pilgrim app callout. Lead phrase tenses with the page's
+    // relation to the turning ("Walking today?" on the day, "Walking on a
+    // turning?" on past/future permalinks).
     var appNote = htmlEl('div', 'sunpath-flourish-app-note');
     var noteText = htmlEl('p', 'sunpath-flourish-app-text');
-    noteText.appendChild(document.createTextNode('Walking today? '));
+    noteText.appendChild(document.createTextNode(appCalloutLead(state)));
     var appLink = document.createElement('a');
     appLink.href = 'https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056';
     appLink.target = '_blank';
@@ -148,7 +185,7 @@
     inner.appendChild(appNote);
 
     if (event.pilgrimages && event.pilgrimages.length) {
-      var pilHeading = htmlEl('h3', 'sunpath-flourish-subheading', 'Pilgrimages happening today');
+      var pilHeading = htmlEl('h3', 'sunpath-flourish-subheading', pilgrimagesSubheading(state));
       inner.appendChild(pilHeading);
       var pilList = htmlEl('ul', 'sunpath-flourish-pilgrimages');
       event.pilgrimages.forEach(function (p) {

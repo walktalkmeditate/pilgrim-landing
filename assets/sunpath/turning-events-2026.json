@@ -3,7 +3,7 @@
   "events": {
     "spring-equinox": {
       "facts": [
-        { "label": "Day length at the equator today", "value": "12h 06m" },
+        { "label": "Day length at the equator", "value": "12h 06m" },
         { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
         { "label": "Sun rises due east, sets due west", "value": "everywhere on Earth" }
       ],
@@ -41,7 +41,7 @@
     },
     "summer-solstice": {
       "facts": [
-        { "label": "Daylight at 70°N today", "value": "24h — sun never sets" },
+        { "label": "Daylight at 70°N", "value": "24h — sun never sets" },
         { "label": "Daylight at Reykjavík (64°N)", "value": "≈ 21h 22m" },
         { "label": "Daylight at the equator", "value": "12h 06m, unchanged" },
         { "label": "Tropic of Cancer — sun directly overhead", "value": "23.4°N at solar noon" }
