@@ -1,26 +1,53 @@
-<!DOCTYPE html>
+// Pure render: turning data + same-year archive → permalink HTML.
+// Output must match the hand-edited HTMLs byte-for-byte for stage 1.
+
+const TURNING_KEYS = ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'];
+
+export { TURNING_KEYS };
+
+export function renderPermalink(data, archive) {
+  const canonical = `https://pilgrimapp.org/sunpath/${data.year}-${data.key}`;
+  const ogImage = `https://pilgrimapp.org/assets/og-${data.year}-${data.key}.png`;
+  const sourcePath = `sunpath/${data.year}-${data.key}/index.html`;
+
+  // Archive list — same year, in canonical order, with self-links pointing
+  // back to each turning's permalink (catches the copy-paste bug the old
+  // hand-edited pages had).
+  const archiveItems = TURNING_KEYS
+    .map((k) => archive.find((t) => t.key === k))
+    .filter(Boolean)
+    .map((t) => `        <li class="sunpath-archive-item" data-turning="${t.key}">
+          <a href="/sunpath/${t.year}-${t.key}">
+            <span class="sunpath-archive-kanji" aria-hidden="true">${t.kanji}</span>
+            <span class="sunpath-archive-name">${t.name}</span>
+            <span class="sunpath-archive-date">${t.displayDate}</span>
+          </a>
+        </li>`)
+    .join('\n');
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Winter Solstice 2026 — the longest dark</title>
-  <meta name="description" content="On 21 December 2026 at 20:51 UTC, the sun reached its furthest south and the northern night became its longest. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.">
+  <title>${data.title}</title>
+  <meta name="description" content="${data.description}">
 
-  <link rel="canonical" href="https://pilgrimapp.org/sunpath/2026-winter-solstice">
+  <link rel="canonical" href="${canonical}">
 
-  <meta property="og:title" content="Winter Solstice 2026 · Sun Path">
-  <meta property="og:description" content="The longest northern night, the moment Newgrange floods with chamber light, the turning back toward the sun.">
+  <meta property="og:title" content="${data.ogTitle}">
+  <meta property="og:description" content="${data.ogDescription}">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://pilgrimapp.org/sunpath/2026-winter-solstice">
-  <meta property="og:image" content="https://pilgrimapp.org/assets/og-2026-winter-solstice.png">
+  <meta property="og:url" content="${canonical}">
+  <meta property="og:image" content="${ogImage}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Winter Solstice 2026 · Sun Path">
-  <meta name="twitter:description" content="The longest northern night — and the turning back toward light.">
-  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-2026-winter-solstice.png">
+  <meta name="twitter:title" content="${data.ogTitle}">
+  <meta name="twitter:description" content="${data.twitterDescription}">
+  <meta name="twitter:image" content="${ogImage}">
 
   <link rel="icon" href="/assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/pilgrim-logo.png">
@@ -40,12 +67,12 @@
     "@graph": [
       {
         "@type": "Article",
-        "headline": "Winter Solstice 2026 — the longest dark",
-        "description": "On 21 December 2026 at 20:51 UTC, the sun reached its furthest south and the northern night became its longest.",
-        "datePublished": "2026-12-21T20:51:00Z",
-        "dateModified": "2026-04-30",
-        "image": "https://pilgrimapp.org/assets/og-2026-winter-solstice.png",
-        "mainEntityOfPage": "https://pilgrimapp.org/sunpath/2026-winter-solstice",
+        "headline": "${data.title}",
+        "description": "${data.articleDescription}",
+        "datePublished": "${data.instantUTC}",
+        "dateModified": "${data.dateModified}",
+        "image": "${ogImage}",
+        "mainEntityOfPage": "${canonical}",
         "author": { "@type": "Organization", "name": "Pilgrim", "url": "https://pilgrimapp.org" },
         "publisher": {
           "@type": "Organization",
@@ -55,8 +82,8 @@
         },
         "about": {
           "@type": "Thing",
-          "name": "December solstice",
-          "description": "The astronomical moment when the sun reaches its furthest declination south, the longest night in the northern hemisphere."
+          "name": "${data.schemaAboutName}",
+          "description": "${data.schemaAboutDescription}"
         }
       },
       {
@@ -64,7 +91,7 @@
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Pilgrim", "item": "https://pilgrimapp.org" },
           { "@type": "ListItem", "position": 2, "name": "Sun Path", "item": "https://pilgrimapp.org/sunpath" },
-          { "@type": "ListItem", "position": 3, "name": "Winter Solstice 2026" }
+          { "@type": "ListItem", "position": 3, "name": "${data.h1}" }
         ]
       }
     ]
@@ -73,8 +100,8 @@
 
   <script>
     window.__sunpathForce = {
-      turning: 'winter-solstice',
-      date: '2026-12-21T20:51:00Z'
+      turning: '${data.key}',
+      date: '${data.instantUTC}'
     };
   </script>
 </head>
@@ -91,13 +118,13 @@
 
     <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-    <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood at the winter solstice 2026">
-      <h1 class="sunpath-title">Winter Solstice 2026</h1>
-      <p class="sunpath-tagline">the longest dark — 21 December, 20:51 UTC</p>
+    <section class="sunpath-section sunpath-section--hero" aria-label="${data.ariaLabel}">
+      <h1 class="sunpath-title">${data.h1}</h1>
+      <p class="sunpath-tagline">${data.tagline}</p>
 
       <noscript>
         <div class="sunpath-noscript">
-          <p>On <strong>21 December 2026 at 20:51 UTC</strong>, the sun reached its furthest south and the northern night became its longest.</p>
+          <p>${data.noscriptIntro}</p>
           <p>The interactive globe needs JavaScript to draw itself. The other turnings of the year, and a calendar download, sit below.</p>
         </div>
       </noscript>
@@ -110,39 +137,12 @@
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
     </section>
 
-    <section class="sunpath-section sunpath-archive" aria-label="Other turnings of 2026">
+    <section class="sunpath-section sunpath-archive" aria-label="Other turnings of ${data.year}">
       <p class="sunpath-ics">
-        <a href="/sunpath/turnings-2026.ics" download>Add to your calendar (.ics)</a>
+        <a href="/sunpath/turnings-${data.year}.ics" download>Add to your calendar (.ics)</a>
       </p>
       <ul class="sunpath-archive-list">
-        <li class="sunpath-archive-item" data-turning="spring-equinox">
-          <a href="/sunpath/2026-spring-equinox">
-            <span class="sunpath-archive-kanji" aria-hidden="true">春分</span>
-            <span class="sunpath-archive-name">Spring Equinox</span>
-            <span class="sunpath-archive-date">20 March, 14:46 UTC</span>
-          </a>
-        </li>
-        <li class="sunpath-archive-item" data-turning="summer-solstice">
-          <a href="/sunpath/2026-summer-solstice">
-            <span class="sunpath-archive-kanji" aria-hidden="true">夏至</span>
-            <span class="sunpath-archive-name">Summer Solstice</span>
-            <span class="sunpath-archive-date">21 June, 08:26 UTC</span>
-          </a>
-        </li>
-        <li class="sunpath-archive-item" data-turning="autumn-equinox">
-          <a href="/sunpath/2026-autumn-equinox">
-            <span class="sunpath-archive-kanji" aria-hidden="true">秋分</span>
-            <span class="sunpath-archive-name">Autumn Equinox</span>
-            <span class="sunpath-archive-date">23 September, 00:06 UTC</span>
-          </a>
-        </li>
-        <li class="sunpath-archive-item" data-turning="winter-solstice">
-          <a href="/sunpath/2026-winter-solstice">
-            <span class="sunpath-archive-kanji" aria-hidden="true">冬至</span>
-            <span class="sunpath-archive-name">Winter Solstice</span>
-            <span class="sunpath-archive-date">21 December, 20:51 UTC</span>
-          </a>
-        </li>
+${archiveItems}
       </ul>
     </section>
 
@@ -158,7 +158,7 @@
         <span class="sunpath-footer-sep" aria-hidden="true">·</span>
         <a href="/privacy">Privacy</a>
         <span class="sunpath-footer-sep" aria-hidden="true">·</span>
-        <a href="https://github.com/walktalkmeditate/pilgrim-landing/blob/main/sunpath/2026-winter-solstice/index.html" target="_blank" rel="noopener">Source</a>
+        <a href="https://github.com/walktalkmeditate/pilgrim-landing/blob/main/${sourcePath}" target="_blank" rel="noopener">Source</a>
       </div>
       <p class="sunpath-footer-license">open source · GPLv3</p>
     </div>
@@ -176,3 +176,5 @@
   <script src="/js/sunpath-turnings.js"></script>
 </body>
 </html>
+`;
+}
