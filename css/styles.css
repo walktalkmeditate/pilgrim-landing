@@ -219,6 +219,22 @@ a:focus-visible {
   opacity: 1;
 }
 
+/* Whisper-category colors. Mirror pilgrim-ios WhisperCategory.borderColor.
+   Presence is a deep teal that vanishes on dark backgrounds, so it gets a
+   lightened twin for dark + star modes. Other hues read on both. */
+.hero-quote[data-category="presence"]   { color: #1C3B4A; }
+.hero-quote[data-category="lightness"]  { color: #C2A68C; }
+.hero-quote[data-category="wonder"]     { color: #A8B8BF; }
+.hero-quote[data-category="gratitude"]  { color: #C7A14F; }
+.hero-quote[data-category="compassion"] { color: #A8D9D1; }
+.hero-quote[data-category="courage"]    { color: #C7B887; }
+.hero-quote[data-category="stillness"]  { color: #B8946B; }
+
+[data-theme="dark"] .hero-quote[data-category="presence"],
+body.constellation .hero-quote[data-category="presence"] {
+  color: #7A95A2;
+}
+
 .moon-phase {
   position: fixed;
   top: var(--padding-lg);

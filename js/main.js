@@ -180,37 +180,44 @@
     setTheme(next);
   }
 
-  // --- Quotes (time-aware) ---
-  var quotesByTime = {
-    morning: [
-      'The world is new this morning',
-      'Walk as if you are kissing the earth with your feet',
-      'Every day is a journey, and the journey itself is home',
-      'The morning wind spreads its fresh smell'
-    ],
-    afternoon: [
-      'The path is made by walking',
-      'Solvitur ambulando \u2014 it is solved by walking',
-      'Not all who wander are lost',
-      'Every journey begins with a single step'
-    ],
-    evening: [
-      'The day gives back what it borrowed from the light',
-      'Along this road goes no one \u2014 autumn evening',
-      'The journey of a thousand miles begins beneath your feet',
-      'We do not see nature with our eyes, but with our understandings and our hearts'
-    ],
-    night: [
-      'In the middle of the road of my life, I found myself in a dark wood',
-      'The night walked down the sky with the moon in her hand',
-      'I went to the woods because I wished to live deliberately',
-      'The stars are the land-marks of the universe'
-    ]
-  };
+  // --- Quotes ---
+  // Source: pilgrim-ios whispers-bootstrap.json (manifest v4), seven
+  // energies \u2014 presence, wonder, gratitude, compassion, courage, lightness,
+  // stillness. Same words a walker hears at a whisper on the trail.
+  // Colors per category live in styles.css and mirror
+  // WhisperCategory.borderColor in pilgrim-ios. Refresh when the app's
+  // whisper bundle changes.
+  var quotes = [
+    { text: 'What do you see right now?', category: 'presence' },
+    { text: 'Feel your feet on the earth', category: 'presence' },
+    { text: 'You are here', category: 'presence' },
+    { text: 'step by step, moment by moment, I free myself from the constructs of my mind', category: 'presence' },
+    { text: 'The most powerful person is the one who is most aware', category: 'presence' },
+    { text: 'You are doing great', category: 'lightness' },
+    { text: 'Whatever you were worrying about can wait', category: 'lightness' },
+    { text: 'Take a breath', category: 'lightness' },
+    { text: 'Something extraordinary is happening', category: 'wonder' },
+    { text: 'The light left its source long ago', category: 'wonder' },
+    { text: 'You are spinning through space', category: 'wonder' },
+    { text: 'Thank the one who planted this tree', category: 'gratitude' },
+    { text: 'Your body carried you here', category: 'gratitude' },
+    { text: 'This moment is a gift', category: 'gratitude' },
+    { text: 'Others have walked here with heavy hearts', category: 'compassion' },
+    { text: 'Set something down', category: 'compassion' },
+    { text: 'The path does not ask you to be perfect', category: 'compassion' },
+    { text: 'The next step is the only one that matters', category: 'courage' },
+    { text: 'What you seek is also seeking you', category: 'courage' },
+    { text: 'You already know the answer', category: 'courage' },
+    { text: 'Be still', category: 'stillness' },
+    { text: 'Breathe', category: 'stillness' },
+    { text: 'You are an animal on the earth', category: 'stillness' }
+  ];
 
-  var hour = new Date().getHours();
-  var timeOfDay = hour >= 5 && hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-  var quotes = quotesByTime[timeOfDay];
+  // Shuffle so the same line doesn't lead every page load.
+  for (var qi = quotes.length - 1; qi > 0; qi--) {
+    var qj = Math.floor(Math.random() * (qi + 1));
+    var qt = quotes[qi]; quotes[qi] = quotes[qj]; quotes[qj] = qt;
+  }
 
   var currentQuoteIndex = 0;
   var quoteInterval = null;
@@ -219,10 +226,11 @@
     var container = document.querySelector('.hero-quotes');
     if (!container) return;
 
-    quotes.forEach(function (text, i) {
+    quotes.forEach(function (quote, i) {
       var el = document.createElement('span');
       el.className = 'hero-quote' + (i === 0 ? ' active' : '');
-      el.textContent = text;
+      el.textContent = quote.text;
+      el.dataset.category = quote.category;
       container.appendChild(el);
     });
 

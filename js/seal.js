@@ -113,13 +113,35 @@
 
     var distKm = (walkData.distance/1000).toFixed(1);
 
+    // Tonight's moon phase as a small mark at the top of the seal —
+    // a quiet ambient signal that the seal knows what night it is.
+    function buildMoonMark(mx, my, mr) {
+      if (!window.Moon || typeof window.Moon.getMoonPhase !== 'function') return '';
+      var phase = window.Moon.getMoonPhase(new Date());
+      var path;
+      if (phase < 0.5) {
+        var s1 = 1 - phase * 4;
+        path = 'M '+mx+','+(my-mr)+
+               ' A '+mr+','+mr+' 0 0,1 '+mx+','+(my+mr)+
+               ' C '+(mx+mr*s1)+','+(my+mr*0.55)+' '+(mx+mr*s1)+','+(my-mr*0.55)+' '+mx+','+(my-mr)+' Z';
+      } else {
+        var s2 = (phase - 0.5) * 4 - 1;
+        path = 'M '+mx+','+(my+mr)+
+               ' A '+mr+','+mr+' 0 0,1 '+mx+','+(my-mr)+
+               ' C '+(mx-mr*s2)+','+(my-mr*0.55)+' '+(mx-mr*s2)+','+(my+mr*0.55)+' '+mx+','+(my+mr)+' Z';
+      }
+      var shadow = getComputedStyle(document.body).getPropertyValue('--parchment-secondary').trim() || '#EDE6D8';
+      return '<circle cx="'+mx+'" cy="'+my+'" r="'+mr+'" fill="'+sealColor+'" opacity="0.55"/>' +
+             '<path d="'+path+'" fill="'+shadow+'" opacity="0.95"/>';
+    }
+
     var svg = '<svg class="seal-svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="max-width:100%">';
     svg += '<defs><filter id="seal-rough"><feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" seed="'+bytes[31]+'"/>';
     svg += '<feDisplacementMap in="SourceGraphic" scale="1.5"/></filter></defs>';
     svg += '<g transform="rotate('+rotation.toFixed(1)+' '+cx+' '+cy+')" filter="url(#seal-rough)">';
     svg += elements.join('\n');
     svg += '</g>';
-    svg += '<g transform="rotate('+rotation.toFixed(1)+' '+cx+' '+cy+'">';
+    svg += '<g transform="rotate('+rotation.toFixed(1)+' '+cx+' '+cy+')">';
     svg += '<path id="seal-top" d="'+topArc+'" fill="none"/>';
     svg += '<text font-family="Lato, sans-serif" font-size="'+size*0.048+'" fill="'+sealColor+'" letter-spacing="3" opacity="0.7">';
     svg += '<textPath href="#seal-top" startOffset="50%" text-anchor="middle" style="text-transform:uppercase">PILGRIM \u00B7 SPRING 2026</textPath></text>';
@@ -127,6 +149,7 @@
     svg += '<text font-family="Lato, sans-serif" font-size="'+size*0.048+'" fill="'+sealColor+'" letter-spacing="3" opacity="0.7">';
     svg += '<textPath href="#seal-bottom" startOffset="50%" text-anchor="middle" style="text-transform:uppercase">MORNING WALK</textPath></text>';
     svg += '</g>';
+    svg += buildMoonMark(cx, cy, size*0.045);
     svg += '<text x="'+cx+'" y="'+(cy-size*0.02)+'" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="'+size*0.17+'" font-weight="300" fill="'+sealColor+'" opacity="0.7">'+distKm+'</text>';
     svg += '<text x="'+cx+'" y="'+(cy+size*0.1)+'" text-anchor="middle" font-family="Lato, sans-serif" font-size="'+size*0.05+'" fill="#B8AFA2" letter-spacing="2">KM</text>';
     svg += '</svg>';

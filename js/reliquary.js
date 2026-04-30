@@ -168,10 +168,74 @@
     lightbox.addEventListener('cancel', function () { close(); });
   }
 
+  // In star mode, photo pins drift faintly with cursor — wind through stars.
+  // Disabled on touch (no fine pointer) and when reduced-motion is set.
+  function wireStarParallax() {
+    var svg = document.querySelector('.reliquary-route-svg');
+    if (!svg) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var pins = Array.prototype.slice.call(svg.querySelectorAll('.reliquary-pin-group'));
+    if (!pins.length) return;
+
+    var rafId = null;
+    var targetX = 0, targetY = 0;
+    var currentX = 0, currentY = 0;
+
+    function step() {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+      pins.forEach(function (pin, i) {
+        // Each pin gets its own depth so they drift at different speeds —
+        // closer pins move more, distant pins less. Stable per pin.
+        var depth = 0.4 + (i % 3) * 0.3;
+        pin.style.transform = 'translate(' + (currentX * depth).toFixed(2) + 'px, ' + (currentY * depth).toFixed(2) + 'px)';
+      });
+      if (Math.abs(targetX - currentX) > 0.05 || Math.abs(targetY - currentY) > 0.05) {
+        rafId = requestAnimationFrame(step);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function onMove(e) {
+      if (!document.body.classList.contains('constellation')) {
+        // Out of star mode: drift pins back to origin instead of freezing.
+        if (targetX !== 0 || targetY !== 0) reset();
+        return;
+      }
+      var rect = svg.getBoundingClientRect();
+      // Guard against zero-rect (svg hidden / pre-layout) — division would NaN.
+      if (rect.width === 0 || rect.height === 0) return;
+      var nx = (e.clientX - (rect.left + rect.width / 2)) / rect.width;
+      var ny = (e.clientY - (rect.top + rect.height / 2)) / rect.height;
+      targetX = nx * 8;
+      targetY = ny * 6;
+      if (rafId === null) rafId = requestAnimationFrame(step);
+    }
+
+    function reset() {
+      targetX = 0;
+      targetY = 0;
+      if (rafId === null) rafId = requestAnimationFrame(step);
+    }
+
+    // Observe body class so leaving star mode glides pins back to origin
+    // even without further mouse movement.
+    var observer = new MutationObserver(function () {
+      if (!document.body.classList.contains('constellation')) reset();
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseleave', reset);
+  }
+
   function init() {
     generateFootprints();
     wireCoupling();
     wireLightbox();
+    wireStarParallax();
   }
 
   if (document.readyState === 'loading') {
