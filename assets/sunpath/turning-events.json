@@ -1,0 +1,113 @@
+{
+  "year": 2026,
+  "events": {
+    "spring-equinox": {
+      "facts": [
+        { "label": "Day length at the equator today", "value": "12h 06m" },
+        { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
+        { "label": "Sun rises due east, sets due west", "value": "everywhere on Earth" }
+      ],
+      "monuments": ["chichen-itza", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Sizdah Bedar",
+          "where": "Iran and Persian diaspora — parks, riverbanks",
+          "what": "Thirteenth day of Nowruz. Families walk into nature, scatter sprouted lentils into running water, and walk home.",
+          "source": "UNESCO ICH listing (2009)"
+        },
+        {
+          "name": "Equinox sunrise at Chichen Itza",
+          "where": "Yucatán, Mexico",
+          "what": "Thousands gather to watch the late-afternoon serpent shadow descend the Pyramid of Kukulkan.",
+          "source": "INAH (Instituto Nacional de Antropología e Historia)"
+        }
+      ]
+    },
+    "summer-solstice": {
+      "facts": [
+        { "label": "Daylight at 70°N today", "value": "24h — sun never sets" },
+        { "label": "Daylight at Reykjavík (64°N)", "value": "≈ 21h 22m" },
+        { "label": "Daylight at the equator", "value": "12h 06m, unchanged" },
+        { "label": "Tropic of Cancer — sun directly overhead", "value": "23.4°N at solar noon" }
+      ],
+      "monuments": ["stonehenge", "newgrange-summer", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Stonehenge sunrise gathering",
+          "where": "Salisbury Plain, England",
+          "what": "Open-access dawn vigil organized by English Heritage. Thousands walk the avenue from the Heel Stone to the center as the sun rises.",
+          "source": "English Heritage"
+        },
+        {
+          "name": "Midsommar processions",
+          "where": "Sweden",
+          "what": "Public holiday Friday between Jun 19–25. Walks to maypoles, dancing, picking seven flowers in silence on the walk home.",
+          "source": "Schön, Sveriges Sed och Tradition"
+        },
+        {
+          "name": "Inti Raymi (returning to winter, Southern Hemisphere)",
+          "where": "Cusco, Peru — June 24",
+          "what": "Multi-day Inca-tradition procession from Sacsayhuaman to the sacred fields. Walking the route at dawn to 'tie the sun' against further descent.",
+          "source": "Bauer and Dearborn, Astronomy and Empire in the Ancient Andes"
+        }
+      ]
+    },
+    "autumn-equinox": {
+      "facts": [
+        { "label": "Day length at the equator", "value": "12h 06m" },
+        { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
+        { "label": "From here, northern nights grow longer", "value": "until winter solstice" }
+      ],
+      "monuments": ["chichen-itza", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Chuseok (beolcho)",
+          "where": "Korea",
+          "what": "Walking out to ancestral graves to clear them; returning home to share harvest food and watch the round moon rise.",
+          "source": "Lee, Korean Folk Belief and Folktales"
+        },
+        {
+          "name": "Mid-Autumn Festival lantern walks",
+          "where": "China, Vietnam, Hong Kong, diaspora communities",
+          "what": "Lantern walks at dusk under the harvest moon; walking to high places to see the moon rise complete.",
+          "source": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts"
+        }
+      ]
+    },
+    "winter-solstice": {
+      "facts": [
+        { "label": "Newgrange chamber illumination", "value": "≈ 09:00 local, ~17 minutes" },
+        { "label": "Daylight at the Arctic Circle (66.5°N)", "value": "0h — polar night" },
+        { "label": "Daylight at Tromsø (70°N)", "value": "0h — sun stays below horizon" },
+        { "label": "From here, light returns", "value": "northern days grow until summer solstice" }
+      ],
+      "monuments": ["newgrange", "karnak", "goseck"],
+      "pilgrimages": [
+        {
+          "name": "Newgrange dawn lottery",
+          "where": "Brú na Bóinne, Ireland",
+          "what": "A handful of winners (drawn months in advance) enter the chamber at dawn to witness sunlight reach the burial stone for ~17 minutes — the design intent of a 5,200-year-old monument.",
+          "source": "Heritage Ireland, OPW"
+        },
+        {
+          "name": "Stonehenge sunset gathering",
+          "where": "Salisbury Plain, England",
+          "what": "Less crowded than midsummer. Walkers gather to watch the sun set behind the great trilithon.",
+          "source": "English Heritage"
+        },
+        {
+          "name": "Dongzhi family walks",
+          "where": "China, Taiwan, Korea, Vietnam, diaspora",
+          "what": "Family gathering, temple visits, eating tangyuan to mark the year's deepest dark and the return of yang.",
+          "source": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts"
+        },
+        {
+          "name": "Inti Raymi (Southern Hemisphere — winter solstice)",
+          "where": "Cusco, Peru — June 24",
+          "what": "See summer solstice notes — same date, opposite hemisphere.",
+          "source": "Bauer and Dearborn, Astronomy and Empire in the Ancient Andes"
+        }
+      ]
+    }
+  }
+}

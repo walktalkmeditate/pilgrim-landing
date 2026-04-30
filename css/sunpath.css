@@ -882,3 +882,179 @@ body.constellation .sunpath-dawn-tick {
 body.constellation .sunpath-analemma-path {
   stroke: rgba(232, 224, 255, 0.7);
 }
+
+/* =============================================
+   Sun Path — turning-day flourish (Stage C)
+   ============================================= */
+
+.sunpath-flourish {
+  margin: 0 0 4rem;
+  padding: 2rem clamp(1rem, 4vw, 2rem);
+  border-top: 1px solid var(--turning-color, var(--stone));
+  border-bottom: 1px solid var(--turning-color, var(--stone));
+  border-color: var(--turning-color, var(--stone));
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sunpath-flourish[data-turning="spring-equinox"]  { --turning-color: #74B495; }
+.sunpath-flourish[data-turning="summer-solstice"] { --turning-color: #C9A646; }
+.sunpath-flourish[data-turning="autumn-equinox"]  { --turning-color: #8B4455; }
+.sunpath-flourish[data-turning="winter-solstice"] { --turning-color: #2378A4; }
+
+[data-theme="dark"] .sunpath-flourish[data-turning="spring-equinox"],
+body.constellation .sunpath-flourish[data-turning="spring-equinox"]  { --turning-color: #88C4A0; }
+[data-theme="dark"] .sunpath-flourish[data-turning="summer-solstice"],
+body.constellation .sunpath-flourish[data-turning="summer-solstice"] { --turning-color: #D5B55D; }
+[data-theme="dark"] .sunpath-flourish[data-turning="autumn-equinox"],
+body.constellation .sunpath-flourish[data-turning="autumn-equinox"]  { --turning-color: #A26070; }
+[data-theme="dark"] .sunpath-flourish[data-turning="winter-solstice"],
+body.constellation .sunpath-flourish[data-turning="winter-solstice"] { --turning-color: #4691BA; }
+
+.sunpath-flourish-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.sunpath-flourish-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 0 0 1.4rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: var(--turning-color);
+}
+
+.sunpath-flourish-kanji {
+  font-size: 1.4rem;
+  letter-spacing: 0.2em;
+  opacity: 0.85;
+}
+
+.sunpath-flourish-title {
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.sunpath-flourish-facts {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem 1.5rem;
+}
+
+.sunpath-flourish-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.15);
+}
+
+.sunpath-flourish-fact-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--stone);
+  text-transform: lowercase;
+}
+
+.sunpath-flourish-fact-value {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+body.constellation .sunpath-flourish-fact-value {
+  color: rgba(232, 224, 255, 0.92);
+}
+
+.sunpath-flourish-subheading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  margin: 0 0 1rem;
+  color: var(--turning-color);
+}
+
+.sunpath-flourish-pilgrimages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.sunpath-flourish-pilgrimage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem;
+  background: var(--parchment-secondary);
+  border-radius: 2px;
+}
+
+body.constellation .sunpath-flourish-pilgrimage {
+  background: rgba(20, 18, 40, 0.55);
+}
+
+.sunpath-flourish-pilgrimage-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+}
+
+.sunpath-flourish-pilgrimage-where {
+  font-size: 0.78rem;
+  color: var(--stone);
+  letter-spacing: 0.04em;
+}
+
+.sunpath-flourish-pilgrimage-what {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.sunpath-flourish-pilgrimage-source {
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--stone);
+}
+
+/* --- Monument glow on turning days ------------------------------------- */
+
+@keyframes sunpath-monument-glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(218, 165, 32, 0.5));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(218, 165, 32, 0.95));
+    transform: scale(1.15);
+  }
+}
+
+.sunpath-monument-glowing .sunpath-monument-dot {
+  animation: sunpath-monument-glow-pulse 3.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sunpath-monument-glowing .sunpath-monument-ring {
+  stroke-width: 1.6;
+  stroke: #DAA520;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunpath-monument-glowing .sunpath-monument-dot {
+    animation: none;
+    filter: drop-shadow(0 0 6px rgba(218, 165, 32, 0.7));
+  }
+}
