@@ -1518,8 +1518,7 @@ body.constellation .sunpath-polar-circle {
    Quiet single lines under the subsolar caption.
    ============================================= */
 
-.sunpath-walkers,
-.sunpath-calendars {
+.sunpath-walkers {
   margin: 0.5rem 0 0;
   font-family: 'Lato', sans-serif;
   font-weight: 300;
@@ -1536,19 +1535,6 @@ body.constellation .sunpath-polar-circle {
   letter-spacing: 0.01em;
 }
 
-.sunpath-calendars-label {
-  text-transform: lowercase;
-  letter-spacing: 0.1em;
-}
-
-.sunpath-calendars-value {
-  font-family: var(--font-display);
-  font-style: italic;
-  color: var(--ink);
-  letter-spacing: 0.01em;
-}
-
-body.constellation .sunpath-walkers strong,
-body.constellation .sunpath-calendars-value {
+body.constellation .sunpath-walkers strong {
   color: rgba(232, 224, 255, 0.95);
 }
