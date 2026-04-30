@@ -1428,3 +1428,127 @@ body.constellation .sunpath-festival-item[data-turning="winter-solstice"] { --tu
   letter-spacing: 0.06em;
   text-transform: lowercase;
 }
+
+/* =============================================
+   Twilight bands (replaces single night-path)
+   Each ring stacks additional darkness; the inner astronomical
+   ring is the deepest. Light + dark themes use slightly
+   different alphas so the gradient feels right against parchment
+   vs against the cosmic background.
+   ============================================= */
+
+.sunpath-twilight-civil       { fill: rgba(20, 14, 8, 0.10); }
+.sunpath-twilight-nautical    { fill: rgba(20, 14, 8, 0.13); }
+.sunpath-twilight-astronomical{ fill: rgba(20, 14, 8, 0.16); }
+.sunpath-twilight-night       { fill: rgba(20, 14, 8, 0.22); }
+
+[data-theme="dark"] .sunpath-twilight-civil       { fill: rgba(0, 0, 0, 0.18); }
+[data-theme="dark"] .sunpath-twilight-nautical    { fill: rgba(0, 0, 0, 0.22); }
+[data-theme="dark"] .sunpath-twilight-astronomical{ fill: rgba(0, 0, 0, 0.28); }
+[data-theme="dark"] .sunpath-twilight-night       { fill: rgba(0, 0, 0, 0.36); }
+
+body.constellation .sunpath-twilight-civil       { fill: rgba(0, 0, 8, 0.18); }
+body.constellation .sunpath-twilight-nautical    { fill: rgba(0, 0, 8, 0.24); }
+body.constellation .sunpath-twilight-astronomical{ fill: rgba(0, 0, 8, 0.32); }
+body.constellation .sunpath-twilight-night       { fill: rgba(0, 0, 8, 0.42); }
+
+/* =============================================
+   Polar circles
+   Stroke opacity is set inline based on declination so the
+   visible "tilt towards the sun" is read instantly.
+   ============================================= */
+
+.sunpath-polar-circle {
+  fill: none;
+  stroke: #DAA520;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+body.constellation .sunpath-polar-circle {
+  stroke: rgba(232, 224, 255, 0.6);
+}
+
+/* =============================================
+   24-hour time-lapse button
+   ============================================= */
+
+.sunpath-timelapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.4rem auto 0;
+  padding: 0.4rem 1rem;
+  background: none;
+  border: 1px solid rgba(218, 165, 32, 0.5);
+  border-radius: 999px;
+  color: #DAA520;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sunpath-timelapse-btn:hover,
+.sunpath-timelapse-btn:focus-visible {
+  background: rgba(218, 165, 32, 0.08);
+  border-color: #DAA520;
+  outline: none;
+}
+
+.sunpath-timelapse-btn.is-playing {
+  background: rgba(218, 165, 32, 0.14);
+}
+
+.sunpath-timelapse-icon {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunpath-timelapse-btn { display: none; }
+}
+
+/* =============================================
+   Walker count + cultural calendars
+   Quiet single lines under the subsolar caption.
+   ============================================= */
+
+.sunpath-walkers,
+.sunpath-calendars {
+  margin: 0.5rem 0 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--stone);
+}
+
+.sunpath-walkers strong {
+  color: var(--ink);
+  font-weight: 400;
+  font-style: italic;
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.sunpath-calendars-label {
+  text-transform: lowercase;
+  letter-spacing: 0.1em;
+}
+
+.sunpath-calendars-value {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+body.constellation .sunpath-walkers strong,
+body.constellation .sunpath-calendars-value {
+  color: rgba(232, 224, 255, 0.95);
+}

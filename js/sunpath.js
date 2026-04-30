@@ -61,6 +61,7 @@
 
     setupGlobe();
     setupYearScrub();
+    setupTimelapse();
     renderTilt(activeDate());
 
     // Esc dismisses popover.
@@ -151,6 +152,7 @@
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-graticule' }));
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-land' }));
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-night' }));
+    globeSvg.appendChild(svgEl('g', { id: 'sunpath-polar', 'clip-path': 'url(#sunpath-globe-clip)' }));
     // Subsolar layer clipped so halo never bleeds past sphere edge.
     globeSvg.appendChild(svgEl('g', {
       id: 'sunpath-subsolar-layer',
@@ -226,16 +228,30 @@
     if (!projection || typeof d3 === 'undefined') return;
 
     var nightCenter = [sub.lon + 180, -sub.lat];
-    var nightCircle = d3.geoCircle().center(nightCenter).radius(90)();
 
+    // Twilight bands as nested geo-circles centered at the antipode of the
+    // subsolar point. Stacked outer-to-inner so each adds darkness:
+    //   90° = civil twilight edge (sun at horizon — terminator)
+    //   84° = end of civil    (sun 6° below)
+    //   78° = end of nautical (sun 12° below)
+    //   72° = end of astronomical (sun 18° below — true night)
     var nightLayer = document.getElementById('sunpath-night');
     if (nightLayer) {
       clearChildren(nightLayer);
-      var p = svgEl('path', {
-        'class': 'sunpath-night-path',
-        d: pathGen(nightCircle) || ''
+      [
+        { radius: 90, cls: 'sunpath-twilight-civil' },
+        { radius: 84, cls: 'sunpath-twilight-nautical' },
+        { radius: 78, cls: 'sunpath-twilight-astronomical' },
+        { radius: 72, cls: 'sunpath-twilight-night' }
+      ].forEach(function (band) {
+        var circle = d3.geoCircle().center(nightCenter).radius(band.radius)();
+        var d = pathGen(circle);
+        if (!d) return;
+        nightLayer.appendChild(svgEl('path', {
+          'class': 'sunpath-night-path ' + band.cls,
+          d: d
+        }));
       });
-      nightLayer.appendChild(p);
     }
 
     var subLayer = document.getElementById('sunpath-subsolar-layer');
@@ -254,7 +270,39 @@
       }
     }
 
+    renderPolarCircles(date);
     renderMonuments();
+  }
+
+  // Arctic + Antarctic circles. Stroke glows toward the pole that's tilted
+  // toward the sun: arctic stronger as declination → +23.45°, antarctic
+  // stronger as declination → -23.45°.
+  function renderPolarCircles(date) {
+    var layer = document.getElementById('sunpath-polar');
+    if (!layer) return;
+    clearChildren(layer);
+    var arctic    = d3.geoCircle().center([0,  90]).radius(23.5)();
+    var antarctic = d3.geoCircle().center([0, -90]).radius(23.5)();
+    var dec = M.declination(date);
+    var arcticGlow    = Math.max(0,  dec / 23.45);
+    var antarcticGlow = Math.max(0, -dec / 23.45);
+
+    var aPath = pathGen(arctic);
+    if (aPath) {
+      layer.appendChild(svgEl('path', {
+        'class': 'sunpath-polar-circle',
+        d: aPath,
+        style: 'stroke-opacity:' + (0.18 + arcticGlow * 0.55).toFixed(2)
+      }));
+    }
+    var bPath = pathGen(antarctic);
+    if (bPath) {
+      layer.appendChild(svgEl('path', {
+        'class': 'sunpath-polar-circle',
+        d: bPath,
+        style: 'stroke-opacity:' + (0.18 + antarcticGlow * 0.55).toFixed(2)
+      }));
+    }
   }
 
   function isPointVisible(lonLat) {
@@ -490,6 +538,69 @@
                     'July', 'August', 'September', 'October', 'November', 'December'];
       dom.scrubLabel.textContent = months[d.getUTCMonth()] + ' ' + d.getUTCDate() + ' · tap to return to now';
       dom.scrubLabel.classList.remove('is-live');
+    }
+  }
+
+  // --- 24-hour time-lapse ---
+  // Click to sweep the terminator through 24 UTC hours over ~12 seconds.
+  // Click again to stop. Honors prefers-reduced-motion: skips animation,
+  // jumps to +24h scrubDate as a static change.
+
+  var timelapseRaf = null;
+  var timelapseBtn = null;
+
+  function setupTimelapse() {
+    timelapseBtn = document.getElementById('sunpath-timelapse');
+    if (!timelapseBtn) return;
+    timelapseBtn.addEventListener('click', function () {
+      if (timelapseRaf) {
+        stopTimelapse();
+      } else {
+        startTimelapse();
+      }
+    });
+  }
+
+  function startTimelapse() {
+    if (!projection) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    timelapseBtn.classList.add('is-playing');
+    var label = timelapseBtn.querySelector('.sunpath-timelapse-label');
+    var icon = timelapseBtn.querySelector('.sunpath-timelapse-icon');
+    if (label) label.textContent = 'stop';
+    if (icon) icon.textContent = '■';
+    var startReal = performance.now();
+    var startDate = activeDate().getTime();
+    var DURATION_MS = 12000;
+    var SPAN_MS = 24 * 3600 * 1000;
+    function frame(now) {
+      var elapsed = now - startReal;
+      if (elapsed >= DURATION_MS) {
+        // Loop back to start of sweep — keeps the meditative quality.
+        scrubDate = new Date(startDate);
+        renderTerminatorAndSubsolar();
+        renderTilt(activeDate());
+        startReal = now;
+        timelapseRaf = requestAnimationFrame(frame);
+        return;
+      }
+      var t = elapsed / DURATION_MS;
+      scrubDate = new Date(startDate + t * SPAN_MS);
+      renderTerminatorAndSubsolar();
+      timelapseRaf = requestAnimationFrame(frame);
+    }
+    timelapseRaf = requestAnimationFrame(frame);
+  }
+
+  function stopTimelapse() {
+    if (timelapseRaf) cancelAnimationFrame(timelapseRaf);
+    timelapseRaf = null;
+    if (timelapseBtn) {
+      timelapseBtn.classList.remove('is-playing');
+      var label = timelapseBtn.querySelector('.sunpath-timelapse-label');
+      var icon = timelapseBtn.querySelector('.sunpath-timelapse-icon');
+      if (label) label.textContent = 'play 24 hours';
+      if (icon) icon.textContent = '▶';
     }
   }
 
