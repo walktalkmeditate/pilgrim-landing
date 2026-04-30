@@ -96,9 +96,9 @@
       <span aria-hidden="true">←</span>
       <span>pilgrim</span>
     </a>
-    <button type="button" class="walk-moon" id="walk-moon"
-            aria-label="Toggle theme (triple-click for constellation)"
-            title="light / dark · triple-click for stars"></button>
+    <button type="button" class="walk-moon" id="moon-toggle"
+            aria-label="Toggle theme"
+            title="light / dark / star"></button>
   </nav>
 
   <!-- Breathing overlay — barely-perceptible radial pulse, 8s cycle. -->
@@ -141,10 +141,9 @@
     </footer>
   </main>
 
-  <!-- Constellation layer (only visible when body.constellation is set) -->
-  <div class="walk-stars" aria-hidden="true"></div>
-
   <script src="js/moon.js"></script>
+  <script src="js/universe.js"></script>
+  <script src="js/main.js"></script>
   <script src="js/walk.js" defer></script>
 </body>
 </html>

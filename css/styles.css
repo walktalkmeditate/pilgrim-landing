@@ -1787,3 +1787,105 @@ a:focus-visible {
 .horizon-duck:focus-visible .horizon-duck-animated {
   opacity: 1;
 }
+
+/* =============================================
+   Star Mode (constellation)
+   ============================================= */
+
+html:has(body.constellation),
+body.constellation {
+  background: #0a0a12 !important;
+}
+
+body.constellation {
+  color: rgba(220, 215, 255, 0.85) !important;
+}
+
+/* Four Turnings echo — kanji label above banner phrase.
+   Palette mirrors pilgrim-ios: turningJade / Gold / Claret / Indigo.
+   Light + dark variants from the app's asset catalog. */
+.turning-echo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.8rem 0 0;
+  text-align: center;
+  color: var(--turning-color, currentColor);
+}
+
+.turning-echo-kanji {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  opacity: 0.75;
+  user-select: none;
+}
+
+.turning-echo-text {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.turning-echo[data-turning="springEquinox"]  { --turning-color: #74B495; }
+.turning-echo[data-turning="summerSolstice"] { --turning-color: #C9A646; }
+.turning-echo[data-turning="autumnEquinox"]  { --turning-color: #8B4455; }
+.turning-echo[data-turning="winterSolstice"] { --turning-color: #2378A4; }
+
+[data-theme="dark"] .turning-echo[data-turning="springEquinox"]  { --turning-color: #88C4A0; }
+[data-theme="dark"] .turning-echo[data-turning="summerSolstice"] { --turning-color: #D5B55D; }
+[data-theme="dark"] .turning-echo[data-turning="autumnEquinox"]  { --turning-color: #A26070; }
+[data-theme="dark"] .turning-echo[data-turning="winterSolstice"] { --turning-color: #4691BA; }
+
+body.constellation .hero,
+body.constellation .section,
+body.constellation .horizon {
+  background: transparent !important;
+}
+
+body.constellation .hero,
+body.constellation main,
+body.constellation .horizon {
+  position: relative;
+  z-index: 1;
+}
+
+body.constellation .moon-phase {
+  opacity: 0.95;
+  filter: none;
+}
+
+body.constellation .moon-phase canvas,
+body.constellation #moon-toggle canvas {
+  animation: star-toggle-breathe 4s ease-in-out infinite;
+}
+
+@keyframes star-toggle-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(232, 224, 255, 0.35));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(232, 224, 255, 0.7));
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.constellation .moon-phase canvas,
+  body.constellation #moon-toggle canvas {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgba(232, 224, 255, 0.5));
+  }
+}
+
+#universe-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  display: none;
+}

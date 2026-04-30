@@ -658,92 +658,8 @@
     return { svg, positions };
   }
 
-  // ---- Moon + theme + constellation ----
-
-  // Theme cycle: each click advances light → dark → constellation → light.
-  const THEME_MODES = ["light", "dark", "constellation"];
-
-  function applyMode(mode) {
-    // Map mode to the two orthogonal switches: data-theme + body.constellation
-    const wasConstellation = document.body.classList.contains("constellation");
-    if (mode === "constellation") {
-      document.documentElement.setAttribute("data-theme", "dark");
-      document.body.classList.add("constellation");
-      if (!wasConstellation) scheduleShootingStar();
-    } else {
-      document.documentElement.setAttribute("data-theme", mode);
-      document.body.classList.remove("constellation");
-    }
-  }
-
-  function currentMode() {
-    if (document.body.classList.contains("constellation")) return "constellation";
-    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-  }
-
-  function initMoonAndTheme() {
-    const moonBtn = document.getElementById("walk-moon");
-    if (!moonBtn) return;
-
-    const saved = localStorage.getItem("pilgrim-mode");
-    let mode;
-    if (saved && THEME_MODES.includes(saved)) {
-      mode = saved;
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      mode = "dark";
-    } else {
-      mode = "light";
-    }
-    applyMode(mode);
-    renderMoonInto(moonBtn);
-
-    moonBtn.addEventListener("click", () => {
-      const i = THEME_MODES.indexOf(currentMode());
-      const next = THEME_MODES[(i + 1) % THEME_MODES.length];
-      applyMode(next);
-      localStorage.setItem("pilgrim-mode", next);
-      renderMoonInto(moonBtn);
-    });
-  }
-
-  function renderMoonInto(el) {
-    if (window.Moon && typeof window.Moon.renderMoon === "function") {
-      window.Moon.renderMoon(el);
-    }
-  }
-
-  // ---- Ambient delights: shooting stars, seasonal drift, long-press ink ----
-
-  // Schedule the next shooting star while constellation mode is on. Each
-  // scheduler run captures a token; if the user toggles constellation off and
-  // back on, a fresh scheduler starts with a new token and any previously
-  // pending timer sees its token was superseded and exits. Without this,
-  // rapid off/on cycles would stack concurrent chains.
-  let shootingStarToken = 0;
-  function scheduleShootingStar() {
-    if (!document.body.classList.contains("constellation")) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const myToken = ++shootingStarToken;
-    const step = () => {
-      if (myToken !== shootingStarToken) return;
-      if (!document.body.classList.contains("constellation")) return;
-      spawnShootingStar();
-      setTimeout(step, 12000 + Math.random() * 21000);
-    };
-    setTimeout(step, 12000 + Math.random() * 21000);
-  }
-  function spawnShootingStar() {
-    if (!document.body.classList.contains("constellation")) return;
-    const star = document.createElement("div");
-    star.className = "walk-shooting-star";
-    star.setAttribute("aria-hidden", "true");
-    star.style.top = (Math.random() * 45) + "vh";
-    star.style.left = (Math.random() * 75) + "vw";
-    star.style.setProperty("--sx", (180 + Math.random() * 240) + "px");
-    star.style.setProperty("--sy", (100 + Math.random() * 160) + "px");
-    document.body.append(star);
-    setTimeout(() => star.remove(), 1000);
-  }
+  // ---- Ambient delights: seasonal drift, long-press ink ----
+  // Theme + constellation handled by shared main.js + universe.js.
 
   // Seasonal drift — spawn one particle every 12s. Respects reduced-motion.
   const DRIFT_SYMBOLS = { spring: "🌸", autumn: "🍁", winter: "❄" };
@@ -931,7 +847,6 @@
   // ---- Main ----
 
   async function main() {
-    initMoonAndTheme();
     startSeasonalDrift();
     installLongPressBrush();
 

@@ -70,8 +70,7 @@
 .walk-dot-pool,
 .walk-bgmap-full,
 .walk-bgmap-walked,
-.walk-bgmap-duck,
-.walk-stars {
+.walk-bgmap-duck {
   transition:
     background-color 1100ms cubic-bezier(0.4, 0, 0.2, 1),
     color 1100ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -764,20 +763,14 @@ body.constellation .walk-stage-seal-kanji { fill-opacity: 0.85; }
 .walk-goshuin + .walk-goshuin { transform: rotate(2deg); }
 .walk-goshuin + .walk-goshuin + .walk-goshuin { transform: rotate(-4deg); }
 
-/* ---- Constellation mode (triple-click the moon) ---- */
+/* ---- Star mode — walk-specific palette + overlays.
+       Stars themselves come from shared universe.js canvas. ---- */
 
-.walk-stars {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0;
+html:has(body.constellation) {
+  background: #0a0a12;
 }
 
-body.constellation .walk-stars { opacity: 1; }
-
 body.constellation {
-  /* Subtle cosmic shift regardless of theme */
   --walk-parchment: #0e0d14;
   --walk-parchment-edge: #07060a;
   --walk-ink: #e8dfc6;
@@ -795,47 +788,6 @@ body.constellation .walk-body::before { opacity: 0; }
 body.constellation .walk-body::after {
   background: radial-gradient(ellipse at top, rgba(255,255,255,0.04) 0%, transparent 60%);
   opacity: 1;
-}
-
-/* Generated star layer — procedural background stars via radial-gradients */
-body.constellation .walk-stars::before,
-body.constellation .walk-stars::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 8% 12%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 21% 37%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1.5px 1.5px at 36% 18%, rgba(255,255,255,0.85), transparent),
-    radial-gradient(1px 1px at 47% 62%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 58% 24%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1.5px 1.5px at 71% 45%, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 82% 16%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 93% 38%, rgba(255,255,255,0.55), transparent),
-    radial-gradient(1px 1px at 15% 72%, rgba(255,255,255,0.55), transparent),
-    radial-gradient(1.5px 1.5px at 29% 85%, rgba(255,255,255,0.75), transparent),
-    radial-gradient(1px 1px at 44% 91%, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 63% 74%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1.5px 1.5px at 78% 88%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 89% 62%, rgba(255,255,255,0.5), transparent);
-  animation: walk-stars-breathe 6s ease-in-out infinite alternate;
-}
-body.constellation .walk-stars::after {
-  animation-delay: 2s;
-  filter: blur(0.4px);
-}
-
-@keyframes walk-stars-breathe {
-  0%   { opacity: 0.55; }
-  100% { opacity: 0.9; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.constellation .walk-stars::before,
-  body.constellation .walk-stars::after {
-    animation: none;
-    opacity: 0.75;
-  }
 }
 
 /* ---- Page breathes — 8s radial pulse, sets the tempo ---- */
@@ -863,35 +815,6 @@ body.constellation .walk-breathe {
   .walk-breathe { animation: none; opacity: 0.4; }
 }
 
-/* ---- Shooting star (constellation mode only; spawned by JS) ---- */
-
-.walk-shooting-star {
-  position: fixed;
-  width: 2px; height: 2px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.7);
-  pointer-events: none;
-  z-index: 2;
-  animation: walk-star-shoot 900ms ease-out forwards;
-}
-.walk-shooting-star::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0;
-  width: 70px; height: 1px;
-  background: linear-gradient(to right, rgba(255,255,255,0.85), transparent);
-  transform: rotate(25deg);
-  transform-origin: left center;
-}
-@keyframes walk-star-shoot {
-  0%   { opacity: 0; transform: translate(0, 0) scale(1); }
-  15%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(var(--sx, 260px), var(--sy, 140px)) scale(0.6); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .walk-shooting-star { display: none; }
-}
 
 /* ---- Seasonal drift — one particle every 12s ---- */
 
@@ -1060,4 +983,35 @@ body.constellation .walk-breathe {
   .walk-duck-link:hover .walk-duck-marker,
   .walk-duck-link:active .walk-duck-marker { transform: none; }
   .walk-duck-plink { display: none; }
+}
+
+/* ---- Star mode (shared system) ---- */
+#universe-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  display: none;
+}
+
+body.constellation #moon-toggle canvas {
+  animation: star-toggle-breathe 4s ease-in-out infinite;
+}
+
+@keyframes star-toggle-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(232, 224, 255, 0.35));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(232, 224, 255, 0.7));
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.constellation #moon-toggle canvas {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgba(232, 224, 255, 0.5));
+  }
 }

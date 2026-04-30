@@ -22,15 +22,13 @@
   --leading: 1.55;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink:       #EDE4CF;
-    --ink-soft:  #D8CCAF;
-    --ink-fog:   #958A7A;   /* bumped from #867B6B for AA contrast on dark paper */
-    --paper:     #1E1913;
-    --paper-dim: #251F17;
-    --rule:      #3A2F22;
-  }
+:root[data-theme="dark"] {
+  --ink:       #EDE4CF;
+  --ink-soft:  #D8CCAF;
+  --ink-fog:   #958A7A;
+  --paper:     #1E1913;
+  --paper-dim: #251F17;
+  --rule:      #3A2F22;
 }
 
 html {
@@ -233,4 +231,60 @@ footer p {
     animation-duration: 0s !important;
     transition-duration: 0s !important;
   }
+}
+
+/* ---- Theme toggle ---- */
+.moon-phase {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 32px;
+  height: 32px;
+  z-index: 100;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.moon-phase:hover { transform: scale(1.15); }
+:root[data-theme="dark"] .moon-phase { filter: drop-shadow(0 0 6px rgba(240, 235, 225, 0.3)); }
+:root:not([data-theme="dark"]) .moon-phase { opacity: 0.4; }
+:root:not([data-theme="dark"]) .moon-phase:hover { opacity: 0.7; }
+
+/* ---- Star mode ---- */
+html:has(body.constellation),
+body.constellation {
+  background: #0a0a12 !important;
+}
+body.constellation {
+  color: rgba(220, 215, 255, 0.85) !important;
+}
+body.constellation main { position: relative; z-index: 1; }
+body.constellation .moon-phase { opacity: 0.95; filter: none; }
+body.constellation .moon-phase canvas,
+body.constellation #moon-toggle canvas {
+  animation: star-toggle-breathe 4s ease-in-out infinite;
+}
+@keyframes star-toggle-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(232, 224, 255, 0.35));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(232, 224, 255, 0.7));
+    transform: scale(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.constellation .moon-phase canvas,
+  body.constellation #moon-toggle canvas {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgba(232, 224, 255, 0.5));
+  }
+}
+
+#universe-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  display: none;
 }

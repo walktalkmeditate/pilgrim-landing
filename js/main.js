@@ -40,24 +40,145 @@
   }
 
   // --- Theme ---
+  // Persistence: cookie scoped to .pilgrimapp.org so theme follows visitor
+  // across landing + podcast subdomains. localStorage kept as fallback for
+  // localhost dev (cookie domain rejected) and as migration target.
+  function readThemeCookie() {
+    var m = document.cookie.match(/(?:^|;\s*)theme=(light|dark|star)\b/);
+    return m ? m[1] : null;
+  }
+
+  function writeThemeCookie(theme) {
+    var attrs = 'theme=' + theme + '; Path=/; Max-Age=31536000; SameSite=Lax';
+    // Suffix match avoids 'evilpilgrimapp.org' false-positive.
+    if (/(^|\.)pilgrimapp\.org$/.test(location.hostname)) {
+      attrs += '; Domain=.pilgrimapp.org';
+    }
+    if (location.protocol === 'https:') attrs += '; Secure';
+    document.cookie = attrs;
+  }
+
   function getPreferredTheme() {
-    var stored = localStorage.getItem('theme');
-    if (stored) return stored;
+    var fromCookie = readThemeCookie();
+    if (fromCookie) return fromCookie;
+    try {
+      var legacy = localStorage.getItem('pilgrim-mode');
+      if (legacy) {
+        var migrated = legacy === 'constellation' ? 'star' : legacy;
+        if (migrated === 'light' || migrated === 'dark' || migrated === 'star') {
+          localStorage.setItem('theme', migrated);
+          localStorage.removeItem('pilgrim-mode');
+          return migrated;
+        }
+      }
+      var stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark' || stored === 'star') return stored;
+    } catch (e) {}
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
   function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    updateThemeToggle(theme);
-    if (window.SeasonalEngine) window.SeasonalEngine.applySeasonalColors();
-    if (window.Moon) {
-      var moonEl = document.querySelector('.moon-phase');
-      if (moonEl) window.Moon.renderMoon(moonEl);
+    if (theme === 'star' && !window.Universe) theme = 'dark';
+
+    if (theme === 'star') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('constellation');
+      try {
+        window.Universe.activate();
+      } catch (err) {
+        document.body.classList.remove('constellation');
+        try { window.Universe.deactivate(); } catch (e2) {}
+        theme = 'dark';
+        document.documentElement.setAttribute('data-theme', 'dark');
+        if (window.console && console.warn) console.warn('Universe activate failed', err);
+      }
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+      if (document.body.classList.contains('constellation')) {
+        document.body.classList.remove('constellation');
+        if (window.Universe) {
+          try { window.Universe.deactivate(); } catch (err) {}
+        }
+      }
     }
+
+    try { localStorage.setItem('theme', theme); } catch (e) {}
+    writeThemeCookie(theme);
+    renderToggleIcon(theme);
+    if (window.SeasonalEngine) window.SeasonalEngine.applySeasonalColors();
   }
 
-  function updateThemeToggle() {}
+  function getCurrentTheme() {
+    if (document.body.classList.contains('constellation')) return 'star';
+    var attr = document.documentElement.getAttribute('data-theme');
+    return attr === 'dark' ? 'dark' : 'light';
+  }
+
+  function renderToggleIcon(theme) {
+    var toggle = document.getElementById('moon-toggle') || document.querySelector('.moon-phase');
+    if (!toggle) return;
+    while (toggle.firstChild) toggle.removeChild(toggle.firstChild);
+    if (theme === 'star') {
+      renderStarIcon(toggle);
+      toggle.setAttribute('title', 'Star mode');
+    } else if (window.Moon) {
+      window.Moon.renderMoon(toggle);
+    }
+    var nextLabel = theme === 'light' ? 'Switch to dark mode' :
+                    theme === 'dark' ? 'Switch to star mode' :
+                    'Switch to light mode';
+    toggle.setAttribute('aria-label', nextLabel);
+  }
+
+  function renderStarIcon(container) {
+    var size = 32;
+    var c = document.createElement('canvas');
+    c.width = size * 2;
+    c.height = size * 2;
+    c.style.width = size + 'px';
+    c.style.height = size + 'px';
+    var sctx = c.getContext('2d');
+    sctx.scale(2, 2);
+    var cx = size / 2;
+    var cy = size / 2;
+    var rOuter = size * 0.42;
+    var rInner = size * 0.17;
+
+    var halo = sctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
+    halo.addColorStop(0, 'rgba(232, 224, 255, 0.5)');
+    halo.addColorStop(0.45, 'rgba(232, 224, 255, 0.15)');
+    halo.addColorStop(1, 'rgba(232, 224, 255, 0)');
+    sctx.fillStyle = halo;
+    sctx.fillRect(0, 0, size, size);
+
+    sctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var ang = -Math.PI / 2 + (i * Math.PI) / 5;
+      var r = (i % 2 === 0) ? rOuter : rInner;
+      var x = cx + Math.cos(ang) * r;
+      var y = cy + Math.sin(ang) * r;
+      if (i === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+    }
+    sctx.closePath();
+    sctx.fillStyle = '#E8E0FF';
+    sctx.shadowColor = 'rgba(232, 224, 255, 0.8)';
+    sctx.shadowBlur = 8;
+    sctx.fill();
+
+    sctx.shadowBlur = 0;
+    sctx.fillStyle = '#FFFFFF';
+    sctx.beginPath();
+    sctx.arc(cx, cy, 1.4, 0, Math.PI * 2);
+    sctx.fill();
+
+    container.appendChild(c);
+  }
+
+  function cycleTheme() {
+    var current = getCurrentTheme();
+    var next = current === 'light' ? 'dark' : (current === 'dark' ? 'star' : 'light');
+    setTheme(next);
+  }
 
   // --- Quotes (time-aware) ---
   var quotesByTime = {
@@ -600,16 +721,29 @@
   }
 
   // --- Init ---
+  // Four Turnings echo. Mirrors pilgrim-ios: kanji label above banner phrase,
+  // colored from app's turning palette (turningJade/Gold/Claret/Indigo).
+  function initTurningEcho() {
+    var el = document.getElementById('turning-echo');
+    if (!el || !window.Turnings) return;
+    var name = window.Turnings.getTurningOnDate(new Date());
+    if (!name) return;
+    var data = {
+      springEquinox:  { kanji: '春分', text: 'Today, day equals night' },
+      summerSolstice: { kanji: '夏至', text: 'Today the sun stands still' },
+      autumnEquinox:  { kanji: '秋分', text: 'Today, day equals night' },
+      winterSolstice: { kanji: '冬至', text: 'Today the sun stands still' }
+    }[name];
+    document.getElementById('turning-echo-kanji').textContent = data.kanji;
+    document.getElementById('turning-echo-text').textContent = data.text;
+    el.dataset.turning = name;
+    el.hidden = false;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     setTheme(getPreferredTheme());
 
-    if (window.SeasonalEngine) window.SeasonalEngine.applySeasonalColors();
-
-    if (window.Moon) {
-      var moonEl = document.querySelector('.moon-phase');
-      if (moonEl) window.Moon.renderMoon(moonEl);
-    }
-
+    initTurningEcho();
     initQuotes();
     initScrollReveal();
     initScrollTracker();
@@ -623,15 +757,17 @@
     var moonToggle = document.getElementById('moon-toggle');
     if (moonToggle) {
       moonToggle.addEventListener('click', function () {
-        var current = document.documentElement.getAttribute('data-theme');
-        setTheme(current === 'dark' ? 'light' : 'dark');
+        cycleTheme();
       });
-      moonToggle.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          moonToggle.click();
-        }
-      });
+      // <button> natively fires click on Enter/Space — only shim non-button elements.
+      if (moonToggle.tagName !== 'BUTTON') {
+        moonToggle.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            moonToggle.click();
+          }
+        });
+      }
       if (!localStorage.getItem('moonNudged')) {
         setTimeout(function () {
           moonToggle.classList.add('nudge');
