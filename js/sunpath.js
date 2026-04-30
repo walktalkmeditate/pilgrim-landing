@@ -329,6 +329,14 @@
       dom.monumentDetail.appendChild(htmlEl('p', 'sunpath-detail-source', '— ' + m.sourceNote));
     }
     dom.monumentDetail.hidden = false;
+    // Scroll into view so click feedback is unmissable, but only if not
+    // already visible (avoids jarring scroll when clicking from the list
+    // which is already adjacent to the detail card).
+    var rect = dom.monumentDetail.getBoundingClientRect();
+    var viewH = window.innerHeight;
+    if (rect.top < 0 || rect.bottom > viewH) {
+      dom.monumentDetail.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
   function rotateToMonument(m) {
@@ -344,17 +352,31 @@
 
   // --- Drag to rotate ---
 
+  // Drag threshold so a click on a monument pin doesn't get swallowed by
+  // pointer capture. Capture only after the user has actually moved.
+  var DRAG_THRESHOLD_PX = 4;
+
   function onDragStart(e) {
-    dragState = { x: e.clientX, y: e.clientY, rotation: rotation.slice() };
-    if (globeSvg.setPointerCapture) {
-      try { globeSvg.setPointerCapture(e.pointerId); } catch (err) {}
-    }
+    dragState = {
+      x: e.clientX,
+      y: e.clientY,
+      rotation: rotation.slice(),
+      captured: false,
+      pointerId: e.pointerId
+    };
   }
 
   function onDragMove(e) {
     if (!dragState) return;
     var dx = e.clientX - dragState.x;
     var dy = e.clientY - dragState.y;
+    if (!dragState.captured) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      if (globeSvg.setPointerCapture) {
+        try { globeSvg.setPointerCapture(dragState.pointerId); } catch (err) {}
+      }
+      dragState.captured = true;
+    }
     var sensitivity = 0.5;
     rotation = [
       dragState.rotation[0] + dx * sensitivity,
