@@ -67,8 +67,9 @@
   var halo = ns('circle', { 'class': 'home-sunpath-halo', r: 13, cx: 0, cy: 0 });
   svg.appendChild(halo);
 
-  // The sun itself — a kanji glyph at the subsolar position (front-side
-  // only). Drops back to a faint dot on the limb when the sun is behind.
+  // The sun itself — a kanji glyph that rides the subsolar point. When
+  // the sun is on the back hemisphere, the glyph parks just inside the
+  // limb in the direction the sun lies — never empty.
   var kanjiSun = ns('text', {
     'class': 'home-sunpath-kanji-sun',
     x: 0, y: 0,
@@ -77,10 +78,6 @@
   });
   kanjiSun.textContent = '夏'; // sensible default until pickTurning runs
   svg.appendChild(kanjiSun);
-
-  var rimDot = ns('circle', { 'class': 'home-sunpath-rim', r: 1.7, cx: 0, cy: 0 });
-  rimDot.style.display = 'none';
-  svg.appendChild(rimDot);
 
   globeMount.appendChild(svg);
 
@@ -109,34 +106,39 @@
     };
   }
 
+  // Inset distance from the rim when the sun is on the back hemisphere —
+  // keeps the kanji fully on the disc rather than half-clipped at the edge.
+  var BACK_INSET = R - 8;
+
   function updateGlobe() {
     var s = subsolar(new Date());
     var p = project(s.lat, s.lon);
     if (p.z > 0) {
-      // Front hemisphere — kanji rides the subsolar point with a warm halo.
+      // Front hemisphere — kanji rides the subsolar point, full warm halo.
       var x = p.x.toFixed(2);
       var y = p.y.toFixed(2);
       kanjiSun.setAttribute('x', x);
       kanjiSun.setAttribute('y', y);
+      kanjiSun.classList.remove('home-sunpath-kanji-sun--rim');
       halo.setAttribute('cx', x);
       halo.setAttribute('cy', y);
-      kanjiSun.style.display = '';
       halo.style.display = '';
-      rimDot.style.display = 'none';
       return;
     }
-    // Back hemisphere — kanji can't ride a hidden point; show a faint dot
-    // on the limb in the direction of the sun.
+    // Back hemisphere — park kanji just inside the limb, halo off, glyph
+    // dimmed via the --rim modifier.
     var len = Math.sqrt(p.x * p.x + p.y * p.y);
-    kanjiSun.style.display = 'none';
     halo.style.display = 'none';
     if (len < 0.01) {
-      rimDot.style.display = 'none';
-      return;
+      // Subsolar at exact antipode; pin glyph to disc center as a quiet
+      // fallback (vanishingly rare in practice).
+      kanjiSun.setAttribute('x', '0');
+      kanjiSun.setAttribute('y', '0');
+    } else {
+      kanjiSun.setAttribute('x', (BACK_INSET * p.x / len).toFixed(2));
+      kanjiSun.setAttribute('y', (BACK_INSET * p.y / len).toFixed(2));
     }
-    rimDot.setAttribute('cx', (R * p.x / len).toFixed(2));
-    rimDot.setAttribute('cy', (R * p.y / len).toFixed(2));
-    rimDot.style.display = '';
+    kanjiSun.classList.add('home-sunpath-kanji-sun--rim');
   }
 
   var KANJI = {

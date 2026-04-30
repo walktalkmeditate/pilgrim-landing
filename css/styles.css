@@ -1920,6 +1920,7 @@ body.constellation #moon-toggle canvas {
 .home-sunpath-link {
   display: inline-flex;
   text-decoration: none;
+  border-bottom: 0;
   opacity: 0.85;
   transition: opacity 0.6s ease;
 }
@@ -1927,6 +1928,8 @@ body.constellation #moon-toggle canvas {
 .home-sunpath-link:hover,
 .home-sunpath-link:focus-visible {
   opacity: 1;
+  /* Override the site-wide a:hover border. */
+  border-bottom: 0;
 }
 
 .home-sunpath-globe {
@@ -1962,18 +1965,21 @@ body.constellation #moon-toggle canvas {
 
 .home-sunpath-halo { fill: rgba(232, 155, 60, 0.30); }
 
-/* The sun is the kanji. Coloured per turning, glowing softly via halo. */
+/* The sun is the kanji. Coloured per turning, glowing softly via halo
+   on the front hemisphere; dimmed and parked near the rim on the back. */
 .home-sunpath-kanji-sun {
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', Georgia, serif;
   font-size: 22px;
   font-weight: 500;
   fill: #C9A646;
-  paint-order: stroke;
   user-select: none;
+  transition: opacity 0.4s ease;
 }
 
-/* Tiny rim dot — only visible when the sun is on the back hemisphere. */
-.home-sunpath-rim { fill: rgba(232, 155, 60, 0.6); }
+.home-sunpath-kanji-sun.home-sunpath-kanji-sun--rim {
+  font-size: 14px;
+  opacity: 0.6;
+}
 
 body.dark-mode .home-sunpath-sphere { stroke-opacity: 0.45; }
 
@@ -1984,7 +1990,6 @@ body.constellation .home-sunpath-sphere {
 body.constellation .home-sunpath-graticule { stroke: rgba(245, 240, 232, 0.20); }
 body.constellation .home-sunpath-graticule--tropic { stroke: rgba(245, 240, 232, 0.12); }
 body.constellation .home-sunpath-halo { fill: rgba(244, 195, 106, 0.40); }
-body.constellation .home-sunpath-rim  { fill: rgba(244, 195, 106, 0.7); }
 
 /* Per-turning palette for the kanji-as-sun. */
 .home-sunpath-link[data-turning="spring-equinox"]  .home-sunpath-kanji-sun { fill: #74B495; }
