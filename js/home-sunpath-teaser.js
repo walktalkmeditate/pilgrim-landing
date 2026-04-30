@@ -7,7 +7,8 @@
 
    No external deps. Subsolar lon = 15° × (12h − UTC hour); declination
    from a Spencer-style approximation good enough for an 88px sphere.
-   The dot hides itself when the sun is on the back hemisphere.
+   When the sun is on the back hemisphere, a faint marker is pinned to
+   the sphere's limb in the direction the sun lies — never empty.
 
    Updates every minute (gentle, imperceptible drift); kanji refreshes
    hourly so the four-turnings cycle stays current.
@@ -38,7 +39,7 @@
   // Sphere — flat fill; theming via CSS class hooks.
   svg.appendChild(ns('circle', { 'class': 'home-sunpath-sphere', r: R }));
 
-  // Equator + prime-meridian — thin guide lines, only the visible halves.
+  // Equator + prime-meridian — a quiet cross-hair on the visible disc.
   svg.appendChild(ns('line', {
     'class': 'home-sunpath-graticule',
     x1: -R, y1: 0, x2: R, y2: 0
@@ -66,7 +67,8 @@
     var lon = 15 * (12 - hours);
     while (lon > 180)  lon -= 360;
     while (lon < -180) lon += 360;
-    var lat = 23.44 * Math.sin(2 * Math.PI * (dayOfYear(now) - 81) / 365);
+    // Day 80 ≈ March 21 (vernal equinox); declination zero there.
+    var lat = 23.44 * Math.sin(2 * Math.PI * (dayOfYear(now) - 80) / 365);
     return { lat: lat, lon: lon };
   }
 

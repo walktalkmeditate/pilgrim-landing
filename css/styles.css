@@ -1972,11 +1972,9 @@ body.constellation #moon-toggle canvas {
   r: 1.6;
 }
 
-body.dark-mode .home-sunpath-sphere {
-  fill: var(--parchment-secondary);
-  stroke: var(--stone);
-  stroke-opacity: 0.40;
-}
+/* Dark mode picks up --parchment-secondary + --stone via the cascade;
+   only the stroke needs to firm up against the deeper paper. */
+body.dark-mode .home-sunpath-sphere { stroke-opacity: 0.40; }
 
 body.constellation .home-sunpath-sphere {
   fill: rgba(40, 36, 30, 0.55);
@@ -2004,7 +2002,7 @@ body.constellation .home-sunpath-sun.home-sunpath-sun--rim { fill: rgba(244, 195
   font-size: 1.15rem;
   font-weight: 400;
   letter-spacing: 0.08em;
-  color: var(--turning-color, var(--stone));
+  color: var(--stone);
   opacity: 0.85;
   user-select: none;
 }
