@@ -192,8 +192,11 @@
   }
 
   function renderTerminatorAndSubsolar() {
+    // Guard: if globe failed to initialize (d3 missing), only update caption.
     var date = activeDate();
     var sub = M.subsolarPoint(date);
+    updateSubsolarCaption(sub, date);
+    if (!projection || typeof d3 === 'undefined') return;
 
     var nightCenter = [sub.lon + 180, -sub.lat];
     var nightCircle = d3.geoCircle().center(nightCenter).radius(90)();
@@ -224,7 +227,6 @@
       }
     }
 
-    updateSubsolarCaption(sub, date);
     renderMonuments();
   }
 
