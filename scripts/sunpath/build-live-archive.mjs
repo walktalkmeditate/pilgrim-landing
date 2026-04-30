@@ -18,6 +18,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TURNING_KEYS } from './permalink-template.mjs';
+import { htmlText } from './escape.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
@@ -49,9 +50,9 @@ function renderArchiveSection(years, byYear, activeYear) {
       if (!t) return null;
       return `          <li class="sunpath-archive-item" data-turning="${k}">
             <a href="/sunpath/${y}-${k}">
-              <span class="sunpath-archive-kanji" aria-hidden="true">${t.kanji}</span>
-              <span class="sunpath-archive-name">${t.name}</span>
-              <span class="sunpath-archive-date">${t.displayDate}</span>
+              <span class="sunpath-archive-kanji" aria-hidden="true">${htmlText(t.kanji)}</span>
+              <span class="sunpath-archive-name">${htmlText(t.name)}</span>
+              <span class="sunpath-archive-date">${htmlText(t.displayDate)}</span>
             </a>
           </li>`;
     }).filter(Boolean).join('\n');

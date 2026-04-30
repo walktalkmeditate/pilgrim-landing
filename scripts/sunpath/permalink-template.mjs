@@ -1,5 +1,9 @@
 // Pure render: turning data + same-year archive → permalink HTML.
-// Output must match the hand-edited HTMLs byte-for-byte for stage 1.
+// HTML attributes go through htmlAttr(); HTML text through htmlText();
+// JSON-LD values through jsonStr() (which provides the surrounding quotes).
+// noscriptIntro is intentionally raw HTML — the data file embeds <strong>.
+
+import { htmlAttr, htmlText, jsonStr } from './escape.mjs';
 
 const TURNING_KEYS = ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'];
 
@@ -18,9 +22,9 @@ export function renderPermalink(data, archive) {
     .filter(Boolean)
     .map((t) => `        <li class="sunpath-archive-item" data-turning="${t.key}">
           <a href="/sunpath/${t.year}-${t.key}">
-            <span class="sunpath-archive-kanji" aria-hidden="true">${t.kanji}</span>
-            <span class="sunpath-archive-name">${t.name}</span>
-            <span class="sunpath-archive-date">${t.displayDate}</span>
+            <span class="sunpath-archive-kanji" aria-hidden="true">${htmlText(t.kanji)}</span>
+            <span class="sunpath-archive-name">${htmlText(t.name)}</span>
+            <span class="sunpath-archive-date">${htmlText(t.displayDate)}</span>
           </a>
         </li>`)
     .join('\n');
@@ -31,13 +35,13 @@ export function renderPermalink(data, archive) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>${data.title}</title>
-  <meta name="description" content="${data.description}">
+  <title>${htmlText(data.title)}</title>
+  <meta name="description" content="${htmlAttr(data.description)}">
 
   <link rel="canonical" href="${canonical}">
 
-  <meta property="og:title" content="${data.ogTitle}">
-  <meta property="og:description" content="${data.ogDescription}">
+  <meta property="og:title" content="${htmlAttr(data.ogTitle)}">
+  <meta property="og:description" content="${htmlAttr(data.ogDescription)}">
   <meta property="og:type" content="website">
   <meta property="og:url" content="${canonical}">
   <meta property="og:image" content="${ogImage}">
@@ -45,8 +49,8 @@ export function renderPermalink(data, archive) {
   <meta property="og:image:height" content="630">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${data.ogTitle}">
-  <meta name="twitter:description" content="${data.twitterDescription}">
+  <meta name="twitter:title" content="${htmlAttr(data.ogTitle)}">
+  <meta name="twitter:description" content="${htmlAttr(data.twitterDescription)}">
   <meta name="twitter:image" content="${ogImage}">
 
   <link rel="icon" href="/assets/favicon.png" type="image/png">
@@ -67,12 +71,12 @@ export function renderPermalink(data, archive) {
     "@graph": [
       {
         "@type": "Article",
-        "headline": "${data.title}",
-        "description": "${data.articleDescription}",
-        "datePublished": "${data.instantUTC}",
-        "dateModified": "${data.dateModified}",
-        "image": "${ogImage}",
-        "mainEntityOfPage": "${canonical}",
+        "headline": ${jsonStr(data.title)},
+        "description": ${jsonStr(data.articleDescription)},
+        "datePublished": ${jsonStr(data.instantUTC)},
+        "dateModified": ${jsonStr(data.dateModified)},
+        "image": ${jsonStr(ogImage)},
+        "mainEntityOfPage": ${jsonStr(canonical)},
         "author": { "@type": "Organization", "name": "Pilgrim", "url": "https://pilgrimapp.org" },
         "publisher": {
           "@type": "Organization",
@@ -82,8 +86,8 @@ export function renderPermalink(data, archive) {
         },
         "about": {
           "@type": "Thing",
-          "name": "${data.schemaAboutName}",
-          "description": "${data.schemaAboutDescription}"
+          "name": ${jsonStr(data.schemaAboutName)},
+          "description": ${jsonStr(data.schemaAboutDescription)}
         }
       },
       {
@@ -91,7 +95,7 @@ export function renderPermalink(data, archive) {
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Pilgrim", "item": "https://pilgrimapp.org" },
           { "@type": "ListItem", "position": 2, "name": "Sun Path", "item": "https://pilgrimapp.org/sunpath" },
-          { "@type": "ListItem", "position": 3, "name": "${data.h1}" }
+          { "@type": "ListItem", "position": 3, "name": ${jsonStr(data.h1)} }
         ]
       }
     ]
@@ -118,9 +122,9 @@ export function renderPermalink(data, archive) {
 
     <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-    <section class="sunpath-section sunpath-section--hero" aria-label="${data.ariaLabel}">
-      <h1 class="sunpath-title">${data.h1}</h1>
-      <p class="sunpath-tagline">${data.tagline}</p>
+    <section class="sunpath-section sunpath-section--hero" aria-label="${htmlAttr(data.ariaLabel)}">
+      <h1 class="sunpath-title">${htmlText(data.h1)}</h1>
+      <p class="sunpath-tagline">${htmlText(data.tagline)}</p>
 
       <noscript>
         <div class="sunpath-noscript">

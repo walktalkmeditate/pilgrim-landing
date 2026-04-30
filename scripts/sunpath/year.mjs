@@ -42,7 +42,6 @@ const TURNING_META = {
     titleSuffix: 'where day equals night, exactly',
     tagline: 'where day equalled night',
     longLine: 'the sun crossed the equator and day equalled night across the Earth',
-    icsSummary: 'Spring Equinox',
     icsBody: 'The sun crosses the equator. Day equals night across the Earth.\\n\\nFrom here, northern days grow until summer solstice.',
     icsAlarm: 'Spring Equinox tomorrow — day will equal night',
     icsCategory: 'Equinox,Astronomy',
@@ -56,7 +55,6 @@ const TURNING_META = {
     titleSuffix: 'the longest light',
     tagline: 'the longest light',
     longLine: 'the sun stood at its furthest north and the northern day reached its longest',
-    icsSummary: 'Summer Solstice',
     icsBody: 'The sun stands at its furthest north. The longest northern day.\\n\\nFrom here, northern days shorten until winter solstice.',
     icsAlarm: 'Summer Solstice tomorrow — the longest light',
     icsCategory: 'Solstice,Astronomy',
@@ -70,7 +68,6 @@ const TURNING_META = {
     titleSuffix: 'the southern crossing',
     tagline: 'the southern crossing',
     longLine: 'the sun crossed the equator again and northern days began to shorten',
-    icsSummary: 'Autumn Equinox',
     icsBody: 'The sun crosses the equator again. Day equals night.\\n\\nFrom here, northern nights grow longer until winter solstice.',
     icsAlarm: 'Autumn Equinox tomorrow — northern days begin to shorten',
     icsCategory: 'Equinox,Astronomy',
@@ -84,7 +81,6 @@ const TURNING_META = {
     titleSuffix: 'the longest dark',
     tagline: 'the longest dark',
     longLine: 'the sun reached its furthest south and the northern night became its longest',
-    icsSummary: 'Winter Solstice',
     icsBody: 'The sun reaches its furthest south. The longest northern night.\\n\\nFrom here, light returns. Northern days grow until summer solstice.',
     icsAlarm: 'Winter Solstice tomorrow — the longest dark, and the turning back toward light',
     icsCategory: 'Solstice,Astronomy',
@@ -306,10 +302,13 @@ async function main() {
   }
   console.log();
 
-  // 2. Empty events skeleton for hand-fill (idempotent).
+  // 2. Empty events skeleton for hand-fill. Always refuses to overwrite
+  //    even with --force — the events file is hand-curated (pilgrimages,
+  //    monuments, facts) and re-running bootstrap should never wipe it.
+  //    To replace, delete the file first.
   console.log('Events skeleton:');
   const eventsPath = resolve(REPO_ROOT, `assets/sunpath/turning-events-${year}.json`);
-  log(await writeIfFresh(eventsPath, JSON.stringify(buildEventsSkeleton(year), null, 2) + '\n', { force, dry }));
+  log(await writeIfFresh(eventsPath, JSON.stringify(buildEventsSkeleton(year), null, 2) + '\n', { force: false, dry }));
   console.log();
 
   // 3. ICS file (regenerable from instants alone).

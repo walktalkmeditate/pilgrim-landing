@@ -83,6 +83,10 @@ async function main() {
   }
 
   const byYear = groupByYear(turnings);
+  if (onlyYear !== null && !byYear.has(onlyYear)) {
+    console.error(`No turning data found for year ${onlyYear} in ${TURNINGS_DIR}.`);
+    process.exit(1);
+  }
   const allResults = [];
   for (const [year, group] of [...byYear.entries()].sort(([a], [b]) => a - b)) {
     const r = await buildYear(year, group, { check, onlyYear });

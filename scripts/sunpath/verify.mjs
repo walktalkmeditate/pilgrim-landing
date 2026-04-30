@@ -188,7 +188,7 @@ function formatFindings(findings) {
 }
 
 async function main() {
-  const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const args = process.argv.slice(2);
   if (args.length > 1) {
     console.error('usage: node scripts/sunpath/verify.mjs [YYYY[-turning-key]]');
     process.exit(1);

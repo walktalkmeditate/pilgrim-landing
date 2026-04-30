@@ -42,8 +42,8 @@
 }
 
 /* Temporal-status pill — past/future hint under the tagline.
-   Hidden via [hidden] when the page sits within ~24h of the turning;
-   sunpath-temporal.js inserts and toggles. */
+   sunpath-temporal.js inserts the pill at runtime; within ~24h of the
+   turning it isn't inserted at all (the flourish takes over). */
 .sunpath-temporal-status {
   display: inline-block;
   margin: -1.4rem auto 2rem;

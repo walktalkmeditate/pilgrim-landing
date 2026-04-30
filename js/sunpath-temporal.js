@@ -11,9 +11,9 @@
    Within ~24 hours of the turning the pill is suppressed and the
    existing flourish (sunpath-turnings.js) takes over.
 
-   Body gets data-temporal-state="past|future" so CSS can subtly
-   shift presentation (we keep the tagline copy fixed though — past
-   tense — since almost all visits land after the turning).
+   Tagline copy stays fixed (past tense) — almost every visit lands
+   after the turning, and reading "where day equalled night" alongside
+   an "ahead" pill is mild enough to leave alone.
    ============================================= */
 
 (function () {
@@ -74,7 +74,6 @@
     pill.appendChild(document.createTextNode(' · ' + phrase + ' ' + suffix));
 
     tagline.parentNode.insertBefore(pill, tagline.nextSibling);
-    document.body.dataset.temporalState = state;
   }
 
   if (document.readyState === 'loading') {
