@@ -66,6 +66,17 @@
     }[turning] || '';
   }
 
+  // Permalink pages pin a year via window.__sunpathForce.date; everywhere
+  // else falls back to the current UTC year. Per-year file lets us add 2027,
+  // 2028… by dropping a new turning-events-{YEAR}.json next to this one.
+  function activeYear() {
+    if (window.__sunpathForce && window.__sunpathForce.date) {
+      var d = new Date(window.__sunpathForce.date);
+      if (!isNaN(d)) return d.getUTCFullYear();
+    }
+    return new Date().getUTCFullYear();
+  }
+
   // --- Render ---------------------------------------------------------------
 
   function init() {
@@ -78,7 +89,7 @@
     container.dataset.turning = turning;
     container.hidden = false;
 
-    fetch('/assets/sunpath/turning-events.json')
+    fetch('/assets/sunpath/turning-events-' + activeYear() + '.json')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.events || !data.events[turning]) return;

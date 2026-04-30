@@ -190,15 +190,23 @@
   }
 
   // --- Layer 7: Cultural turning calendar ---------------------------------
-  // Reads from turning-events.json so the festivals shown here always exist
-  // on their respective permalink pages. Entries without a source are
+  // Reads from turning-events-{YEAR}.json so the festivals shown here always
+  // exist on their respective permalink pages. Entries without a source are
   // skipped (cultural-sensitivity rule).
+
+  function activeYear() {
+    if (window.__sunpathForce && window.__sunpathForce.date) {
+      var d = new Date(window.__sunpathForce.date);
+      if (!isNaN(d)) return d.getUTCFullYear();
+    }
+    return new Date().getUTCFullYear();
+  }
 
   function setupFestivals() {
     var container = document.getElementById('sunpath-festivals');
     if (!container) return;
 
-    fetch('/assets/sunpath/turning-events.json')
+    fetch('/assets/sunpath/turning-events-' + activeYear() + '.json')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.events) return;
@@ -219,8 +227,8 @@
           var group = htmlEl('div', 'sunpath-festival-group');
           var heading = htmlEl('h3', 'sunpath-festival-heading');
           var headingLink = document.createElement('a');
-          // Use current year so the link tracks the archive across years.
-          headingLink.href = '/sunpath/' + (new Date()).getUTCFullYear() + '-' + key;
+          // Use the active year (permalink: page year; live: current year).
+          headingLink.href = '/sunpath/' + activeYear() + '-' + key;
           headingLink.className = 'sunpath-festival-heading-link';
           headingLink.dataset.turning = key;
           headingLink.textContent = labels[key];
