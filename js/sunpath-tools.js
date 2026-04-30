@@ -117,7 +117,7 @@
     var monuments = window.__sunpathMonuments || [];
     if (!monuments.length) {
       // Try to fetch lazily.
-      fetch('/assets/sunpath/monuments.json', { cache: 'force-cache' })
+      fetch('/assets/sunpath/monuments.json')
         .then(function (r) { return r.json(); })
         .then(function (data) {
           window.__sunpathMonuments = data;
@@ -195,7 +195,7 @@
     var container = document.getElementById('sunpath-festivals');
     if (!container) return;
 
-    fetch('/assets/sunpath/festivals.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/festivals.json')
       .then(function (r) { return r.json(); })
       .then(function (festivals) {
         clearChildren(container);
@@ -244,7 +244,7 @@
     var container = document.getElementById('sunpath-analemma');
     if (!container) return;
 
-    fetch('/assets/sunpath/cities.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/cities.json')
       .then(function (r) { return r.json(); })
       .then(function (cities) {
         var picker = htmlEl('div', 'sunpath-city-picker');
@@ -492,7 +492,7 @@
     var container = document.getElementById('sunpath-daylight');
     if (!container) return;
 
-    fetch('/assets/sunpath/cities.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/cities.json')
       .then(function (r) { return r.json(); })
       .then(function (cities) {
         clearChildren(container);

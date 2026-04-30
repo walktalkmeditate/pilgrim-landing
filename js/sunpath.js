@@ -167,7 +167,7 @@
     globeSvg.addEventListener('pointerleave', onDragEnd);
 
     // Land geometry — async.
-    fetch('/assets/sunpath/land-110m.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/land-110m.json')
       .then(function (r) { return r.json(); })
       .then(function (topology) {
         if (!topology || !topology.objects || !topology.objects.land) return;
@@ -178,7 +178,7 @@
       .catch(function (err) { console.warn('land geojson failed', err); });
 
     // Monuments — async.
-    fetch('/assets/sunpath/monuments.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/monuments.json')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         monuments = data;

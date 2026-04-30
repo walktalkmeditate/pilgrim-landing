@@ -78,7 +78,7 @@
     container.dataset.turning = turning;
     container.hidden = false;
 
-    fetch('/assets/sunpath/turning-events.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/turning-events.json')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.events || !data.events[turning]) return;
@@ -143,6 +143,9 @@
       event.pilgrimages.forEach(function (p) {
         var li = htmlEl('li', 'sunpath-flourish-pilgrimage');
         li.appendChild(htmlEl('span', 'sunpath-flourish-pilgrimage-name', p.name));
+        if (p.tradition) {
+          li.appendChild(htmlEl('span', 'sunpath-flourish-pilgrimage-tradition', p.tradition));
+        }
         li.appendChild(htmlEl('span', 'sunpath-flourish-pilgrimage-where', p.where));
         li.appendChild(htmlEl('p', 'sunpath-flourish-pilgrimage-what', p.what));
         if (p.source) {

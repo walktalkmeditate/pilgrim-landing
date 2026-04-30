@@ -1245,3 +1245,19 @@ body.constellation .sunpath-pill--free {
 body.constellation .sunpath-pill--oss {
   color: #D2A471;
 }
+
+.sunpath-flourish-pilgrimage-tradition {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--turning-color) 60%, transparent);
+  background: color-mix(in srgb, var(--turning-color) 10%, transparent);
+  color: var(--turning-color);
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
