@@ -1089,6 +1089,7 @@ body.constellation .sunpath-flourish-app-note {
 .sunpath-ics {
   margin: 0 0 1.6rem;
   font-size: 0.92rem;
+  text-align: center;
 }
 
 .sunpath-ics a {
@@ -1126,8 +1127,12 @@ body.constellation .sunpath-ics a:hover {
   padding: 0;
   margin: 0 0 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.7rem;
+}
+
+@media (max-width: 540px) {
+  .sunpath-archive-list { grid-template-columns: 1fr; }
 }
 
 .sunpath-archive-item[data-turning="spring-equinox"]  { --turning-color: #74B495; }
