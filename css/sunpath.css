@@ -41,6 +41,24 @@
   margin: 0 0 2.2rem;
 }
 
+.sunpath-noscript {
+  max-width: 540px;
+  margin: 0 auto 2.4rem;
+  padding: 1.1rem 1.4rem;
+  border: 1px solid rgba(168, 155, 138, 0.35);
+  border-radius: 6px;
+  background: rgba(246, 241, 230, 0.6);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--stone);
+  text-align: left;
+}
+
+.sunpath-noscript p { margin: 0 0 0.6rem; }
+.sunpath-noscript p:last-child { margin-bottom: 0; }
+.sunpath-noscript strong { font-weight: 400; font-style: italic; color: var(--ink); }
+
 /* --- Globe --- */
 
 .sunpath-globe-wrap {

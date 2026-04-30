@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!--
+  Renders assets/og-{year}-{turning}.png (1200×630).
+
+  Parametric — pass via query string:
+    ?key=spring-equinox&year=2026
+    ?key=summer-solstice&year=2026
+    ?key=autumn-equinox&year=2026
+    ?key=winter-solstice&year=2026
+
+  Driver: bash scripts/build-og-sunpath.sh
+
+  All bottom content sits at y<=560 — Chrome headless clips ~40-50px
+  below the page's rendered baseline, even with a 670px window.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Render og-turning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Noto+Serif+JP:wght@400;500&family=Lato:wght@300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #F6F1E6; }
+    svg { display: block; width: 1200px; height: 630px; background: #F6F1E6; }
+  </style>
+</head>
+<body>
+  <svg id="og" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630"></svg>
+
+  <script>
+    var TURNINGS = {
+      'spring-equinox': {
+        kanji: '春分',
+        name: 'Spring Equinox',
+        accent: '#74B495',
+        tagline: 'where day equals night',
+        date: '20 March, 14:46 UTC',
+        motif: 'equator'
+      },
+      'summer-solstice': {
+        kanji: '夏至',
+        name: 'Summer Solstice',
+        accent: '#C9A646',
+        tagline: 'the longest light',
+        date: '21 June, 08:26 UTC',
+        motif: 'highArc'
+      },
+      'autumn-equinox': {
+        kanji: '秋分',
+        name: 'Autumn Equinox',
+        accent: '#8B4455',
+        tagline: 'where night begins to lengthen',
+        date: '23 September, 00:06 UTC',
+        motif: 'equator'
+      },
+      'winter-solstice': {
+        kanji: '冬至',
+        name: 'Winter Solstice',
+        accent: '#2378A4',
+        tagline: 'the longest night',
+        date: '21 December, 20:51 UTC',
+        motif: 'lowArc'
+      }
+    };
+
+    function qs(k) {
+      var m = location.search.match(new RegExp('[?&]' + k + '=([^&]+)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+
+    var key = qs('key') || 'spring-equinox';
+    var year = qs('year') || '2026';
+    var dateOverride = qs('date');
+    var t = TURNINGS[key];
+    if (!t) throw new Error('unknown turning key: ' + key);
+
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+    var svg = document.getElementById('og');
+
+    function el(tag, attrs, children) {
+      var n = document.createElementNS(SVG_NS, tag);
+      if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
+      if (children) children.forEach(function (c) { n.appendChild(c); });
+      return n;
+    }
+    function text(x, y, str, attrs) {
+      var n = el('text', Object.assign({ x: x, y: y }, attrs || {}));
+      n.textContent = str;
+      return n;
+    }
+
+    var defs = el('defs');
+
+    var bgGrad = el('radialGradient', { id: 'bg', cx: '78%', cy: '82%', r: '95%' });
+    bgGrad.appendChild(el('stop', { offset: '0%',  'stop-color': t.accent, 'stop-opacity': '0.18' }));
+    bgGrad.appendChild(el('stop', { offset: '55%', 'stop-color': t.accent, 'stop-opacity': '0.05' }));
+    bgGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#F6F1E6', 'stop-opacity': '0' }));
+    defs.appendChild(bgGrad);
+
+    var sunGrad = el('radialGradient', { id: 'sun', cx: '50%', cy: '50%', r: '50%' });
+    sunGrad.appendChild(el('stop', { offset: '0%',  'stop-color': t.accent, 'stop-opacity': '0.55' }));
+    sunGrad.appendChild(el('stop', { offset: '55%', 'stop-color': t.accent, 'stop-opacity': '0.18' }));
+    sunGrad.appendChild(el('stop', { offset: '100%', 'stop-color': t.accent, 'stop-opacity': '0' }));
+    defs.appendChild(sunGrad);
+
+    svg.appendChild(defs);
+
+    svg.appendChild(el('rect', { width: 1200, height: 630, fill: '#F6F1E6' }));
+    svg.appendChild(el('rect', { width: 1200, height: 630, fill: 'url(#bg)' }));
+
+    // --- horizon rules (book-colophon style) ---
+    svg.appendChild(el('line', {
+      x1: 120, y1: 80, x2: 1080, y2: 80,
+      stroke: '#A89B8A', 'stroke-width': 0.6, 'stroke-opacity': 0.45
+    }));
+
+    // --- title stack: eyebrow + kanji + name + year ---
+    svg.appendChild(text(600, 116, 'PILGRIMAPP.ORG · SUN PATH', {
+      'text-anchor': 'middle',
+      'font-family': "'Lato', -apple-system, sans-serif",
+      'font-size': 14, 'font-weight': 300, 'letter-spacing': '0.34em',
+      fill: '#A89B8A'
+    }));
+
+    svg.appendChild(text(600, 250, t.kanji, {
+      'text-anchor': 'middle',
+      'font-family': "'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif",
+      'font-size': 130, 'font-weight': 500,
+      fill: t.accent,
+      'fill-opacity': 0.92
+    }));
+
+    svg.appendChild(text(600, 330, t.name, {
+      'text-anchor': 'middle',
+      'font-family': "'Cormorant Garamond', Georgia, serif",
+      'font-size': 70, 'font-weight': 400, 'font-style': 'italic',
+      fill: '#3C2E24'
+    }));
+
+    svg.appendChild(text(600, 372, year, {
+      'text-anchor': 'middle',
+      'font-family': "'Cormorant Garamond', Georgia, serif",
+      'font-size': 28, 'font-weight': 400, 'font-style': 'italic',
+      fill: '#6E5B47',
+      'letter-spacing': '0.18em'
+    }));
+
+    // --- motif: a quiet sun arc/line with a single sun glyph ---
+    var arcAttrs = {
+      fill: 'none',
+      stroke: t.accent,
+      'stroke-opacity': 0.55,
+      'stroke-width': 1.4,
+      'stroke-linecap': 'round'
+    };
+    // Anchor motif at y=470 with apex variation by turning.
+    var motifBase = 475;
+    if (t.motif === 'highArc') {
+      svg.appendChild(el('path', Object.assign({}, arcAttrs, {
+        d: 'M 280,' + motifBase + ' Q 600,415 920,' + motifBase
+      })));
+    } else if (t.motif === 'lowArc') {
+      svg.appendChild(el('path', Object.assign({}, arcAttrs, {
+        d: 'M 320,' + motifBase + ' Q 600,495 880,' + motifBase
+      })));
+    } else {
+      svg.appendChild(el('line', Object.assign({}, arcAttrs, {
+        x1: 280, y1: motifBase, x2: 920, y2: motifBase
+      })));
+    }
+
+    // Sun glyph at apex of motif — equinox sits on the line.
+    var sunCy = motifBase;
+    if (t.motif === 'highArc') sunCy = 415;
+    else if (t.motif === 'lowArc') sunCy = 495;
+
+    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 32, fill: 'url(#sun)' }));
+    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 5, fill: t.accent }));
+    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 1.8, fill: '#FFF6E0' }));
+
+    // --- bottom band: tagline + date ---
+    // Chrome headless caps SVG rendering near y=580; keep both above that.
+    svg.appendChild(text(600, 535, t.tagline, {
+      'text-anchor': 'middle',
+      'font-family': "'Cormorant Garamond', Georgia, serif",
+      'font-size': 26, 'font-weight': 400, 'font-style': 'italic',
+      fill: '#6E5B47'
+    }));
+    svg.appendChild(text(600, 565, (dateOverride || t.date), {
+      'text-anchor': 'middle',
+      'font-family': "'Lato', -apple-system, sans-serif",
+      'font-size': 13, 'font-weight': 300, 'letter-spacing': '0.30em',
+      fill: '#A89B8A'
+    }));
+  </script>
+</body>
+</html>

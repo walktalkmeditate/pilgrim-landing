@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--
+  Renders assets/og-sunpath.png (1200×630) via Chrome headless.
+
+  Run from repo root:
+    bash scripts/build-og-sunpath.sh
+
+  Keep this file in sync with the page's brand (Cormorant + Lato,
+  warm-paper background, gold subsolar dot).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Render og-sunpath</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Lato:wght@300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #F6F1E6; }
+    svg { display: block; width: 1200px; height: 630px; }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+    <defs>
+      <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#F4C36A" stop-opacity="0.95"/>
+        <stop offset="55%" stop-color="#E0A754" stop-opacity="0.40"/>
+        <stop offset="100%" stop-color="#E0A754" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="globe" cx="35%" cy="35%" r="70%">
+        <stop offset="0%"  stop-color="#F2EAD8"/>
+        <stop offset="60%" stop-color="#E6DCC4"/>
+        <stop offset="100%" stop-color="#C9BB9B"/>
+      </radialGradient>
+      <linearGradient id="terminator" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"  stop-color="#3C2E24" stop-opacity="0.0"/>
+        <stop offset="50%" stop-color="#3C2E24" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#3C2E24" stop-opacity="0.30"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="1200" height="630" fill="#F6F1E6"/>
+
+    <!-- Faint horizon line, like a colophon rule -->
+    <line x1="120" y1="92" x2="1080" y2="92" stroke="#A89B8A" stroke-width="0.6" stroke-opacity="0.45"/>
+
+    <!-- Globe — left third -->
+    <g transform="translate(310 315)">
+      <circle r="186" fill="url(#globe)" stroke="#A89B8A" stroke-width="1.1" stroke-opacity="0.55"/>
+      <!-- Simple latitude/longitude graticule for elegance -->
+      <g stroke="#A89B8A" stroke-opacity="0.30" fill="none" stroke-width="0.6">
+        <ellipse rx="186" ry="48"/>
+        <ellipse rx="186" ry="96"/>
+        <ellipse rx="186" ry="144"/>
+        <ellipse rx="48"  ry="186"/>
+        <ellipse rx="96"  ry="186"/>
+        <ellipse rx="144" ry="186"/>
+      </g>
+      <!-- Day/night terminator arc -->
+      <path d="M 0,-186 A 130,186 0 0 1 0,186 A 186,186 0 0 0 0,-186 Z"
+            fill="url(#terminator)"/>
+      <!-- Subsolar warm halo + dot -->
+      <circle cx="-58" cy="-30" r="58" fill="url(#sun)"/>
+      <circle cx="-58" cy="-30" r="6"  fill="#E89B3C"/>
+      <circle cx="-58" cy="-30" r="2"  fill="#FFF6E0"/>
+    </g>
+
+    <!-- Title block — right two-thirds -->
+    <g>
+      <!-- Tiny eyebrow -->
+      <text x="585" y="232"
+            font-family="'Lato', -apple-system, sans-serif"
+            font-size="14"
+            font-weight="300"
+            letter-spacing="0.34em"
+            fill="#A89B8A">PILGRIMAPP.ORG · SUN PATH</text>
+
+      <!-- Display title -->
+      <text x="585" y="338"
+            font-family="'Cormorant Garamond', Georgia, serif"
+            font-size="120"
+            font-weight="400"
+            font-style="italic"
+            fill="#3C2E24">Sun Path</text>
+
+      <!-- Tagline -->
+      <text x="585" y="396"
+            font-family="'Cormorant Garamond', Georgia, serif"
+            font-size="34"
+            font-weight="400"
+            font-style="italic"
+            fill="#6E5B47">where light meets land, right now</text>
+
+      <!-- Quiet specifics -->
+      <text x="585" y="448"
+            font-family="'Lato', -apple-system, sans-serif"
+            font-size="15"
+            font-weight="300"
+            fill="#8A7A66">a real-time map of the sun · ancient monuments · the four turnings</text>
+    </g>
+
+  </svg>
+</body>
+</html>

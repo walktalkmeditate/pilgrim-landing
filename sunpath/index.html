@@ -14,7 +14,7 @@
   <meta property="og:description" content="A real-time map of the sun's path. Ancient monuments, the cultural calendar of turnings, every day of the year.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://pilgrimapp.org/sunpath">
-  <meta property="og:image" content="https://pilgrimapp.org/assets/og-image.png">
+  <meta property="og:image" content="https://pilgrimapp.org/assets/og-sunpath.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
@@ -22,7 +22,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Sun Path">
   <meta name="twitter:description" content="A real-time map of where the sun stands. Ancient monuments and the cultural calendar of turnings.">
-  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-image.png">
+  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-sunpath.png">
 
   <link rel="icon" href="/assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/pilgrim-logo.png">
@@ -36,6 +36,38 @@
 
   <!-- Analytics -->
   <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://pilgrimapp.org/sunpath#website",
+        "url": "https://pilgrimapp.org/sunpath",
+        "name": "Sun Path",
+        "description": "A real-time map of where the sun stands. Ancient sun-aligned monuments, the cultural calendar of turnings, every day of the year.",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://pilgrimapp.org#org" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://pilgrimapp.org#org",
+        "name": "Pilgrim",
+        "url": "https://pilgrimapp.org",
+        "logo": "https://pilgrimapp.org/assets/pilgrim-logo.png"
+      },
+      {
+        "@type": "WebPage",
+        "url": "https://pilgrimapp.org/sunpath",
+        "name": "Sun Path — where light meets land, right now",
+        "description": "A real-time map of where the sun stands. With ancient sun-aligned monuments, the cultural calendar of turnings, and a quiet line on solstice and equinox days.",
+        "isPartOf": { "@id": "https://pilgrimapp.org/sunpath#website" },
+        "primaryImageOfPage": "https://pilgrimapp.org/assets/og-sunpath.png"
+      }
+    ]
+  }
+  </script>
 </head>
 <body class="sunpath-body">
 
@@ -56,6 +88,13 @@
     <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stands now">
       <h1 class="sunpath-title">Sun Path</h1>
       <p class="sunpath-tagline">where light meets land, right now</p>
+
+      <noscript>
+        <div class="sunpath-noscript">
+          <p>The live globe, time machine, and analemma need JavaScript to draw themselves.</p>
+          <p>Below: the four turnings of the year, and a calendar file you can download.</p>
+        </div>
+      </noscript>
 
       <div class="sunpath-globe-wrap" id="sunpath-globe">
         <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
