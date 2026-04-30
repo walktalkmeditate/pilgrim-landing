@@ -1,0 +1,25 @@
+{
+  "year": 2027,
+  "events": {
+    "spring-equinox": {
+      "facts": [],
+      "monuments": [],
+      "pilgrimages": []
+    },
+    "summer-solstice": {
+      "facts": [],
+      "monuments": [],
+      "pilgrimages": []
+    },
+    "autumn-equinox": {
+      "facts": [],
+      "monuments": [],
+      "pilgrimages": []
+    },
+    "winter-solstice": {
+      "facts": [],
+      "monuments": [],
+      "pilgrimages": []
+    }
+  }
+}

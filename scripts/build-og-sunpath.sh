@@ -52,8 +52,26 @@ echo "rendering Sun Path OG images (year=$YEAR)…"
 render "file://$SCRIPTS/render-og-sunpath.html" \
        "$ASSETS/og-sunpath.png"
 
+# URL-encode a string for use as a query-string value.
+urlencode() {
+  python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))"
+}
+
+# For each turning, pull the displayDate out of the year's data file so
+# the OG image's date string matches the turning's actual UTC instant
+# (otherwise we'd render every year with 2026's dates baked into the
+# template defaults). Falls back to the template default if the file is
+# missing (e.g. running for an unseeded year).
 for KEY in spring-equinox summer-solstice autumn-equinox winter-solstice; do
-  render "file://$SCRIPTS/render-og-turning.html?key=$KEY&year=$YEAR" \
+  DATA="$ROOT/assets/sunpath/turnings/$YEAR-$KEY.json"
+  DATE_PARAM=""
+  if [ -f "$DATA" ]; then
+    DATE=$(python3 -c "import json; print(json.load(open('$DATA'))['displayDate'])")
+    if [ -n "$DATE" ]; then
+      DATE_PARAM="&date=$(printf '%s' "$DATE" | urlencode)"
+    fi
+  fi
+  render "file://$SCRIPTS/render-og-turning.html?key=$KEY&year=$YEAR$DATE_PARAM" \
          "$ASSETS/og-$YEAR-$KEY.png"
 done
 

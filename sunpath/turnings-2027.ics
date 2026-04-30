@@ -1,0 +1,73 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pilgrim//Sun Path//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Sun Path — Four Turnings 2027
+X-WR-CALDESC:The four hinges of the year — solstices and equinoxes — at their exact UTC instants. From pilgrimapp.org/sunpath.
+
+BEGIN:VEVENT
+UID:turning-spring-equinox-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270320T202600Z
+DTEND:20270320T212600Z
+SUMMARY:Spring Equinox 2027 · 春分
+DESCRIPTION:The sun crosses the equator. Day equals night across the Earth.\n\nFrom here, northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-spring-equinox
+URL:https://pilgrimapp.org/sunpath/2027-spring-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Spring Equinox tomorrow — day will equal night
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-summer-solstice-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270621T141100Z
+DTEND:20270621T151100Z
+SUMMARY:Summer Solstice 2027 · 夏至
+DESCRIPTION:The sun stands at its furthest north. The longest northern day.\n\nFrom here, northern days shorten until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-summer-solstice
+URL:https://pilgrimapp.org/sunpath/2027-summer-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Summer Solstice tomorrow — the longest light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-autumn-equinox-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270923T060200Z
+DTEND:20270923T070200Z
+SUMMARY:Autumn Equinox 2027 · 秋分
+DESCRIPTION:The sun crosses the equator again. Day equals night.\n\nFrom here, northern nights grow longer until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-autumn-equinox
+URL:https://pilgrimapp.org/sunpath/2027-autumn-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Autumn Equinox tomorrow — northern days begin to shorten
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-winter-solstice-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20271222T024300Z
+DTEND:20271222T034300Z
+SUMMARY:Winter Solstice 2027 · 冬至
+DESCRIPTION:The sun reaches its furthest south. The longest northern night.\n\nFrom here, light returns. Northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-winter-solstice
+URL:https://pilgrimapp.org/sunpath/2027-winter-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Winter Solstice tomorrow — the longest dark, and the turning back toward light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+END:VCALENDAR
