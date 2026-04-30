@@ -2,24 +2,214 @@
   "year": 2027,
   "events": {
     "spring-equinox": {
-      "facts": [],
-      "monuments": [],
-      "pilgrimages": []
+      "facts": [
+        { "label": "Day length at the equator today", "value": "12h 06m" },
+        { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
+        { "label": "Sun rises due east, sets due west", "value": "everywhere on Earth" }
+      ],
+      "monuments": ["chichen-itza", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Sizdah Bedar",
+          "tradition": "Persian / Iranian",
+          "where": "Iran and the Persian diaspora — parks, riverbanks",
+          "what": "Thirteenth day of Nowruz. Families walk into nature, scatter sprouted lentils into running water, and walk home renewed.",
+          "source": "UNESCO ICH listing for Nowruz (2009, expanded 2016)"
+        },
+        {
+          "name": "Chichen Itza serpent shadow",
+          "tradition": "Maya / archaeoastronomy",
+          "where": "Yucatán, Mexico",
+          "what": "Thousands gather in the late afternoon (~16:00–17:30 local) to watch the serpent shadow descend the Pyramid of Kukulkan. The shadow connects to the carved feathered-serpent at the staircase base.",
+          "source": "INAH (Instituto Nacional de Antropología e Historia)"
+        },
+        {
+          "name": "Higan-e 春彼岸",
+          "tradition": "Japanese Buddhist",
+          "where": "Japan — temples and ancestral grave sites",
+          "what": "A seven-day observance centered on the equinox. 'Higan' means 'the other shore' — the realm of enlightenment. Families walk to ancestral graves, clean them, leave offerings, and walk home together.",
+          "source": "Reader, Religion in Contemporary Japan (1991)"
+        },
+        {
+          "name": "Holi processions",
+          "tradition": "Hindu",
+          "where": "India, Nepal, and the Hindu diaspora — streets, courtyards, public squares",
+          "what": "In 2027 the full moon of Phalguna falls on March 22 — only two days after the equinox itself. Bonfires the night before (Holika Dahan), then walking processions through streets in the morning, neighbors greeting one another with handfuls of colored powder. Spring's victory over winter, and Vishnu's protection of Prahlada.",
+          "source": "Britannica; Doniger, The Hindus: An Alternative History (2009)"
+        }
+      ]
     },
     "summer-solstice": {
-      "facts": [],
-      "monuments": [],
-      "pilgrimages": []
+      "facts": [
+        { "label": "Daylight at 70°N today", "value": "24h — sun never sets" },
+        { "label": "Daylight at Reykjavík (64°N)", "value": "≈ 21h 22m" },
+        { "label": "Daylight at the equator", "value": "12h 06m, unchanged" },
+        { "label": "Tropic of Cancer — sun directly overhead", "value": "23.4°N at solar noon" }
+      ],
+      "monuments": ["stonehenge", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Stonehenge sunrise gathering",
+          "tradition": "British / open-access",
+          "where": "Salisbury Plain, England",
+          "what": "Open-access dawn vigil organized by English Heritage. Thousands walk the avenue from the Heel Stone to the centre as the sun rises.",
+          "source": "English Heritage"
+        },
+        {
+          "name": "Midsommar processions",
+          "tradition": "Scandinavian",
+          "where": "Sweden — countryside and town greens",
+          "what": "Public holiday on the Friday between Jun 19–25. Walks to a maypole in the country, dancing, picking seven kinds of flower in silence on the walk home.",
+          "source": "Schön, Sveriges Sed och Tradition (2000)"
+        },
+        {
+          "name": "Saint John's Eve",
+          "tradition": "Catholic / Eastern Orthodox",
+          "where": "Spain, Portugal, Latin America, Catalonia, Quebec, Eastern Europe",
+          "what": "Night of June 23–24. Walks to bonfires on hilltops and beaches; in some regions, walks to wells dedicated to Saint John for ritual washing at dawn.",
+          "source": "Frazer, The Golden Bough (1915); IberCronos folklore archives"
+        },
+        {
+          "name": "Joninės",
+          "tradition": "Lithuanian",
+          "where": "Lithuania — forests, lakeshores, hilltops",
+          "what": "Pre-dawn walks through midsummer forest in search of the mythical fern flower that blooms only on this one night. Bonfires, wreaths, river crossings.",
+          "source": "UNESCO ICH; Vyšniauskaitė, Lietuvių etnografija"
+        },
+        {
+          "name": "Kupala Night",
+          "tradition": "Slavic (Polish, Ukrainian, Belarusian)",
+          "where": "Ukraine, Poland, Belarus — riversides, lakeshores, forest clearings",
+          "what": "Night of June 23–24 in the Western Slavic countries (July 6–7 on the Julian reckoning kept in parts of Belarus and Russia). Walks to the river at dusk: young women weave wildflower wreaths and float them downstream by candlelight, jumping over bonfires, walks into the forest at midnight to look for the fern flower that blooms only on this night.",
+          "source": "Ivanits, Russian Folk Belief (1989); Tryfanenkava, FOLKLORICA (2001)"
+        },
+        {
+          "name": "Matariki",
+          "tradition": "Māori",
+          "where": "Aotearoa New Zealand — hilltops, headlands, marae",
+          "what": "Southern Hemisphere midwinter — the heliacal rising of the Pleiades cluster, observed at dawn. Pre-dawn gatherings on high ground to watch the stars rise; remembering those who have died in the past year, releasing their names to the heavens; offerings of food to the stars. A New Zealand public holiday since 2022 — June 25 in 2027.",
+          "source": "Mātāmua, Matariki: The Star of the Year (2nd ed., 2018); Te Papa Tongarewa Museum of New Zealand"
+        },
+        {
+          "name": "Inti Raymi",
+          "tradition": "Inca / Andean (Southern Hemisphere winter solstice)",
+          "where": "Cusco, Peru — Qoricancha to Sacsayhuamán",
+          "what": "Multi-day procession at the Andean winter solstice (June 24). Walking the route from the Qoricancha sun temple through the Plaza de Armas up to Sacsayhuamán at dawn — the rite of 'tying the sun' against further descent. Quechua language, traditional dress.",
+          "source": "Bauer and Dearborn, Astronomy and Empire in the Ancient Andes (1995)"
+        }
+      ]
     },
     "autumn-equinox": {
-      "facts": [],
-      "monuments": [],
-      "pilgrimages": []
+      "facts": [
+        { "label": "Day length at the equator", "value": "12h 06m" },
+        { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
+        { "label": "From here, northern nights grow longer", "value": "until winter solstice" }
+      ],
+      "monuments": ["chichen-itza", "cahokia"],
+      "pilgrimages": [
+        {
+          "name": "Higan-e 秋彼岸",
+          "tradition": "Japanese Buddhist",
+          "where": "Japan — temples and ancestral grave sites",
+          "what": "The autumn counterpart to the spring observance. Seven days centered on the equinox; families walk to ancestral graves to clean and offer, walk home together. The day equals the night — a bridge to 'the other shore'.",
+          "source": "Reader, Religion in Contemporary Japan (1991)"
+        },
+        {
+          "name": "Chuseok (beolcho)",
+          "tradition": "Korean",
+          "where": "Korea — ancestral graves, family homes",
+          "what": "Walking out to ancestral graves to clear them — the act called beolcho. Returning home to share harvest food and watch the round moon rise.",
+          "source": "Lee, Korean Folk Belief and Folktales (2008)"
+        },
+        {
+          "name": "Mid-Autumn Festival lantern walks 中秋節",
+          "tradition": "East Asian",
+          "where": "China, Vietnam, Hong Kong, Taiwan, diaspora communities worldwide",
+          "what": "On September 15 in 2027 — the 15th day of the 8th lunar month, just over a week before the equinox. Lantern walks at dusk under the harvest moon. Children carry paper lanterns through neighborhoods and parks. Adults walk to high places to see the moon rise complete.",
+          "source": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts (1991)"
+        },
+        {
+          "name": "Sukkot pilgrimage walks",
+          "tradition": "Jewish",
+          "where": "Jerusalem and worldwide Jewish communities; sukkah-to-sukkah visits",
+          "what": "One of the three biblical pilgrim festivals (shalosh regalim). In 2027 Sukkot begins at sundown on October 15 and ends at nightfall on October 22. In modern observance, walking from sukkah to sukkah in a community, sharing a meal in each.",
+          "source": "Mishnah, Sukkah; Jewish Theological Seminary"
+        },
+        {
+          "name": "Sharad Navratri pilgrimage",
+          "tradition": "Hindu",
+          "where": "India and the Hindu diaspora — Devi temples (Vaishno Devi, Ambaji, Kalighat)",
+          "what": "Nine nights of walking pilgrimage and dance, beginning around the equinox. Devotees walk to mountain shrines of the goddess; in Gujarat, all-night garba processions through public squares.",
+          "source": "Eck, India: A Sacred Geography (2012)"
+        }
+      ]
     },
     "winter-solstice": {
-      "facts": [],
-      "monuments": [],
-      "pilgrimages": []
+      "facts": [
+        { "label": "Newgrange chamber illumination", "value": "≈ 09:00 local, ~17 minutes" },
+        { "label": "Daylight at the Arctic Circle (66.5°N)", "value": "0h — polar night" },
+        { "label": "Daylight at Tromsø (70°N)", "value": "0h — sun stays below horizon" },
+        { "label": "From here, light returns", "value": "northern days grow until summer solstice" }
+      ],
+      "monuments": ["newgrange", "karnak", "goseck"],
+      "pilgrimages": [
+        {
+          "name": "Newgrange dawn lottery",
+          "tradition": "Irish prehistoric / open-access",
+          "where": "Brú na Bóinne, Ireland",
+          "what": "A handful of winners (drawn months in advance) enter the chamber at dawn to witness sunlight reach the burial stone for ~17 minutes — the design intent of a 5,200-year-old monument.",
+          "source": "Heritage Ireland, OPW"
+        },
+        {
+          "name": "Stonehenge sunset gathering",
+          "tradition": "British / open-access",
+          "where": "Salisbury Plain, England",
+          "what": "Less crowded than midsummer. Walkers gather to watch the sun set behind the great trilithon, then walk back through the avenue at dusk.",
+          "source": "English Heritage"
+        },
+        {
+          "name": "Dongzhi 冬至",
+          "tradition": "East Asian",
+          "where": "China, Taiwan, Korea, Vietnam, diaspora",
+          "what": "Family walks to ancestral altars and temple visits to mark the year's deepest dark and the return of yang. Eating tangyuan — round dumplings — together.",
+          "source": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts (1991)"
+        },
+        {
+          "name": "Makara Sankranti / Gangasagar Mela",
+          "tradition": "Hindu",
+          "where": "Sagar Island, West Bengal, India — confluence of Ganges and Bay of Bengal",
+          "what": "Celebrates the sun's start of its northward journey (uttarayana) — astronomically the winter solstice itself, but observed in mid-January (~14 Jan) due to ~23 days of precession lag in the Hindu sidereal calendar. Millions walk to the place where the Ganges meets the sea. One of the largest annual pilgrimages on Earth — second only to Kumbh Mela.",
+          "source": "Eck, India: A Sacred Geography (2012); West Bengal Tourism"
+        },
+        {
+          "name": "Saint Lucia's Day processions",
+          "tradition": "Scandinavian Christian",
+          "where": "Sweden, Norway, Finland — homes, schools, churches",
+          "what": "December 13, just before the solstice. White-robed processions led by a girl wearing a candlelit crown of evergreen, walking through a darkened building bringing light. Old Julian-calendar solstice observance now folded into the Lucia legend.",
+          "source": "Bringéus, Årets festseder (1976); Nordiska museet"
+        },
+        {
+          "name": "Las Posadas",
+          "tradition": "Mexican / Latin American Catholic",
+          "where": "Mexico, Central and South America, southwestern US",
+          "what": "Nine nights of neighborhood processions starting December 16. Walkers go house to house re-enacting Mary and Joseph's search for shelter, singing at each door. Ends Christmas Eve.",
+          "source": "Stevens-Arroyo, in Encyclopedia of Latino Folklore (2012); Sahagún, Florentine Codex (Book II, 16th c.)"
+        },
+        {
+          "name": "Yaldā Night (Shab-e Yaldā)",
+          "tradition": "Persian / Zoroastrian",
+          "where": "Iran, Afghanistan, Tajikistan, and the Persian diaspora",
+          "what": "The longest night, kept awake by family with pomegranates, watermelon, dried fruit, and recitation of Hafez. A vigil rather than a walk — but in some villages, walks between elders' houses through the night.",
+          "source": "UNESCO ICH listing (2022)"
+        },
+        {
+          "name": "Koliada",
+          "tradition": "Slavic (Ukrainian, Belarusian, Polish, Russian, South Slavic)",
+          "where": "Ukraine, Belarus, Poland, Russia, the Balkans — village streets and neighborhood walks",
+          "what": "Caroling processions walking house to house through the long nights between the solstice and Epiphany. Singers in mask and costume sing koliadky at each door — wishes for the sun's return, for the household's harvest — and are given bread, sweets, and coins. Pre-Christian solstice practice folded into Orthodox Christmas.",
+          "source": "Tryfanenkava, 'The Current Status of Belarusian Calendar-Ritual Tradition,' FOLKLORICA (2001); Hubbs, Mother Russia (1988)"
+        }
+      ]
     }
   }
 }

@@ -340,10 +340,12 @@ async function main() {
 
   console.log(`${dry ? '[dry] ' : ''}Done. Year ${year} ${dry ? 'would be' : 'is'} bootstrapped.`);
   if (!dry) {
-    console.log(`\nNext: hand-fill assets/sunpath/turning-events-${year}.json with`);
-    console.log('       facts, monuments, pilgrimages — then re-run with --force to');
-    console.log('       regenerate any data-derived files (or just edit the JSON and');
-    console.log('       run `node scripts/sunpath/build-permalinks.mjs ' + year + '`).');
+    console.log(`\nNext: fill assets/sunpath/turning-events-${year}.json with`);
+    console.log('       facts, monuments, pilgrimages. To pull a research prompt:');
+    console.log(`         node scripts/sunpath/research-prompt.mjs ${year}`);
+    console.log('       Once the events file is filled, refresh derived artifacts:');
+    console.log(`         node scripts/sunpath/build-permalinks.mjs ${year}`);
+    console.log(`         node scripts/sunpath/verify.mjs ${year}`);
   }
 }
 
