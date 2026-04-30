@@ -1,24 +1,23 @@
 /* =============================================
    Home → Sun Path teaser
 
-   A small, real-time mini-globe (orthographic, centered on Greenwich)
-   that tracks where the sun stands right now, paired with the kanji
-   of the next turning. Whole thing links to /sunpath.
+   A single tiny mini-globe (orthographic, centered on Greenwich) where
+   the sun is rendered as the next turning's kanji at the subsolar
+   point. No outer text, no pill — just the glyph that links to /sunpath.
 
-   No external deps. Subsolar lon = 15° × (12h − UTC hour); declination
-   from a Spencer-style approximation good enough for an 88px sphere.
-   When the sun is on the back hemisphere, a faint marker is pinned to
-   the sphere's limb in the direction the sun lies — never empty.
+   Subsolar lon = 15° × (12h − UTC hour). Declination from a Spencer-
+   style approximation (good enough for a 40px sphere). When the sun is
+   on the back hemisphere, the kanji is hidden and a faint dot is pinned
+   to the limb in the direction the sun lies.
 
-   Updates every minute (gentle, imperceptible drift); kanji refreshes
-   hourly so the four-turnings cycle stays current.
+   Updates every minute (gentle drift); kanji refreshes hourly so the
+   four-turnings cycle stays current.
    ============================================= */
 
 (function () {
   'use strict';
 
   var globeMount = document.getElementById('home-sunpath-globe');
-  var kanjiEl = document.getElementById('home-sunpath-kanji');
   if (!globeMount) return;
 
   var SVG_NS = 'http://www.w3.org/2000/svg';
@@ -36,24 +35,52 @@
     'aria-hidden': 'true'
   });
 
-  // Sphere — flat fill; theming via CSS class hooks.
+  // Soft 3D shading on the sphere.
+  var defs = ns('defs');
+  var grad = ns('radialGradient', { id: 'home-sunpath-shade', cx: '32%', cy: '32%', r: '78%' });
+  grad.appendChild(ns('stop', { offset: '0%',   'stop-color': '#000', 'stop-opacity': '0' }));
+  grad.appendChild(ns('stop', { offset: '70%',  'stop-color': '#000', 'stop-opacity': '0.08' }));
+  grad.appendChild(ns('stop', { offset: '100%', 'stop-color': '#000', 'stop-opacity': '0.28' }));
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
   svg.appendChild(ns('circle', { 'class': 'home-sunpath-sphere', r: R }));
+  svg.appendChild(ns('circle', { 'class': 'home-sunpath-shade',  r: R, fill: 'url(#home-sunpath-shade)' }));
 
-  // Equator + prime-meridian — a quiet cross-hair on the visible disc.
+  // Graticule — equator, prime meridian, two tropics (±23.44° lat). The
+  // tropics bracket where the sun ever stands directly overhead.
+  var TROPIC = R * Math.sin(23.44 * Math.PI / 180);
+  var TROPIC_X = R * Math.cos(23.44 * Math.PI / 180);
+
+  svg.appendChild(ns('line', { 'class': 'home-sunpath-graticule', x1: -R, y1: 0, x2: R, y2: 0 }));
+  svg.appendChild(ns('line', { 'class': 'home-sunpath-graticule', x1: 0, y1: -R, x2: 0, y2: R }));
   svg.appendChild(ns('line', {
-    'class': 'home-sunpath-graticule',
-    x1: -R, y1: 0, x2: R, y2: 0
+    'class': 'home-sunpath-graticule home-sunpath-graticule--tropic',
+    x1: -TROPIC_X, y1: -TROPIC, x2: TROPIC_X, y2: -TROPIC
   }));
   svg.appendChild(ns('line', {
-    'class': 'home-sunpath-graticule',
-    x1: 0, y1: -R, x2: 0, y2: R
+    'class': 'home-sunpath-graticule home-sunpath-graticule--tropic',
+    x1: -TROPIC_X, y1: TROPIC, x2: TROPIC_X, y2: TROPIC
   }));
 
-  // Subsolar halo + dot — repositioned each minute.
-  var halo = ns('circle', { 'class': 'home-sunpath-halo', r: 11, cx: 0, cy: 0 });
-  var sun  = ns('circle', { 'class': 'home-sunpath-sun',  r: 3,  cx: 0, cy: 0 });
+  // Warm halo behind the kanji-as-sun.
+  var halo = ns('circle', { 'class': 'home-sunpath-halo', r: 13, cx: 0, cy: 0 });
   svg.appendChild(halo);
-  svg.appendChild(sun);
+
+  // The sun itself — a kanji glyph at the subsolar position (front-side
+  // only). Drops back to a faint dot on the limb when the sun is behind.
+  var kanjiSun = ns('text', {
+    'class': 'home-sunpath-kanji-sun',
+    x: 0, y: 0,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central'
+  });
+  kanjiSun.textContent = '夏'; // sensible default until pickTurning runs
+  svg.appendChild(kanjiSun);
+
+  var rimDot = ns('circle', { 'class': 'home-sunpath-rim', r: 1.7, cx: 0, cy: 0 });
+  rimDot.style.display = 'none';
+  svg.appendChild(rimDot);
 
   globeMount.appendChild(svg);
 
@@ -86,33 +113,30 @@
     var s = subsolar(new Date());
     var p = project(s.lat, s.lon);
     if (p.z > 0) {
-      // Front hemisphere — full warm halo + bright dot at the projected position.
-      sun.setAttribute('cx', p.x.toFixed(2));
-      sun.setAttribute('cy', p.y.toFixed(2));
-      halo.setAttribute('cx', p.x.toFixed(2));
-      halo.setAttribute('cy', p.y.toFixed(2));
-      sun.classList.remove('home-sunpath-sun--rim');
-      sun.style.display = '';
+      // Front hemisphere — kanji rides the subsolar point with a warm halo.
+      var x = p.x.toFixed(2);
+      var y = p.y.toFixed(2);
+      kanjiSun.setAttribute('x', x);
+      kanjiSun.setAttribute('y', y);
+      halo.setAttribute('cx', x);
+      halo.setAttribute('cy', y);
+      kanjiSun.style.display = '';
       halo.style.display = '';
+      rimDot.style.display = 'none';
       return;
     }
-    // Back hemisphere — pin a faint marker on the limb in the direction of
-    // the sun, so the user sees "the sun is just past this edge."
+    // Back hemisphere — kanji can't ride a hidden point; show a faint dot
+    // on the limb in the direction of the sun.
     var len = Math.sqrt(p.x * p.x + p.y * p.y);
+    kanjiSun.style.display = 'none';
+    halo.style.display = 'none';
     if (len < 0.01) {
-      // Subsolar at the antipode of Greenwich + equator; nothing meaningful
-      // to show — just hide.
-      sun.style.display = 'none';
-      halo.style.display = 'none';
+      rimDot.style.display = 'none';
       return;
     }
-    var rx = (R * p.x / len).toFixed(2);
-    var ry = (R * p.y / len).toFixed(2);
-    sun.setAttribute('cx', rx);
-    sun.setAttribute('cy', ry);
-    sun.classList.add('home-sunpath-sun--rim');
-    sun.style.display = '';
-    halo.style.display = 'none';
+    rimDot.setAttribute('cx', (R * p.x / len).toFixed(2));
+    rimDot.setAttribute('cy', (R * p.y / len).toFixed(2));
+    rimDot.style.display = '';
   }
 
   var KANJI = {
@@ -136,17 +160,16 @@
   }
 
   function updateKanji() {
-    if (!kanjiEl) return;
     var t = pickTurning(new Date());
     if (!t) return;
-    kanjiEl.textContent = KANJI[t].kanji;
-    var link = kanjiEl.closest('a');
+    kanjiSun.textContent = KANJI[t].kanji;
+    var link = globeMount.closest('a');
     if (link) link.dataset.turning = KANJI[t].slug;
   }
 
   function init() {
-    updateGlobe();
     updateKanji();
+    updateGlobe();
     setInterval(updateGlobe, 60 * 1000);
     setInterval(updateKanji, 60 * 60 * 1000);
   }

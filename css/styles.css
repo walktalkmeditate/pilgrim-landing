@@ -1914,34 +1914,25 @@ body.constellation #moon-toggle canvas {
 .home-sunpath {
   display: flex;
   justify-content: center;
-  padding: 2rem 1.25rem 3.5rem;
+  padding: 1.5rem 1.25rem 3rem;
 }
 
 .home-sunpath-link {
   display: inline-flex;
-  align-items: center;
-  gap: 0.95rem;
-  padding: 0.55rem 1.25rem 0.55rem 0.7rem;
-  border: 1px solid rgba(168, 155, 138, 0.28);
-  border-radius: 999px;
-  background: transparent;
   text-decoration: none;
-  color: var(--ink);
-  transition: border-color 0.4s ease, transform 0.4s ease, background-color 0.4s ease;
+  opacity: 0.85;
+  transition: opacity 0.6s ease;
 }
 
 .home-sunpath-link:hover,
 .home-sunpath-link:focus-visible {
-  border-color: rgba(168, 155, 138, 0.55);
-  background: rgba(168, 155, 138, 0.06);
-  transform: translateY(-1px);
+  opacity: 1;
 }
 
 .home-sunpath-globe {
   display: inline-flex;
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
 }
 
 .home-sunpath-svg {
@@ -1953,82 +1944,55 @@ body.constellation #moon-toggle canvas {
 .home-sunpath-sphere {
   fill: var(--parchment-secondary);
   stroke: var(--stone);
-  stroke-opacity: 0.30;
-  stroke-width: 0.5;
+  stroke-opacity: 0.35;
+  stroke-width: 0.6;
 }
+
+/* Soft 3D shading layer — purely decorative, no pointer events. */
+.home-sunpath-shade { pointer-events: none; }
 
 .home-sunpath-graticule {
   stroke: var(--stone);
-  stroke-opacity: 0.18;
-  stroke-width: 0.4;
+  stroke-opacity: 0.22;
+  stroke-width: 0.5;
   fill: none;
 }
 
+.home-sunpath-graticule--tropic { stroke-opacity: 0.14; stroke-dasharray: 1.6 1.6; }
+
 .home-sunpath-halo { fill: rgba(232, 155, 60, 0.30); }
-.home-sunpath-sun  { fill: #E89B3C; }
-/* Rim marker — sun is on the back hemisphere; faint dot on the limb. */
-.home-sunpath-sun.home-sunpath-sun--rim {
-  fill: rgba(232, 155, 60, 0.55);
-  r: 1.6;
-}
 
-/* Dark mode picks up --parchment-secondary + --stone via the cascade;
-   only the stroke needs to firm up against the deeper paper. */
-body.dark-mode .home-sunpath-sphere { stroke-opacity: 0.40; }
-
-body.constellation .home-sunpath-sphere {
-  fill: rgba(40, 36, 30, 0.55);
-  stroke: rgba(245, 240, 232, 0.22);
-}
-
-body.constellation .home-sunpath-graticule {
-  stroke: rgba(245, 240, 232, 0.14);
-}
-
-body.constellation .home-sunpath-halo { fill: rgba(244, 195, 106, 0.38); }
-body.constellation .home-sunpath-sun  { fill: #F4C36A; }
-body.constellation .home-sunpath-sun.home-sunpath-sun--rim { fill: rgba(244, 195, 106, 0.65); }
-
-.home-sunpath-meta {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.05rem;
-  line-height: 1.15;
-}
-
-.home-sunpath-kanji {
-  font-family: var(--font-body);
-  font-size: 1.15rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  color: var(--stone);
-  opacity: 0.85;
+/* The sun is the kanji. Coloured per turning, glowing softly via halo. */
+.home-sunpath-kanji-sun {
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  fill: #C9A646;
+  paint-order: stroke;
   user-select: none;
 }
 
-.home-sunpath-link[data-turning="spring-equinox"]  .home-sunpath-kanji { color: #74B495; }
-.home-sunpath-link[data-turning="summer-solstice"] .home-sunpath-kanji { color: #C9A646; }
-.home-sunpath-link[data-turning="autumn-equinox"]  .home-sunpath-kanji { color: #8B4455; }
-.home-sunpath-link[data-turning="winter-solstice"] .home-sunpath-kanji { color: #2378A4; }
+/* Tiny rim dot — only visible when the sun is on the back hemisphere. */
+.home-sunpath-rim { fill: rgba(232, 155, 60, 0.6); }
 
-body.constellation .home-sunpath-link[data-turning="spring-equinox"]  .home-sunpath-kanji { color: #88C4A0; }
-body.constellation .home-sunpath-link[data-turning="summer-solstice"] .home-sunpath-kanji { color: #D5B55D; }
-body.constellation .home-sunpath-link[data-turning="autumn-equinox"]  .home-sunpath-kanji { color: #A26070; }
-body.constellation .home-sunpath-link[data-turning="winter-solstice"] .home-sunpath-kanji { color: #4691BA; }
+body.dark-mode .home-sunpath-sphere { stroke-opacity: 0.45; }
 
-.home-sunpath-text {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1rem;
-  color: var(--ink);
+body.constellation .home-sunpath-sphere {
+  fill: rgba(40, 36, 30, 0.55);
+  stroke: rgba(245, 240, 232, 0.28);
 }
+body.constellation .home-sunpath-graticule { stroke: rgba(245, 240, 232, 0.20); }
+body.constellation .home-sunpath-graticule--tropic { stroke: rgba(245, 240, 232, 0.12); }
+body.constellation .home-sunpath-halo { fill: rgba(244, 195, 106, 0.40); }
+body.constellation .home-sunpath-rim  { fill: rgba(244, 195, 106, 0.7); }
 
-.home-sunpath-sub {
-  font-family: var(--font-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  color: var(--fog);
-  opacity: 0.75;
-  margin-top: 0.1rem;
-}
+/* Per-turning palette for the kanji-as-sun. */
+.home-sunpath-link[data-turning="spring-equinox"]  .home-sunpath-kanji-sun { fill: #74B495; }
+.home-sunpath-link[data-turning="summer-solstice"] .home-sunpath-kanji-sun { fill: #C9A646; }
+.home-sunpath-link[data-turning="autumn-equinox"]  .home-sunpath-kanji-sun { fill: #8B4455; }
+.home-sunpath-link[data-turning="winter-solstice"] .home-sunpath-kanji-sun { fill: #2378A4; }
+
+body.constellation .home-sunpath-link[data-turning="spring-equinox"]  .home-sunpath-kanji-sun { fill: #88C4A0; }
+body.constellation .home-sunpath-link[data-turning="summer-solstice"] .home-sunpath-kanji-sun { fill: #D5B55D; }
+body.constellation .home-sunpath-link[data-turning="autumn-equinox"]  .home-sunpath-kanji-sun { fill: #A26070; }
+body.constellation .home-sunpath-link[data-turning="winter-solstice"] .home-sunpath-kanji-sun { fill: #4691BA; }
