@@ -49,13 +49,18 @@
     dom.scrubLabel = document.getElementById('sunpath-scrub-label');
     dom.tiltInset = document.getElementById('sunpath-tilt');
     dom.monumentList = document.getElementById('sunpath-monuments');
-    dom.monumentDetail = document.getElementById('sunpath-monument-detail');
+    dom.popover = document.getElementById('sunpath-monument-popover');
 
     if (!dom.globeContainer) return;
 
     setupGlobe();
     setupYearScrub();
     renderTilt(activeDate());
+
+    // Esc dismisses popover.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hideMonumentPopover();
+    });
 
     idleTimerId = setInterval(idleTick, 60000);
     document.addEventListener('visibilitychange', function () {
@@ -282,11 +287,11 @@
       });
       g.appendChild(svgEl('circle', { 'class': 'sunpath-monument-ring', cx: coords[0], cy: coords[1], r: 7 }));
       g.appendChild(svgEl('circle', { 'class': 'sunpath-monument-dot', cx: coords[0], cy: coords[1], r: 2.5 }));
-      g.addEventListener('click', function () { showMonumentDetail(m); });
+      g.addEventListener('click', function () { showMonumentPopover(m); });
       g.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          showMonumentDetail(m);
+          showMonumentPopover(m);
         }
       });
       layer.appendChild(g);
@@ -303,40 +308,82 @@
       btn.appendChild(htmlEl('span', 'sunpath-monument-name', m.name));
       btn.appendChild(htmlEl('span', 'sunpath-monument-meta', m.country + ' · ' + yearLabel(m.constructed)));
       btn.addEventListener('click', function () {
-        showMonumentDetail(m);
         rotateToMonument(m);
+        // After rotation, scroll globe into view then show popover at pin.
+        if (dom.globeContainer) {
+          dom.globeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showMonumentPopover(m);
       });
       li.appendChild(btn);
       dom.monumentList.appendChild(li);
     });
   }
 
-  function showMonumentDetail(m) {
-    if (!dom.monumentDetail) return;
-    clearChildren(dom.monumentDetail);
-    dom.monumentDetail.appendChild(htmlEl('h3', 'sunpath-detail-name', m.name));
-    dom.monumentDetail.appendChild(htmlEl('p', 'sunpath-detail-meta', m.country + ' · ' + yearLabel(m.constructed)));
-    dom.monumentDetail.appendChild(htmlEl('p', 'sunpath-detail-alignment', m.alignmentDescription));
+  function showMonumentPopover(m) {
+    if (!dom.popover) return;
+    clearChildren(dom.popover);
+
+    var closeBtn = htmlEl('button', 'sunpath-popover-close', '×');
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.addEventListener('click', hideMonumentPopover);
+    dom.popover.appendChild(closeBtn);
+
+    dom.popover.appendChild(htmlEl('h3', 'sunpath-detail-name', m.name));
+    dom.popover.appendChild(htmlEl('p', 'sunpath-detail-meta', m.country + ' · ' + yearLabel(m.constructed)));
+    dom.popover.appendChild(htmlEl('p', 'sunpath-detail-alignment', m.alignmentDescription));
 
     var az = M.sunriseAzimuth(m.lat, activeDate());
     var azStr = (az !== null) ? az.toFixed(1) + '° east of north' : 'sun does not rise today';
     var sunriseP = htmlEl('p', 'sunpath-detail-sunrise');
-    sunriseP.appendChild(document.createTextNode('Sunrise today at this monument: '));
+    sunriseP.appendChild(document.createTextNode('Sunrise today: '));
     sunriseP.appendChild(htmlEl('strong', null, azStr));
-    dom.monumentDetail.appendChild(sunriseP);
+    dom.popover.appendChild(sunriseP);
 
     if (m.sourceNote) {
-      dom.monumentDetail.appendChild(htmlEl('p', 'sunpath-detail-source', '— ' + m.sourceNote));
+      dom.popover.appendChild(htmlEl('p', 'sunpath-detail-source', '— ' + m.sourceNote));
     }
-    dom.monumentDetail.hidden = false;
-    // Scroll into view so click feedback is unmissable, but only if not
-    // already visible (avoids jarring scroll when clicking from the list
-    // which is already adjacent to the detail card).
-    var rect = dom.monumentDetail.getBoundingClientRect();
-    var viewH = window.innerHeight;
-    if (rect.top < 0 || rect.bottom > viewH) {
-      dom.monumentDetail.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    positionPopover(m);
+    dom.popover.hidden = false;
+  }
+
+  function hideMonumentPopover() {
+    if (!dom.popover) return;
+    dom.popover.hidden = true;
+  }
+
+  function positionPopover(m) {
+    if (!dom.popover || !projection) return;
+    var coords = projection([m.lon, m.lat]);
+    if (!coords) return;
+    // Coords are in SVG user-space (0..GLOBE_SIZE). Globe wrap renders the
+    // SVG at width:100% so we scale to wrap pixel coords.
+    var wrap = dom.globeContainer;
+    var wrapRect = wrap.getBoundingClientRect();
+    var scale = wrapRect.width / GLOBE_SIZE;
+    var pinX = coords[0] * scale;
+    var pinY = coords[1] * scale;
+
+    // Default: popover sits to the right of the pin, vertically centered.
+    var popW = 260;
+    var popH = dom.popover.offsetHeight || 180;
+    var margin = 12;
+    var left = pinX + margin;
+    var top = pinY - popH / 2;
+
+    // If overflows right edge, place left of pin.
+    if (left + popW > wrapRect.width) {
+      left = pinX - popW - margin;
     }
+    // Clamp to wrap bounds.
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (top + popH > wrapRect.height) top = wrapRect.height - popH;
+
+    dom.popover.style.left = left + 'px';
+    dom.popover.style.top = top + 'px';
   }
 
   function rotateToMonument(m) {
@@ -376,6 +423,7 @@
         try { globeSvg.setPointerCapture(dragState.pointerId); } catch (err) {}
       }
       dragState.captured = true;
+      hideMonumentPopover();
     }
     var sensitivity = 0.5;
     rotation = [
