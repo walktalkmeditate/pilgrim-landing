@@ -69,11 +69,15 @@
     var t = nextTurning(now);
     var info = TURNING_LABELS[t.name];
     var delta = describeDelta(t.instant.getTime() - now.getTime());
+    // Use the turning's actual year so the link survives the year boundary.
+    // (If next year's permalink doesn't exist yet, the link 404s — that's
+    // the cue to publish next year's pages.)
+    var year = t.instant.getUTCFullYear();
 
     while (el.firstChild) el.removeChild(el.firstChild);
     el.appendChild(document.createTextNode('next turning · '));
     var link = document.createElement('a');
-    link.href = '/sunpath/2026-' + info.slug;
+    link.href = '/sunpath/' + year + '-' + info.slug;
     link.className = 'sunpath-countdown-link';
     link.dataset.turning = info.slug;
     var kanji = document.createElement('span');

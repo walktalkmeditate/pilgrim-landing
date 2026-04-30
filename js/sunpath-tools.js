@@ -219,7 +219,8 @@
           var group = htmlEl('div', 'sunpath-festival-group');
           var heading = htmlEl('h3', 'sunpath-festival-heading');
           var headingLink = document.createElement('a');
-          headingLink.href = '/sunpath/2026-' + key;
+          // Use current year so the link tracks the archive across years.
+          headingLink.href = '/sunpath/' + (new Date()).getUTCFullYear() + '-' + key;
           headingLink.className = 'sunpath-festival-heading-link';
           headingLink.dataset.turning = key;
           headingLink.textContent = labels[key];

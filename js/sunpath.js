@@ -507,6 +507,9 @@
     dom.yearScrub.max = 365;
     dom.yearScrub.value = M.dayOfYear(new Date());
     dom.yearScrub.addEventListener('input', function () {
+      // User wants to scrub manually — silently end any active time-lapse so
+      // the two don't fight over scrubDate.
+      if (timelapseRaf) stopTimelapse();
       var dayN = parseInt(dom.yearScrub.value, 10);
       var now = new Date();
       var d = new Date(Date.UTC(year, 0, 1, now.getUTCHours(), now.getUTCMinutes()));
@@ -548,6 +551,7 @@
 
   var timelapseRaf = null;
   var timelapseBtn = null;
+  var timelapsePrevScrub = null; // remember scrub state to restore on stop
 
   function setupTimelapse() {
     timelapseBtn = document.getElementById('sunpath-timelapse');
@@ -569,6 +573,8 @@
     var icon = timelapseBtn.querySelector('.sunpath-timelapse-icon');
     if (label) label.textContent = 'stop';
     if (icon) icon.textContent = '■';
+    // Snapshot scrub state so stop can restore (live or scrubbed-day).
+    timelapsePrevScrub = scrubDate;
     var startReal = performance.now();
     var startDate = activeDate().getTime();
     var DURATION_MS = 12000;
@@ -602,6 +608,11 @@
       if (label) label.textContent = 'play 24 hours';
       if (icon) icon.textContent = '▶';
     }
+    // Restore the pre-play scrub state so the globe doesn't strand mid-sweep.
+    scrubDate = timelapsePrevScrub;
+    timelapsePrevScrub = null;
+    renderTerminatorAndSubsolar();
+    renderTilt(activeDate());
   }
 
   // --- Axial tilt inset ---
