@@ -158,6 +158,17 @@
   font-size: 0.95rem;
 }
 
+.sunpath-globe-hint {
+  margin: 0.4rem 0 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--stone);
+  opacity: 0.55;
+}
+
 /* --- Year scrub --- */
 
 .sunpath-scrub-wrap {
