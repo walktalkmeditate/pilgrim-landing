@@ -1529,10 +1529,10 @@ body.constellation .sunpath-polar-circle {
 
 .sunpath-walkers strong {
   color: var(--ink);
+  font-family: inherit;
   font-weight: 400;
-  font-style: italic;
-  font-family: var(--font-display);
-  letter-spacing: 0.01em;
+  font-style: normal;
+  letter-spacing: 0.04em;
 }
 
 body.constellation .sunpath-walkers strong {
