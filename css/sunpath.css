@@ -41,6 +41,44 @@
   margin: 0 0 2.2rem;
 }
 
+/* Temporal-status pill — past/future hint under the tagline.
+   Hidden via [hidden] when the page sits within ~24h of the turning;
+   sunpath-temporal.js inserts and toggles. */
+.sunpath-temporal-status {
+  display: inline-block;
+  margin: -1.4rem auto 2rem;
+  padding: 0.18rem 0.85rem 0.22rem;
+  font-family: 'Lato', -apple-system, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--stone);
+  background: transparent;
+  border: 1px solid rgba(168, 155, 138, 0.35);
+  border-radius: 999px;
+  --turning-color: var(--stone);
+}
+
+.sunpath-temporal-status[data-turning="spring-equinox"]  { --turning-color: #74B495; }
+.sunpath-temporal-status[data-turning="summer-solstice"] { --turning-color: #C9A646; }
+.sunpath-temporal-status[data-turning="autumn-equinox"]  { --turning-color: #8B4455; }
+.sunpath-temporal-status[data-turning="winter-solstice"] { --turning-color: #2378A4; }
+
+body.constellation .sunpath-temporal-status[data-turning="spring-equinox"]  { --turning-color: #88C4A0; }
+body.constellation .sunpath-temporal-status[data-turning="summer-solstice"] { --turning-color: #D5B55D; }
+body.constellation .sunpath-temporal-status[data-turning="autumn-equinox"]  { --turning-color: #A26070; }
+body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --turning-color: #4691BA; }
+
+.sunpath-temporal-label {
+  color: var(--turning-color);
+  font-weight: 400;
+  letter-spacing: 0.22em;
+}
+
+.sunpath-temporal-status[data-state="past"]   { border-color: rgba(168, 155, 138, 0.30); }
+.sunpath-temporal-status[data-state="future"] { border-color: color-mix(in srgb, var(--turning-color) 40%, transparent); }
+
 .sunpath-noscript {
   max-width: 540px;
   margin: 0 auto 2.4rem;

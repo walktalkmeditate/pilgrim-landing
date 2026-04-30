@@ -174,6 +174,7 @@ ${archiveItems}
   <script src="/js/vendor/topojson-client.min.js"></script>
   <script src="/js/sunpath.js"></script>
   <script src="/js/sunpath-turnings.js"></script>
+  <script src="/js/sunpath-temporal.js"></script>
 </body>
 </html>
 `;
