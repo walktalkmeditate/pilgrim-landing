@@ -115,6 +115,18 @@
     });
     dom.globeContainer.appendChild(globeSvg);
 
+    // Defs: clip path matching the sphere so halos / pins never bleed past
+    // the globe edge.
+    var defs = svgEl('defs');
+    var clip = svgEl('clipPath', { id: 'sunpath-globe-clip' });
+    clip.appendChild(svgEl('circle', {
+      cx: GLOBE_SIZE / 2,
+      cy: GLOBE_SIZE / 2,
+      r: GLOBE_SIZE / 2 - 4
+    }));
+    defs.appendChild(clip);
+    globeSvg.appendChild(defs);
+
     // Sphere fill (one solid background circle).
     var sphereLayer = svgEl('g', { id: 'sunpath-sphere-layer' });
     sphereLayer.appendChild(svgEl('circle', {
@@ -128,7 +140,11 @@
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-graticule' }));
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-land' }));
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-night' }));
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-subsolar-layer' }));
+    // Subsolar layer clipped so halo never bleeds past sphere edge.
+    globeSvg.appendChild(svgEl('g', {
+      id: 'sunpath-subsolar-layer',
+      'clip-path': 'url(#sunpath-globe-clip)'
+    }));
     globeSvg.appendChild(svgEl('g', { id: 'sunpath-monuments-layer' }));
 
     drawGraticule();
