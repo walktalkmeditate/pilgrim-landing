@@ -1513,28 +1513,3 @@ body.constellation .sunpath-polar-circle {
   .sunpath-timelapse-btn { display: none; }
 }
 
-/* =============================================
-   Walker count + cultural calendars
-   Quiet single lines under the subsolar caption.
-   ============================================= */
-
-.sunpath-walkers {
-  margin: 0.5rem 0 0;
-  font-family: 'Lato', sans-serif;
-  font-weight: 300;
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-  color: var(--stone);
-}
-
-.sunpath-walkers strong {
-  color: var(--ink);
-  font-family: inherit;
-  font-weight: 400;
-  font-style: normal;
-  letter-spacing: 0.04em;
-}
-
-body.constellation .sunpath-walkers strong {
-  color: rgba(232, 224, 255, 0.95);
-}
