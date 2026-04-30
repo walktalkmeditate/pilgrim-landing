@@ -1,0 +1,393 @@
+/* =============================================
+   Sun Path — page styles
+   ============================================= */
+
+.sunpath-body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--parchment);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sunpath-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem) 6rem;
+}
+
+.sunpath-section {
+  margin: 0 0 4rem;
+}
+
+.sunpath-section--hero {
+  text-align: center;
+}
+
+.sunpath-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.4em;
+}
+
+.sunpath-tagline {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0 0 2.2rem;
+}
+
+/* --- Globe --- */
+
+.sunpath-globe-wrap {
+  position: relative;
+  width: min(480px, 92vw);
+  margin: 0 auto;
+}
+
+.sunpath-globe-svg {
+  width: 100%;
+  height: auto;
+  cursor: grab;
+  touch-action: none;
+  display: block;
+}
+
+.sunpath-globe-svg:active { cursor: grabbing; }
+
+.sunpath-sphere {
+  fill: var(--parchment-secondary);
+  stroke: var(--stone);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+
+.sunpath-graticule-path {
+  fill: none;
+  stroke: var(--stone);
+  stroke-opacity: 0.15;
+  stroke-width: 0.5;
+}
+
+.sunpath-land-path {
+  fill: var(--ink);
+  fill-opacity: 0.55;
+  stroke: var(--ink);
+  stroke-opacity: 0.4;
+  stroke-width: 0.4;
+}
+
+.sunpath-night-path {
+  fill: rgba(20, 14, 8, 0.32);
+  pointer-events: none;
+}
+
+.sunpath-subsolar-halo {
+  fill: rgba(218, 165, 32, 0.25);
+  stroke: rgba(218, 165, 32, 0.5);
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+
+.sunpath-subsolar-dot {
+  fill: #DAA520;
+  stroke: #FFFFFF;
+  stroke-width: 0.8;
+  pointer-events: none;
+}
+
+@keyframes sunpath-subsolar-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+
+.sunpath-subsolar-halo {
+  animation: sunpath-subsolar-breathe 4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunpath-subsolar-halo { animation: none; }
+}
+
+.sunpath-monument-pin {
+  cursor: pointer;
+  outline: none;
+}
+
+.sunpath-monument-ring {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1;
+  stroke-opacity: 0.5;
+  transition: stroke-opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+.sunpath-monument-dot {
+  fill: var(--stone);
+  fill-opacity: 0.7;
+  transition: fill-opacity 0.2s ease;
+}
+
+.sunpath-monument-pin:hover .sunpath-monument-ring,
+.sunpath-monument-pin:focus-visible .sunpath-monument-ring {
+  stroke-opacity: 1;
+  stroke-width: 1.5;
+}
+
+.sunpath-monument-pin:hover .sunpath-monument-dot,
+.sunpath-monument-pin:focus-visible .sunpath-monument-dot {
+  fill-opacity: 1;
+}
+
+/* --- Subsolar caption --- */
+
+.sunpath-subsolar-caption {
+  margin: 1.2rem 0 0;
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.95rem;
+}
+
+/* --- Year scrub --- */
+
+.sunpath-scrub-wrap {
+  margin: 2.5rem auto 0;
+  max-width: 480px;
+}
+
+.sunpath-scrub-label {
+  display: block;
+  text-align: center;
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 0.6rem;
+  background: none;
+  border: none;
+  font-family: inherit;
+  width: 100%;
+}
+
+.sunpath-scrub-label.is-live { cursor: default; }
+
+#sunpath-year-scrub {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 3px;
+  background: var(--stone);
+  background: linear-gradient(to right, var(--stone), var(--stone));
+  border-radius: 2px;
+  outline: none;
+  opacity: 0.5;
+}
+
+#sunpath-year-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #DAA520;
+  cursor: pointer;
+  border: none;
+}
+
+#sunpath-year-scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #DAA520;
+  cursor: pointer;
+  border: none;
+}
+
+/* --- Axial tilt inset --- */
+
+.sunpath-tilt-wrap {
+  margin: 2rem auto 0;
+  text-align: center;
+}
+
+.sunpath-tilt-svg {
+  width: 120px;
+  height: 100px;
+}
+
+.sunpath-tilt-earth {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+}
+
+.sunpath-tilt-equator {
+  stroke: var(--stone);
+  stroke-width: 0.8;
+  stroke-opacity: 0.25;
+  stroke-dasharray: 2 2;
+}
+
+.sunpath-tilt-axis {
+  stroke: #DAA520;
+  stroke-width: 1.2;
+  stroke-opacity: 0.7;
+  stroke-linecap: round;
+}
+
+.sunpath-tilt-caption {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--stone);
+  letter-spacing: 0.04em;
+}
+
+/* --- Monument list + detail --- */
+
+.sunpath-section-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  margin: 0 0 1.2rem;
+}
+
+.sunpath-monument-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.4rem;
+}
+
+.sunpath-monument-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid var(--stone);
+  border-color: rgba(184, 175, 162, 0.3);
+  border-radius: 2px;
+  padding: 0.7rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.sunpath-monument-button:hover,
+.sunpath-monument-button:focus-visible {
+  border-color: var(--stone);
+  background: rgba(184, 175, 162, 0.08);
+  outline: none;
+}
+
+.sunpath-monument-name {
+  display: block;
+  font-style: italic;
+}
+
+.sunpath-monument-meta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--stone);
+  margin-top: 0.15rem;
+}
+
+.sunpath-monument-detail {
+  background: var(--parchment-secondary);
+  padding: 1.5rem;
+  border-radius: 2px;
+  margin: 1rem 0 0;
+}
+
+.sunpath-detail-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  margin: 0 0 0.2rem;
+}
+
+.sunpath-detail-meta {
+  font-size: 0.85rem;
+  color: var(--stone);
+  margin: 0 0 1rem;
+  letter-spacing: 0.04em;
+}
+
+.sunpath-detail-alignment {
+  margin: 0 0 1rem;
+}
+
+.sunpath-detail-sunrise {
+  margin: 0 0 0.8rem;
+  font-size: 0.95rem;
+}
+
+.sunpath-detail-source {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--stone);
+}
+
+/* --- Footer --- */
+
+.sunpath-footer {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.2);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--stone);
+}
+
+.sunpath-footer a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  border-bottom-color: rgba(184, 175, 162, 0.3);
+}
+
+.sunpath-footer a:hover { border-bottom-color: currentColor; }
+
+/* --- Star mode adaptations --- */
+
+body.constellation .sunpath-sphere {
+  fill: transparent;
+  stroke: rgba(200, 192, 255, 0.35);
+}
+
+body.constellation .sunpath-graticule-path {
+  stroke: rgba(200, 192, 255, 0.18);
+}
+
+body.constellation .sunpath-land-path {
+  fill: rgba(232, 224, 255, 0.5);
+  stroke: rgba(200, 192, 255, 0.35);
+}
+
+body.constellation .sunpath-night-path {
+  fill: rgba(0, 0, 8, 0.55);
+}
+
+body.constellation .sunpath-monument-ring {
+  stroke: rgba(232, 224, 255, 0.6);
+}
+
+body.constellation .sunpath-monument-dot {
+  fill: rgba(232, 224, 255, 0.8);
+}
+
+body.constellation .sunpath-monument-detail {
+  background: rgba(20, 18, 40, 0.7);
+}

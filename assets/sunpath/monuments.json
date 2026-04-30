@@ -1,0 +1,79 @@
+[
+  {
+    "id": "stonehenge",
+    "name": "Stonehenge",
+    "lat": 51.1789,
+    "lon": -1.8262,
+    "country": "United Kingdom",
+    "constructed": -2500,
+    "alignment": "summer-solstice-sunrise",
+    "alignmentDescription": "Heel Stone marks midsummer sunrise as seen from the center of the circle. Each year on the longest day, light rises behind the stone and pours through the trilithon gate into the heart of the monument.",
+    "sourceNote": "Ruggles, Astronomy in Prehistoric Britain and Ireland (1999)."
+  },
+  {
+    "id": "newgrange",
+    "name": "Newgrange",
+    "lat": 53.6947,
+    "lon": -6.4756,
+    "country": "Ireland",
+    "constructed": -3200,
+    "alignment": "winter-solstice-sunrise",
+    "alignmentDescription": "On the morning of the winter solstice, sunlight enters through a roof-box above the entrance and travels 19 metres along the inner passage to illuminate the burial chamber for about seventeen minutes. Built five centuries before the Pyramids.",
+    "sourceNote": "Heritage Ireland, OPW publications. M. J. O'Kelly, Newgrange (1982)."
+  },
+  {
+    "id": "karnak",
+    "name": "Karnak Temple",
+    "lat": 25.7188,
+    "lon": 32.6573,
+    "country": "Egypt",
+    "constructed": -1500,
+    "alignment": "winter-solstice-sunrise",
+    "alignmentDescription": "The temple's main axis is aligned to the southeast so that midwinter sunrise enters along the axis of the precinct of Amun-Ra. The light reaches the inner sanctuary only on this one morning of the year.",
+    "sourceNote": "Belmonte and Shaltout, In Search of Cosmic Order (2009)."
+  },
+  {
+    "id": "chichen-itza",
+    "name": "Chichen Itza — Pyramid of Kukulkan",
+    "lat": 20.6843,
+    "lon": -88.5678,
+    "country": "Mexico",
+    "constructed": 600,
+    "alignment": "spring-equinox-afternoon",
+    "alignmentDescription": "On the spring and autumn equinoxes, the late-afternoon sun casts a serpent-shaped shadow down the northern staircase. The shadow connects to the carved stone serpent's head at the base — the descent of the feathered serpent Kukulkan.",
+    "sourceNote": "Aveni, Skywatchers (2001)."
+  },
+  {
+    "id": "machu-picchu",
+    "name": "Machu Picchu — Intihuatana",
+    "lat": -13.1631,
+    "lon": -72.5450,
+    "country": "Peru",
+    "constructed": 1450,
+    "alignment": "winter-solstice-noon",
+    "alignmentDescription": "The Intihuatana stone — 'hitching post of the sun' — was carved so that on June 21, the southern winter solstice, the sun stands directly over its central pillar at noon. A Quechua practice of binding the sun against further descent.",
+    "sourceNote": "Reinhard, Machu Picchu: Exploring an Ancient Sacred Center (2007)."
+  },
+  {
+    "id": "cahokia",
+    "name": "Cahokia — Woodhenge",
+    "lat": 38.6553,
+    "lon": -90.0625,
+    "country": "United States",
+    "constructed": 1100,
+    "alignment": "all-four-turnings",
+    "alignmentDescription": "A circle of cedar posts on the Mississippi floodplain. Specific posts mark sunrise on each of the four turnings: spring equinox, summer solstice, autumn equinox, winter solstice. The largest pre-Columbian city north of Mexico made the wheel of the year visible at ground level.",
+    "sourceNote": "Iseminger, Cahokia Mounds: America's First City (2010)."
+  },
+  {
+    "id": "goseck",
+    "name": "Goseck Circle",
+    "lat": 51.1986,
+    "lon": 11.8556,
+    "country": "Germany",
+    "constructed": -4900,
+    "alignment": "winter-solstice-sunrise-sunset",
+    "alignmentDescription": "Two narrow gates in this Neolithic circular ditch frame the sunrise and sunset of the winter solstice. Built nearly five thousand years before Stonehenge, by farming peoples of the Linear Pottery culture. Possibly the oldest intentional astronomical structure yet found.",
+    "sourceNote": "Schlosser, Astronomical Implications of Goseck (2003)."
+  }
+]
