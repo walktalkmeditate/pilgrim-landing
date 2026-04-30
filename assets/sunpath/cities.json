@@ -1,0 +1,14 @@
+[
+  { "id": "reykjavik",  "name": "Reykjavík",  "lat":  64.13, "lon":  -21.93 },
+  { "id": "stockholm",  "name": "Stockholm",  "lat":  59.33, "lon":   18.07 },
+  { "id": "london",     "name": "London",     "lat":  51.51, "lon":   -0.13 },
+  { "id": "paris",      "name": "Paris",      "lat":  48.86, "lon":    2.35 },
+  { "id": "new-york",   "name": "New York",   "lat":  40.71, "lon":  -74.01 },
+  { "id": "tokyo",      "name": "Tokyo",      "lat":  35.68, "lon":  139.65 },
+  { "id": "cairo",      "name": "Cairo",      "lat":  30.04, "lon":   31.24 },
+  { "id": "mexico-city","name": "Mexico City","lat":  19.43, "lon":  -99.13 },
+  { "id": "lagos",      "name": "Lagos",      "lat":   6.52, "lon":    3.38 },
+  { "id": "quito",      "name": "Quito",      "lat":  -0.18, "lon":  -78.47 },
+  { "id": "sydney",     "name": "Sydney",     "lat": -33.87, "lon":  151.21 },
+  { "id": "ushuaia",    "name": "Ushuaia",    "lat": -54.81, "lon":  -68.31 }
+]

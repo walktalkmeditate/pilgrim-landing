@@ -391,3 +391,330 @@ body.constellation .sunpath-monument-dot {
 body.constellation .sunpath-monument-detail {
   background: rgba(20, 18, 40, 0.7);
 }
+
+/* =============================================
+   Sun Path — Stage B styles
+   ============================================= */
+
+/* --- Time machine --- */
+
+.sunpath-tm-label {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--ink);
+  margin: 0 0 0.6rem;
+}
+
+.sunpath-tm-bookmarks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.6rem 0 1rem;
+}
+
+.sunpath-tm-bookmark {
+  background: none;
+  border: 1px solid rgba(184, 175, 162, 0.3);
+  border-radius: 2px;
+  padding: 0.3rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--stone);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.sunpath-tm-bookmark:hover,
+.sunpath-tm-bookmark:focus-visible {
+  border-color: var(--stone);
+  color: var(--ink);
+  outline: none;
+}
+
+#sunpath-tm-slider {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 3px;
+  background: var(--stone);
+  border-radius: 2px;
+  outline: none;
+  opacity: 0.5;
+}
+
+#sunpath-tm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #DAA520;
+  cursor: pointer;
+  border: none;
+}
+
+#sunpath-tm-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #DAA520;
+  cursor: pointer;
+  border: none;
+}
+
+.sunpath-tm-canvas {
+  width: 100%;
+  height: auto;
+  margin: 1rem 0 0.6rem;
+}
+
+.sunpath-tm-label-text {
+  font-family: inherit;
+  font-style: italic;
+  font-size: 11px;
+  fill: var(--stone);
+}
+
+.sunpath-tm-az-text {
+  font-family: inherit;
+  font-size: 9px;
+  fill: var(--stone);
+  fill-opacity: 0.85;
+}
+
+.sunpath-tm-horizon {
+  stroke: var(--stone);
+  stroke-opacity: 0.3;
+  stroke-width: 1;
+}
+
+.sunpath-tm-sun {
+  fill: #DAA520;
+}
+
+.sunpath-tm-caption {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--stone);
+  font-style: italic;
+}
+
+/* --- Festivals --- */
+
+.sunpath-festival-group {
+  margin: 0 0 2rem;
+}
+
+.sunpath-festival-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  margin: 0 0 0.8rem;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+.sunpath-festival-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.sunpath-festival-item {
+  background: var(--parchment-secondary);
+  padding: 1rem 1.1rem;
+  border-radius: 2px;
+}
+
+.sunpath-festival-name {
+  display: block;
+  font-style: italic;
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.sunpath-festival-culture {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--stone);
+  margin-top: 0.15rem;
+  letter-spacing: 0.04em;
+}
+
+.sunpath-festival-walk {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.sunpath-festival-walk--unattested {
+  color: var(--stone);
+  font-style: italic;
+}
+
+/* --- Analemma + city picker (shared with daylight, dawn) --- */
+
+.sunpath-city-picker,
+.sunpath-lat-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+  margin: 0 0 1rem;
+}
+
+.sunpath-city-button {
+  background: none;
+  border: 1px solid rgba(184, 175, 162, 0.3);
+  border-radius: 2px;
+  padding: 0.25rem 0.6rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--stone);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.sunpath-city-button:hover,
+.sunpath-city-button:focus-visible {
+  border-color: var(--stone);
+  color: var(--ink);
+  outline: none;
+}
+
+.sunpath-city-button.is-active {
+  background: rgba(184, 175, 162, 0.15);
+  border-color: var(--stone);
+  color: var(--ink);
+}
+
+.sunpath-analemma-svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.sunpath-analemma-horizon {
+  fill: none;
+  stroke: var(--stone);
+  stroke-opacity: 0.18;
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
+}
+
+.sunpath-analemma-path {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1.4;
+  stroke-opacity: 0.8;
+}
+
+.sunpath-analemma-today {
+  fill: #DAA520;
+}
+
+.sunpath-analemma-caption,
+.sunpath-dawn-caption,
+.sunpath-daylight-caption,
+.sunpath-walk-caption {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--stone);
+  font-style: italic;
+}
+
+/* --- Dawn sweep --- */
+
+.sunpath-dawn-svg,
+.sunpath-daylight-svg {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.sunpath-dawn-axis {
+  stroke: var(--stone);
+  stroke-opacity: 0.4;
+  stroke-width: 0.8;
+}
+
+.sunpath-dawn-east {
+  stroke: var(--stone);
+  stroke-opacity: 0.3;
+  stroke-width: 0.6;
+}
+
+.sunpath-dawn-tick {
+  font-family: inherit;
+  font-size: 9px;
+  fill: var(--stone);
+  fill-opacity: 0.7;
+}
+
+.sunpath-dawn-path,
+.sunpath-daylight-path {
+  fill: none;
+  stroke: #DAA520;
+  stroke-width: 1.4;
+  stroke-opacity: 0.85;
+}
+
+/* --- Walk to the sun --- */
+
+.sunpath-walk-distance {
+  margin: 0.4rem 0 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* --- Star mode adaptations for Stage B --- */
+
+body.constellation .sunpath-tm-bookmark,
+body.constellation .sunpath-city-button {
+  border-color: rgba(232, 224, 255, 0.25);
+  color: rgba(232, 224, 255, 0.6);
+}
+
+body.constellation .sunpath-tm-bookmark:hover,
+body.constellation .sunpath-city-button:hover,
+body.constellation .sunpath-city-button.is-active {
+  border-color: rgba(232, 224, 255, 0.55);
+  color: rgba(232, 224, 255, 0.95);
+}
+
+body.constellation .sunpath-festival-item {
+  background: rgba(20, 18, 40, 0.6);
+}
+
+body.constellation .sunpath-tm-horizon,
+body.constellation .sunpath-analemma-horizon,
+body.constellation .sunpath-dawn-axis,
+body.constellation .sunpath-dawn-east {
+  stroke: rgba(232, 224, 255, 0.3);
+}
+
+body.constellation .sunpath-tm-label-text,
+body.constellation .sunpath-tm-az-text,
+body.constellation .sunpath-dawn-tick {
+  fill: rgba(232, 224, 255, 0.6);
+}
+
+body.constellation .sunpath-analemma-path {
+  stroke: rgba(232, 224, 255, 0.7);
+}

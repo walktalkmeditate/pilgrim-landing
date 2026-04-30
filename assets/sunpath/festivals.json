@@ -1,0 +1,101 @@
+[
+  {
+    "id": "yule",
+    "name": "Yule",
+    "culture": "Norse / Germanic",
+    "alignedTo": "winter-solstice",
+    "calendarSystem": "Around Dec 19–25",
+    "walkingTradition": "Torch processions through forest paths in the long northern dark, gathering around fire and evergreen.",
+    "sourceNote": "Hutton, Stations of the Sun (1996)."
+  },
+  {
+    "id": "saturnalia",
+    "name": "Saturnalia",
+    "culture": "Ancient Roman",
+    "alignedTo": "winter-solstice",
+    "calendarSystem": "Dec 17–23",
+    "walkingTradition": "Public revel and exchange of small candles called sigillaria as the sun bottomed and turned. Streets given over to walking and feasting.",
+    "sourceNote": "Macrobius, Saturnalia (5th c. AD)."
+  },
+  {
+    "id": "dongzhi",
+    "name": "Dongzhi 冬至",
+    "culture": "East Asian",
+    "alignedTo": "winter-solstice",
+    "calendarSystem": "Around Dec 21–23",
+    "walkingTradition": "Family gathering and temple visits. Eating tangyuan — round dumplings — to mark the year's deepest dark and the return of yang.",
+    "sourceNote": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts (1991)."
+  },
+  {
+    "id": "inti-raymi",
+    "name": "Inti Raymi",
+    "culture": "Inca",
+    "alignedTo": "winter-solstice",
+    "calendarSystem": "June 24 (Southern Hemisphere)",
+    "walkingTradition": "Multi-day procession from Sacsayhuaman to the sacred fields above Cusco. Walking the route at dawn to 'tie the sun' against further descent.",
+    "sourceNote": "Bauer and Dearborn, Astronomy and Empire in the Ancient Andes (1995)."
+  },
+  {
+    "id": "nowruz",
+    "name": "Nowruz نوروز",
+    "culture": "Persian",
+    "alignedTo": "spring-equinox",
+    "calendarSystem": "March 20–21",
+    "walkingTradition": "Sizdah Bedar — on the thirteenth day of Nowruz, families walk together into nature to scatter sprouted lentils into running water. The walk back home is the renewal.",
+    "sourceNote": "UNESCO Intangible Cultural Heritage listing (2009)."
+  },
+  {
+    "id": "ostara",
+    "name": "Ostara",
+    "culture": "Germanic / reconstructed",
+    "alignedTo": "spring-equinox",
+    "calendarSystem": "Around March 20–22",
+    "walkingTradition": null,
+    "sourceNote": "Walking-tradition unattested in primary sources; Bede's brief 8th c. mention names a goddess but describes no rite. Modern Ostara observances are reconstructed."
+  },
+  {
+    "id": "litha",
+    "name": "Litha",
+    "culture": "Anglo-Saxon / reconstructed",
+    "alignedTo": "summer-solstice",
+    "calendarSystem": "Around June 20–22",
+    "walkingTradition": "Bonfire vigils on hilltops the night before; walking from low ground to high ground to greet the longest sun.",
+    "sourceNote": "Hutton, Stations of the Sun (1996). Modern observances draw on these older British practices."
+  },
+  {
+    "id": "midsummer",
+    "name": "Midsommar",
+    "culture": "Scandinavian",
+    "alignedTo": "summer-solstice",
+    "calendarSystem": "Friday between June 19–25",
+    "walkingTradition": "Walking to a maypole in the country, dancing around it through the night that never quite gets dark. Picking seven kinds of flower in silence on the walk home.",
+    "sourceNote": "Schön, Sveriges Sed och Tradition (2000)."
+  },
+  {
+    "id": "chuseok",
+    "name": "Chuseok 추석",
+    "culture": "Korean",
+    "alignedTo": "autumn-equinox",
+    "calendarSystem": "15th day of the 8th lunar month (≈ near autumn equinox)",
+    "walkingTradition": "Beolcho — walking out to ancestral graves to clear them. Charye — returning home to share the harvest and watch the round moon rise.",
+    "sourceNote": "Lee, Korean Folk Belief and Folktales (2008)."
+  },
+  {
+    "id": "mid-autumn",
+    "name": "Mid-Autumn Festival 中秋節",
+    "culture": "East Asian",
+    "alignedTo": "autumn-equinox",
+    "calendarSystem": "15th day of the 8th lunar month",
+    "walkingTradition": "Lantern walks at dusk under the harvest moon. Children carry paper lanterns through neighborhoods and parks. Adults walk to high places to see the moon rise complete.",
+    "sourceNote": "Stepanchuk and Wong, Mooncakes and Hungry Ghosts (1991)."
+  },
+  {
+    "id": "mabon",
+    "name": "Mabon",
+    "culture": "Modern Pagan / reconstructed",
+    "alignedTo": "autumn-equinox",
+    "calendarSystem": "Around Sept 20–23",
+    "walkingTradition": null,
+    "sourceNote": "Modern observance named in 1970 by Aidan Kelly; no documented historical antecedent under this name."
+  }
+]
