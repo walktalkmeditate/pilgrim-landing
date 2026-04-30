@@ -1397,3 +1397,34 @@ body.constellation .sunpath-countdown-link[data-turning="winter-solstice"] { col
   letter-spacing: 0.1em;
   margin-right: 0.1em;
 }
+
+/* Tradition pill on /sunpath festival cards (matches turning palette per item). */
+.sunpath-festival-item[data-turning="spring-equinox"]  { --turning-color: #74B495; }
+.sunpath-festival-item[data-turning="summer-solstice"] { --turning-color: #C9A646; }
+.sunpath-festival-item[data-turning="autumn-equinox"]  { --turning-color: #8B4455; }
+.sunpath-festival-item[data-turning="winter-solstice"] { --turning-color: #2378A4; }
+
+[data-theme="dark"] .sunpath-festival-item[data-turning="spring-equinox"],
+body.constellation .sunpath-festival-item[data-turning="spring-equinox"]  { --turning-color: #88C4A0; }
+[data-theme="dark"] .sunpath-festival-item[data-turning="summer-solstice"],
+body.constellation .sunpath-festival-item[data-turning="summer-solstice"] { --turning-color: #D5B55D; }
+[data-theme="dark"] .sunpath-festival-item[data-turning="autumn-equinox"],
+body.constellation .sunpath-festival-item[data-turning="autumn-equinox"]  { --turning-color: #A26070; }
+[data-theme="dark"] .sunpath-festival-item[data-turning="winter-solstice"],
+body.constellation .sunpath-festival-item[data-turning="winter-solstice"] { --turning-color: #4691BA; }
+
+.sunpath-festival-tradition {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--turning-color) 60%, transparent);
+  background: color-mix(in srgb, var(--turning-color) 10%, transparent);
+  color: var(--turning-color);
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}

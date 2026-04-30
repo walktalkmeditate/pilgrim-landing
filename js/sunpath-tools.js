@@ -190,24 +190,19 @@
   }
 
   // --- Layer 7: Cultural turning calendar ---------------------------------
+  // Reads from turning-events.json so the festivals shown here always exist
+  // on their respective permalink pages. Entries without a source are
+  // skipped (cultural-sensitivity rule).
 
   function setupFestivals() {
     var container = document.getElementById('sunpath-festivals');
     if (!container) return;
 
-    fetch('/assets/sunpath/festivals.json')
+    fetch('/assets/sunpath/turning-events.json')
       .then(function (r) { return r.json(); })
-      .then(function (festivals) {
+      .then(function (data) {
+        if (!data || !data.events) return;
         clearChildren(container);
-        var byTurning = {
-          'spring-equinox': [],
-          'summer-solstice': [],
-          'autumn-equinox': [],
-          'winter-solstice': []
-        };
-        festivals.forEach(function (f) {
-          if (byTurning[f.alignedTo]) byTurning[f.alignedTo].push(f);
-        });
         var labels = {
           'spring-equinox':  'Spring · 春分',
           'summer-solstice': 'Summer · 夏至',
@@ -215,7 +210,12 @@
           'winter-solstice': 'Winter · 冬至'
         };
         ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'].forEach(function (key) {
-          if (!byTurning[key].length) return;
+          var event = data.events[key];
+          if (!event || !event.pilgrimages) return;
+          // Only sourced entries.
+          var sourced = event.pilgrimages.filter(function (p) { return !!p.source; });
+          if (!sourced.length) return;
+
           var group = htmlEl('div', 'sunpath-festival-group');
           var heading = htmlEl('h3', 'sunpath-festival-heading');
           var headingLink = document.createElement('a');
@@ -225,18 +225,18 @@
           headingLink.textContent = labels[key];
           heading.appendChild(headingLink);
           group.appendChild(heading);
+
           var list = htmlEl('ul', 'sunpath-festival-list');
-          // Only show two per turning; full set lives on the permalink page.
-          byTurning[key].slice(0, 2).forEach(function (f) {
+          // Show the first two — fuller set lives on the permalink page.
+          sourced.slice(0, 2).forEach(function (p) {
             var li = htmlEl('li', 'sunpath-festival-item');
-            li.appendChild(htmlEl('span', 'sunpath-festival-name', f.name));
-            li.appendChild(htmlEl('span', 'sunpath-festival-culture', f.culture + ' · ' + f.calendarSystem));
-            if (f.walkingTradition) {
-              li.appendChild(htmlEl('p', 'sunpath-festival-walk', f.walkingTradition));
-            } else {
-              li.appendChild(htmlEl('p', 'sunpath-festival-walk sunpath-festival-walk--unattested',
-                'No walking tradition documented in primary sources.'));
+            li.dataset.turning = key;
+            li.appendChild(htmlEl('span', 'sunpath-festival-name', p.name));
+            if (p.tradition) {
+              li.appendChild(htmlEl('span', 'sunpath-festival-tradition', p.tradition));
             }
+            li.appendChild(htmlEl('span', 'sunpath-festival-culture', p.where));
+            li.appendChild(htmlEl('p', 'sunpath-festival-walk', p.what));
             list.appendChild(li);
           });
           group.appendChild(list);
