@@ -217,9 +217,17 @@
         ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'].forEach(function (key) {
           if (!byTurning[key].length) return;
           var group = htmlEl('div', 'sunpath-festival-group');
-          group.appendChild(htmlEl('h3', 'sunpath-festival-heading', labels[key]));
+          var heading = htmlEl('h3', 'sunpath-festival-heading');
+          var headingLink = document.createElement('a');
+          headingLink.href = '/sunpath/2026-' + key;
+          headingLink.className = 'sunpath-festival-heading-link';
+          headingLink.dataset.turning = key;
+          headingLink.textContent = labels[key];
+          heading.appendChild(headingLink);
+          group.appendChild(heading);
           var list = htmlEl('ul', 'sunpath-festival-list');
-          byTurning[key].forEach(function (f) {
+          // Only show two per turning; full set lives on the permalink page.
+          byTurning[key].slice(0, 2).forEach(function (f) {
             var li = htmlEl('li', 'sunpath-festival-item');
             li.appendChild(htmlEl('span', 'sunpath-festival-name', f.name));
             li.appendChild(htmlEl('span', 'sunpath-festival-culture', f.culture + ' · ' + f.calendarSystem));

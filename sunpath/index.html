@@ -64,6 +64,8 @@
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
 
+      <p class="sunpath-countdown" id="sunpath-countdown" hidden></p>
+
       <!-- Year scrub slider -->
       <div class="sunpath-scrub-wrap">
         <button type="button" class="sunpath-scrub-label" id="sunpath-scrub-label">right now</button>
@@ -117,6 +119,10 @@
 
     <!-- Year archive -->
     <section class="sunpath-section sunpath-archive" aria-label="Year archive and calendar download">
+      <div class="sunpath-archive-years" role="tablist" aria-label="Year">
+        <button type="button" class="sunpath-archive-year is-active" role="tab" aria-selected="true" data-year="2026">2026</button>
+      </div>
+
       <p class="sunpath-ics">
         <a href="/sunpath/turnings-2026.ics" download>Add to your calendar (.ics)</a>
       </p>
@@ -180,5 +186,6 @@
   <script src="/js/sunpath.js"></script>
   <script src="/js/sunpath-tools.js"></script>
   <script src="/js/sunpath-turnings.js"></script>
+  <script src="/js/sunpath-countdown.js"></script>
 </body>
 </html>
