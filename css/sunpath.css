@@ -1116,3 +1116,132 @@ body.constellation .sunpath-ics a {
 body.constellation .sunpath-ics a:hover {
   border-bottom-color: rgba(232, 224, 255, 0.85);
 }
+
+/* =============================================
+   Year archive (links to per-turning permalinks)
+   ============================================= */
+
+.sunpath-archive-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.sunpath-archive-item[data-turning="spring-equinox"]  { --turning-color: #74B495; }
+.sunpath-archive-item[data-turning="summer-solstice"] { --turning-color: #C9A646; }
+.sunpath-archive-item[data-turning="autumn-equinox"]  { --turning-color: #8B4455; }
+.sunpath-archive-item[data-turning="winter-solstice"] { --turning-color: #2378A4; }
+
+[data-theme="dark"] .sunpath-archive-item[data-turning="spring-equinox"],
+body.constellation .sunpath-archive-item[data-turning="spring-equinox"]  { --turning-color: #88C4A0; }
+[data-theme="dark"] .sunpath-archive-item[data-turning="summer-solstice"],
+body.constellation .sunpath-archive-item[data-turning="summer-solstice"] { --turning-color: #D5B55D; }
+[data-theme="dark"] .sunpath-archive-item[data-turning="autumn-equinox"],
+body.constellation .sunpath-archive-item[data-turning="autumn-equinox"]  { --turning-color: #A26070; }
+[data-theme="dark"] .sunpath-archive-item[data-turning="winter-solstice"],
+body.constellation .sunpath-archive-item[data-turning="winter-solstice"] { --turning-color: #4691BA; }
+
+.sunpath-archive-item a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--turning-color);
+  border-color: color-mix(in srgb, var(--turning-color) 50%, transparent);
+  border-radius: 3px;
+  text-decoration: none;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--turning-color) 5%, transparent);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sunpath-archive-item a:hover,
+.sunpath-archive-item a:focus-visible {
+  background: color-mix(in srgb, var(--turning-color) 12%, transparent);
+  border-color: var(--turning-color);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.sunpath-archive-kanji {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  color: var(--turning-color);
+  opacity: 0.9;
+}
+
+.sunpath-archive-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.sunpath-archive-date {
+  font-size: 0.78rem;
+  color: var(--stone);
+  letter-spacing: 0.04em;
+}
+
+body.constellation .sunpath-archive-item a { color: rgba(232, 224, 255, 0.92); }
+body.constellation .sunpath-archive-name { color: rgba(232, 224, 255, 0.95); }
+
+/* =============================================
+   Pilgrim app pills (in turning flourish)
+   ============================================= */
+
+.sunpath-flourish-app-text {
+  margin: 0 0 0.6rem;
+  font-style: italic;
+}
+
+.sunpath-app-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.sunpath-pill {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* iOS — cool slate blue */
+.sunpath-pill--ios {
+  color: #5B7A99;
+}
+[data-theme="dark"] .sunpath-pill--ios,
+body.constellation .sunpath-pill--ios {
+  color: #8FAEC9;
+}
+
+/* free — verdant green */
+.sunpath-pill--free {
+  color: #6E8F5E;
+}
+[data-theme="dark"] .sunpath-pill--free,
+body.constellation .sunpath-pill--free {
+  color: #99B888;
+}
+
+/* open source — amber/copper */
+.sunpath-pill--oss {
+  color: #B6824A;
+}
+[data-theme="dark"] .sunpath-pill--oss,
+body.constellation .sunpath-pill--oss {
+  color: #D2A471;
+}

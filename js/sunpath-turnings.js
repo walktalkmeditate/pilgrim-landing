@@ -110,17 +110,30 @@
     }
 
     // Quiet Pilgrim app callout — only shown on turning days.
-    var appNote = htmlEl('p', 'sunpath-flourish-app-note');
-    appNote.appendChild(document.createTextNode('Walking today? '));
+    var appNote = htmlEl('div', 'sunpath-flourish-app-note');
+    var noteText = htmlEl('p', 'sunpath-flourish-app-text');
+    noteText.appendChild(document.createTextNode('Walking today? '));
     var appLink = document.createElement('a');
     appLink.href = 'https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056';
     appLink.target = '_blank';
     appLink.rel = 'noopener';
     appLink.textContent = 'Pilgrim';
-    appNote.appendChild(appLink);
-    appNote.appendChild(document.createTextNode(
-      ' marks each of the four turnings — a quiet visual touch on the walk summary, the route map, and the goshuin seal. iOS · free · open source.'
+    noteText.appendChild(appLink);
+    noteText.appendChild(document.createTextNode(
+      ' marks each of the four turnings — a quiet visual touch on the walk summary, the route map, and the goshuin seal.'
     ));
+    appNote.appendChild(noteText);
+
+    var pills = htmlEl('div', 'sunpath-app-pills');
+    [
+      { label: 'iOS',         cls: 'sunpath-pill--ios' },
+      { label: 'free',        cls: 'sunpath-pill--free' },
+      { label: 'open source', cls: 'sunpath-pill--oss' }
+    ].forEach(function (p) {
+      pills.appendChild(htmlEl('span', 'sunpath-pill ' + p.cls, p.label));
+    });
+    appNote.appendChild(pills);
+
     inner.appendChild(appNote);
 
     if (event.pilgrimages && event.pilgrimages.length) {
