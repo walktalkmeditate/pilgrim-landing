@@ -30,14 +30,17 @@
 
   // --- Detect today's turning ---------------------------------------------
 
+  var VALID_TURNINGS = ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'];
+
   function detectTurning() {
+    // Permalink pages set window.__sunpathForce.turning before script runs.
+    if (window.__sunpathForce && VALID_TURNINGS.indexOf(window.__sunpathForce.turning) !== -1) {
+      return window.__sunpathForce.turning;
+    }
     // URL override for testing.
     var url = new URL(window.location.href);
     var override = url.searchParams.get('turning');
-    if (override === 'spring-equinox' || override === 'summer-solstice' ||
-        override === 'autumn-equinox' || override === 'winter-solstice') {
-      return override;
-    }
+    if (VALID_TURNINGS.indexOf(override) !== -1) return override;
     if (!window.Turnings) return null;
     var name = window.Turnings.getTurningOnDate(new Date());
     if (!name) return null;
@@ -75,7 +78,7 @@
     container.dataset.turning = turning;
     container.hidden = false;
 
-    fetch('assets/sunpath/turning-events.json', { cache: 'force-cache' })
+    fetch('/assets/sunpath/turning-events.json', { cache: 'force-cache' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.events || !data.events[turning]) return;
@@ -105,6 +108,20 @@
       });
       inner.appendChild(factsList);
     }
+
+    // Quiet Pilgrim app callout — only shown on turning days.
+    var appNote = htmlEl('p', 'sunpath-flourish-app-note');
+    appNote.appendChild(document.createTextNode('Walking today? '));
+    var appLink = document.createElement('a');
+    appLink.href = 'https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056';
+    appLink.target = '_blank';
+    appLink.rel = 'noopener';
+    appLink.textContent = 'Pilgrim';
+    appNote.appendChild(appLink);
+    appNote.appendChild(document.createTextNode(
+      ' marks each of the four turnings — a quiet visual touch on the walk summary, the route map, and the goshuin seal. iOS · free · open source.'
+    ));
+    inner.appendChild(appNote);
 
     if (event.pilgrimages && event.pilgrimages.length) {
       var pilHeading = htmlEl('h3', 'sunpath-flourish-subheading', 'Pilgrimages happening today');

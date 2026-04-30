@@ -4,38 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Sun Path — where light meets land, right now</title>
-  <meta name="description" content="A real-time map of where the sun stands. With ancient sun-aligned monuments, the cultural calendar of turnings, and a quiet line on solstice and equinox days.">
+  <title>Summer Solstice 2026 — the longest light</title>
+  <meta name="description" content="On 21 June 2026 at 08:26 UTC, the sun stood at its furthest north and the northern day reached its longest. Real-time globe, ancient sun-aligned monuments, and the cultural calendar of turnings.">
 
-  <link rel="canonical" href="https://pilgrimapp.org/sunpath">
+  <link rel="canonical" href="https://pilgrimapp.org/sunpath/2026-summer-solstice">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Sun Path — where light meets land, right now">
-  <meta property="og:description" content="A real-time map of the sun's path. Ancient monuments, the cultural calendar of turnings, every day of the year.">
+  <meta property="og:title" content="Summer Solstice 2026 · Sun Path">
+  <meta property="og:description" content="The longest day of the northern year, with sun-aligned monuments and pilgrimages tied to the turning.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://pilgrimapp.org/sunpath">
+  <meta property="og:url" content="https://pilgrimapp.org/sunpath/2026-summer-solstice">
   <meta property="og:image" content="https://pilgrimapp.org/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Sun Path">
-  <meta name="twitter:description" content="A real-time map of where the sun stands. Ancient monuments and the cultural calendar of turnings.">
+  <meta name="twitter:title" content="Summer Solstice 2026 · Sun Path">
+  <meta name="twitter:description" content="The longest day of the northern year.">
   <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-image.png">
 
-  <link rel="icon" href="assets/favicon.png" type="image/png">
-  <link rel="apple-touch-icon" href="assets/pilgrim-logo.png">
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/pilgrim-logo.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Lato:wght@300&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/sunpath.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/sunpath.css">
 
-  <!-- Analytics -->
   <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
+
+  <script>
+    // Freeze the page to the spring equinox 2026 instant.
+    window.__sunpathForce = {
+      turning: 'summer-solstice',
+      date: '2026-06-21T08:26:00Z'
+    };
+  </script>
 </head>
 <body class="sunpath-body">
 
@@ -43,19 +48,16 @@
 
   <main class="sunpath-main">
 
-    <!-- Turning-day echo (matches landing hero) -->
     <p class="turning-echo" id="turning-echo" hidden>
       <span class="turning-echo-kanji" id="turning-echo-kanji" aria-hidden="true"></span>
       <span class="turning-echo-text" id="turning-echo-text"></span>
     </p>
 
-    <!-- Turning-day flourish — only renders on the four days a year -->
     <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-    <!-- Hero: globe + subsolar caption -->
-    <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stands now">
-      <h1 class="sunpath-title">Sun Path</h1>
-      <p class="sunpath-tagline">where light meets land, right now</p>
+    <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood on 2026-06-21 08:26 UTC">
+      <h1 class="sunpath-title">Summer Solstice 2026</h1>
+      <p class="sunpath-tagline">the longest light — 21 June, 08:26 UTC</p>
 
       <div class="sunpath-globe-wrap" id="sunpath-globe">
         <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
@@ -64,55 +66,43 @@
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
 
-      <!-- Year scrub slider -->
       <div class="sunpath-scrub-wrap">
         <button type="button" class="sunpath-scrub-label" id="sunpath-scrub-label">right now</button>
         <input type="range" id="sunpath-year-scrub" min="1" max="365" aria-label="Walk through the year, day by day">
       </div>
 
-      <!-- Axial tilt inset -->
       <div class="sunpath-tilt-wrap" id="sunpath-tilt" aria-label="Earth's axial tilt"></div>
     </section>
 
-    <!-- Time machine -->
     <section class="sunpath-section" aria-label="Megalith time machine">
       <h2 class="sunpath-section-heading">Walk through time</h2>
       <p>Earth's tilt drifts slowly — about a degree every few millennia. Slide through the years and watch each monument's sunrise direction shift on its own horizon.</p>
       <div id="sunpath-time-machine"></div>
     </section>
 
-    <!-- Festivals -->
     <section class="sunpath-section" aria-label="Cultural turning calendar">
       <h2 class="sunpath-section-heading">A calendar of turnings</h2>
       <p>The four hinges of the year, each marked across cultures by walks, processions, and gatherings.</p>
-      <p class="sunpath-ics">
-        <a href="/sunpath/turnings-2026.ics" download>Add 2026 turnings to your calendar (.ics)</a>
-        <span class="sunpath-ics-meta">— spring, summer, autumn, winter; reminded the day before each</span>
-      </p>
       <div id="sunpath-festivals"></div>
     </section>
 
-    <!-- Analemma -->
     <section class="sunpath-section" aria-label="Sun's annual figure-eight at noon">
       <h2 class="sunpath-section-heading">The sun's figure of eight</h2>
       <p>Stand at solar noon every day for a year and trace where the sun is. The shape it draws is the analemma — a slow, elegant figure-of-eight written by Earth's tilted, elliptical orbit.</p>
       <div id="sunpath-analemma"></div>
     </section>
 
-    <!-- Dawn sweep -->
     <section class="sunpath-section" aria-label="Sunrise direction across the year">
       <h2 class="sunpath-section-heading">Where dawn comes from</h2>
       <p>At the equator the sun rises near due east all year. The further from the equator, the wider its swing — until at high latitudes there are months when it never rises at all.</p>
       <div id="sunpath-dawn"></div>
     </section>
 
-    <!-- Walk to the sun -->
     <section class="sunpath-section" aria-label="Distance from Greenwich to the subsolar point">
       <h2 class="sunpath-section-heading">Walk to the sun</h2>
       <div id="sunpath-walk-to-sun"></div>
     </section>
 
-    <!-- Daylight delta -->
     <section class="sunpath-section" aria-label="Daylight gained or lost vs yesterday">
       <h2 class="sunpath-section-heading">Tomorrow vs today</h2>
       <p>Around the equinoxes, the day grows or shrinks by 2–3 minutes per 24 hours. Around the solstices, almost nothing — the sun pauses.</p>
@@ -127,29 +117,30 @@
         Sun Path is part of <a href="/">Pilgrim</a> — a walking practice
       </p>
       <div class="sunpath-footer-links">
+        <a href="/sunpath">Sun Path (live)</a>
+        <span class="sunpath-footer-sep" aria-hidden="true">·</span>
         <a href="/">Home</a>
         <span class="sunpath-footer-sep" aria-hidden="true">·</span>
         <a href="/guide">Guide</a>
         <span class="sunpath-footer-sep" aria-hidden="true">·</span>
         <a href="/privacy">Privacy</a>
         <span class="sunpath-footer-sep" aria-hidden="true">·</span>
-        <a href="https://github.com/walktalkmeditate/pilgrim-landing/blob/main/sunpath.html" target="_blank" rel="noopener">View source</a>
+        <a href="https://github.com/walktalkmeditate/pilgrim-landing/blob/main/sunpath/2026-summer-solstice/index.html" target="_blank" rel="noopener">View source</a>
       </div>
       <p class="sunpath-footer-license">open source · GPLv3</p>
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="js/moon.js"></script>
-  <script src="js/turnings.js"></script>
-  <script src="js/universe.js"></script>
-  <script src="js/main.js"></script>
-  <script src="js/sunpath-math.js"></script>
-  <script src="js/vendor/d3-array.min.js"></script>
-  <script src="js/vendor/d3-geo.min.js"></script>
-  <script src="js/vendor/topojson-client.min.js"></script>
-  <script src="js/sunpath.js"></script>
-  <script src="js/sunpath-tools.js"></script>
-  <script src="js/sunpath-turnings.js"></script>
+  <script src="/js/moon.js"></script>
+  <script src="/js/turnings.js"></script>
+  <script src="/js/universe.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/sunpath-math.js"></script>
+  <script src="/js/vendor/d3-array.min.js"></script>
+  <script src="/js/vendor/d3-geo.min.js"></script>
+  <script src="/js/vendor/topojson-client.min.js"></script>
+  <script src="/js/sunpath.js"></script>
+  <script src="/js/sunpath-tools.js"></script>
+  <script src="/js/sunpath-turnings.js"></script>
 </body>
 </html>
