@@ -32,6 +32,16 @@ export function renderPermalink(data, archive) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    (function () {
+      var p = location.pathname;
+      if (p.endsWith('.html') && p !== '/404.html') {
+        history.replaceState(null, '',
+          p.replace(/\\/index\\.html$/, '/').replace(/\\.html$/, '')
+          + location.search + location.hash);
+      }
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
