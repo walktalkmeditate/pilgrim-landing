@@ -85,40 +85,132 @@
     <section class="archive">
       <h2>Where they've been found</h2>
 
-      <p class="archive-empty">
-        Nothing has been found yet.<br>
-        The first cards and broadsides go out in Spring 2026.<br>
-        When one finds you, leave a note — yours will be the first.
-      </p>
-
       <!--
         Approved entries get pasted here, newest first.
+        Numbering (.find-num) is sequential by find order, zero-padded.
 
-        Placeholder lifecycle:
-        - First real entry arrives: paste it ABOVE the .archive-empty paragraph
-          (keep the placeholder — it still reads true, since only one find exists).
-        - Second real entry arrives: DELETE the .archive-empty paragraph entirely
-          (the archive is visibly a thing now and no longer needs the vow).
-        - Third and beyond: paste newest-first at the top of this section.
+        Layout: story (left) and optional photo (right) sit in .find-body,
+        side-by-side on desktop, stacked on narrow viewports. Photo is a
+        thumbnail; clicking it opens a <dialog> lightbox with the full image.
 
-        Card shape:
+        Long-form shape (story + photo + lightbox):
         <article class="find">
-          <p class="find-head">Card 023 · Portland · Powell's</p>
-          <p class="find-context">in a copy of <cite>The Snow Leopard</cite>.</p>
-          <blockquote class="find-story">
-            "I was having a terrible week and this felt like someone knew."
-          </blockquote>
+          <p class="find-head">
+            <span class="find-num" aria-hidden="true">02</span>
+            Card 023 · Powell's, Portland
+          </p>
+          <div class="find-body">
+            <div class="find-story">
+              <p>First sentence or two as the lead-in...</p>
+              <details>
+                <summary>read on</summary>
+                <p>Rest of the story, paragraph by paragraph.</p>
+              </details>
+            </div>
+            <figure class="find-photo">
+              <button type="button" class="find-photo-btn" data-lightbox="find-NNN-photo" aria-label="View photo full size">
+                <div class="card-mat">
+                  <picture>
+                    <source srcset="assets/cards/finds/find-NNN-YYYY-MM-DD.webp" type="image/webp">
+                    <img src="assets/cards/finds/find-NNN-YYYY-MM-DD.jpg"
+                         alt="..." width="1200" height="1600" loading="lazy">
+                  </picture>
+                </div>
+              </button>
+            </figure>
+          </div>
+          <dialog class="lightbox" id="find-NNN-photo" aria-label="Photo">
+            <picture>
+              <source srcset="assets/cards/finds/find-NNN-YYYY-MM-DD.webp" type="image/webp">
+              <img src="assets/cards/finds/find-NNN-YYYY-MM-DD.jpg" alt="...">
+            </picture>
+          </dialog>
         </article>
 
-        Broadside shape:
+        Short shape (no photo, no fold):
         <article class="find">
-          <p class="find-head">Broadside · Whitman · Iona, Scotland</p>
-          <p class="find-context">pinned to the bulletin board at the abbey hostel.</p>
-          <blockquote class="find-story">
-            "Three days into the pilgrimage. It stopped me dead."
-          </blockquote>
+          <p class="find-head">
+            <span class="find-num" aria-hidden="true">03</span>
+            Broadside · Whitman · Iona, Scotland
+          </p>
+          <div class="find-body">
+            <div class="find-story">
+              <p>"Three days into the pilgrimage. It stopped me dead."</p>
+            </div>
+          </div>
         </article>
       -->
+
+      <article class="find">
+        <p class="find-head"><span class="find-num" aria-hidden="true">02</span>Card 16 · Barnes &amp; Noble</p>
+        <p class="find-context">in Stephen Mitchell's translation of the <cite>Bhagavad Gita</cite>, page 82.</p>
+        <div class="find-body">
+          <div class="find-story">
+            <p class="find-card-text">"If you found this, take a walk."</p>
+            <p>I took a walk. &lt;3</p>
+          </div>
+          <figure class="find-photo">
+            <button type="button" class="find-photo-btn" data-lightbox="find-002-photo" aria-label="View photo full size">
+              <div class="card-mat">
+                <picture>
+                  <source srcset="assets/cards/finds/find-002-2026-04-29.webp" type="image/webp">
+                  <img
+                    src="assets/cards/finds/find-002-2026-04-29.jpg"
+                    alt="A copy of Stephen Mitchell's translation of the Bhagavad Gita, held open to pages 82 and 83 in someone's hands."
+                    width="1200"
+                    height="900"
+                    loading="lazy">
+                </picture>
+              </div>
+            </button>
+          </figure>
+        </div>
+        <dialog class="lightbox" id="find-002-photo" aria-label="Photo from Card 16, found in a Bhagavad Gita">
+          <picture>
+            <source srcset="assets/cards/finds/find-002-2026-04-29.webp" type="image/webp">
+            <img
+              src="assets/cards/finds/find-002-2026-04-29.jpg"
+              alt="A copy of Stephen Mitchell's translation of the Bhagavad Gita, held open to pages 82 and 83 in someone's hands.">
+          </picture>
+        </dialog>
+      </article>
+
+      <article class="find">
+        <p class="find-head"><span class="find-num" aria-hidden="true">01</span>Card 31 · Barnes &amp; Noble</p>
+        <div class="find-body">
+          <div class="find-story">
+            <p>It's been a weird couple weeks for me. I just moved to the area for work and still adjusting to it. I took myself out for a walk just to get some fresh air and clear my head when I wandered into a bookstore. Browsing for books, one of them caught my eye. "On living and dying well" By Cicero. Feeling curious I grabbed it and opened it up for a quick read. Thats when I found it.</p>
+            <details>
+              <summary>read on</summary>
+              <p>Bookmarked on a page that could have been intentional. I started reading the chapter, the back of the book, reading about Cicero and the time period it was written in. It brought me back to learning about things that interest me. And the quote on the back of the card "take a walk" was hilarious to me because this was where my walk took me.</p>
+              <p>Noticing the URL I picked up my phone and searched it. Finding it was like magic. I felt like a kid with a treasure map. I couldn't pass up on the book so I bought it. Downloaded the app and reading the website. Thinking about my next walk.</p>
+            </details>
+          </div>
+          <figure class="find-photo">
+            <button type="button" class="find-photo-btn" data-lightbox="find-001-photo" aria-label="View photo full size">
+              <div class="card-mat">
+                <picture>
+                  <source srcset="assets/cards/finds/find-001-2026-04-28.webp" type="image/webp">
+                  <img
+                    src="assets/cards/finds/find-001-2026-04-28.jpg"
+                    alt="A Penguin Classics edition of Cicero's On Living and Dying Well lying on a warm umber table beside Pilgrim Card 31, a botanical plate of yellow flowers."
+                    width="1200"
+                    height="1600"
+                    loading="lazy">
+                </picture>
+              </div>
+            </button>
+          </figure>
+        </div>
+        <dialog class="lightbox" id="find-001-photo" aria-label="Photo from Card 31, found at Barnes & Noble">
+          <picture>
+            <source srcset="assets/cards/finds/find-001-2026-04-28.webp" type="image/webp">
+            <img
+              src="assets/cards/finds/find-001-2026-04-28.jpg"
+              alt="A Penguin Classics edition of Cicero's On Living and Dying Well lying on a warm umber table beside Pilgrim Card 31, a botanical plate of yellow flowers.">
+          </picture>
+        </dialog>
+      </article>
     </section>
 
     <section class="invite">
@@ -144,6 +236,10 @@
       <p class="leave-note-fallback">
         or write to <span class="addr">found@pilgrimapp.org</span>
       </p>
+
+      <p class="leave-note-eta">
+        Stories usually appear here within a week.
+      </p>
     </section>
 
   </main>
@@ -155,5 +251,17 @@
   <script src="js/moon.js"></script>
   <script src="js/universe.js"></script>
   <script src="js/main.js"></script>
+
+  <script>
+    document.querySelectorAll('[data-lightbox]').forEach(function (trigger) {
+      trigger.addEventListener('click', function () {
+        var dlg = document.getElementById(trigger.dataset.lightbox);
+        if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+      });
+    });
+    document.querySelectorAll('dialog.lightbox').forEach(function (dlg) {
+      dlg.addEventListener('click', function () { dlg.close(); });
+    });
+  </script>
 </body>
 </html>
