@@ -653,8 +653,9 @@
       anchor.setAttribute("rel", "noopener noreferrer");
 
       const img = document.createElementNS(SVG_NS, "image");
-      img.setAttributeNS(XLINK_NS, "xlink:href", duckMarkerSrc(entries));
-      img.setAttribute("href", duckMarkerSrc(entries));
+      const markerSrc = duckMarkerSrc(entries);
+      img.setAttributeNS(XLINK_NS, "xlink:href", markerSrc);
+      img.setAttribute("href", markerSrc);
       img.setAttribute("class", "walk-duck-marker");
       img.setAttribute("x", String(top.cx - duckSize / 2));
       img.setAttribute("y", String(top.cy - duckSize / 2));
