@@ -11,7 +11,28 @@
   const FEED_URL =
     "https://cdn.jsdelivr.net/gh/walktalkmeditate/rubberduck-walk@main/feed.json";
   const DUCK_GIF = "assets/duck/duck.gif";
+  const DUCK_STILL_PNG = "assets/duck/duck-still.png";
   const DUCK_LINK = "https://chiefrubberduck.org";
+
+  // kind priority: threshold > letter > meditation > offering. Used to pick the
+  // "latest" entry when two entries share a date (e.g., a recovery + meditation).
+  const KIND_PRIORITY = { threshold: 4, letter: 3, meditation: 2, offering: 1 };
+
+  function latestEntry(entries) {
+    if (!entries || entries.length === 0) return null;
+    // entries are already sorted by date desc in feed builder. Tiebreak on kind, then array order.
+    const top = entries[0];
+    const sameDate = entries.filter((e) => e.date === top.date);
+    if (sameDate.length === 1) return top;
+    sameDate.sort((a, b) => (KIND_PRIORITY[b.kind] ?? 0) - (KIND_PRIORITY[a.kind] ?? 0));
+    return sameDate[0];
+  }
+
+  function duckMarkerSrc(entries) {
+    const top = latestEntry(entries);
+    if (top && top.kind === "meditation") return DUCK_STILL_PNG;
+    return DUCK_GIF;
+  }
   const SVG_NS = "http://www.w3.org/2000/svg";
   const XLINK_NS = "http://www.w3.org/1999/xlink";
   const STALE_FEED_DAYS = 10;
@@ -627,8 +648,8 @@
       anchor.setAttribute("rel", "noopener noreferrer");
 
       const img = document.createElementNS(SVG_NS, "image");
-      img.setAttributeNS(XLINK_NS, "xlink:href", DUCK_GIF);
-      img.setAttribute("href", DUCK_GIF);
+      img.setAttributeNS(XLINK_NS, "xlink:href", duckMarkerSrc(entries));
+      img.setAttribute("href", duckMarkerSrc(entries));
       img.setAttribute("class", "walk-duck-marker");
       img.setAttribute("x", String(top.cx - duckSize / 2));
       img.setAttribute("y", String(top.cy - duckSize / 2));
