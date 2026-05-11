@@ -70,7 +70,7 @@
     notice: 8,
     threshold: 13,
     letter: 10,
-    silence: 5,
+    meditation: 9,
   };
 
   // Temple-number → nameLocalized.ja for Shikoku 88. Sourced from
@@ -437,15 +437,20 @@
 
     const body = document.createElement("div");
     body.className = "walk-entry-body";
-    if (entry.kind !== "silence") {
-      const paragraphs = Array.isArray(entry.paragraphs) ? entry.paragraphs : [];
-      for (const p of paragraphs) {
-        const pEl = document.createElement("p");
-        pEl.textContent = p;
-        body.append(pEl);
-      }
+    const paragraphs = Array.isArray(entry.paragraphs) ? entry.paragraphs : [];
+    for (const p of paragraphs) {
+      const pEl = document.createElement("p");
+      pEl.textContent = p;
+      body.append(pEl);
     }
     el.append(body);
+
+    if (entry.heard && (entry.kind === "offering" || entry.kind === "threshold")) {
+      const heardEl = document.createElement("div");
+      heardEl.className = "walk-entry-heard";
+      heardEl.textContent = "— " + entry.heard;
+      el.appendChild(heardEl);
+    }
 
     if (entry.kind === "letter" && entry.author) {
       const author = document.createElement("p");
