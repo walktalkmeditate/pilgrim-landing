@@ -15,11 +15,17 @@
      ./scripts/bake-daylight-routes
 
    Output:
-     assets/daylight/<route-id>.json   — array of stage records
+     assets/daylight/<route-id>.json   — array of stage records (with waypoints)
      assets/daylight/route-meta.json   — summary for all 7 routes
-     daylight/<route-id>/index.html    — per-route SEO page (7 files)
+     daylight/<route-id>/index.html    — per-route SEO page (7 files, with spider dial)
 
    Template syntax: {{placeholder_name}} — keys defined in buildRouteHtmlMap().
+
+   Spider-dial idempotency note: the 4-arm polygon axes are normalized to the
+   cross-route maximum values. The normalization is idempotent only when ROUTE_IDS
+   is unchanged. Adding or removing a route re-scales all routes' dials — every
+   per-route HTML will diff on a route-set change. This is intentional (D7: relative
+   shape across routes is the point).
    ============================================= */
 
 'use strict';
@@ -84,11 +90,93 @@ function getStageTz(routeId, stageIndex) {
 /* Required schema version in stages.json and metadata.json. */
 var REQUIRED_SCHEMA_VERSION = '1.0.0';
 
+/* Minimum km gap between consecutive kept waypoints within a stage.
+   Ensures at most one sacred-site tick per 3-km window on the bar. */
+var WAYPOINT_MIN_SPACING_KM = 3;
+
 /* --- Fail-loud helper --- */
 
 function die(reason) {
   process.stderr.write('bake-daylight-routes: ' + reason + '\n');
   process.exit(1);
+}
+
+/* --- Waypoint loading + decimation --- */
+
+/* Reads waypoints.geojson for a route, filters to sacred_site features,
+   applies 3-km density decimation within each stage, and returns a map of
+   stageIndex → [{name, kmFromStart}].
+
+   Fail-loud contract (matches D2 pattern):
+   - Exits non-zero if the file is absent.
+   - Warns loudly to stderr (but continues with an empty map) if the file
+     contains zero sacred_site features. The data for several Camino routes
+     currently has no sacred_sites — dying here would break the bake entirely
+     for routes that are otherwise valid. Spider-dial density axis will be 0. */
+function loadAndDecimateWaypoints(routeId) {
+  var wpPath = path.join(ROUTES_DIR, routeId, 'waypoints.geojson');
+  if (!fs.existsSync(wpPath)) {
+    die('missing or invalid ' + wpPath + ' — waypoints.geojson not found for ' + routeId);
+  }
+  var raw;
+  try {
+    raw = fs.readFileSync(wpPath, 'utf8');
+  } catch (e) {
+    die('missing or invalid ' + wpPath + ' — could not read: ' + e.message);
+  }
+  var geojson;
+  try {
+    geojson = JSON.parse(raw);
+  } catch (e) {
+    die('missing or invalid ' + wpPath + ' — invalid JSON: ' + e.message);
+  }
+
+  if (!geojson.features || !Array.isArray(geojson.features)) {
+    die('missing or invalid ' + wpPath + ' — "features" must be an array');
+  }
+
+  var sacredSites = geojson.features.filter(function (f) {
+    return f.properties && f.properties.type === 'sacred_site';
+  });
+
+  if (sacredSites.length === 0) {
+    process.stderr.write(
+      'bake-daylight-routes: warning — ' + wpPath +
+      ' contains zero sacred_site features; waypoints will be empty for ' + routeId + '\n'
+    );
+    return {};
+  }
+
+  /* Group by stageIndex */
+  var byStage = {};
+  sacredSites.forEach(function (f) {
+    var idx = f.properties.stageIndex;
+    if (idx === undefined || idx === null) return;
+    if (!byStage[idx]) byStage[idx] = [];
+    byStage[idx].push({
+      name:        String(f.properties.name || ''),
+      kmFromStart: Number(f.properties.kmFromStart) || 0
+    });
+  });
+
+  /* Sort each stage's waypoints by kmFromStart, then apply decimation */
+  var decimated = {};
+  Object.keys(byStage).forEach(function (idx) {
+    var sorted = byStage[idx].slice().sort(function (a, b) {
+      return a.kmFromStart - b.kmFromStart;
+    });
+    var kept = [];
+    var lastKeptKm = -Infinity;
+    sorted.forEach(function (wp) {
+      if (wp.kmFromStart - lastKeptKm >= WAYPOINT_MIN_SPACING_KM) {
+        kept.push(wp);
+        lastKeptKm = wp.kmFromStart;
+      }
+    });
+    decimated[Number(idx)] = kept;
+  });
+
+  return decimated;
 }
 
 /* --- Validation --- */
@@ -130,7 +218,9 @@ function assertField(value, fieldName, filePath) {
 
 /* --- Stage transformation --- */
 
-function bakeStage(stage, ianaTz, stagesPath) {
+/* waypointsByStage: map from stageIndex (number) → [{name, kmFromStart}],
+   produced by loadAndDecimateWaypoints. Pass {} if not available. */
+function bakeStage(stage, ianaTz, stagesPath, waypointsByStage) {
   var loc = stagesPath + ' stage[' + (stage.index != null ? stage.index : '?') + ']';
 
   assertField(stage.index,              'index',               loc);
@@ -146,6 +236,8 @@ function bakeStage(stage, ianaTz, stagesPath) {
     die('missing or invalid ' + loc + ' — start.coordinates must be [lng, lat, ...]');
   }
 
+  var waypoints = (waypointsByStage && waypointsByStage[stage.index]) || [];
+
   /* open-pilgrimages uses [lng, lat, elev]; baked schema uses startLat, startLon */
   return {
     index:      stage.index,
@@ -154,12 +246,74 @@ function bakeStage(stage, ianaTz, stagesPath) {
     startLon:   coords[0],
     distanceKm: stage.distanceKm,
     elevGainM:  stage.elevationGainMeters,
-    ianaTz:     ianaTz
+    ianaTz:     ianaTz,
+    waypoints:  waypoints
   };
+}
+
+/* --- Spider-dial helpers --- */
+
+/* Compute the total decimated sacred-site count across all stages for a route.
+   waypointsByStage is the map returned by loadAndDecimateWaypoints. */
+function totalWaypointCount(waypointsByStage) {
+  return Object.keys(waypointsByStage).reduce(function (sum, idx) {
+    return sum + waypointsByStage[idx].length;
+  }, 0);
+}
+
+/* Build a 4-arm spider-dial SVG string for a single route.
+   axes: { distanceKm, totalElevGainM, stageCount, waypointDensity }
+   axisMaxes: same shape, each field = max across all routes */
+function buildSpiderDialSVG(routeId, axes, axisMaxes) {
+  var cx = 60, cy = 60, r = 50;
+
+  /* Normalize each axis value to [0, 1]. Guard against zero-max. */
+  function norm(val, max) {
+    return max > 0 ? Math.min(1, val / max) : 0;
+  }
+
+  var nd = norm(axes.distanceKm,      axisMaxes.distanceKm);
+  var ne = norm(axes.totalElevGainM,  axisMaxes.totalElevGainM);
+  var ns = norm(axes.stageCount,      axisMaxes.stageCount);
+  var nw = norm(axes.waypointDensity, axisMaxes.waypointDensity);
+
+  /* 4 arms at 0°/90°/180°/270° (N/E/S/W) → diamond shape.
+     N = distance (top), E = elevation (right), S = stage count (bottom), W = density (left).
+     SVG y-axis is inverted: N is cy - r*v, S is cy + r*v. */
+  var pN  = cx + ',' + (cy - r * nd);
+  var pE  = (cx + r * ne) + ',' + cy;
+  var pS  = cx + ',' + (cy + r * ns);
+  var pW  = (cx - r * nw) + ',' + cy;
+
+  /* Background reference diamond (full extent, very faint) */
+  var bgPoints = cx + ',' + (cy - r) + ' ' + (cx + r) + ',' + cy + ' ' + cx + ',' + (cy + r) + ' ' + (cx - r) + ',' + cy;
+
+  /* Foreground polygon (actual route shape) */
+  var fgPoints = pN + ' ' + pE + ' ' + pS + ' ' + pW;
+
+  var titleText =
+    'Distance ' + axes.distanceKm + ' km · ' +
+    'Elevation gain ' + axes.totalElevGainM + ' m · ' +
+    'Stages ' + axes.stageCount + ' · ' +
+    'Sacred-site density ' + axes.waypointDensity.toFixed(3) + ' sites/km';
+
+  return (
+    '<svg class="dl-spider-dial" viewBox="0 0 120 120"' +
+    ' width="100" height="100"' +
+    ' role="img" aria-label="Route profile dial"' +
+    ' xmlns="http://www.w3.org/2000/svg">' +
+    '<title>' + titleText + '</title>' +
+    '<polygon class="dl-spider-dial-bg" points="' + bgPoints + '"/>' +
+    '<polygon class="dl-spider-dial-fg" points="' + fgPoints + '"/>' +
+    '</svg>'
+  );
 }
 
 /* --- Per-route bake --- */
 
+/* Returns { stageCount, bakedStages } where bakedStages carries waypoints.
+   Also returns spiderAxes: { distanceKm, totalElevGainM, stageCount, waypointDensity }
+   needed for cross-route normalization. */
 function bakeRoute(routeId) {
   var ianaTz = ROUTE_TZ[routeId];
   if (!ianaTz) {
@@ -176,12 +330,15 @@ function bakeRoute(routeId) {
     die('missing or invalid ' + stagesPath + ' — "stages" must be a non-empty array');
   }
 
+  /* Load waypoints for this route */
+  var waypointsByStage = loadAndDecimateWaypoints(routeId);
+
   var baked = stagesData.stages.map(function (stage) {
     var stageTz = getStageTz(routeId, stage.index);
     if (!stageTz) {
       die('missing or invalid ' + stagesPath + ' — could not resolve ianaTz for stage ' + stage.index);
     }
-    return bakeStage(stage, stageTz, stagesPath);
+    return bakeStage(stage, stageTz, stagesPath, waypointsByStage);
   });
 
   var outPath = path.join(OUT_DIR, routeId + '.json');
@@ -190,7 +347,26 @@ function bakeRoute(routeId) {
   } catch (e) {
     die('could not write ' + outPath + ': ' + e.message);
   }
-  return baked.length;
+
+  /* Read metadata for spider-dial axis values */
+  var metaPath = path.join(ROUTES_DIR, routeId, 'metadata.json');
+  var metaData = readJson(metaPath, 'metadata.json for ' + routeId);
+  var distanceKm = metaData.overview && metaData.overview.distanceKm;
+  assertField(distanceKm, 'overview.distanceKm', metaPath);
+
+  var totalElevGainM = baked.reduce(function (sum, s) { return sum + s.elevGainM; }, 0);
+  var waypointTotal  = totalWaypointCount(waypointsByStage);
+  var waypointDensity = distanceKm > 0 ? waypointTotal / distanceKm : 0;
+
+  return {
+    stageCount:  baked.length,
+    spiderAxes: {
+      distanceKm:      distanceKm,
+      totalElevGainM:  totalElevGainM,
+      stageCount:      baked.length,
+      waypointDensity: waypointDensity
+    }
+  };
 }
 
 /* --- Route-meta bake --- */
@@ -296,7 +472,7 @@ function assertSeoSignals(html, routeId, nameEn, distanceKm) {
 }
 
 /* Bake one per-route HTML page. Returns the output path. */
-function bakeRouteHtml(routeId, nameEn, distanceKm, stages, templateText) {
+function bakeRouteHtml(routeId, nameEn, distanceKm, stages, templateText, spiderDialSvg) {
   var stagesCount = stages.length;
   var stagesProse = buildStagesProse(stages, nameEn, distanceKm);
   var walkLinkBlock = buildWalkLinkBlock(routeId, nameEn);
@@ -307,7 +483,8 @@ function bakeRouteHtml(routeId, nameEn, distanceKm, stages, templateText) {
     route_distance_km: distanceKm,
     stages_count:      stagesCount,
     stages_prose:      stagesProse,
-    walk_link_block:   walkLinkBlock
+    walk_link_block:   walkLinkBlock,
+    spider_dial_svg:   spiderDialSvg || ''
   };
 
   var html = renderTemplate(templateText, map);
@@ -328,8 +505,9 @@ function bakeRouteHtml(routeId, nameEn, distanceKm, stages, templateText) {
 }
 
 /* Bake all 7 per-route HTML pages.
-   Reads already-baked JSON stage files from OUT_DIR (so JSON pass must run first). */
-function bakeAllRouteHtml(routeMeta) {
+   Reads already-baked JSON stage files from OUT_DIR (so JSON pass must run first).
+   routeSpiderAxes: map from routeId → spiderAxes (collected during JSON pass). */
+function bakeAllRouteHtml(routeMeta, routeSpiderAxes) {
   if (!fs.existsSync(TEMPLATE_PATH)) {
     die('missing template: ' + TEMPLATE_PATH);
   }
@@ -340,6 +518,21 @@ function bakeAllRouteHtml(routeMeta) {
     die('could not read template ' + TEMPLATE_PATH + ': ' + e.message);
   }
 
+  /* Compute cross-route axis maxes for spider-dial normalization */
+  var axisMaxes = {
+    distanceKm:      0,
+    totalElevGainM:  0,
+    stageCount:      0,
+    waypointDensity: 0
+  };
+  Object.keys(routeSpiderAxes).forEach(function (id) {
+    var axes = routeSpiderAxes[id];
+    if (axes.distanceKm      > axisMaxes.distanceKm)      axisMaxes.distanceKm      = axes.distanceKm;
+    if (axes.totalElevGainM  > axisMaxes.totalElevGainM)  axisMaxes.totalElevGainM  = axes.totalElevGainM;
+    if (axes.stageCount      > axisMaxes.stageCount)      axisMaxes.stageCount      = axes.stageCount;
+    if (axes.waypointDensity > axisMaxes.waypointDensity) axisMaxes.waypointDensity = axes.waypointDensity;
+  });
+
   routeMeta.forEach(function (meta) {
     var stagesPath = path.join(OUT_DIR, meta.id + '.json');
     var stages = readJson(stagesPath, 'baked stages for ' + meta.id);
@@ -348,7 +541,10 @@ function bakeAllRouteHtml(routeMeta) {
       die('missing or invalid ' + stagesPath + ' — expected non-empty array');
     }
 
-    bakeRouteHtml(meta.id, meta.nameEn, meta.distanceKm, stages, templateText);
+    var axes = routeSpiderAxes[meta.id];
+    var dialSvg = buildSpiderDialSVG(meta.id, axes, axisMaxes);
+
+    bakeRouteHtml(meta.id, meta.nameEn, meta.distanceKm, stages, templateText, dialSvg);
     process.stdout.write('  ' + meta.id + '/index.html written\n');
   });
 }
@@ -369,10 +565,12 @@ function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
   }
 
-  /* Bake each route — JSON pass */
+  /* Bake each route — JSON pass. Collect spider-dial axes per route. */
+  var routeSpiderAxes = {};
   ROUTE_IDS.forEach(function (routeId) {
-    var stageCount = bakeRoute(routeId);
-    process.stdout.write('  ' + routeId + ' — ' + stageCount + ' stages\n');
+    var result = bakeRoute(routeId);
+    routeSpiderAxes[routeId] = result.spiderAxes;
+    process.stdout.write('  ' + routeId + ' — ' + result.stageCount + ' stages\n');
   });
 
   /* Bake route-meta */
@@ -383,7 +581,7 @@ function main() {
   var routeMetaPath = path.join(OUT_DIR, 'route-meta.json');
   var routeMeta = readJson(routeMetaPath, 'route-meta.json');
   process.stdout.write('baking HTML pages...\n');
-  bakeAllRouteHtml(routeMeta);
+  bakeAllRouteHtml(routeMeta, routeSpiderAxes);
   process.stdout.write('  HTML pass complete\n');
 }
 

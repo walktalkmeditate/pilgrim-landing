@@ -6,7 +6,13 @@
     "startLon": -1.236,
     "distanceKm": 24.2,
     "elevGainM": 1419,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Collegiate Church of Roncesvalles",
+        "kmFromStart": 24.2
+      }
+    ]
   },
   {
     "index": 1,
@@ -15,7 +21,8 @@
     "startLon": -1.319,
     "distanceKm": 21.4,
     "elevGainM": 310,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 2,
@@ -24,7 +31,13 @@
     "startLon": -1.51,
     "distanceKm": 20.4,
     "elevGainM": 314,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Cathedral of Santa María la Real",
+        "kmFromStart": 66
+      }
+    ]
   },
   {
     "index": 3,
@@ -33,7 +46,8 @@
     "startLon": -1.644,
     "distanceKm": 23.9,
     "elevGainM": 414,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 4,
@@ -42,7 +56,8 @@
     "startLon": -1.813,
     "distanceKm": 21.6,
     "elevGainM": 399,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 5,
@@ -51,7 +66,8 @@
     "startLon": -2.031,
     "distanceKm": 21.3,
     "elevGainM": 388,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 6,
@@ -60,7 +76,8 @@
     "startLon": -2.192,
     "distanceKm": 27.6,
     "elevGainM": 368,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 7,
@@ -69,7 +86,8 @@
     "startLon": -2.444,
     "distanceKm": 28.5,
     "elevGainM": 366,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 8,
@@ -78,7 +96,13 @@
     "startLon": -2.735,
     "distanceKm": 20.7,
     "elevGainM": 327,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Cathedral of Santo Domingo de la Calzada",
+        "kmFromStart": 209.6
+      }
+    ]
   },
   {
     "index": 9,
@@ -87,7 +111,8 @@
     "startLon": -2.955,
     "distanceKm": 22,
     "elevGainM": 328,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 10,
@@ -96,7 +121,8 @@
     "startLon": -3.19,
     "distanceKm": 23.9,
     "elevGainM": 430,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 11,
@@ -105,7 +131,13 @@
     "startLon": -3.437,
     "distanceKm": 25.8,
     "elevGainM": 141,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Burgos Cathedral",
+        "kmFromStart": 281.3
+      }
+    ]
   },
   {
     "index": 12,
@@ -114,7 +146,8 @@
     "startLon": -3.7,
     "distanceKm": 20.3,
     "elevGainM": 103,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 13,
@@ -123,7 +156,8 @@
     "startLon": -3.912,
     "distanceKm": 19.9,
     "elevGainM": 174,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 14,
@@ -132,7 +166,8 @@
     "startLon": -4.14,
     "distanceKm": 24.7,
     "elevGainM": 201,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 15,
@@ -141,7 +176,8 @@
     "startLon": -4.406,
     "distanceKm": 18.8,
     "elevGainM": 73,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 16,
@@ -150,7 +186,8 @@
     "startLon": -4.602,
     "distanceKm": 26.3,
     "elevGainM": 105,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 17,
@@ -159,7 +196,8 @@
     "startLon": -4.866,
     "distanceKm": 23.2,
     "elevGainM": 119,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 18,
@@ -168,7 +206,8 @@
     "startLon": -5.153,
     "distanceKm": 26.3,
     "elevGainM": 31,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 19,
@@ -177,7 +216,13 @@
     "startLon": -5.415,
     "distanceKm": 18.4,
     "elevGainM": 107,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "León Cathedral",
+        "kmFromStart": 459.2
+      }
+    ]
   },
   {
     "index": 20,
@@ -186,7 +231,8 @@
     "startLon": -5.568,
     "distanceKm": 24.6,
     "elevGainM": 131,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 21,
@@ -195,7 +241,8 @@
     "startLon": -5.838,
     "distanceKm": 23.7,
     "elevGainM": 190,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 22,
@@ -204,7 +251,13 @@
     "startLon": -6.056,
     "distanceKm": 25.8,
     "elevGainM": 576,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Cruz de Ferro",
+        "kmFromStart": 531.5
+      }
+    ]
   },
   {
     "index": 23,
@@ -213,7 +266,8 @@
     "startLon": -6.385,
     "distanceKm": 26.8,
     "elevGainM": 232,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 24,
@@ -222,7 +276,13 @@
     "startLon": -6.598,
     "distanceKm": 23.2,
     "elevGainM": 233,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Church of Santiago — Puerta del Perdón",
+        "kmFromStart": 583.3
+      }
+    ]
   },
   {
     "index": 25,
@@ -231,7 +291,13 @@
     "startLon": -6.814,
     "distanceKm": 27.8,
     "elevGainM": 845,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Santa María la Real, O Cebreiro",
+        "kmFromStart": 611.1
+      }
+    ]
   },
   {
     "index": 26,
@@ -240,7 +306,8 @@
     "startLon": -7.04,
     "distanceKm": 20.6,
     "elevGainM": 273,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 27,
@@ -249,7 +316,8 @@
     "startLon": -7.239,
     "distanceKm": 17.8,
     "elevGainM": 350,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 28,
@@ -258,7 +326,8 @@
     "startLon": -7.414,
     "distanceKm": 22.2,
     "elevGainM": 398,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 29,
@@ -267,7 +336,8 @@
     "startLon": -7.617,
     "distanceKm": 24.8,
     "elevGainM": 519,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 30,
@@ -276,7 +346,8 @@
     "startLon": -7.87,
     "distanceKm": 28.5,
     "elevGainM": 491,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 31,
@@ -285,7 +356,8 @@
     "startLon": -8.164,
     "distanceKm": 19.3,
     "elevGainM": 351,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 32,
@@ -294,6 +366,12 @@
     "startLon": -8.358,
     "distanceKm": 19.4,
     "elevGainM": 318,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": [
+      {
+        "name": "Cathedral of Santiago de Compostela",
+        "kmFromStart": 763.7
+      }
+    ]
   }
 ]

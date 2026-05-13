@@ -6,7 +6,8 @@
     "startLon": -8.611,
     "distanceKm": 25,
     "elevGainM": 240,
-    "ianaTz": "Europe/Lisbon"
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
   },
   {
     "index": 1,
@@ -15,7 +16,8 @@
     "startLon": -8.669,
     "distanceKm": 30,
     "elevGainM": 280,
-    "ianaTz": "Europe/Lisbon"
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
   },
   {
     "index": 2,
@@ -24,7 +26,8 @@
     "startLon": -8.62,
     "distanceKm": 33,
     "elevGainM": 420,
-    "ianaTz": "Europe/Lisbon"
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
   },
   {
     "index": 3,
@@ -33,7 +36,8 @@
     "startLon": -8.567,
     "distanceKm": 18,
     "elevGainM": 450,
-    "ianaTz": "Europe/Lisbon"
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
   },
   {
     "index": 4,
@@ -42,7 +46,8 @@
     "startLon": -8.625,
     "distanceKm": 20,
     "elevGainM": 180,
-    "ianaTz": "Europe/Lisbon"
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
   },
   {
     "index": 5,
@@ -51,7 +56,8 @@
     "startLon": -8.645,
     "distanceKm": 18,
     "elevGainM": 150,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 6,
@@ -60,7 +66,8 @@
     "startLon": -8.617,
     "distanceKm": 16,
     "elevGainM": 230,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 7,
@@ -69,7 +76,8 @@
     "startLon": -8.617,
     "distanceKm": 20,
     "elevGainM": 290,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 8,
@@ -78,7 +86,8 @@
     "startLon": -8.644,
     "distanceKm": 19,
     "elevGainM": 310,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 9,
@@ -87,7 +96,8 @@
     "startLon": -8.639,
     "distanceKm": 19,
     "elevGainM": 220,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 10,
@@ -96,6 +106,7 @@
     "startLon": -8.66,
     "distanceKm": 25,
     "elevGainM": 430,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   }
 ]

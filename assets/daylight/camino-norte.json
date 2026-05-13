@@ -6,7 +6,8 @@
     "startLon": -1.789,
     "distanceKm": 24.7,
     "elevGainM": 720,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 1,
@@ -15,7 +16,8 @@
     "startLon": -1.986,
     "distanceKm": 22.1,
     "elevGainM": 620,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 2,
@@ -24,7 +26,8 @@
     "startLon": -2.175,
     "distanceKm": 21,
     "elevGainM": 540,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 3,
@@ -33,7 +36,8 @@
     "startLon": -2.354,
     "distanceKm": 24,
     "elevGainM": 820,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 4,
@@ -42,7 +46,8 @@
     "startLon": -2.496,
     "distanceKm": 25.4,
     "elevGainM": 620,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 5,
@@ -51,7 +56,8 @@
     "startLon": -2.6779,
     "distanceKm": 19.8,
     "elevGainM": 580,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 6,
@@ -60,7 +66,8 @@
     "startLon": -2.832,
     "distanceKm": 11,
     "elevGainM": 280,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 7,
@@ -69,7 +76,8 @@
     "startLon": -2.924,
     "distanceKm": 19.2,
     "elevGainM": 430,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 8,
@@ -78,7 +86,8 @@
     "startLon": -3.019,
     "distanceKm": 32.1,
     "elevGainM": 640,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 9,
@@ -87,7 +96,8 @@
     "startLon": -3.215,
     "distanceKm": 30.5,
     "elevGainM": 610,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 10,
@@ -96,7 +106,8 @@
     "startLon": -3.4173,
     "distanceKm": 28.7,
     "elevGainM": 540,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 11,
@@ -105,7 +116,8 @@
     "startLon": -3.6348,
     "distanceKm": 15.3,
     "elevGainM": 210,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 12,
@@ -114,7 +126,8 @@
     "startLon": -3.805,
     "distanceKm": 36.3,
     "elevGainM": 540,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 13,
@@ -123,7 +136,8 @@
     "startLon": -4.105,
     "distanceKm": 22.2,
     "elevGainM": 380,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 14,
@@ -132,7 +146,8 @@
     "startLon": -4.289,
     "distanceKm": 28,
     "elevGainM": 530,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 15,
@@ -141,7 +156,8 @@
     "startLon": -4.541,
     "distanceKm": 22.9,
     "elevGainM": 380,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 16,
@@ -150,7 +166,8 @@
     "startLon": -4.756,
     "distanceKm": 30,
     "elevGainM": 490,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 17,
@@ -159,7 +176,8 @@
     "startLon": -5.058,
     "distanceKm": 20.1,
     "elevGainM": 350,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 18,
@@ -168,7 +186,8 @@
     "startLon": -5.2707,
     "distanceKm": 17.5,
     "elevGainM": 330,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 19,
@@ -177,7 +196,8 @@
     "startLon": -5.433,
     "distanceKm": 29.8,
     "elevGainM": 560,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 20,
@@ -186,7 +206,8 @@
     "startLon": -5.663,
     "distanceKm": 25.4,
     "elevGainM": 320,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 21,
@@ -195,7 +216,8 @@
     "startLon": -5.9222,
     "distanceKm": 23.2,
     "elevGainM": 500,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 22,
@@ -204,7 +226,8 @@
     "startLon": -6.1046,
     "distanceKm": 15.3,
     "elevGainM": 320,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 23,
@@ -213,7 +236,8 @@
     "startLon": -6.231,
     "distanceKm": 18.5,
     "elevGainM": 460,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 24,
@@ -222,7 +246,8 @@
     "startLon": -6.386,
     "distanceKm": 15.3,
     "elevGainM": 360,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 25,
@@ -231,7 +256,8 @@
     "startLon": -6.536,
     "distanceKm": 30.5,
     "elevGainM": 570,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 26,
@@ -240,7 +266,8 @@
     "startLon": -6.829,
     "distanceKm": 21.3,
     "elevGainM": 380,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 27,
@@ -249,7 +276,8 @@
     "startLon": -7.04,
     "distanceKm": 20.9,
     "elevGainM": 490,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 28,
@@ -258,7 +286,8 @@
     "startLon": -7.239,
     "distanceKm": 15.6,
     "elevGainM": 340,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 29,
@@ -267,7 +296,8 @@
     "startLon": -7.363,
     "distanceKm": 16.6,
     "elevGainM": 580,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 30,
@@ -276,7 +306,8 @@
     "startLon": -7.4753,
     "distanceKm": 20.8,
     "elevGainM": 280,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 31,
@@ -285,7 +316,8 @@
     "startLon": -7.679,
     "distanceKm": 18.5,
     "elevGainM": 240,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 32,
@@ -294,7 +326,8 @@
     "startLon": -7.756,
     "distanceKm": 39.8,
     "elevGainM": 760,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   },
   {
     "index": 33,
@@ -303,6 +336,7 @@
     "startLon": -8.023,
     "distanceKm": 22,
     "elevGainM": 350,
-    "ianaTz": "Europe/Madrid"
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
   }
 ]

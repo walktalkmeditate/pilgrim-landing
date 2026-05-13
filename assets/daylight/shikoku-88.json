@@ -6,7 +6,41 @@
     "startLon": 134.503,
     "distanceKm": 53,
     "elevGainM": 1200,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Ryozen-ji",
+        "kmFromStart": 0
+      },
+      {
+        "name": "Konsen-ji",
+        "kmFromStart": 4
+      },
+      {
+        "name": "Dainichi-ji",
+        "kmFromStart": 9
+      },
+      {
+        "name": "Anraku-ji",
+        "kmFromStart": 16.3
+      },
+      {
+        "name": "Kumadani-ji",
+        "kmFromStart": 21.7
+      },
+      {
+        "name": "Kirihata-ji",
+        "kmFromStart": 27.9
+      },
+      {
+        "name": "Fujii-dera",
+        "kmFromStart": 37.2
+      },
+      {
+        "name": "Shozan-ji",
+        "kmFromStart": 50.1
+      }
+    ]
   },
   {
     "index": 1,
@@ -15,7 +49,45 @@
     "startLon": 134.463,
     "distanceKm": 100,
     "elevGainM": 2500,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Dainichi-ji",
+        "kmFromStart": 70.9
+      },
+      {
+        "name": "Awa Kokubun-ji",
+        "kmFromStart": 74
+      },
+      {
+        "name": "Ido-ji",
+        "kmFromStart": 78.6
+      },
+      {
+        "name": "Onzan-ji",
+        "kmFromStart": 95.4
+      },
+      {
+        "name": "Tatsue-ji",
+        "kmFromStart": 99.4
+      },
+      {
+        "name": "Kakurin-ji",
+        "kmFromStart": 112.5
+      },
+      {
+        "name": "Tairyu-ji",
+        "kmFromStart": 119.2
+      },
+      {
+        "name": "Byodo-ji",
+        "kmFromStart": 130.1
+      },
+      {
+        "name": "Yakuo-ji",
+        "kmFromStart": 149.8
+      }
+    ]
   },
   {
     "index": 2,
@@ -24,7 +96,57 @@
     "startLon": 134.176,
     "distanceKm": 200,
     "elevGainM": 3000,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Hotsumisaki-ji",
+        "kmFromStart": 225.2
+      },
+      {
+        "name": "Shinsho-ji",
+        "kmFromStart": 231.7
+      },
+      {
+        "name": "Kongocho-ji",
+        "kmFromStart": 235.5
+      },
+      {
+        "name": "Konomine-ji",
+        "kmFromStart": 263
+      },
+      {
+        "name": "Dainichi-ji",
+        "kmFromStart": 300.5
+      },
+      {
+        "name": "Tosa Kokubun-ji",
+        "kmFromStart": 309.7
+      },
+      {
+        "name": "Zenraku-ji",
+        "kmFromStart": 316.6
+      },
+      {
+        "name": "Chikurin-ji",
+        "kmFromStart": 322.3
+      },
+      {
+        "name": "Zenjibu-ji",
+        "kmFromStart": 328
+      },
+      {
+        "name": "Sekkei-ji",
+        "kmFromStart": 335.5
+      },
+      {
+        "name": "Tanema-ji",
+        "kmFromStart": 341.8
+      },
+      {
+        "name": "Kiyotaki-ji",
+        "kmFromStart": 351.6
+      }
+    ]
   },
   {
     "index": 3,
@@ -33,7 +155,21 @@
     "startLon": 133.451,
     "distanceKm": 140,
     "elevGainM": 1500,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Shoryu-ji",
+        "kmFromStart": 365.5
+      },
+      {
+        "name": "Iwamoto-ji",
+        "kmFromStart": 424
+      },
+      {
+        "name": "Kongofuku-ji",
+        "kmFromStart": 504.7
+      }
+    ]
   },
   {
     "index": 4,
@@ -42,7 +178,33 @@
     "startLon": 132.774,
     "distanceKm": 140,
     "elevGainM": 3030,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Enko-ji",
+        "kmFromStart": 557.8
+      },
+      {
+        "name": "Kanjizai-ji",
+        "kmFromStart": 583.6
+      },
+      {
+        "name": "Ryuko-ji",
+        "kmFromStart": 633.8
+      },
+      {
+        "name": "Meiseki-ji",
+        "kmFromStart": 647
+      },
+      {
+        "name": "Daiho-ji",
+        "kmFromStart": 714.2
+      },
+      {
+        "name": "Iwaya-ji",
+        "kmFromStart": 722.6
+      }
+    ]
   },
   {
     "index": 5,
@@ -51,7 +213,29 @@
     "startLon": 132.819,
     "distanceKm": 35,
     "elevGainM": 400,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Joruri-ji",
+        "kmFromStart": 752.1
+      },
+      {
+        "name": "Sairin-ji",
+        "kmFromStart": 757.4
+      },
+      {
+        "name": "Jodo-ji",
+        "kmFromStart": 760.6
+      },
+      {
+        "name": "Ishite-ji",
+        "kmFromStart": 765.2
+      },
+      {
+        "name": "Taisan-ji",
+        "kmFromStart": 776.4
+      }
+    ]
   },
   {
     "index": 6,
@@ -60,7 +244,41 @@
     "startLon": 132.964,
     "distanceKm": 60,
     "elevGainM": 1800,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Enmei-ji",
+        "kmFromStart": 813.3
+      },
+      {
+        "name": "Nankobo",
+        "kmFromStart": 816.7
+      },
+      {
+        "name": "Taisan-ji",
+        "kmFromStart": 819.7
+      },
+      {
+        "name": "Eifuku-ji",
+        "kmFromStart": 822.8
+      },
+      {
+        "name": "Iyo Kokubun-ji",
+        "kmFromStart": 831.3
+      },
+      {
+        "name": "Yokomine-ji",
+        "kmFromStart": 858.3
+      },
+      {
+        "name": "Koon-ji",
+        "kmFromStart": 867.9
+      },
+      {
+        "name": "Maegami-ji",
+        "kmFromStart": 873.8
+      }
+    ]
   },
   {
     "index": 7,
@@ -69,7 +287,17 @@
     "startLon": 133.587,
     "distanceKm": 19.3,
     "elevGainM": 750,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Sankaku-ji",
+        "kmFromStart": 919
+      },
+      {
+        "name": "Unpen-ji",
+        "kmFromStart": 938.3
+      }
+    ]
   },
   {
     "index": 8,
@@ -78,7 +306,37 @@
     "startLon": 133.719,
     "distanceKm": 50,
     "elevGainM": 600,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Daiko-ji",
+        "kmFromStart": 947.7
+      },
+      {
+        "name": "Jinne-in",
+        "kmFromStart": 956.4
+      },
+      {
+        "name": "Motoyama-ji",
+        "kmFromStart": 960.9
+      },
+      {
+        "name": "Iyadani-ji",
+        "kmFromStart": 972.2
+      },
+      {
+        "name": "Mandara-ji",
+        "kmFromStart": 976.3
+      },
+      {
+        "name": "Koyama-ji",
+        "kmFromStart": 980.6
+      },
+      {
+        "name": "Zentsu-ji",
+        "kmFromStart": 984.4
+      }
+    ]
   },
   {
     "index": 9,
@@ -87,6 +345,60 @@
     "startLon": 133.781,
     "distanceKm": 110,
     "elevGainM": 2000,
-    "ianaTz": "Asia/Tokyo"
+    "ianaTz": "Asia/Tokyo",
+    "waypoints": [
+      {
+        "name": "Konzo-ji",
+        "kmFromStart": 988.3
+      },
+      {
+        "name": "Doryu-ji",
+        "kmFromStart": 992.2
+      },
+      {
+        "name": "Gosho-ji",
+        "kmFromStart": 999.4
+      },
+      {
+        "name": "Tenno-ji",
+        "kmFromStart": 1005.3
+      },
+      {
+        "name": "Sanuki Kokubun-ji",
+        "kmFromStart": 1012.2
+      },
+      {
+        "name": "Shiromine-ji",
+        "kmFromStart": 1018.7
+      },
+      {
+        "name": "Negoro-ji",
+        "kmFromStart": 1023.7
+      },
+      {
+        "name": "Ichinomiya-ji",
+        "kmFromStart": 1035.2
+      },
+      {
+        "name": "Yashima-ji",
+        "kmFromStart": 1049.3
+      },
+      {
+        "name": "Yakuri-ji",
+        "kmFromStart": 1054.7
+      },
+      {
+        "name": "Shido-ji",
+        "kmFromStart": 1061.2
+      },
+      {
+        "name": "Nagao-ji",
+        "kmFromStart": 1068.2
+      },
+      {
+        "name": "Okubo-ji",
+        "kmFromStart": 1080.5
+      }
+    ]
   }
 ]

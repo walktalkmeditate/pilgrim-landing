@@ -697,6 +697,37 @@ body.constellation .dl-bar-buffer {
 }
 
 /* =============================================
+   Spider dial (server-baked per-route SVG)
+   ============================================= */
+
+.dl-spider-dial {
+  display: block;
+  width: 100px;
+  height: 100px;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.dl-spider-dial-bg {
+  stroke: rgba(184, 175, 162, 0.25);
+  stroke-width: 1;
+  fill: none;
+}
+
+.dl-spider-dial-fg {
+  stroke: rgba(184, 175, 162, 0.6);
+  stroke-width: 1;
+  fill: none;
+}
+
+body.constellation .dl-spider-dial-bg {
+  stroke: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .dl-spider-dial-fg {
+  stroke: rgba(232, 224, 255, 0.4);
+}
+
+/* =============================================
    Responsive
    ============================================= */
 
