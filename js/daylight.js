@@ -171,20 +171,15 @@
       }
 
       if (isPolarDay) {
-        var polarDayMidnight = new Date(Date.UTC(
-          parseInt(parts[0], 10),
-          parseInt(parts[1], 10) - 1,
-          parseInt(parts[2], 10),
-          0, 0, 0
-        ));
-        var walkEndPD       = new Date(polarDayMidnight.getTime() + 18 * 60 * MS_PER_MIN);
-        var latestDepartPD  = new Date(walkEndPD.getTime() - walkMin * MS_PER_MIN);
+        // No sunset means no "latest safe departure" — the reverse-mode
+        // question doesn't apply. Mirror polar-night: return null for
+        // the time fields, let the polar-day annotation tell the user.
         return {
           mode:            'reverse',
           sunriseUTC:      null,
           sunsetUTC:       null,
-          latestDepartUTC: latestDepartPD,
-          walkEndUTC:      walkEndPD,
+          latestDepartUTC: null,
+          walkEndUTC:      null,
           walkMin:         walkMin,
           bufferMin:       bufferMin,
           stageTz:         stageTz,
@@ -372,10 +367,17 @@
 
     var nowUTC = new Date();
 
-    var titleEl = document.createElementNS(SVG_NS, 'title');
     var tzSuffix = stageTz ? '' : ' (local time)';
-    titleEl.textContent = 'Daylight from ' + timeInTz(sunrise, stageTz, clockFmt || '24h')
+    var titleText = 'Daylight from ' + timeInTz(sunrise, stageTz, clockFmt || '24h')
       + ' to ' + timeInTz(sunset, stageTz, clockFmt || '24h') + tzSuffix;
+
+    // Mirror the rich title into aria-label so screen readers announce the
+    // actual sunrise/sunset times — otherwise the static aria-label on the
+    // SVG element ("Daylight bar") shadows the dynamic <title> element.
+    svgEl.setAttribute('aria-label', titleText);
+
+    var titleEl = document.createElementNS(SVG_NS, 'title');
+    titleEl.textContent = titleText;
     svgEl.appendChild(titleEl);
 
     svgEl.appendChild(makeSVGEl('line', {
@@ -786,6 +788,13 @@
      AC #19 — Scalar param coercion (silent)
      ========================================== */
 
+  /* Buffer-minute coercion: parseInt, fall back to 60 on NaN or negative.
+     Single source of truth for both URL params and DOM input parsing. */
+  function coerceBuffer(raw) {
+    var n = parseInt(raw, 10);
+    return (!isNaN(n) && n >= 0) ? n : 60;
+  }
+
   function coerceParams(params) {
     params = Object.assign({}, params);
     var validPaces = ['slow', 'standard', 'brisk'];
@@ -820,8 +829,7 @@
     }
 
     if (params.buffer !== null) {
-      var b = parseInt(params.buffer, 10);
-      params.buffer = (!isNaN(b) && b >= 0) ? b : 60;
+      params.buffer = coerceBuffer(params.buffer);
     }
 
     if (params.mode !== 'forward' && params.mode !== 'reverse') {
@@ -1028,8 +1036,7 @@
 
     var bufferMin = 60;
     if (dom.bufferInput && dom.bufferInput.value !== '') {
-      var parsed = parseInt(dom.bufferInput.value, 10);
-      bufferMin = (!isNaN(parsed) && parsed >= 0) ? parsed : 60;
+      bufferMin = coerceBuffer(dom.bufferInput.value);
     }
 
     var stage = null;
