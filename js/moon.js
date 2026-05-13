@@ -1,5 +1,5 @@
 const SYNODIC_MONTH = 29.53059;
-const KNOWN_NEW_MOON = new Date(2000, 0, 6, 18, 14);
+const KNOWN_NEW_MOON = new Date(Date.UTC(2000, 0, 6, 18, 14));
 
 function getMoonPhase(date) {
   const diffMs = date.getTime() - KNOWN_NEW_MOON.getTime();
@@ -73,4 +73,10 @@ function renderMoon(container) {
   container.appendChild(canvas);
 }
 
-window.Moon = { renderMoon, getMoonPhase, getMoonPhaseName };
+if (typeof window !== 'undefined') {
+  window.Moon = { renderMoon, getMoonPhase, getMoonPhaseName };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { getMoonPhase, getMoonPhaseName, renderMoon };
+}
