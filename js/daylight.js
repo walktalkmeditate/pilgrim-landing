@@ -75,11 +75,19 @@
       12, 0, 0
     ));
 
+    var daylightHrs = SunPathMath.daylightHours(lat, walkDate);
+    var isPolarDay   = daylightHrs >= 23.95;
+    var isPolarNight = daylightHrs <= 0.05;
+
     var sunriseDate = SunPathMath.sunriseUTC(lat, lon, walkDate);
     var sunsetDate  = SunPathMath.sunsetUTC(lat, lon, walkDate);
 
-    if (!sunriseDate || !sunsetDate) {
-      return { error: 'polar day or polar night for this date and location' };
+    var annotations = [];
+
+    if (isPolarDay) {
+      annotations.push({ kind: 'edge', text: 'Polar day — sun does not set on this date.' });
+    } else if (isPolarNight) {
+      annotations.push({ kind: 'edge', text: 'Polar night — sun does not rise on this date.' });
     }
 
     var walkMin = DaylightMath.walkingMinutes({
@@ -93,17 +101,78 @@
         ? state.bufferMin
         : 60;
 
+      if (isPolarNight) {
+        return {
+          mode:          'reverse',
+          sunriseUTC:    null,
+          sunsetUTC:     null,
+          walkMin:       walkMin,
+          bufferMin:     bufferMin,
+          annotations:   annotations,
+          isPolarNight:  true,
+          isPolarDay:    false
+        };
+      }
+
+      if (isPolarDay) {
+        var polarDayMidnight = new Date(Date.UTC(
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[2], 10),
+          0, 0, 0
+        ));
+        var walkEndPD       = new Date(polarDayMidnight.getTime() + 18 * 60 * MS_PER_MIN);
+        var latestDepartPD  = new Date(walkEndPD.getTime() - walkMin * MS_PER_MIN);
+        return {
+          mode:            'reverse',
+          sunriseUTC:      null,
+          sunsetUTC:       null,
+          latestDepartUTC: latestDepartPD,
+          walkEndUTC:      walkEndPD,
+          walkMin:         walkMin,
+          bufferMin:       bufferMin,
+          annotations:     annotations,
+          isPolarDay:      true,
+          isPolarNight:    false
+        };
+      }
+
+      var daylightSpanMin = (sunsetDate.getTime() - sunriseDate.getTime()) / MS_PER_MIN;
       var walkEndUTC      = new Date(sunsetDate.getTime() - bufferMin * MS_PER_MIN);
       var latestDepartUTC = new Date(walkEndUTC.getTime()  - walkMin   * MS_PER_MIN);
 
+      // Note: this guard also catches the "departs before sunrise" case —
+      // walkMin + buffer > daylightSpan ⇔ latestDepart < sunrise (algebraically equivalent).
+      if (walkMin > daylightSpanMin - bufferMin) {
+        annotations.push({
+          kind: 'walk-state',
+          text: 'This stage is longer than today\'s daylight minus your buffer. Consider splitting it, or starting from a different stage.'
+        });
+        return {
+          mode:            'reverse',
+          sunriseUTC:      sunriseDate,
+          sunsetUTC:       sunsetDate,
+          latestDepartUTC: null,
+          walkEndUTC:      walkEndUTC,
+          walkMin:         walkMin,
+          bufferMin:       bufferMin,
+          annotations:     annotations,
+          isPolarDay:      false,
+          isPolarNight:    false
+        };
+      }
+
       return {
-        mode:               'reverse',
-        sunriseUTC:         sunriseDate,
-        sunsetUTC:          sunsetDate,
-        latestDepartUTC:    latestDepartUTC,
-        walkEndUTC:         walkEndUTC,
-        walkMin:            walkMin,
-        bufferMin:          bufferMin
+        mode:            'reverse',
+        sunriseUTC:      sunriseDate,
+        sunsetUTC:       sunsetDate,
+        latestDepartUTC: latestDepartUTC,
+        walkEndUTC:      walkEndUTC,
+        walkMin:         walkMin,
+        bufferMin:       bufferMin,
+        annotations:     annotations,
+        isPolarDay:      false,
+        isPolarNight:    false
       };
     }
 
@@ -121,16 +190,65 @@
 
     var startUTC   = new Date(dayMidnightUTC + startMin * MS_PER_MIN);
     var arrivalUTC = new Date(startUTC.getTime() + walkMin * MS_PER_MIN);
+
+    if (isPolarNight) {
+      return {
+        mode:          'forward',
+        sunriseUTC:    null,
+        sunsetUTC:     null,
+        startUTC:      startUTC,
+        arrivalUTC:    arrivalUTC,
+        walkMin:       walkMin,
+        cushionMin:    null,
+        annotations:   annotations,
+        isPolarNight:  true,
+        isPolarDay:    false
+      };
+    }
+
+    if (isPolarDay) {
+      return {
+        mode:         'forward',
+        sunriseUTC:   null,
+        sunsetUTC:    null,
+        startUTC:     startUTC,
+        arrivalUTC:   arrivalUTC,
+        walkMin:      walkMin,
+        cushionMin:   null,
+        annotations:  annotations,
+        isPolarDay:   true,
+        isPolarNight: false
+      };
+    }
+
     var cushionMin = (sunsetDate.getTime() - arrivalUTC.getTime()) / MS_PER_MIN;
 
+    if (startUTC.getTime() < sunriseDate.getTime()) {
+      annotations.push({
+        kind: 'edge',
+        text: 'You\'re starting before sunrise (' + fmtUTC(sunriseDate) + ' UTC). The first stretch will be torchlit.'
+      });
+    }
+
+    if (arrivalUTC.getTime() > sunsetDate.getTime()) {
+      var overMin = Math.round((arrivalUTC.getTime() - sunsetDate.getTime()) / MS_PER_MIN);
+      annotations.push({
+        kind: 'walk-state',
+        text: 'You\'ll arrive after sunset by ' + overMin + ' min. Consider a slower stage or earlier start.'
+      });
+    }
+
     return {
-      mode:       'forward',
-      sunriseUTC: sunriseDate,
-      sunsetUTC:  sunsetDate,
-      startUTC:   startUTC,
-      arrivalUTC: arrivalUTC,
-      walkMin:    walkMin,
-      cushionMin: cushionMin
+      mode:         'forward',
+      sunriseUTC:   sunriseDate,
+      sunsetUTC:    sunsetDate,
+      startUTC:     startUTC,
+      arrivalUTC:   arrivalUTC,
+      walkMin:      walkMin,
+      cushionMin:   cushionMin,
+      annotations:  annotations,
+      isPolarDay:   false,
+      isPolarNight: false
     };
   }
 
@@ -165,11 +283,29 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
+  function fmtTime(date, clockFormat) {
+    var h = date.getUTCHours();
+    var m = date.getUTCMinutes();
+    if (clockFormat === '12h') {
+      var period = h >= 12 ? 'PM' : 'AM';
+      var h12 = h % 12 || 12;
+      return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + period;
+    }
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
   function fmtDuration(totalMin) {
     var h = Math.floor(Math.abs(totalMin) / 60);
     var m = Math.round(Math.abs(totalMin) % 60);
     if (h === 0) return m + 'm';
     return h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+  }
+
+  function fmtDistance(km, unitSystem) {
+    if (unitSystem === 'mi') {
+      return (km * 0.621371).toFixed(1) + ' mi';
+    }
+    return km.toFixed(1) + ' km';
   }
 
   function utcToBarX(utcDate, sunriseUTC, sunsetUTC) {
@@ -185,8 +321,12 @@
 
     if (output.error) return;
 
+    if (output.isPolarNight || output.isPolarDay) return;
+
     var sunrise = output.sunriseUTC;
     var sunset  = output.sunsetUTC;
+
+    if (!sunrise || !sunset) return;
 
     var nowUTC = new Date();
 
@@ -205,6 +345,34 @@
     }));
 
     if (output.mode === 'reverse') {
+      if (output.latestDepartUTC === null) {
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-tick-sunrise',
+          x1: BAR_X1, y1: BAR_Y - 10,
+          x2: BAR_X1, y2: BAR_Y + 10
+        }));
+        var sunriseLblOnly = makeSVGEl('text', {
+          class: 'dl-bar-label',
+          x: BAR_X1, y: BAR_Y + 22,
+          'text-anchor': 'middle'
+        });
+        sunriseLblOnly.textContent = fmtUTC(sunrise);
+        svgEl.appendChild(sunriseLblOnly);
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-tick-sunset',
+          x1: BAR_X2, y1: BAR_Y - 10,
+          x2: BAR_X2, y2: BAR_Y + 10
+        }));
+        var sunsetLblOnly = makeSVGEl('text', {
+          class: 'dl-bar-label',
+          x: BAR_X2, y: BAR_Y + 22,
+          'text-anchor': 'middle'
+        });
+        sunsetLblOnly.textContent = fmtUTC(sunset);
+        svgEl.appendChild(sunsetLblOnly);
+        return;
+      }
+
       var departX  = utcToBarX(output.latestDepartUTC, sunrise, sunset);
       var walkEndX = utcToBarX(output.walkEndUTC,      sunrise, sunset);
       var walkX1 = Math.min(departX, walkEndX);
@@ -335,30 +503,42 @@
   var _currentRoute = null;
   var _currentMode  = 'forward';
 
+  var _prefs = {
+    unitSystem:  'km',
+    clockFormat: '24h'
+  };
+
   var dom = {};
 
   document.addEventListener('DOMContentLoaded', function () {
-    dom.routeSel     = document.getElementById('dl-route');
-    dom.stageSel     = document.getElementById('dl-stage');
-    dom.stageWrap    = document.getElementById('dl-stage-wrap');
-    dom.customPanel  = document.getElementById('dl-custom-panel');
-    dom.latInput     = document.getElementById('dl-lat');
-    dom.lonInput     = document.getElementById('dl-lon');
-    dom.distInput    = document.getElementById('dl-dist');
-    dom.elevInput    = document.getElementById('dl-elev');
-    dom.locateBtn    = document.getElementById('dl-locate');
-    dom.dateInput    = document.getElementById('dl-date');
-    dom.paceInput    = document.getElementById('dl-pace');
-    dom.startInput   = document.getElementById('dl-start');
-    dom.startWrap    = document.getElementById('dl-start-wrap');
-    dom.modeRadios   = document.querySelectorAll('input[name="dl-mode"]');
-    dom.bufferWrap   = document.getElementById('dl-buffer-wrap');
-    dom.bufferInput  = document.getElementById('dl-buffer');
-    dom.barSvg       = document.getElementById('dl-bar-svg');
-    dom.result       = document.getElementById('dl-result');
+    dom.routeSel      = document.getElementById('dl-route');
+    dom.stageSel      = document.getElementById('dl-stage');
+    dom.stageWrap     = document.getElementById('dl-stage-wrap');
+    dom.customPanel   = document.getElementById('dl-custom-panel');
+    dom.latInput      = document.getElementById('dl-lat');
+    dom.lonInput      = document.getElementById('dl-lon');
+    dom.distInput     = document.getElementById('dl-dist');
+    dom.elevInput     = document.getElementById('dl-elev');
+    dom.locateBtn     = document.getElementById('dl-locate');
+    dom.dateInput     = document.getElementById('dl-date');
+    dom.paceInput     = document.getElementById('dl-pace');
+    dom.startInput    = document.getElementById('dl-start');
+    dom.startWrap     = document.getElementById('dl-start-wrap');
+    dom.modeRadios    = document.querySelectorAll('input[name="dl-mode"]');
+    dom.bufferWrap    = document.getElementById('dl-buffer-wrap');
+    dom.bufferInput   = document.getElementById('dl-buffer');
+    dom.barSvg        = document.getElementById('dl-bar-svg');
+    dom.result        = document.getElementById('dl-result');
+    dom.annotations   = document.getElementById('dl-annotations');
+    dom.shareBtn      = document.getElementById('dl-share-btn');
+    dom.shareHint     = document.getElementById('dl-share-hint');
+    dom.validationMsg = document.getElementById('dl-validation-msg');
+    dom.prefsToggle   = document.getElementById('dl-prefs-toggle');
+    dom.prefsPanel    = document.getElementById('dl-prefs-panel');
 
     if (!dom.routeSel) return;
 
+    loadPrefs();
     applyParamsFromURL();
     loadRouteMeta();
 
@@ -394,10 +574,118 @@
         }
       );
     });
+
+    if (dom.shareBtn) {
+      var ORIGINAL_LABEL = dom.shareBtn.textContent;
+      dom.shareBtn.addEventListener('click', function () {
+        if (!navigator.clipboard) {
+          dom.shareBtn.textContent = "Couldn't copy";
+          setTimeout(function () { dom.shareBtn.textContent = ORIGINAL_LABEL; }, 2000);
+          return;
+        }
+        navigator.clipboard.writeText(window.location.href).then(function () {
+          dom.shareBtn.textContent = 'Link copied';
+          setTimeout(function () { dom.shareBtn.textContent = ORIGINAL_LABEL; }, 2000);
+        }).catch(function () {
+          dom.shareBtn.textContent = "Couldn't copy";
+          setTimeout(function () { dom.shareBtn.textContent = ORIGINAL_LABEL; }, 2000);
+        });
+      });
+    }
+
+    if (dom.prefsToggle && dom.prefsPanel) {
+      dom.prefsToggle.addEventListener('click', function () {
+        var expanded = dom.prefsPanel.hidden === false;
+        dom.prefsPanel.hidden = expanded;
+        dom.prefsToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      });
+
+      dom.prefsPanel.querySelectorAll('input[name="dl-unit"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+          _prefs.unitSystem = radio.value;
+          localStorage.setItem('pilgrim.prefs.unitSystem', _prefs.unitSystem);
+          runAndRender();
+        });
+      });
+
+      dom.prefsPanel.querySelectorAll('input[name="dl-clock"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+          _prefs.clockFormat = radio.value;
+          localStorage.setItem('pilgrim.prefs.clockFormat', _prefs.clockFormat);
+          runAndRender();
+        });
+      });
+    }
   });
 
+  function loadPrefs() {
+    var unit  = localStorage.getItem('pilgrim.prefs.unitSystem');
+    var clock = localStorage.getItem('pilgrim.prefs.clockFormat');
+    if (unit  === 'km' || unit  === 'mi')  _prefs.unitSystem  = unit;
+    if (clock === '24h' || clock === '12h') _prefs.clockFormat = clock;
+  }
+
+  function applyPrefsToUI() {
+    if (!dom.prefsPanel) return;
+    dom.prefsPanel.querySelectorAll('input[name="dl-unit"]').forEach(function (r) {
+      r.checked = (r.value === _prefs.unitSystem);
+    });
+    dom.prefsPanel.querySelectorAll('input[name="dl-clock"]').forEach(function (r) {
+      r.checked = (r.value === _prefs.clockFormat);
+    });
+  }
+
+  /* ==========================================
+     AC #13 — Structural param validation
+     ========================================== */
+
+  function validateParams(params, knownRouteIds) {
+    var routeValid   = params.route && knownRouteIds.indexOf(params.route) !== -1;
+    var routePresent = Boolean(params.route);
+    var hasCoParams  = Boolean(params.date || params.pace || params.start
+      || params.buffer !== null || params.elevGain
+      || params.customLat || params.customLon || params.customDist);
+
+    if (!routePresent) {
+      if (hasCoParams) {
+        return {
+          valid: false,
+          resetFields: new Set(['route', 'stage']),
+          messageKey: 'missing-route'
+        };
+      }
+      return { valid: true, resetFields: new Set(), messageKey: null };
+    }
+
+    if (!routeValid) {
+      return {
+        valid: false,
+        resetFields: new Set(['route', 'stage']),
+        messageKey: 'couldnt-find'
+      };
+    }
+
+    return { valid: true, resetFields: new Set(), messageKey: null };
+  }
+
+  function validationMessage(key) {
+    if (key === 'missing-route') {
+      return 'This link is missing the route. Pick one below.';
+    }
+    if (key === 'couldnt-find') {
+      return 'We couldn’t find that route or stage. Pick one below.';
+    }
+    return '';
+  }
+
+  function showValidationMsg(msg) {
+    if (!dom.validationMsg) return;
+    dom.validationMsg.textContent = msg;
+    dom.validationMsg.hidden = !msg;
+  }
+
   function applyParamsFromURL() {
-    var params = parseParams(location.search);
+    var params = coerceParams(parseParams(location.search));
 
     if (params.date)  dom.dateInput.value  = params.date;
     if (params.pace)  dom.paceInput.value  = params.pace;
@@ -425,10 +713,9 @@
       dom.bufferInput.value = String(params.buffer);
     }
     applyModeUI(_currentMode);
+    applyPrefsToUI();
   }
 
-  // Returns YYYY-MM-DD in the user's *local* tz (not UTC). Default-date picker uses
-  // the user's calendar date — full stage-tz-aware "now" semantics arrives in slice 5.
   function todayString() {
     var n = new Date();
     var y = n.getFullYear();
@@ -437,11 +724,69 @@
     return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
   }
 
+  function nowTimeString() {
+    var n = new Date();
+    var h = n.getHours();
+    var m = n.getMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  /* ==========================================
+     AC #19 — Scalar param coercion (silent)
+     ========================================== */
+
+  function coerceParams(params) {
+    params = Object.assign({}, params);
+    var validPaces = ['slow', 'standard', 'brisk'];
+    if (params.pace) {
+      var isNamedPace   = validPaces.indexOf(params.pace) !== -1;
+      var isNumericPace = !isNaN(parseFloat(params.pace)) && parseFloat(params.pace) > 0;
+      if (!isNamedPace && !isNumericPace) {
+        params.pace = 'standard';
+      }
+    } else {
+      params.pace = 'standard';
+    }
+
+    if (params.date) {
+      var d = new Date(params.date);
+      var yr = parseInt(params.date.split('-')[0], 10);
+      if (isNaN(d.getTime()) || yr < 1900 || yr > 2100) {
+        params.date = todayString();
+      }
+    }
+
+    if (params.start) {
+      var startOk = /^[0-2]\d:\d{2}$/.test(params.start);
+      if (startOk) {
+        var hh = parseInt(params.start.split(':')[0], 10);
+        var mm = parseInt(params.start.split(':')[1], 10);
+        if (hh > 23 || mm > 59) startOk = false;
+      }
+      if (!startOk) {
+        params.start = nowTimeString();
+      }
+    }
+
+    if (params.buffer !== null) {
+      var b = parseInt(params.buffer, 10);
+      params.buffer = (!isNaN(b) && b >= 0) ? b : 60;
+    }
+
+    if (params.mode !== 'forward' && params.mode !== 'reverse') {
+      params.mode = 'forward';
+    }
+
+    if (params.elevGain !== null) {
+      var eg = parseInt(params.elevGain, 10);
+      params.elevGain = (!isNaN(eg) && eg >= 0) ? String(eg) : '0';
+    }
+
+    return params;
+  }
+
   function loadRouteMeta() {
     var xhr = new XMLHttpRequest();
-    // Asset paths are hub-relative ('../assets/daylight/...') and assume the page is
-    // served from /daylight/. Per-route SEO pages in slice 6 will need a different
-    // path strategy when they live at /daylight/<route>/.
     xhr.open('GET', '../assets/daylight/route-meta.json');
     xhr.onload = function () {
       if (xhr.status !== 200) return;
@@ -456,6 +801,23 @@
   }
 
   function populateRouteSelect(meta) {
+    var knownIds = meta.map(function (r) { return r.id; });
+    knownIds.push('custom');
+
+    var rawParams = parseParams(location.search);
+    var params    = coerceParams(rawParams);
+    var validation = validateParams(rawParams, knownIds);
+
+    if (validation.messageKey) {
+      showValidationMsg(validationMessage(validation.messageKey));
+
+      if (validation.resetFields.has('route')) {
+        _currentRoute = null;
+      }
+    } else {
+      showValidationMsg('');
+    }
+
     while (dom.routeSel.firstChild) dom.routeSel.removeChild(dom.routeSel.firstChild);
 
     var placeholder = document.createElement('option');
@@ -485,7 +847,7 @@
         dom.stageWrap.hidden = true;
         onFieldChange();
       } else if (_currentRoute) {
-        loadStageData(_currentRoute);
+        loadStageData(_currentRoute, params.stage);
       }
     }
   }
@@ -505,6 +867,7 @@
   function onRouteChange() {
     var routeId = dom.routeSel.value;
     _currentRoute = routeId;
+    showValidationMsg('');
 
     if (routeId === 'custom') {
       showCustomPanel(true);
@@ -517,7 +880,7 @@
       onFieldChange();
     } else if (routeId) {
       showCustomPanel(false);
-      loadStageData(routeId);
+      loadStageData(routeId, null);
     } else {
       showCustomPanel(false);
       dom.stageWrap.hidden = true;
@@ -530,9 +893,9 @@
     dom.customPanel.hidden = !show;
   }
 
-  function loadStageData(routeId) {
+  function loadStageData(routeId, requestedStageStr) {
     if (_stageData[routeId]) {
-      populateStageSelect(_stageData[routeId]);
+      populateStageSelect(_stageData[routeId], requestedStageStr);
       return;
     }
 
@@ -543,15 +906,15 @@
       var stages;
       try { stages = JSON.parse(xhr.responseText); } catch (e) { return; }
       _stageData[routeId] = stages;
-      populateStageSelect(stages);
+      populateStageSelect(stages, requestedStageStr);
     };
     xhr.onerror = function () {
-      dom.result.textContent = "Couldn’t load stage data for " + routeId + ". Try refreshing.";
+      dom.result.textContent = "Couldn't load stage data for " + routeId + ". Try refreshing.";
     };
     xhr.send();
   }
 
-  function populateStageSelect(stages) {
+  function populateStageSelect(stages, requestedStageStr) {
     while (dom.stageSel.firstChild) dom.stageSel.removeChild(dom.stageSel.firstChild);
 
     var placeholder = document.createElement('option');
@@ -570,10 +933,17 @@
 
     dom.stageWrap.hidden = false;
 
-    var params = parseParams(location.search);
-    if (params.stage !== null && params.stage !== undefined) {
-      dom.stageSel.value = String(params.stage);
+    if (requestedStageStr !== null && requestedStageStr !== undefined) {
+      var stageIdx = parseInt(requestedStageStr, 10);
+      var stageExists = !isNaN(stageIdx) && stageIdx >= 0 && stageIdx < stages.length;
+      if (stageExists) {
+        dom.stageSel.value = String(stageIdx);
+      } else {
+        showValidationMsg(validationMessage('couldnt-find'));
+        dom.stageSel.value = '';
+      }
     }
+
     if (!dom.stageSel.value && stages.length > 0) {
       dom.stageSel.value = '0';
     }
@@ -627,11 +997,35 @@
     };
   }
 
+  function renderAnnotations(annotations) {
+    if (!dom.annotations) return;
+    while (dom.annotations.firstChild) {
+      dom.annotations.removeChild(dom.annotations.firstChild);
+    }
+    if (!annotations || annotations.length === 0) return;
+
+    annotations.forEach(function (ann) {
+      var p = document.createElement('p');
+      p.className = 'dl-annotation';
+      if (ann.kind === 'walk-state') p.classList.add('dl-annotation--warn');
+      p.textContent = ann.text;
+      dom.annotations.appendChild(p);
+    });
+  }
+
   function runAndRender() {
     var state  = buildState();
     var output = recompute(state);
 
     renderSVG(output, dom.barSvg);
+
+    var isCustom = (state.route === 'custom');
+    if (dom.shareBtn) {
+      dom.shareBtn.hidden = !isCustom;
+    }
+    if (dom.shareHint) {
+      dom.shareHint.hidden = !isCustom;
+    }
 
     if (output.error) {
       var silent = (output.error === 'missing or invalid startTimeMin'
@@ -639,34 +1033,87 @@
         || output.error === 'missing date'
         || output.error === 'incomplete custom route');
       dom.result.textContent = silent ? '' : output.error;
+      renderAnnotations([]);
       return;
     }
 
     dom.result.textContent = '';
 
+    var clockFmt = _prefs.clockFormat;
+
+    var distKm = (state.route === 'custom')
+      ? parseFloat(state.customDistance)
+      : (state.stage ? state.stage.distanceKm : NaN);
+    var distStr = (!isNaN(distKm) && distKm > 0)
+      ? 'Walk ' + fmtDistance(distKm, _prefs.unitSystem) + '  ·  '
+      : '';
+
     var line;
+    if (output.isPolarNight) {
+      if (output.mode === 'forward') {
+        var walkStrPN = fmtDuration(output.walkMin);
+        line = distStr + 'Arrive ∼' + fmtTime(output.arrivalUTC, clockFmt) + ' UTC  ·  ' + walkStrPN + ' walking';
+      } else {
+        line = distStr + fmtDuration(output.walkMin) + ' walking';
+      }
+      dom.result.appendChild(document.createTextNode(line));
+      renderAnnotations(output.annotations || []);
+      return;
+    }
+
+    if (output.isPolarDay) {
+      if (output.mode === 'forward') {
+        var walkStrPD = fmtDuration(output.walkMin);
+        line = distStr + 'Arrive ∼' + fmtTime(output.arrivalUTC, clockFmt) + ' UTC  ·  ' + walkStrPD + ' walking';
+        dom.result.appendChild(document.createTextNode(line));
+      } else {
+        var walkStrPDR = fmtDuration(output.walkMin);
+        if (output.latestDepartUTC) {
+          line = distStr + 'Leave by ' + fmtTime(output.latestDepartUTC, clockFmt) + '  ·  ' + walkStrPDR + ' walking';
+          dom.result.appendChild(document.createTextNode(line));
+        }
+      }
+      renderAnnotations(output.annotations || []);
+      return;
+    }
+
     if (output.mode === 'reverse') {
-      var departStr  = fmtUTC(output.latestDepartUTC) + ' UTC';
-      var arrStr     = fmtUTC(output.walkEndUTC) + ' UTC';
-      var walkStr    = fmtDuration(output.walkMin);
-      var bufStr     = fmtDuration(output.bufferMin);
-      line = 'Leave by ' + departStr
+      if (output.latestDepartUTC === null) {
+        renderAnnotations(output.annotations || []);
+        return;
+      }
+      var departStr = fmtTime(output.latestDepartUTC, clockFmt) + ' UTC';
+      var arrStr    = fmtTime(output.walkEndUTC,      clockFmt) + ' UTC';
+      var walkStr   = fmtDuration(output.walkMin);
+      var bufStr    = fmtDuration(output.bufferMin);
+      line = distStr + 'Leave by ' + departStr
         + '  ·  '
         + walkStr + ' walking'
         + '  ·  arrive ' + arrStr + ' with ' + bufStr + ' cushion before sunset';
     } else {
-      var arriveStr   = fmtUTC(output.arrivalUTC) + ' UTC';
-      var walkStrFwd  = fmtDuration(output.walkMin);
-      var cushionStr  = fmtDuration(Math.abs(output.cushionMin));
+      var hasWarnAnnotation = output.annotations && output.annotations.some(function (a) {
+        return a.kind === 'walk-state';
+      });
+      var resultEl = dom.result;
+      if (hasWarnAnnotation) {
+        resultEl.classList.add('daylight-result--warn');
+      } else {
+        resultEl.classList.remove('daylight-result--warn');
+      }
+
+      var arriveStr  = fmtTime(output.arrivalUTC, clockFmt) + ' UTC';
+      var walkStrFwd = fmtDuration(output.walkMin);
+      var cushionAbs = fmtDuration(Math.abs(output.cushionMin));
       var cushionSign = output.cushionMin >= 0 ? '' : '−';
-      line = 'Arrive ∼' + arriveStr
+      line = distStr + 'Arrive ∼' + arriveStr
         + '  ·  '
         + walkStrFwd + ' walking'
         + '  ·  '
-        + cushionSign + cushionStr + ' cushion before sunset';
+        + cushionSign + cushionAbs + ' cushion before sunset';
     }
 
     dom.result.appendChild(document.createTextNode(line));
+    renderAnnotations(output.annotations || []);
   }
 
   function clearOutput() {
@@ -674,6 +1121,7 @@
       while (dom.barSvg.firstChild) dom.barSvg.removeChild(dom.barSvg.firstChild);
     }
     if (dom.result) dom.result.textContent = '';
+    renderAnnotations([]);
   }
 
   function pushURL() {
@@ -741,14 +1189,8 @@
         case 'date':       result.date       = v; break;
         case 'pace':       result.pace       = v; break;
         case 'start':      result.start      = v; break;
-        case 'mode':
-          result.mode = (v === 'reverse') ? 'reverse' : 'forward';
-          break;
-        case 'buffer': {
-          var b = parseInt(v, 10);
-          result.buffer = (!isNaN(b) && b >= 0) ? b : null;
-          break;
-        }
+        case 'mode':       result.mode       = v; break;
+        case 'buffer':     result.buffer     = v; break;
         case 'elevGain':   result.elevGain   = v; break;
         case 'customLat':  result.customLat  = v; break;
         case 'customLon':  result.customLon  = v; break;

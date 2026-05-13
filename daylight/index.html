@@ -154,6 +154,34 @@
       </label>
     </fieldset>
 
+    <!-- Validation message (AC #13) — shown only when route/stage param is invalid -->
+    <p class="dl-validation-msg" id="dl-validation-msg" hidden></p>
+
+    <!-- Preferences expander (AC #16) -->
+    <div class="dl-prefs-wrap">
+      <button type="button" class="dl-prefs-toggle" id="dl-prefs-toggle" aria-expanded="false" aria-controls="dl-prefs-panel">Preferences</button>
+      <div class="dl-prefs-panel" id="dl-prefs-panel" hidden>
+        <fieldset class="dl-prefs-fieldset">
+          <legend class="dl-prefs-legend">Distance</legend>
+          <label class="dl-prefs-label">
+            <input type="radio" name="dl-unit" value="km" checked> km
+          </label>
+          <label class="dl-prefs-label">
+            <input type="radio" name="dl-unit" value="mi"> mi
+          </label>
+        </fieldset>
+        <fieldset class="dl-prefs-fieldset">
+          <legend class="dl-prefs-legend">Time format</legend>
+          <label class="dl-prefs-label">
+            <input type="radio" name="dl-clock" value="24h" checked> 24h
+          </label>
+          <label class="dl-prefs-label">
+            <input type="radio" name="dl-clock" value="12h"> 12h
+          </label>
+        </fieldset>
+      </div>
+    </div>
+
     <!-- Output panel -->
     <section class="daylight-output" id="dl-output" aria-label="Walk-budget result" aria-live="polite">
       <svg class="daylight-bar-svg" id="dl-bar-svg"
@@ -162,6 +190,12 @@
         <title>Daylight bar</title>
       </svg>
       <p class="daylight-result" id="dl-result"></p>
+      <div class="dl-annotations" id="dl-annotations"></div>
+      <!-- Share button (AC #20) — visible only on custom routes -->
+      <div class="dl-share-wrap">
+        <button type="button" class="dl-share-btn" id="dl-share-btn" hidden>Copy share link</button>
+        <span class="dl-share-hint" id="dl-share-hint" hidden>This link's date and times reflect your local timezone.</span>
+      </div>
     </section>
 
     <noscript>

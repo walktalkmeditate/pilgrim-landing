@@ -317,6 +317,165 @@
   font-size: 0.92em;
 }
 
+/* =============================================
+   Validation message (AC #13)
+   ============================================= */
+
+.dl-validation-msg {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--stone);
+  margin: 0 0 1.6rem;
+}
+
+/* =============================================
+   Preferences expander (AC #16)
+   ============================================= */
+
+.dl-prefs-wrap {
+  margin: 0 0 2rem;
+}
+
+.dl-prefs-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+
+.dl-prefs-toggle:hover,
+.dl-prefs-toggle:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.dl-prefs-panel {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+}
+
+.dl-prefs-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dl-prefs-legend {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--stone);
+  opacity: 0.75;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  display: block;
+}
+
+.dl-prefs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--ink);
+  cursor: pointer;
+  margin-right: 1rem;
+  opacity: 0.8;
+}
+
+.dl-prefs-label input[type="radio"] {
+  accent-color: var(--stone);
+  width: 0.8em;
+  height: 0.8em;
+  cursor: pointer;
+}
+
+/* =============================================
+   Annotation lines (AC #15)
+   ============================================= */
+
+.dl-annotations {
+  margin-top: 0.5rem;
+}
+
+.dl-annotation {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--stone);
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+.dl-annotation--warn {
+  color: #9E4B35;
+  opacity: 0.85;
+}
+
+/* =============================================
+   Muted-red cushion for forward past-sunset
+   ============================================= */
+
+.daylight-result--warn {
+  color: #9E4B35;
+  opacity: 0.85;
+}
+
+/* =============================================
+   Share button (AC #20)
+   ============================================= */
+
+.dl-share-wrap {
+  margin-top: 1.2rem;
+}
+
+.dl-share-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-share-btn:hover,
+.dl-share-btn:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+  outline: none;
+}
+
+.dl-share-hint {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--stone);
+  opacity: 0.55;
+}
+
 .daylight-noscript {
   font-style: italic;
   color: var(--stone);
