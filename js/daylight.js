@@ -743,6 +743,7 @@
     dom.annotations   = document.getElementById('dl-annotations');
     dom.shareBtn      = document.getElementById('dl-share-btn');
     dom.shareHint     = document.getElementById('dl-share-hint');
+    dom.icsBtn        = document.getElementById('dl-ics-btn');
     dom.validationMsg = document.getElementById('dl-validation-msg');
     dom.prefsToggle   = document.getElementById('dl-prefs-toggle');
     dom.prefsPanel    = document.getElementById('dl-prefs-panel');
@@ -1274,6 +1275,7 @@
         || output.error === 'incomplete custom route');
       dom.result.textContent = silent ? '' : output.error;
       renderAnnotations([]);
+      if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
 
@@ -1305,6 +1307,7 @@
       }
       dom.result.appendChild(document.createTextNode(line));
       renderAnnotations(output.annotations || []);
+      if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
 
@@ -1321,12 +1324,14 @@
         }
       }
       renderAnnotations(output.annotations || []);
+      if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
 
     if (output.mode === 'reverse') {
       if (output.latestDepartUTC === null) {
         renderAnnotations(output.annotations || []);
+        if (dom.icsBtn) dom.icsBtn.hidden = true;
         return;
       }
       var departStr = fmt(output.latestDepartUTC);
@@ -1361,6 +1366,35 @@
 
     dom.result.appendChild(document.createTextNode(line));
     renderAnnotations(output.annotations || []);
+
+    // ICS export — valid result reached; show the button and wire click handler.
+    if (dom.icsBtn && DaylightMath && DaylightMath.buildICS) {
+      dom.icsBtn.hidden = false;
+
+      var icsStartUTC = (output.mode === 'reverse') ? output.latestDepartUTC : output.startUTC;
+      var icsEndUTC   = (output.mode === 'reverse') ? output.walkEndUTC      : output.arrivalUTC;
+
+      var routeSlug = isCustom2 ? 'custom' : (state.route || 'custom');
+      var dateStr2  = state.date || '';
+      var icsFilename = 'daylight-' + routeSlug + '-' + dateStr2 + '.ics';
+
+      var routeLabel = isCustom2 ? 'Custom route' : (state.route || '');
+      var stageLabel = (state.stage && state.stage.nameEn) ? state.stage.nameEn : '';
+
+      dom.icsBtn.onclick = function () {
+        var icsStr = DaylightMath.buildICS({
+          routeName:       routeLabel,
+          stageLabel:      stageLabel,
+          startUTC:        icsStartUTC,
+          endUTC:          icsEndUTC,
+          urlHref:         window.location.href,
+          mode:            output.mode,
+          stageTz:         output.stageTz || null,
+          descriptionLine: line
+        });
+        triggerICSDownload(icsStr, icsFilename);
+      };
+    }
   }
 
   function clearOutput() {
@@ -1369,6 +1403,18 @@
     }
     if (dom.result) dom.result.textContent = '';
     renderAnnotations([]);
+  }
+
+  function triggerICSDownload(icsStr, filename) {
+    var blob = new Blob([icsStr], { type: 'text/calendar;charset=utf-8' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 100);
   }
 
   function pushURL() {

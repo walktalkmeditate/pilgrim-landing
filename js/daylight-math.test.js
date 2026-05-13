@@ -147,6 +147,117 @@ if (fwdResult.error) {
   }
 }
 
+console.log('\n=== buildICS — forward mode fixture ===\n');
+
+var fwdStart = new Date('2026-10-15T07:00:00Z');
+var fwdEnd   = new Date('2026-10-15T12:58:00Z');
+var fwdICS   = D.buildICS({
+  routeName:       'Camino Francés',
+  stageLabel:      'Saint-Jean-Pied-de-Port to Roncesvalles',
+  startUTC:        fwdStart,
+  endUTC:          fwdEnd,
+  urlHref:         'https://pilgrimapp.org/daylight/camino-frances/?stage=0&date=2026-10-15',
+  mode:            'forward',
+  stageTz:         'Europe/Madrid',
+  descriptionLine: 'Walk 24.2 km · Arrive ~12:58 · 5h 58m walking · 3h 10m cushion before sunset'
+});
+
+function contains(str, substr, label) {
+  if (str.indexOf(substr) !== -1) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': expected output to contain: ' + substr);
+    console.log('  ✗ ' + label + '  (not found: ' + substr + ')');
+  }
+}
+
+contains(fwdICS, 'BEGIN:VCALENDAR',   'forward: BEGIN:VCALENDAR present');
+contains(fwdICS, 'END:VCALENDAR',     'forward: END:VCALENDAR present');
+contains(fwdICS, 'BEGIN:VEVENT',      'forward: BEGIN:VEVENT present');
+contains(fwdICS, 'END:VEVENT',        'forward: END:VEVENT present');
+contains(fwdICS, 'DTSTART:20261015T070000Z', 'forward: DTSTART matches startUTC');
+contains(fwdICS, 'DTEND:20261015T125800Z',   'forward: DTEND matches endUTC');
+contains(fwdICS, 'SUMMARY:Walk: Camino Franc',  'forward: SUMMARY contains route name');
+contains(fwdICS, 'DESCRIPTION:',      'forward: DESCRIPTION present');
+contains(fwdICS, 'URL:https://pilgrimapp.org/daylight/camino-frances/', 'forward: URL present');
+contains(fwdICS, 'CATEGORIES:Pilgrimage,Walking', 'forward: CATEGORIES present');
+contains(fwdICS, 'BEGIN:VALARM',      'forward: BEGIN:VALARM present');
+contains(fwdICS, 'END:VALARM',        'forward: END:VALARM present');
+contains(fwdICS, 'TRIGGER:-P1D',      'forward: VALARM TRIGGER present');
+contains(fwdICS, 'ACTION:DISPLAY',    'forward: VALARM ACTION present');
+contains(fwdICS, 'PRODID:-//Pilgrim//Daylight Walk Budget//EN', 'forward: PRODID present');
+
+console.log('\n=== buildICS — reverse mode fixture ===\n');
+
+var revStart = new Date('2026-10-15T06:02:00Z');
+var revEnd   = new Date('2026-10-15T12:00:00Z');
+var revICS   = D.buildICS({
+  routeName:       'Camino Francés',
+  stageLabel:      'Saint-Jean-Pied-de-Port to Roncesvalles',
+  startUTC:        revStart,
+  endUTC:          revEnd,
+  urlHref:         'https://pilgrimapp.org/daylight/camino-frances/?stage=0&date=2026-10-15&mode=reverse',
+  mode:            'reverse',
+  stageTz:         'Europe/Madrid',
+  descriptionLine: 'Walk 24.2 km · Leave by 08:02 · 5h 58m walking · arrive 14:00 with 1h cushion'
+});
+
+contains(revICS, 'DTSTART:20261015T060200Z', 'reverse: DTSTART matches latestDepartUTC');
+contains(revICS, 'DTEND:20261015T120000Z',   'reverse: DTEND matches walkEndUTC');
+
+// Forward and reverse produce different DTSTART/DTEND
+if (fwdICS !== revICS) {
+  passed++;
+  console.log('  ✓ forward and reverse ICS output are distinct');
+} else {
+  failed++;
+  failures.push('forward and reverse ICS output are identical — should differ');
+  console.log('  ✗ forward and reverse ICS output are identical');
+}
+
+console.log('\n=== buildICS — stageTz negative test (D9 guard) ===\n');
+
+var baseOpts = {
+  routeName:       'Test Route',
+  stageLabel:      'Stage 1',
+  startUTC:        new Date('2026-06-21T05:00:00Z'),
+  endUTC:          new Date('2026-06-21T10:00:00Z'),
+  urlHref:         'https://pilgrimapp.org/daylight/',
+  mode:            'forward',
+  descriptionLine: 'Test walk'
+};
+
+var icsTokyoTz  = D.buildICS(Object.assign({}, baseOpts, { stageTz: 'Asia/Tokyo'    }));
+var icsMadridTz = D.buildICS(Object.assign({}, baseOpts, { stageTz: 'Europe/Madrid' }));
+
+if (icsTokyoTz === icsMadridTz) {
+  passed++;
+  console.log('  ✓ stageTz unused: Asia/Tokyo and Europe/Madrid produce byte-identical output');
+} else {
+  failed++;
+  failures.push('D9 regression: stageTz is affecting ICS output — it must be unused in buildICS');
+  console.log('  ✗ stageTz is affecting output (D9 regression)');
+}
+
+console.log('\n=== buildICS — description escaping ===\n');
+
+var escapedICS = D.buildICS({
+  routeName:       'Route, One',
+  stageLabel:      'Stage; Two',
+  startUTC:        new Date('2026-03-20T08:00:00Z'),
+  endUTC:          new Date('2026-03-20T14:00:00Z'),
+  urlHref:         'https://pilgrimapp.org/daylight/',
+  mode:            'forward',
+  stageTz:         null,
+  descriptionLine: 'Arrive at 14:00, rest; enjoy the view\nSecond line'
+});
+
+contains(escapedICS, '\\,',  'escaping: comma in descriptionLine → \\,');
+contains(escapedICS, '\\;',  'escaping: semicolon in descriptionLine → \\;');
+contains(escapedICS, '\\n',  'escaping: newline in descriptionLine → \\n (literal)');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

@@ -532,6 +532,41 @@ body.constellation .dl-bar-waypoint {
 
 .dl-share-hint[hidden] { display: none; }
 
+/* =============================================
+   ICS calendar export link
+   ============================================= */
+
+.dl-ics-wrap {
+  margin-top: 0.6rem;
+}
+
+.dl-ics-btn {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  padding-bottom: 1px;
+  text-decoration: none;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-ics-btn:hover,
+.dl-ics-btn:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+  outline: none;
+}
+
+.dl-ics-btn[hidden] { display: none; }
+
 .daylight-noscript {
   font-style: italic;
   color: var(--stone);
