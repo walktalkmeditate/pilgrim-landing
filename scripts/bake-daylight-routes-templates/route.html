@@ -70,6 +70,8 @@
 </head>
 <body class="daylight-body" data-default-route="{{route_id}}">
 
+  <div class="moon-phase" role="button" tabindex="0" aria-label="Toggle dark mode" id="moon-toggle"></div>
+
   <main class="daylight-main">
 
     <h1 class="daylight-title">Daylight on the {{route_name_en}}</h1>
@@ -230,6 +232,9 @@
     </div>
   </footer>
 
+  <script src="/js/moon.js"></script>
+  <script src="/js/universe.js"></script>
+  <script src="/js/main.js"></script>
   <script src="/js/sunpath-math.js"></script>
   <script src="/js/daylight-math.js"></script>
   <script src="/js/daylight.js"></script>

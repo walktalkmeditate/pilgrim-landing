@@ -592,6 +592,12 @@ body.constellation .daylight-select,
 body.constellation .daylight-input {
   color: rgba(232, 224, 255, 0.85);
   border-bottom-color: rgba(232, 224, 255, 0.2);
+  color-scheme: dark;
+}
+
+body.constellation .daylight-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  opacity: 0.7;
 }
 
 body.constellation .dl-bar-label {
