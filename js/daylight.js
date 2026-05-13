@@ -87,7 +87,7 @@
 
   function recompute(state) {
     if (!SunPathMath || !DaylightMath) {
-      return { error: 'math modules not loaded' };
+      return { error: 'math modules not loaded', waypoints: [] };
     }
 
     var route   = state.route;
@@ -106,12 +106,12 @@
       distanceKm = parseFloat(state.customDistance);
       elevGainM  = parseFloat(state.customElevGain) || 0;
       if (isNaN(lat) || isNaN(lon) || isNaN(distanceKm) || distanceKm <= 0) {
-        return { error: 'incomplete custom route' };
+        return { error: 'incomplete custom route', waypoints: [] };
       }
     } else {
       var s = stage;
       if (!s || typeof s.startLat === 'undefined') {
-        return { error: 'no stage data' };
+        return { error: 'no stage data', waypoints: [] };
       }
       lat        = s.startLat;
       lon        = s.startLon;
@@ -120,7 +120,7 @@
       stageTz    = s.ianaTz || null;
     }
 
-    if (!dateStr) return { error: 'missing date' };
+    if (!dateStr) return { error: 'missing date', waypoints: [] };
 
     var parts = dateStr.split('-');
     var walkDate = new Date(Date.UTC(
@@ -171,6 +171,8 @@
       pacePresetOrMinPerKm: paceKey
     });
 
+    var waypoints = (stage && stage.waypoints) ? stage.waypoints : [];
+
     if (mode === 'reverse') {
       var bufferMin = (state.bufferMin !== undefined && state.bufferMin !== null && !isNaN(state.bufferMin) && state.bufferMin >= 0)
         ? state.bufferMin
@@ -195,7 +197,9 @@
           astronomicalDusk:    null,
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
-          moonPhase:           moonPhase
+          moonPhase:           moonPhase,
+          waypoints:           waypoints,
+          distanceKm:          distanceKm
         };
       }
 
@@ -223,7 +227,9 @@
           astronomicalDusk:    null,
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
-          moonPhase:           moonPhase
+          moonPhase:           moonPhase,
+          waypoints:           waypoints,
+          distanceKm:          distanceKm
         };
       }
 
@@ -258,7 +264,9 @@
           astronomicalDusk:    astronomicalDusk,
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
-          moonPhase:           moonPhase
+          moonPhase:           moonPhase,
+          waypoints:           waypoints,
+          distanceKm:          distanceKm
         };
       }
 
@@ -282,13 +290,15 @@
         astronomicalDusk:    astronomicalDusk,
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
-        moonPhase:           moonPhase
+        moonPhase:           moonPhase,
+        waypoints:           waypoints,
+        distanceKm:          distanceKm
       };
     }
 
     var startMin = state.startTimeMin;
     if (startMin === undefined || startMin === null || isNaN(startMin)) {
-      return { error: 'missing or invalid startTimeMin' };
+      return { error: 'missing or invalid startTimeMin', waypoints: [] };
     }
 
     var startHH  = Math.floor(startMin / 60);
@@ -318,7 +328,9 @@
         astronomicalDusk:    null,
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
-        moonPhase:           moonPhase
+        moonPhase:           moonPhase,
+        waypoints:           waypoints,
+        distanceKm:          distanceKm
       };
     }
 
@@ -343,7 +355,9 @@
         astronomicalDusk:    null,
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
-        moonPhase:           moonPhase
+        moonPhase:           moonPhase,
+        waypoints:           waypoints,
+        distanceKm:          distanceKm
       };
     }
 
@@ -385,7 +399,9 @@
       astronomicalDusk:    astronomicalDusk,
       moonriseUTC:         moonriseUTC,
       moonsetUTC:          moonsetUTC,
-      moonPhase:           moonPhase
+      moonPhase:           moonPhase,
+      waypoints:           waypoints,
+      distanceKm:          distanceKm
     };
   }
 
@@ -434,6 +450,12 @@
     var t = utcDate.getTime() - sunriseUTC.getTime();
     var frac = Math.max(0, Math.min(1, t / span));
     return BAR_X1 + frac * BAR_W;
+  }
+
+  function kmToBarX(kmFromStart, distanceKm, walkStartX, walkEndX) {
+    if (distanceKm <= 0) return walkStartX;
+    var t = kmFromStart / distanceKm;
+    return walkStartX + t * (walkEndX - walkStartX);
   }
 
   function renderSVG(output, svgEl, stageTz, clockFmt) {
@@ -490,6 +512,9 @@
       x1: BAR_X1, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
     }));
 
+    var walkStartX = null;
+    var walkEndX   = null;
+
     if (output.mode === 'reverse') {
       if (output.latestDepartUTC === null) {
         svgEl.appendChild(makeSVGEl('line', {
@@ -519,10 +544,11 @@
         return;
       }
 
-      var departX  = utcToBarX(output.latestDepartUTC, sunrise, sunset);
-      var walkEndX = utcToBarX(output.walkEndUTC,      sunrise, sunset);
-      var walkX1 = Math.min(departX, walkEndX);
-      var walkX2 = Math.max(departX, walkEndX);
+      var departX = utcToBarX(output.latestDepartUTC, sunrise, sunset);
+      walkStartX  = departX;
+      walkEndX    = utcToBarX(output.walkEndUTC, sunrise, sunset);
+      var walkX1  = Math.min(departX, walkEndX);
+      var walkX2  = Math.max(departX, walkEndX);
 
       if (walkX2 > walkX1 + 0.5) {
         svgEl.appendChild(makeSVGEl('line', {
@@ -551,8 +577,10 @@
     } else {
       var startX   = utcToBarX(output.startUTC,   sunrise, sunset);
       var arrivalX = utcToBarX(output.arrivalUTC, sunrise, sunset);
-      var walkX1 = Math.min(startX, arrivalX);
-      var walkX2 = Math.max(startX, arrivalX);
+      walkStartX   = startX;
+      walkEndX     = arrivalX;
+      var walkX1   = Math.min(startX, arrivalX);
+      var walkX2   = Math.max(startX, arrivalX);
 
       if (walkX2 > walkX1 + 0.5) {
         svgEl.appendChild(makeSVGEl('line', {
@@ -571,6 +599,18 @@
         cx: arrivalX, cy: BAR_Y, r: 3.5,
         'stroke-width': 1.5
       }));
+    }
+
+    if (output.waypoints && output.waypoints.length && walkStartX !== null && walkEndX !== null) {
+      output.waypoints.forEach(function (wp) {
+        if (wp.kmFromStart < 0 || wp.kmFromStart > output.distanceKm) return;
+        var x = kmToBarX(wp.kmFromStart, output.distanceKm, walkStartX, walkEndX);
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-waypoint',
+          x1: x, y1: BAR_Y + 6,
+          x2: x, y2: BAR_Y + 10
+        }));
+      });
     }
 
     svgEl.appendChild(makeSVGEl('line', {

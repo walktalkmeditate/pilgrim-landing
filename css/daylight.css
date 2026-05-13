@@ -311,6 +311,16 @@
   opacity: 0.7;
 }
 
+.dl-bar-waypoint {
+  stroke: rgba(184, 175, 162, 0.5);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+body.constellation .dl-bar-waypoint {
+  stroke: rgba(232, 224, 255, 0.45);
+}
+
 .dl-bar-container {
   position: relative;
 }
