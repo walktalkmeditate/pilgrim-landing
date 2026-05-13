@@ -245,6 +245,27 @@
   stroke-linecap: round;
 }
 
+.dl-bar-civil {
+  stroke: rgba(184, 175, 162, 0.14);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-nautical {
+  stroke: rgba(184, 175, 162, 0.09);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-astronomical {
+  stroke: rgba(184, 175, 162, 0.05);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
 .dl-bar-walk {
   stroke: #C4956A;
   stroke-width: 4;
@@ -622,6 +643,18 @@ body.constellation .dl-bar-label {
 
 body.constellation .dl-bar-daylight {
   stroke: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .dl-bar-civil {
+  stroke: rgba(232, 224, 255, 0.10);
+}
+
+body.constellation .dl-bar-nautical {
+  stroke: rgba(232, 224, 255, 0.065);
+}
+
+body.constellation .dl-bar-astronomical {
+  stroke: rgba(232, 224, 255, 0.035);
 }
 
 body.constellation .dl-bar-tick-sunrise,

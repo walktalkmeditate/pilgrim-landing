@@ -137,6 +137,22 @@
     var sunriseDate = SunPathMath.sunriseUTC(lat, lon, walkDate);
     var sunsetDate  = SunPathMath.sunsetUTC(lat, lon, walkDate);
 
+    var civilDawn        = null;
+    var civilDusk        = null;
+    var nauticalDawn     = null;
+    var nauticalDusk     = null;
+    var astronomicalDawn = null;
+    var astronomicalDusk = null;
+
+    if (!isPolarDay && !isPolarNight) {
+      civilDawn        = SunPathMath.civilDawnUTC(lat, lon, walkDate);
+      civilDusk        = SunPathMath.civilDuskUTC(lat, lon, walkDate);
+      nauticalDawn     = SunPathMath.nauticalDawnUTC(lat, lon, walkDate);
+      nauticalDusk     = SunPathMath.nauticalDuskUTC(lat, lon, walkDate);
+      astronomicalDawn = SunPathMath.astronomicalDawnUTC(lat, lon, walkDate);
+      astronomicalDusk = SunPathMath.astronomicalDuskUTC(lat, lon, walkDate);
+    }
+
     var annotations = [];
 
     if (isPolarDay) {
@@ -158,15 +174,21 @@
 
       if (isPolarNight) {
         return {
-          mode:          'reverse',
-          sunriseUTC:    null,
-          sunsetUTC:     null,
-          walkMin:       walkMin,
-          bufferMin:     bufferMin,
-          stageTz:       stageTz,
-          annotations:   annotations,
-          isPolarNight:  true,
-          isPolarDay:    false
+          mode:                'reverse',
+          sunriseUTC:          null,
+          sunsetUTC:           null,
+          walkMin:             walkMin,
+          bufferMin:           bufferMin,
+          stageTz:             stageTz,
+          annotations:         annotations,
+          isPolarNight:        true,
+          isPolarDay:          false,
+          civilDawn:           null,
+          civilDusk:           null,
+          nauticalDawn:        null,
+          nauticalDusk:        null,
+          astronomicalDawn:    null,
+          astronomicalDusk:    null
         };
       }
 
@@ -175,17 +197,23 @@
         // question doesn't apply. Mirror polar-night: return null for
         // the time fields, let the polar-day annotation tell the user.
         return {
-          mode:            'reverse',
-          sunriseUTC:      null,
-          sunsetUTC:       null,
-          latestDepartUTC: null,
-          walkEndUTC:      null,
-          walkMin:         walkMin,
-          bufferMin:       bufferMin,
-          stageTz:         stageTz,
-          annotations:     annotations,
-          isPolarDay:      true,
-          isPolarNight:    false
+          mode:                'reverse',
+          sunriseUTC:          null,
+          sunsetUTC:           null,
+          latestDepartUTC:     null,
+          walkEndUTC:          null,
+          walkMin:             walkMin,
+          bufferMin:           bufferMin,
+          stageTz:             stageTz,
+          annotations:         annotations,
+          isPolarDay:          true,
+          isPolarNight:        false,
+          civilDawn:           null,
+          civilDusk:           null,
+          nauticalDawn:        null,
+          nauticalDusk:        null,
+          astronomicalDawn:    null,
+          astronomicalDusk:    null
         };
       }
 
@@ -201,32 +229,44 @@
           text: 'This stage is longer than today\'s daylight minus your buffer. Consider splitting it, or starting from a different stage.'
         });
         return {
-          mode:            'reverse',
-          sunriseUTC:      sunriseDate,
-          sunsetUTC:       sunsetDate,
-          latestDepartUTC: null,
-          walkEndUTC:      walkEndUTC,
-          walkMin:         walkMin,
-          bufferMin:       bufferMin,
-          stageTz:         stageTz,
-          annotations:     annotations,
-          isPolarDay:      false,
-          isPolarNight:    false
+          mode:                'reverse',
+          sunriseUTC:          sunriseDate,
+          sunsetUTC:           sunsetDate,
+          latestDepartUTC:     null,
+          walkEndUTC:          walkEndUTC,
+          walkMin:             walkMin,
+          bufferMin:           bufferMin,
+          stageTz:             stageTz,
+          annotations:         annotations,
+          isPolarDay:          false,
+          isPolarNight:        false,
+          civilDawn:           civilDawn,
+          civilDusk:           civilDusk,
+          nauticalDawn:        nauticalDawn,
+          nauticalDusk:        nauticalDusk,
+          astronomicalDawn:    astronomicalDawn,
+          astronomicalDusk:    astronomicalDusk
         };
       }
 
       return {
-        mode:            'reverse',
-        sunriseUTC:      sunriseDate,
-        sunsetUTC:       sunsetDate,
-        latestDepartUTC: latestDepartUTC,
-        walkEndUTC:      walkEndUTC,
-        walkMin:         walkMin,
-        bufferMin:       bufferMin,
-        stageTz:         stageTz,
-        annotations:     annotations,
-        isPolarDay:      false,
-        isPolarNight:    false
+        mode:                'reverse',
+        sunriseUTC:          sunriseDate,
+        sunsetUTC:           sunsetDate,
+        latestDepartUTC:     latestDepartUTC,
+        walkEndUTC:          walkEndUTC,
+        walkMin:             walkMin,
+        bufferMin:           bufferMin,
+        stageTz:             stageTz,
+        annotations:         annotations,
+        isPolarDay:          false,
+        isPolarNight:        false,
+        civilDawn:           civilDawn,
+        civilDusk:           civilDusk,
+        nauticalDawn:        nauticalDawn,
+        nauticalDusk:        nauticalDusk,
+        astronomicalDawn:    astronomicalDawn,
+        astronomicalDusk:    astronomicalDusk
       };
     }
 
@@ -243,33 +283,45 @@
 
     if (isPolarNight) {
       return {
-        mode:          'forward',
-        sunriseUTC:    null,
-        sunsetUTC:     null,
-        startUTC:      startUTC,
-        arrivalUTC:    arrivalUTC,
-        walkMin:       walkMin,
-        cushionMin:    null,
-        stageTz:       stageTz,
-        annotations:   annotations,
-        isPolarNight:  true,
-        isPolarDay:    false
+        mode:                'forward',
+        sunriseUTC:          null,
+        sunsetUTC:           null,
+        startUTC:            startUTC,
+        arrivalUTC:          arrivalUTC,
+        walkMin:             walkMin,
+        cushionMin:          null,
+        stageTz:             stageTz,
+        annotations:         annotations,
+        isPolarNight:        true,
+        isPolarDay:          false,
+        civilDawn:           null,
+        civilDusk:           null,
+        nauticalDawn:        null,
+        nauticalDusk:        null,
+        astronomicalDawn:    null,
+        astronomicalDusk:    null
       };
     }
 
     if (isPolarDay) {
       return {
-        mode:         'forward',
-        sunriseUTC:   null,
-        sunsetUTC:    null,
-        startUTC:     startUTC,
-        arrivalUTC:   arrivalUTC,
-        walkMin:      walkMin,
-        cushionMin:   null,
-        stageTz:      stageTz,
-        annotations:  annotations,
-        isPolarDay:   true,
-        isPolarNight: false
+        mode:                'forward',
+        sunriseUTC:          null,
+        sunsetUTC:           null,
+        startUTC:            startUTC,
+        arrivalUTC:          arrivalUTC,
+        walkMin:             walkMin,
+        cushionMin:          null,
+        stageTz:             stageTz,
+        annotations:         annotations,
+        isPolarDay:          true,
+        isPolarNight:        false,
+        civilDawn:           null,
+        civilDusk:           null,
+        nauticalDawn:        null,
+        nauticalDusk:        null,
+        astronomicalDawn:    null,
+        astronomicalDusk:    null
       };
     }
 
@@ -292,17 +344,23 @@
     }
 
     return {
-      mode:         'forward',
-      sunriseUTC:   sunriseDate,
-      sunsetUTC:    sunsetDate,
-      startUTC:     startUTC,
-      arrivalUTC:   arrivalUTC,
-      walkMin:      walkMin,
-      cushionMin:   cushionMin,
-      stageTz:      stageTz,
-      annotations:  annotations,
-      isPolarDay:   false,
-      isPolarNight: false
+      mode:                'forward',
+      sunriseUTC:          sunriseDate,
+      sunsetUTC:           sunsetDate,
+      startUTC:            startUTC,
+      arrivalUTC:          arrivalUTC,
+      walkMin:             walkMin,
+      cushionMin:          cushionMin,
+      stageTz:             stageTz,
+      annotations:         annotations,
+      isPolarDay:          false,
+      isPolarNight:        false,
+      civilDawn:           civilDawn,
+      civilDusk:           civilDusk,
+      nauticalDawn:        nauticalDawn,
+      nauticalDusk:        nauticalDusk,
+      astronomicalDawn:    astronomicalDawn,
+      astronomicalDusk:    astronomicalDusk
     };
   }
 
@@ -384,6 +442,23 @@
       class: 'dl-bar-track',
       x1: BAR_X1, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
     }));
+
+    var twilightBands = [
+      { dawn: output.astronomicalDawn, dusk: output.astronomicalDusk, cls: 'dl-bar-astronomical' },
+      { dawn: output.nauticalDawn,     dusk: output.nauticalDusk,     cls: 'dl-bar-nautical'     },
+      { dawn: output.civilDawn,        dusk: output.civilDusk,        cls: 'dl-bar-civil'        }
+    ];
+
+    twilightBands.forEach(function (band) {
+      if (!band.dawn || !band.dusk) return;
+      svgEl.appendChild(makeSVGEl('line', {
+        class: band.cls,
+        x1: utcToBarX(band.dawn, sunrise, sunset),
+        y1: BAR_Y,
+        x2: utcToBarX(band.dusk, sunrise, sunset),
+        y2: BAR_Y
+      }));
+    });
 
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-daylight',
