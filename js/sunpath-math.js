@@ -122,6 +122,37 @@
     return (24 / Math.PI) * H;
   }
 
+  // UTC instant of sunrise at a given lat/lon on a given date.
+  // Returns null for polar day (daylightHours = 24) or polar night (daylightHours = 0).
+  // Solar noon UTC = 12 - lon/15 - EoT/60 (Spencer EoT sign convention: subtract).
+  function sunriseUTC(lat, lon, date) {
+    var dlh = daylightHours(lat, date);
+    if (dlh === 0 || dlh === 24) return null;
+    var eot = equationOfTime(date);
+    var noonH = 12 - lon / 15 - eot / 60;
+    var riseH = noonH - dlh / 2;
+    var dayOffset = 0;
+    while (riseH < 0)  { riseH += 24; dayOffset--; }
+    while (riseH >= 24) { riseH -= 24; dayOffset++; }
+    var midnightMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return new Date(midnightMs + dayOffset * 86400000 + riseH * 3600000);
+  }
+
+  // UTC instant of sunset at a given lat/lon on a given date.
+  // Returns null for polar day or polar night (same sentinel as sunriseUTC).
+  function sunsetUTC(lat, lon, date) {
+    var dlh = daylightHours(lat, date);
+    if (dlh === 0 || dlh === 24) return null;
+    var eot = equationOfTime(date);
+    var noonH = 12 - lon / 15 - eot / 60;
+    var setH = noonH + dlh / 2;
+    var dayOffset = 0;
+    while (setH < 0)  { setH += 24; dayOffset--; }
+    while (setH >= 24) { setH -= 24; dayOffset++; }
+    var midnightMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return new Date(midnightMs + dayOffset * 86400000 + setH * 3600000);
+  }
+
   // --- Obliquity (axial tilt) shift over time ---
 
   // Earth's obliquity of the ecliptic in degrees, for a given calendar year.
@@ -209,6 +240,8 @@
     // sunrise + daylight
     sunriseAzimuth: sunriseAzimuth,
     daylightHours: daylightHours,
+    sunriseUTC: sunriseUTC,
+    sunsetUTC: sunsetUTC,
     // obliquity / time machine
     obliquity: obliquity,
     sunriseAzimuthForYear: sunriseAzimuthForYear,

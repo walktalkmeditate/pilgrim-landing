@@ -150,6 +150,61 @@ approx(M.dayOfYear(new Date(Date.UTC(2026, 0, 1))), 1, 0, 'Jan 1 = day 1');
 approx(M.dayOfYear(new Date(Date.UTC(2026, 11, 31))), 365, 0, 'Dec 31 = day 365 (non-leap)');
 approx(M.dayOfYear(new Date(Date.UTC(2024, 11, 31))), 366, 0, 'Dec 31 leap year = day 366');
 
+console.log('\n=== sunriseUTC / sunsetUTC — NOAA reference 2026-10-15 ===\n');
+
+// NOAA reference values fetched 2026-05-12 via gml.noaa.gov/grad/solcalc/table.php.
+// Local times from NOAA table converted to UTC using the stated timezone offsets.
+// Tolerances: ±2 min for mid-latitude sites, ±10 min for Reykjavik (high lat).
+
+function approxUTC(actualDate, refDate, toleranceMinutes, label) {
+  if (actualDate === null) {
+    failed++;
+    failures.push(label + ': got null, expected ' + refDate.toISOString());
+    console.log('  ✗ ' + label + '  (got null)');
+    return;
+  }
+  var diffMin = Math.abs(actualDate.getTime() - refDate.getTime()) / 60000;
+  if (diffMin <= toleranceMinutes) {
+    passed++;
+    console.log('  ✓ ' + label + '  (' + actualDate.toISOString() + ', Δ ' + diffMin.toFixed(1) + ' min)');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + refDate.toISOString() + ' ±' + toleranceMinutes + 'min, got ' + actualDate.toISOString() + ' (Δ ' + diffMin.toFixed(1) + ' min)');
+    console.log('  ✗ ' + label + '  (' + actualDate.toISOString() + ', Δ ' + diffMin.toFixed(1) + ' min)');
+  }
+}
+
+var oct15 = new Date(Date.UTC(2026, 9, 15, 12, 0, 0));
+
+// León (42.60°N, 5.57°W) — NOAA local 08:35 / 19:40 CEST (UTC+2) → 06:35 / 17:40 UTC
+approxUTC(M.sunriseUTC(42.60, -5.57,  oct15), new Date(Date.UTC(2026, 9, 15,  6, 35)), 2, 'León sunrise UTC');
+approxUTC(M.sunsetUTC( 42.60, -5.57,  oct15), new Date(Date.UTC(2026, 9, 15, 17, 40)), 2, 'León sunset UTC');
+
+// Tokushima (34.16°N, 134.50°E) — NOAA local 06:07 / 17:28 JST (UTC+9) → 21:07 Oct14 / 08:28 Oct15 UTC
+approxUTC(M.sunriseUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 14, 21,  7)), 2, 'Tokushima sunrise UTC');
+approxUTC(M.sunsetUTC( 34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  8, 28)), 2, 'Tokushima sunset UTC');
+
+// Quito (0.18°S, 78.47°W) — NOAA local 05:56 / 18:03 ECT (UTC-5) → 10:56 / 23:03 UTC
+approxUTC(M.sunriseUTC(-0.18, -78.47, oct15), new Date(Date.UTC(2026, 9, 15, 10, 56)), 2, 'Quito sunrise UTC');
+approxUTC(M.sunsetUTC( -0.18, -78.47, oct15), new Date(Date.UTC(2026, 9, 15, 23,  3)), 2, 'Quito sunset UTC');
+
+// Reykjavik (64.13°N, 21.94°W) — NOAA local 08:18 / 18:08 UTC+0 → 08:18 / 18:08 UTC
+approxUTC(M.sunriseUTC(64.13, -21.94, oct15), new Date(Date.UTC(2026, 9, 15,  8, 18)), 10, 'Reykjavik sunrise UTC');
+approxUTC(M.sunsetUTC( 64.13, -21.94, oct15), new Date(Date.UTC(2026, 9, 15, 18,  8)), 10, 'Reykjavik sunset UTC');
+
+// Polar sentinel: Tromsø (69.65°N) winter solstice → polar night → null
+var winterSol2 = new Date(Date.UTC(2026, 11, 21, 20, 51));
+var polarRise = M.sunriseUTC(69.65, 18.97, winterSol2);
+var polarSet  = M.sunsetUTC( 69.65, 18.97, winterSol2);
+if (polarRise === null && polarSet === null) {
+  passed++;
+  console.log('  ✓ Tromsø winter solstice polar night → null, null');
+} else {
+  failed++;
+  failures.push('Tromsø polar night: expected null,null, got ' + polarRise + ',' + polarSet);
+  console.log('  ✗ Tromsø winter solstice polar night: expected null,null');
+}
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
