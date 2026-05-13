@@ -142,6 +142,77 @@
 }
 
 /* =============================================
+   Mode toggle
+   ============================================= */
+
+.daylight-mode-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 2rem;
+}
+
+.daylight-mode-legend {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  margin: 0 0 0.5rem;
+  padding: 0;
+  float: left;
+  width: 100%;
+}
+
+.daylight-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+  margin-right: 1.6rem;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.daylight-mode-label:has(.daylight-mode-radio:checked) {
+  opacity: 1;
+}
+
+.daylight-mode-radio {
+  accent-color: var(--stone);
+  width: 0.85em;
+  height: 0.85em;
+  cursor: pointer;
+}
+
+/* =============================================
+   Buffer field — inline number + unit
+   ============================================= */
+
+.daylight-input-unit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.daylight-input--short {
+  max-width: 80px;
+}
+
+.daylight-unit-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  opacity: 0.75;
+}
+
+/* =============================================
    Output panel
    ============================================= */
 
@@ -186,6 +257,14 @@
   stroke: #C4956A;
   fill: none;
   opacity: 0.85;
+}
+
+.dl-bar-buffer {
+  stroke: rgba(184, 175, 162, 0.45);
+  stroke-width: 4;
+  stroke-dasharray: 3 4;
+  fill: none;
+  stroke-linecap: round;
 }
 
 .dl-bar-tick-sunrise,
@@ -370,6 +449,10 @@ body.constellation .dl-bar-dot {
   stroke: rgba(232, 224, 255, 0.65);
 }
 
+body.constellation .dl-bar-buffer {
+  stroke: rgba(232, 224, 255, 0.3);
+}
+
 /* =============================================
    Responsive
    ============================================= */
@@ -384,6 +467,8 @@ body.constellation .dl-bar-dot {
   .daylight-input {
     max-width: 100%;
   }
+
+  .daylight-input--short { max-width: 80px; }
 
   .daylight-input[type="date"],
   .daylight-input[type="time"] {

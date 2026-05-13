@@ -126,12 +126,33 @@
         </select>
       </div>
 
-      <div class="daylight-field">
+      <div class="daylight-field" id="dl-start-wrap">
         <label class="daylight-label" for="dl-start">Start time</label>
         <input class="daylight-input" type="time" id="dl-start" aria-label="Start time">
       </div>
 
+      <div class="daylight-field" id="dl-buffer-wrap" hidden>
+        <label class="daylight-label" for="dl-buffer">Arrive how many minutes before sunset</label>
+        <div class="daylight-input-unit-row">
+          <input class="daylight-input daylight-input--short" type="number" id="dl-buffer" min="0" value="60" aria-label="Buffer in minutes before sunset">
+          <span class="daylight-unit-label">min</span>
+        </div>
+      </div>
+
     </section>
+
+    <!-- Mode toggle -->
+    <fieldset class="daylight-mode-fieldset">
+      <legend class="daylight-mode-legend">Calculate</legend>
+      <label class="daylight-mode-label">
+        <input class="daylight-mode-radio" type="radio" name="dl-mode" value="forward" checked>
+        <span>→ arrival time</span>
+      </label>
+      <label class="daylight-mode-label">
+        <input class="daylight-mode-radio" type="radio" name="dl-mode" value="reverse">
+        <span>← departure time</span>
+      </label>
+    </fieldset>
 
     <!-- Output panel -->
     <section class="daylight-output" id="dl-output" aria-label="Walk-budget result" aria-live="polite">

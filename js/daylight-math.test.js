@@ -5,11 +5,13 @@
 
    Assertions cross-check walkingMinutes against hand-computed
    values derived from the Tobler-inspired velocity formula.
+   Also covers the forward→reverse round-trip (AC #6).
    ============================================= */
 
 'use strict';
 
 var D = require('./daylight-math.js');
+var Daylight = require('./daylight.js');
 
 var passed = 0;
 var failed = 0;
@@ -84,6 +86,62 @@ if (a1 === a2 && a2 === a3) {
   failed++;
   failures.push('purity: results differ across calls: ' + a1 + ', ' + a2 + ', ' + a3);
   console.log('  ✗ walkingMinutes is not pure: ' + a1 + ', ' + a2 + ', ' + a3);
+}
+
+console.log('\n=== forward → reverse round-trip (AC #6) ===\n');
+
+var caminoStage0 = {
+  index:      0,
+  nameEn:     'Saint-Jean-Pied-de-Port to Roncesvalles',
+  startLat:   43.163,
+  startLon:   -1.236,
+  distanceKm: 24.2,
+  elevGainM:  1419,
+  ianaTz:     'Europe/Madrid'
+};
+
+var fwdResult = Daylight.recompute({
+  route:        'camino-frances',
+  stage:        caminoStage0,
+  date:         '2026-10-15',
+  paceKey:      'standard',
+  startTimeMin: 7 * 60,
+  mode:         'forward'
+});
+
+if (fwdResult.error) {
+  failed++;
+  failures.push('round-trip forward leg error: ' + fwdResult.error);
+  console.log('  ✗ forward leg failed: ' + fwdResult.error);
+} else {
+  var cushionAsBuffer = (fwdResult.sunsetUTC.getTime() - fwdResult.arrivalUTC.getTime()) / 60000;
+
+  var revResult = Daylight.recompute({
+    route:    'camino-frances',
+    stage:    caminoStage0,
+    date:     '2026-10-15',
+    paceKey:  'standard',
+    mode:     'reverse',
+    bufferMin: cushionAsBuffer
+  });
+
+  if (revResult.error) {
+    failed++;
+    failures.push('round-trip reverse leg error: ' + revResult.error);
+    console.log('  ✗ reverse leg failed: ' + revResult.error);
+  } else {
+    var diffMs = Math.abs(fwdResult.startUTC.getTime() - revResult.latestDepartUTC.getTime());
+    // AC #6: round-trip must recover start within ±1 minute (60_000 ms).
+    var tolerance = 60000;
+    if (diffMs <= tolerance) {
+      passed++;
+      console.log('  ✓ round-trip within ±1 min  (diff ' + diffMs + ' ms)');
+    } else {
+      failed++;
+      failures.push('round-trip diff ' + diffMs + ' ms exceeds 60 000 ms tolerance');
+      console.log('  ✗ round-trip diff ' + diffMs + ' ms exceeds ' + tolerance + ' ms tolerance');
+    }
+  }
 }
 
 console.log('\n=== Summary ===\n');

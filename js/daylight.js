@@ -19,6 +19,8 @@
 (function (root) {
   'use strict';
 
+  var MS_PER_MIN = 60000;
+
   /* ==========================================
      Inner core — pure math
      ========================================== */
@@ -40,11 +42,7 @@
     var stage   = state.stage;
     var dateStr = state.date;
     var paceKey = state.paceKey   || 'standard';
-    var startMin= state.startTimeMin;
-
-    if (startMin === undefined || startMin === null || isNaN(startMin)) {
-      return { error: 'missing or invalid startTimeMin' };
-    }
+    var mode    = state.mode      || 'forward';
 
     var lat, lon, distanceKm, elevGainM;
 
@@ -90,6 +88,30 @@
       pacePresetOrMinPerKm: paceKey
     });
 
+    if (mode === 'reverse') {
+      var bufferMin = (state.bufferMin !== undefined && state.bufferMin !== null && !isNaN(state.bufferMin) && state.bufferMin >= 0)
+        ? state.bufferMin
+        : 60;
+
+      var walkEndUTC      = new Date(sunsetDate.getTime() - bufferMin * MS_PER_MIN);
+      var latestDepartUTC = new Date(walkEndUTC.getTime()  - walkMin   * MS_PER_MIN);
+
+      return {
+        mode:               'reverse',
+        sunriseUTC:         sunriseDate,
+        sunsetUTC:          sunsetDate,
+        latestDepartUTC:    latestDepartUTC,
+        walkEndUTC:         walkEndUTC,
+        walkMin:            walkMin,
+        bufferMin:          bufferMin
+      };
+    }
+
+    var startMin = state.startTimeMin;
+    if (startMin === undefined || startMin === null || isNaN(startMin)) {
+      return { error: 'missing or invalid startTimeMin' };
+    }
+
     var dayMidnightUTC = Date.UTC(
       parseInt(parts[0], 10),
       parseInt(parts[1], 10) - 1,
@@ -97,11 +119,12 @@
       0, 0, 0
     );
 
-    var startUTC   = new Date(dayMidnightUTC + startMin * 60000);
-    var arrivalUTC = new Date(startUTC.getTime() + walkMin * 60000);
-    var cushionMin = (sunsetDate.getTime() - arrivalUTC.getTime()) / 60000;
+    var startUTC   = new Date(dayMidnightUTC + startMin * MS_PER_MIN);
+    var arrivalUTC = new Date(startUTC.getTime() + walkMin * MS_PER_MIN);
+    var cushionMin = (sunsetDate.getTime() - arrivalUTC.getTime()) / MS_PER_MIN;
 
     return {
+      mode:       'forward',
       sunriseUTC: sunriseDate,
       sunsetUTC:  sunsetDate,
       startUTC:   startUTC,
@@ -162,15 +185,10 @@
 
     if (output.error) return;
 
-    var sunrise  = output.sunriseUTC;
-    var sunset   = output.sunsetUTC;
-    var start    = output.startUTC;
-    var arrival  = output.arrivalUTC;
+    var sunrise = output.sunriseUTC;
+    var sunset  = output.sunsetUTC;
 
     var nowUTC = new Date();
-
-    var startX   = utcToBarX(start,   sunrise, sunset);
-    var arrivalX = utcToBarX(arrival, sunrise, sunset);
 
     var titleEl = document.createElementNS(SVG_NS, 'title');
     titleEl.textContent = 'Daylight from ' + fmtUTC(sunrise) + ' to ' + fmtUTC(sunset) + ' UTC';
@@ -186,12 +204,58 @@
       x1: BAR_X1, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
     }));
 
-    var walkX1 = Math.min(startX, arrivalX);
-    var walkX2 = Math.max(startX, arrivalX);
-    if (walkX2 > walkX1 + 0.5) {
-      svgEl.appendChild(makeSVGEl('line', {
-        class: 'dl-bar-walk',
-        x1: walkX1, y1: BAR_Y, x2: walkX2, y2: BAR_Y
+    if (output.mode === 'reverse') {
+      var departX  = utcToBarX(output.latestDepartUTC, sunrise, sunset);
+      var walkEndX = utcToBarX(output.walkEndUTC,      sunrise, sunset);
+      var walkX1 = Math.min(departX, walkEndX);
+      var walkX2 = Math.max(departX, walkEndX);
+
+      if (walkX2 > walkX1 + 0.5) {
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-walk',
+          x1: walkX1, y1: BAR_Y, x2: walkX2, y2: BAR_Y
+        }));
+      }
+
+      if (walkEndX < BAR_X2 - 0.5) {
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-buffer',
+          x1: walkEndX, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
+        }));
+      }
+
+      svgEl.appendChild(makeSVGEl('circle', {
+        class: 'dl-bar-dot',
+        cx: departX, cy: BAR_Y, r: 3.5,
+        'stroke-width': 1.5
+      }));
+      svgEl.appendChild(makeSVGEl('circle', {
+        class: 'dl-bar-dot',
+        cx: walkEndX, cy: BAR_Y, r: 3.5,
+        'stroke-width': 1.5
+      }));
+    } else {
+      var startX   = utcToBarX(output.startUTC,   sunrise, sunset);
+      var arrivalX = utcToBarX(output.arrivalUTC, sunrise, sunset);
+      var walkX1 = Math.min(startX, arrivalX);
+      var walkX2 = Math.max(startX, arrivalX);
+
+      if (walkX2 > walkX1 + 0.5) {
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-walk',
+          x1: walkX1, y1: BAR_Y, x2: walkX2, y2: BAR_Y
+        }));
+      }
+
+      svgEl.appendChild(makeSVGEl('circle', {
+        class: 'dl-bar-dot',
+        cx: startX, cy: BAR_Y, r: 3.5,
+        'stroke-width': 1.5
+      }));
+      svgEl.appendChild(makeSVGEl('circle', {
+        class: 'dl-bar-dot',
+        cx: arrivalX, cy: BAR_Y, r: 3.5,
+        'stroke-width': 1.5
       }));
     }
 
@@ -242,18 +306,6 @@
         svgEl.appendChild(nowLbl);
       }
     }
-
-    svgEl.appendChild(makeSVGEl('circle', {
-      class: 'dl-bar-dot',
-      cx: startX, cy: BAR_Y, r: 3.5,
-      'stroke-width': 1.5
-    }));
-
-    svgEl.appendChild(makeSVGEl('circle', {
-      class: 'dl-bar-dot',
-      cx: arrivalX, cy: BAR_Y, r: 3.5,
-      'stroke-width': 1.5
-    }));
   }
 
   /* ==========================================
@@ -279,26 +331,31 @@
 
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  var _stageData  = {};
+  var _stageData    = {};
   var _currentRoute = null;
+  var _currentMode  = 'forward';
 
   var dom = {};
 
   document.addEventListener('DOMContentLoaded', function () {
-    dom.routeSel    = document.getElementById('dl-route');
-    dom.stageSel    = document.getElementById('dl-stage');
-    dom.stageWrap   = document.getElementById('dl-stage-wrap');
-    dom.customPanel = document.getElementById('dl-custom-panel');
-    dom.latInput    = document.getElementById('dl-lat');
-    dom.lonInput    = document.getElementById('dl-lon');
-    dom.distInput   = document.getElementById('dl-dist');
-    dom.elevInput   = document.getElementById('dl-elev');
-    dom.locateBtn   = document.getElementById('dl-locate');
-    dom.dateInput   = document.getElementById('dl-date');
-    dom.paceInput   = document.getElementById('dl-pace');
-    dom.startInput  = document.getElementById('dl-start');
-    dom.barSvg      = document.getElementById('dl-bar-svg');
-    dom.result      = document.getElementById('dl-result');
+    dom.routeSel     = document.getElementById('dl-route');
+    dom.stageSel     = document.getElementById('dl-stage');
+    dom.stageWrap    = document.getElementById('dl-stage-wrap');
+    dom.customPanel  = document.getElementById('dl-custom-panel');
+    dom.latInput     = document.getElementById('dl-lat');
+    dom.lonInput     = document.getElementById('dl-lon');
+    dom.distInput    = document.getElementById('dl-dist');
+    dom.elevInput    = document.getElementById('dl-elev');
+    dom.locateBtn    = document.getElementById('dl-locate');
+    dom.dateInput    = document.getElementById('dl-date');
+    dom.paceInput    = document.getElementById('dl-pace');
+    dom.startInput   = document.getElementById('dl-start');
+    dom.startWrap    = document.getElementById('dl-start-wrap');
+    dom.modeRadios   = document.querySelectorAll('input[name="dl-mode"]');
+    dom.bufferWrap   = document.getElementById('dl-buffer-wrap');
+    dom.bufferInput  = document.getElementById('dl-buffer');
+    dom.barSvg       = document.getElementById('dl-bar-svg');
+    dom.result       = document.getElementById('dl-result');
 
     if (!dom.routeSel) return;
 
@@ -310,6 +367,11 @@
     dom.dateInput.addEventListener('change', onFieldChange);
     dom.paceInput.addEventListener('change', onFieldChange);
     dom.startInput.addEventListener('change', onFieldChange);
+    dom.bufferInput.addEventListener('input', onFieldChange);
+
+    dom.modeRadios.forEach(function (radio) {
+      radio.addEventListener('change', onModeChange);
+    });
 
     dom.latInput.addEventListener('input', onFieldChange);
     dom.lonInput.addEventListener('input', onFieldChange);
@@ -354,6 +416,15 @@
     if (!params.start) {
       dom.startInput.value = '07:00';
     }
+
+    _currentMode = params.mode;
+    dom.modeRadios.forEach(function (radio) {
+      radio.checked = (radio.value === _currentMode);
+    });
+    if (params.buffer !== null) {
+      dom.bufferInput.value = String(params.buffer);
+    }
+    applyModeUI(_currentMode);
   }
 
   // Returns YYYY-MM-DD in the user's *local* tz (not UTC). Default-date picker uses
@@ -417,6 +488,18 @@
         loadStageData(_currentRoute);
       }
     }
+  }
+
+  function onModeChange(e) {
+    _currentMode = e.target.value;
+    applyModeUI(_currentMode);
+    pushURL();
+    runAndRender();
+  }
+
+  function applyModeUI(mode) {
+    if (dom.bufferWrap) dom.bufferWrap.hidden = (mode !== 'reverse');
+    if (dom.startWrap)  dom.startWrap.hidden  = (mode === 'reverse');
   }
 
   function onRouteChange() {
@@ -515,6 +598,12 @@
       startMin = parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
     }
 
+    var bufferMin = 60;
+    if (dom.bufferInput && dom.bufferInput.value !== '') {
+      var parsed = parseInt(dom.bufferInput.value, 10);
+      bufferMin = (!isNaN(parsed) && parsed >= 0) ? parsed : 60;
+    }
+
     var stage = null;
     if (routeId !== 'custom') {
       var stageIdx = parseInt(dom.stageSel.value, 10);
@@ -533,7 +622,8 @@
       date:           dateStr,
       paceKey:        paceKey,
       startTimeMin:   startMin,
-      mode:           'forward'
+      bufferMin:      bufferMin,
+      mode:           _currentMode
     };
   }
 
@@ -552,21 +642,31 @@
       return;
     }
 
-    var arriveStr  = fmtUTC(output.arrivalUTC) + ' UTC';
-    var walkStr    = fmtDuration(output.walkMin);
-    var cushionStr = fmtDuration(Math.abs(output.cushionMin));
-    var cushionSign = output.cushionMin >= 0 ? '' : '−';
-
     dom.result.textContent = '';
 
-    var main = document.createTextNode(
-      'Arrive ∼' + arriveStr
-      + '  ·  '
-      + walkStr + ' walking'
-      + '  ·  '
-      + cushionSign + cushionStr + ' cushion before sunset'
-    );
-    dom.result.appendChild(main);
+    var line;
+    if (output.mode === 'reverse') {
+      var departStr  = fmtUTC(output.latestDepartUTC) + ' UTC';
+      var arrStr     = fmtUTC(output.walkEndUTC) + ' UTC';
+      var walkStr    = fmtDuration(output.walkMin);
+      var bufStr     = fmtDuration(output.bufferMin);
+      line = 'Leave by ' + departStr
+        + '  ·  '
+        + walkStr + ' walking'
+        + '  ·  arrive ' + arrStr + ' with ' + bufStr + ' cushion before sunset';
+    } else {
+      var arriveStr   = fmtUTC(output.arrivalUTC) + ' UTC';
+      var walkStrFwd  = fmtDuration(output.walkMin);
+      var cushionStr  = fmtDuration(Math.abs(output.cushionMin));
+      var cushionSign = output.cushionMin >= 0 ? '' : '−';
+      line = 'Arrive ∼' + arriveStr
+        + '  ·  '
+        + walkStrFwd + ' walking'
+        + '  ·  '
+        + cushionSign + cushionStr + ' cushion before sunset';
+    }
+
+    dom.result.appendChild(document.createTextNode(line));
   }
 
   function clearOutput() {
@@ -577,8 +677,6 @@
   }
 
   function pushURL() {
-    // Slice 3 is forward-only; `mode` is implicitly forward and not written to the URL.
-    // Slice 4 (reverse mode) will add the mode write path.
     var params = [];
 
     var routeId = dom.routeSel.value;
@@ -600,8 +698,17 @@
     if (dom.paceInput.value && dom.paceInput.value !== 'standard') {
       params.push('pace=' + encodeURIComponent(dom.paceInput.value));
     }
-    if (dom.startInput.value && dom.startInput.value !== '07:00') {
-      params.push('start=' + encodeURIComponent(dom.startInput.value));
+
+    if (_currentMode === 'reverse') {
+      params.push('mode=reverse');
+      var bufVal = parseInt(dom.bufferInput.value, 10);
+      if (!isNaN(bufVal) && bufVal >= 0 && bufVal !== 60) {
+        params.push('buffer=' + bufVal);
+      }
+    } else {
+      if (dom.startInput.value && dom.startInput.value !== '07:00') {
+        params.push('start=' + encodeURIComponent(dom.startInput.value));
+      }
     }
 
     var qs = params.length ? '?' + params.join('&') : '';
@@ -618,7 +725,8 @@
   function parseParams(search) {
     var result = {
       route: null, stage: null, date: null, pace: null, start: null,
-      mode: 'forward', elevGain: null, customLat: null, customLon: null, customDist: null
+      mode: 'forward', buffer: null,
+      elevGain: null, customLat: null, customLon: null, customDist: null
     };
     if (!search || search.length < 2) return result;
     var pairs = search.slice(1).split('&');
@@ -633,7 +741,14 @@
         case 'date':       result.date       = v; break;
         case 'pace':       result.pace       = v; break;
         case 'start':      result.start      = v; break;
-        case 'mode':       result.mode       = v; break;
+        case 'mode':
+          result.mode = (v === 'reverse') ? 'reverse' : 'forward';
+          break;
+        case 'buffer': {
+          var b = parseInt(v, 10);
+          result.buffer = (!isNaN(b) && b >= 0) ? b : null;
+          break;
+        }
         case 'elevGain':   result.elevGain   = v; break;
         case 'customLat':  result.customLat  = v; break;
         case 'customLon':  result.customLon  = v; break;
