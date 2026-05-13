@@ -370,6 +370,51 @@ body.constellation .dl-bar-waypoint {
 }
 
 /* =============================================
+   Permalink line (slice 7)
+   ============================================= */
+
+.dl-permalink {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88em;
+  color: var(--stone);
+  opacity: 0.65;
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+.dl-permalink[hidden] { display: none; }
+
+/* =============================================
+   Routes index (slice 7)
+   ============================================= */
+
+.dl-routes-index {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  opacity: 0.75;
+  margin: 0 0 1.4rem;
+  line-height: 1.6;
+}
+
+.dl-routes-index[hidden] { display: none; }
+
+.dl-routes-index-link {
+  color: var(--stone);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-routes-index-link:hover {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+}
+
+/* =============================================
    Validation message (AC #13)
    ============================================= */
 
@@ -739,6 +784,24 @@ body.constellation .dl-bar-dot {
 
 body.constellation .dl-bar-buffer {
   stroke: rgba(232, 224, 255, 0.3);
+}
+
+body.constellation .dl-permalink {
+  color: rgba(232, 224, 255, 0.45);
+}
+
+body.constellation .dl-routes-index {
+  color: rgba(232, 224, 255, 0.5);
+}
+
+body.constellation .dl-routes-index-link {
+  color: rgba(232, 224, 255, 0.5);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .dl-routes-index-link:hover {
+  color: rgba(232, 224, 255, 0.9);
+  border-bottom-color: rgba(232, 224, 255, 0.5);
 }
 
 /* =============================================

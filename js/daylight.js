@@ -745,8 +745,11 @@
     dom.shareHint     = document.getElementById('dl-share-hint');
     dom.icsBtn        = document.getElementById('dl-ics-btn');
     dom.validationMsg = document.getElementById('dl-validation-msg');
-    dom.prefsToggle   = document.getElementById('dl-prefs-toggle');
-    dom.prefsPanel    = document.getElementById('dl-prefs-panel');
+    dom.prefsToggle      = document.getElementById('dl-prefs-toggle');
+    dom.prefsPanel       = document.getElementById('dl-prefs-panel');
+    dom.permalink        = document.getElementById('dl-permalink');
+    dom.routesIndex      = document.getElementById('dl-routes-index');
+    dom.routesIndexLinks = document.getElementById('dl-routes-index-links');
 
     if (!dom.routeSel) return;
 
@@ -1064,6 +1067,23 @@
     custom.text  = 'Custom route…';
     dom.routeSel.appendChild(custom);
 
+    if (dom.routesIndexLinks) {
+      while (dom.routesIndexLinks.firstChild) {
+        dom.routesIndexLinks.removeChild(dom.routesIndexLinks.firstChild);
+      }
+      meta.forEach(function (r, i) {
+        var a = document.createElement('a');
+        a.href        = '/daylight/' + r.id + '/';
+        a.textContent = r.nameEn;
+        a.className   = 'dl-routes-index-link';
+        dom.routesIndexLinks.appendChild(a);
+        if (i < meta.length - 1) {
+          dom.routesIndexLinks.appendChild(document.createTextNode(', '));
+        }
+      });
+      if (dom.routesIndex) dom.routesIndex.hidden = false;
+    }
+
     if (_currentRoute) {
       dom.routeSel.value = _currentRoute;
       if (dom.routeSel.value !== _currentRoute) dom.routeSel.value = '';
@@ -1266,6 +1286,16 @@
     }
     if (dom.shareHint) {
       dom.shareHint.hidden = !isCustom;
+    }
+
+    var isNamedRoute = state.route && state.route !== 'custom';
+    if (dom.permalink) {
+      if (isNamedRoute) {
+        dom.permalink.textContent = 'direct link: /daylight/' + state.route + '/';
+        dom.permalink.hidden = false;
+      } else {
+        dom.permalink.hidden = true;
+      }
     }
 
     if (output.error) {
