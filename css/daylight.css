@@ -592,11 +592,27 @@ body.constellation .daylight-select,
 body.constellation .daylight-input {
   color: rgba(232, 224, 255, 0.85);
   border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+/* Native form-control chrome: dark in both dark and star modes.
+   color-scheme on :root tells the browser to render UA-supplied widgets
+   (date picker, time picker, scrollbars) with dark theming. We also
+   override the ::picker-indicator background-image directly with light
+   SVGs — Chrome's filter support on this pseudo is inconsistent across
+   versions, so background-image is the reliable path. */
+html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-body.constellation .daylight-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.85);
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23E8E0FF'%3E%3Cpath d='M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z'/%3E%3C/svg%3E");
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='%23E8E0FF'%3E%3Cpath d='M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3Cpath fill='%23E8E0FF' d='M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z'/%3E%3C/svg%3E");
+  cursor: pointer;
   opacity: 0.7;
 }
 
