@@ -1,0 +1,38 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Takijiri-oji to Takahara",
+    "startLat": 33.776,
+    "startLon": 135.504,
+    "distanceKm": 4,
+    "elevGainM": 430,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 1,
+    "nameEn": "Takahara to Chikatsuyu-oji",
+    "startLat": 33.793,
+    "startLon": 135.519,
+    "distanceKm": 13,
+    "elevGainM": 830,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 2,
+    "nameEn": "Chikatsuyu-oji to Hosshinmon-oji",
+    "startLat": 33.814,
+    "startLon": 135.606,
+    "distanceKm": 14,
+    "elevGainM": 780,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 3,
+    "nameEn": "Hosshinmon-oji to Kumano Hongu Taisha",
+    "startLat": 33.862,
+    "startLon": 135.721,
+    "distanceKm": 7.5,
+    "elevGainM": 190,
+    "ianaTz": "Asia/Tokyo"
+  }
+]

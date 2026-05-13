@@ -1,0 +1,101 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Oviedo to Grado",
+    "startLat": 43.36,
+    "startLon": -5.845,
+    "distanceKm": 25.2,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 1,
+    "nameEn": "Grado to Salas",
+    "startLat": 43.388,
+    "startLon": -6.074,
+    "distanceKm": 22,
+    "elevGainM": 720,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 2,
+    "nameEn": "Salas to Tineo",
+    "startLat": 43.4082,
+    "startLon": -6.2569,
+    "distanceKm": 20,
+    "elevGainM": 850,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 3,
+    "nameEn": "Tineo to Pola de Allande",
+    "startLat": 43.333,
+    "startLon": -6.417,
+    "distanceKm": 28,
+    "elevGainM": 720,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 4,
+    "nameEn": "Pola de Allande to La Mesa",
+    "startLat": 43.267,
+    "startLon": -6.617,
+    "distanceKm": 21.7,
+    "elevGainM": 1100,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 5,
+    "nameEn": "La Mesa to Grandas de Salime",
+    "startLat": 43.218,
+    "startLon": -6.804,
+    "distanceKm": 16.3,
+    "elevGainM": 280,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 6,
+    "nameEn": "Grandas de Salime to A Fonsagrada",
+    "startLat": 43.218,
+    "startLon": -6.876,
+    "distanceKm": 26.3,
+    "elevGainM": 950,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 7,
+    "nameEn": "A Fonsagrada to O Cádavo",
+    "startLat": 43.133,
+    "startLon": -7.067,
+    "distanceKm": 25.2,
+    "elevGainM": 530,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 8,
+    "nameEn": "O Cádavo to Lugo",
+    "startLat": 43.017,
+    "startLon": -7.246,
+    "distanceKm": 30.5,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 9,
+    "nameEn": "Lugo to San Romao da Retorta",
+    "startLat": 43.012,
+    "startLon": -7.557,
+    "distanceKm": 19.2,
+    "elevGainM": 320,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 10,
+    "nameEn": "San Romao da Retorta to Melide",
+    "startLat": 42.956,
+    "startLon": -7.736,
+    "distanceKm": 28.5,
+    "elevGainM": 430,
+    "ianaTz": "Europe/Madrid"
+  }
+]

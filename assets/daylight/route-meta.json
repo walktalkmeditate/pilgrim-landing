@@ -1,0 +1,51 @@
+[
+  {
+    "id": "shikoku-88",
+    "nameEn": "Shikoku 88 Temple Pilgrimage",
+    "distanceKm": 1200,
+    "country": "JP",
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "id": "kumano-kodo",
+    "nameEn": "Kumano Kodo",
+    "distanceKm": 39,
+    "country": "JP",
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "id": "camino-frances",
+    "nameEn": "Camino de Santiago (Frances)",
+    "distanceKm": 764,
+    "country": "FR/ES",
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "id": "camino-ingles",
+    "nameEn": "Camino Inglés (English Way)",
+    "distanceKm": 112,
+    "country": "ES",
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "id": "camino-norte",
+    "nameEn": "Camino del Norte (Northern Way)",
+    "distanceKm": 784,
+    "country": "ES",
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "id": "camino-portugues",
+    "nameEn": "Camino Portugués (Central)",
+    "distanceKm": 243,
+    "country": "PT/ES",
+    "ianaTz": "Europe/Lisbon"
+  },
+  {
+    "id": "camino-primitivo",
+    "nameEn": "Camino Primitivo (Original Way)",
+    "distanceKm": 263,
+    "country": "ES",
+    "ianaTz": "Europe/Madrid"
+  }
+]

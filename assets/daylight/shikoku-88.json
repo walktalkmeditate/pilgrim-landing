@@ -1,0 +1,92 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Ryōzen-ji to Shōzan-ji (Temples 1-12)",
+    "startLat": 34.16,
+    "startLon": 134.503,
+    "distanceKm": 53,
+    "elevGainM": 1200,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 1,
+    "nameEn": "Dainichi-ji to Yakuō-ji (Temples 13-23)",
+    "startLat": 34.038,
+    "startLon": 134.463,
+    "distanceKm": 100,
+    "elevGainM": 2500,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 2,
+    "nameEn": "Hotsumisaki-ji to Kiyotaki-ji (Temples 24-35)",
+    "startLat": 33.249,
+    "startLon": 134.176,
+    "distanceKm": 200,
+    "elevGainM": 3000,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 3,
+    "nameEn": "Shōryū-ji to Kongōfuku-ji (Temples 36-38)",
+    "startLat": 33.426,
+    "startLon": 133.451,
+    "distanceKm": 140,
+    "elevGainM": 1500,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 4,
+    "nameEn": "Enkō-ji to Iwaya-ji (Temples 39-45)",
+    "startLat": 32.961,
+    "startLon": 132.774,
+    "distanceKm": 140,
+    "elevGainM": 3030,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 5,
+    "nameEn": "Jōruri-ji to Enmyō-ji (Temples 46-53)",
+    "startLat": 33.754,
+    "startLon": 132.819,
+    "distanceKm": 35,
+    "elevGainM": 400,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 6,
+    "nameEn": "Enmei-ji to Maegami-ji (Temples 54-64)",
+    "startLat": 34.067,
+    "startLon": 132.964,
+    "distanceKm": 60,
+    "elevGainM": 1800,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 7,
+    "nameEn": "Sankaku-ji to Unpen-ji (Temples 65-66)",
+    "startLat": 33.968,
+    "startLon": 133.587,
+    "distanceKm": 19.3,
+    "elevGainM": 750,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 8,
+    "nameEn": "Daikō-ji to Zentsū-ji (Temples 67-75)",
+    "startLat": 34.102,
+    "startLon": 133.719,
+    "distanceKm": 50,
+    "elevGainM": 600,
+    "ianaTz": "Asia/Tokyo"
+  },
+  {
+    "index": 9,
+    "nameEn": "Konzō-ji to Ōkubo-ji (Temples 76-88)",
+    "startLat": 34.25,
+    "startLon": 133.781,
+    "distanceKm": 110,
+    "elevGainM": 2000,
+    "ianaTz": "Asia/Tokyo"
+  }
+]

@@ -1,0 +1,233 @@
+#!/usr/bin/env node
+/* =============================================
+   bake-daylight-routes
+
+   Reads stage data from the sibling open-pilgrimages repo and writes
+   trimmed, daylight-budget-ready JSON into assets/daylight/.
+
+   Run from repo root (or any working directory — paths are resolved
+   from __dirname). Re-running produces byte-identical output.
+
+   Usage:
+     node scripts/bake-daylight-routes
+     ./scripts/bake-daylight-routes
+
+   Output:
+     assets/daylight/<route-id>.json   — array of stage records
+     assets/daylight/route-meta.json   — summary for all 7 routes
+   ============================================= */
+
+'use strict';
+
+var fs   = require('fs');
+var path = require('path');
+
+/* --- Constants --- */
+
+var REPO_ROOT    = path.resolve(__dirname, '..');
+var SIBLING_ROOT = path.resolve(REPO_ROOT, '..', 'open-pilgrimages');
+var ROUTES_DIR   = path.join(SIBLING_ROOT, 'routes');
+var OUT_DIR      = path.join(REPO_ROOT, 'assets', 'daylight');
+
+/* Ordered list of routes to bake. Order is canonical — do not rely on
+   object key enumeration anywhere below. */
+var ROUTE_IDS = [
+  'shikoku-88',
+  'kumano-kodo',
+  'camino-frances',
+  'camino-ingles',
+  'camino-norte',
+  'camino-portugues',
+  'camino-primitivo'
+];
+
+/* Per-route IANA timezone. Each stage record inherits the route's zone
+   (D4: bake-time resolution, no runtime tz lookup needed). */
+var ROUTE_TZ = {
+  'shikoku-88':      'Asia/Tokyo',
+  'kumano-kodo':     'Asia/Tokyo',
+  'camino-frances':  'Europe/Madrid',
+  'camino-ingles':   'Europe/Madrid',
+  'camino-norte':    'Europe/Madrid',
+  'camino-portugues':'Europe/Lisbon',
+  'camino-primitivo':'Europe/Madrid'
+};
+
+/* Required schema version in stages.json and metadata.json. */
+var REQUIRED_SCHEMA_VERSION = '1.0.0';
+
+/* --- Fail-loud helper --- */
+
+function die(reason) {
+  process.stderr.write('bake-daylight-routes: ' + reason + '\n');
+  process.exit(1);
+}
+
+/* --- Validation --- */
+
+function readJson(filePath, label) {
+  if (!fs.existsSync(filePath)) {
+    die('missing or invalid ' + filePath + ' — ' + label + ' not found');
+  }
+  var raw;
+  try {
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (e) {
+    die('missing or invalid ' + filePath + ' — could not read: ' + e.message);
+  }
+  var parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    die('missing or invalid ' + filePath + ' — invalid JSON: ' + e.message);
+  }
+  return parsed;
+}
+
+function assertSchemaVersion(data, filePath) {
+  if (data.schemaVersion !== REQUIRED_SCHEMA_VERSION) {
+    die(
+      'missing or invalid ' + filePath +
+      ' — schemaVersion must be "' + REQUIRED_SCHEMA_VERSION +
+      '", got ' + JSON.stringify(data.schemaVersion)
+    );
+  }
+}
+
+function assertField(value, fieldName, filePath) {
+  if (value === undefined || value === null) {
+    die('missing or invalid ' + filePath + ' — required field "' + fieldName + '" is absent');
+  }
+}
+
+/* --- Stage transformation --- */
+
+function bakeStage(stage, ianaTz, stagesPath) {
+  var loc = stagesPath + ' stage[' + (stage.index != null ? stage.index : '?') + ']';
+
+  assertField(stage.index,              'index',               loc);
+  assertField(stage.name,               'name',                loc);
+  assertField(stage.name.en,            'name.en',             loc);
+  assertField(stage.start,              'start',               loc);
+  assertField(stage.start.coordinates,  'start.coordinates',   loc);
+  assertField(stage.distanceKm,         'distanceKm',          loc);
+  assertField(stage.elevationGainMeters,'elevationGainMeters', loc);
+
+  var coords = stage.start.coordinates; // [lng, lat, elev_m]
+  if (!Array.isArray(coords) || coords.length < 2) {
+    die('missing or invalid ' + loc + ' — start.coordinates must be [lng, lat, ...]');
+  }
+
+  /* open-pilgrimages uses [lng, lat, elev]; baked schema uses startLat, startLon */
+  return {
+    index:      stage.index,
+    nameEn:     stage.name.en,
+    startLat:   coords[1],
+    startLon:   coords[0],
+    distanceKm: stage.distanceKm,
+    elevGainM:  stage.elevationGainMeters,
+    ianaTz:     ianaTz
+  };
+}
+
+/* --- Per-route bake --- */
+
+function bakeRoute(routeId) {
+  var ianaTz = ROUTE_TZ[routeId];
+  if (!ianaTz) {
+    die('missing or invalid route "' + routeId + '" — no entry in ROUTE_TZ table');
+  }
+
+  var stagesPath = path.join(ROUTES_DIR, routeId, 'stages.json');
+  var stagesData = readJson(stagesPath, 'stages.json for ' + routeId);
+
+  assertSchemaVersion(stagesData, stagesPath);
+  assertField(stagesData.stages, 'stages', stagesPath);
+
+  if (!Array.isArray(stagesData.stages) || stagesData.stages.length === 0) {
+    die('missing or invalid ' + stagesPath + ' — "stages" must be a non-empty array');
+  }
+
+  var baked = stagesData.stages.map(function (stage) {
+    return bakeStage(stage, ianaTz, stagesPath);
+  });
+
+  var outPath = path.join(OUT_DIR, routeId + '.json');
+  try {
+    fs.writeFileSync(outPath, JSON.stringify(baked, null, 2) + '\n', 'utf8');
+  } catch (e) {
+    die('could not write ' + outPath + ': ' + e.message);
+  }
+  return baked.length;
+}
+
+/* --- Route-meta bake --- */
+
+function bakeRouteMeta() {
+  var meta = ROUTE_IDS.map(function (routeId) {
+    var metaPath = path.join(ROUTES_DIR, routeId, 'metadata.json');
+    var data     = readJson(metaPath, 'metadata.json for ' + routeId);
+
+    assertSchemaVersion(data, metaPath);
+    assertField(data.id,       'id',       metaPath);
+    assertField(data.name,     'name',     metaPath);
+    assertField(data.name.en,  'name.en',  metaPath);
+    assertField(data.overview, 'overview', metaPath);
+
+    var distanceKm = data.overview.distanceKm;
+    assertField(distanceKm, 'overview.distanceKm', metaPath);
+
+    /* country: use overview.countries array (ISO-2); join with '/' for
+       multi-country routes so the field stays a plain string */
+    var countries = data.overview.countries;
+    assertField(countries, 'overview.countries', metaPath);
+    if (!Array.isArray(countries) || countries.length === 0) {
+      die('missing or invalid ' + metaPath + ' — overview.countries must be a non-empty array');
+    }
+    var country = countries.join('/');
+
+    return {
+      id:         data.id,
+      nameEn:     data.name.en,
+      distanceKm: distanceKm,
+      country:    country,
+      ianaTz:     ROUTE_TZ[routeId]
+    };
+  });
+
+  var outPath = path.join(OUT_DIR, 'route-meta.json');
+  try {
+    fs.writeFileSync(outPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
+  } catch (e) {
+    die('could not write ' + outPath + ': ' + e.message);
+  }
+}
+
+/* --- Entry point --- */
+
+function main() {
+  /* Validate sibling repo exists */
+  if (!fs.existsSync(SIBLING_ROOT)) {
+    die('missing or invalid ' + SIBLING_ROOT + ' — sibling repo not found');
+  }
+  if (!fs.existsSync(ROUTES_DIR)) {
+    die('missing or invalid ' + ROUTES_DIR + ' — routes directory not found in sibling repo');
+  }
+
+  /* Ensure output directory exists */
+  if (!fs.existsSync(OUT_DIR)) {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+  }
+
+  /* Bake each route */
+  ROUTE_IDS.forEach(function (routeId) {
+    var stageCount = bakeRoute(routeId);
+    process.stdout.write('  ' + routeId + ' — ' + stageCount + ' stages\n');
+  });
+
+  /* Bake route-meta */
+  bakeRouteMeta();
+  process.stdout.write('  route-meta.json written\n');
+}
+
+main();

@@ -35,6 +35,10 @@ Open `index.html` in a browser. That's it.
 
 Deployed via GitHub Pages from the `main` branch.
 
+## Baking route data
+
+The `assets/daylight/` directory holds pre-baked stage records used by the walk-budget feature. Run `./scripts/bake-daylight-routes` from the repo root whenever the upstream `open-pilgrimages` route data changes. The script reads `stages.json` and `metadata.json` from the sibling `../open-pilgrimages/` repo and writes one JSON array per route plus a `route-meta.json` summary — no dependencies beyond Node's built-ins. Output is deterministic: running the script twice in succession produces byte-identical files, so a clean `git diff assets/daylight/` confirms nothing drifted.
+
 ## Related
 
 - [Pilgrim iOS](https://github.com/walktalkmeditate/pilgrim-ios) — the app

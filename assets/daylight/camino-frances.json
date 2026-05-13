@@ -1,0 +1,299 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Saint-Jean-Pied-de-Port to Roncesvalles",
+    "startLat": 43.163,
+    "startLon": -1.236,
+    "distanceKm": 24.2,
+    "elevGainM": 1419,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 1,
+    "nameEn": "Roncesvalles to Zubiri",
+    "startLat": 43.01,
+    "startLon": -1.319,
+    "distanceKm": 21.4,
+    "elevGainM": 310,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 2,
+    "nameEn": "Zubiri to Pamplona",
+    "startLat": 42.929,
+    "startLon": -1.51,
+    "distanceKm": 20.4,
+    "elevGainM": 314,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 3,
+    "nameEn": "Pamplona to Puente la Reina",
+    "startLat": 42.818,
+    "startLon": -1.644,
+    "distanceKm": 23.9,
+    "elevGainM": 414,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 4,
+    "nameEn": "Puente la Reina to Estella",
+    "startLat": 42.672,
+    "startLon": -1.813,
+    "distanceKm": 21.6,
+    "elevGainM": 399,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 5,
+    "nameEn": "Estella to Los Arcos",
+    "startLat": 42.671,
+    "startLon": -2.031,
+    "distanceKm": 21.3,
+    "elevGainM": 388,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 6,
+    "nameEn": "Los Arcos to Logroño",
+    "startLat": 42.567,
+    "startLon": -2.192,
+    "distanceKm": 27.6,
+    "elevGainM": 368,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 7,
+    "nameEn": "Logroño to Nájera",
+    "startLat": 42.469,
+    "startLon": -2.444,
+    "distanceKm": 28.5,
+    "elevGainM": 366,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 8,
+    "nameEn": "Nájera to Santo Domingo de la Calzada",
+    "startLat": 42.416,
+    "startLon": -2.735,
+    "distanceKm": 20.7,
+    "elevGainM": 327,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 9,
+    "nameEn": "Santo Domingo de la Calzada to Belorado",
+    "startLat": 42.43,
+    "startLon": -2.955,
+    "distanceKm": 22,
+    "elevGainM": 328,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 10,
+    "nameEn": "Belorado to San Juan de Ortega",
+    "startLat": 42.42,
+    "startLon": -3.19,
+    "distanceKm": 23.9,
+    "elevGainM": 430,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 11,
+    "nameEn": "San Juan de Ortega to Burgos",
+    "startLat": 42.373,
+    "startLon": -3.437,
+    "distanceKm": 25.8,
+    "elevGainM": 141,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 12,
+    "nameEn": "Burgos to Hornillos del Camino",
+    "startLat": 42.344,
+    "startLon": -3.7,
+    "distanceKm": 20.3,
+    "elevGainM": 103,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 13,
+    "nameEn": "Hornillos del Camino to Castrojeriz",
+    "startLat": 42.337,
+    "startLon": -3.912,
+    "distanceKm": 19.9,
+    "elevGainM": 174,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 14,
+    "nameEn": "Castrojeriz to Frómista",
+    "startLat": 42.289,
+    "startLon": -4.14,
+    "distanceKm": 24.7,
+    "elevGainM": 201,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 15,
+    "nameEn": "Frómista to Carrión de los Condes",
+    "startLat": 42.268,
+    "startLon": -4.406,
+    "distanceKm": 18.8,
+    "elevGainM": 73,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 16,
+    "nameEn": "Carrión de los Condes to Terradillos de los Templarios",
+    "startLat": 42.338,
+    "startLon": -4.602,
+    "distanceKm": 26.3,
+    "elevGainM": 105,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 17,
+    "nameEn": "Terradillos de los Templarios to Bercianos del Real Camino",
+    "startLat": 42.355,
+    "startLon": -4.866,
+    "distanceKm": 23.2,
+    "elevGainM": 119,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 18,
+    "nameEn": "Bercianos del Real Camino to Mansilla de las Mulas",
+    "startLat": 42.433,
+    "startLon": -5.153,
+    "distanceKm": 26.3,
+    "elevGainM": 31,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 19,
+    "nameEn": "Mansilla de las Mulas to León",
+    "startLat": 42.498,
+    "startLon": -5.415,
+    "distanceKm": 18.4,
+    "elevGainM": 107,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 20,
+    "nameEn": "León to San Martín del Camino",
+    "startLat": 42.595,
+    "startLon": -5.568,
+    "distanceKm": 24.6,
+    "elevGainM": 131,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 21,
+    "nameEn": "San Martín del Camino to Astorga",
+    "startLat": 42.457,
+    "startLon": -5.838,
+    "distanceKm": 23.7,
+    "elevGainM": 190,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 22,
+    "nameEn": "Astorga to Foncebadón",
+    "startLat": 42.456,
+    "startLon": -6.056,
+    "distanceKm": 25.8,
+    "elevGainM": 576,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 23,
+    "nameEn": "Foncebadón to Ponferrada",
+    "startLat": 42.482,
+    "startLon": -6.385,
+    "distanceKm": 26.8,
+    "elevGainM": 232,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 24,
+    "nameEn": "Ponferrada to Villafranca del Bierzo",
+    "startLat": 42.549,
+    "startLon": -6.598,
+    "distanceKm": 23.2,
+    "elevGainM": 233,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 25,
+    "nameEn": "Villafranca del Bierzo to O Cebreiro",
+    "startLat": 42.61,
+    "startLon": -6.814,
+    "distanceKm": 27.8,
+    "elevGainM": 845,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 26,
+    "nameEn": "O Cebreiro to Triacastela",
+    "startLat": 42.709,
+    "startLon": -7.04,
+    "distanceKm": 20.6,
+    "elevGainM": 273,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 27,
+    "nameEn": "Triacastela to Sarria",
+    "startLat": 42.756,
+    "startLon": -7.239,
+    "distanceKm": 17.8,
+    "elevGainM": 350,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 28,
+    "nameEn": "Sarria to Portomarín",
+    "startLat": 42.78,
+    "startLon": -7.414,
+    "distanceKm": 22.2,
+    "elevGainM": 398,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 29,
+    "nameEn": "Portomarín to Palas de Rei",
+    "startLat": 42.81,
+    "startLon": -7.617,
+    "distanceKm": 24.8,
+    "elevGainM": 519,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 30,
+    "nameEn": "Palas de Rei to Arzúa",
+    "startLat": 42.873,
+    "startLon": -7.87,
+    "distanceKm": 28.5,
+    "elevGainM": 491,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 31,
+    "nameEn": "Arzúa to O Pedrouzo",
+    "startLat": 42.926,
+    "startLon": -8.164,
+    "distanceKm": 19.3,
+    "elevGainM": 351,
+    "ianaTz": "Europe/Madrid"
+  },
+  {
+    "index": 32,
+    "nameEn": "O Pedrouzo to Santiago de Compostela",
+    "startLat": 42.907,
+    "startLon": -8.358,
+    "distanceKm": 19.4,
+    "elevGainM": 318,
+    "ianaTz": "Europe/Madrid"
+  }
+]
