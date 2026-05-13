@@ -474,6 +474,28 @@ body.constellation .dl-bar-waypoint {
 }
 
 /* =============================================
+   Tick legends — moon + waypoints
+   ============================================= */
+
+.dl-tick-legend-moon,
+.dl-tick-legend-waypoints {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  margin: 0.4rem 0 0;
+  line-height: 1.5;
+}
+
+.dl-tick-legend-moon[hidden],
+.dl-tick-legend-waypoints[hidden] { display: none; }
+
+body.constellation .dl-tick-legend-moon,
+body.constellation .dl-tick-legend-waypoints {
+  color: rgba(232, 224, 255, 0.55);
+}
+
+/* =============================================
    Annotation lines (AC #15)
    ============================================= */
 

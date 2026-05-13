@@ -740,9 +740,11 @@
     dom.barSvg        = document.getElementById('dl-bar-svg');
     dom.result        = document.getElementById('dl-result');
     dom.annotations   = document.getElementById('dl-annotations');
-    dom.shareBtn      = document.getElementById('dl-share-btn');
-    dom.shareHint     = document.getElementById('dl-share-hint');
-    dom.icsBtn        = document.getElementById('dl-ics-btn');
+    dom.moonLegend      = document.getElementById('dl-tick-legend-moon');
+    dom.waypointsLegend = document.getElementById('dl-tick-legend-waypoints');
+    dom.shareBtn        = document.getElementById('dl-share-btn');
+    dom.shareHint       = document.getElementById('dl-share-hint');
+    dom.icsBtn          = document.getElementById('dl-ics-btn');
     dom.validationMsg = document.getElementById('dl-validation-msg');
     dom.prefsToggle      = document.getElementById('dl-prefs-toggle');
     dom.prefsPanel       = document.getElementById('dl-prefs-panel');
@@ -1256,6 +1258,50 @@
     });
   }
 
+  function hideLegends() {
+    if (dom.moonLegend)      { dom.moonLegend.hidden = true;      dom.moonLegend.textContent = ''; }
+    if (dom.waypointsLegend) { dom.waypointsLegend.hidden = true; dom.waypointsLegend.textContent = ''; }
+  }
+
+  function renderLegends(output, route, fmtFn) {
+    hideLegends();
+
+    if (!dom.moonLegend || !dom.waypointsLegend) return;
+
+    var Moon = (typeof window !== 'undefined' && window.Moon) ? window.Moon : null;
+
+    if (output.sunriseUTC && output.sunsetUTC) {
+      var srT = output.sunriseUTC.getTime();
+      var ssT = output.sunsetUTC.getTime();
+      var mrIn = output.moonriseUTC && output.moonriseUTC.getTime() >= srT && output.moonriseUTC.getTime() <= ssT;
+      var msIn = output.moonsetUTC  && output.moonsetUTC.getTime()  >= srT && output.moonsetUTC.getTime()  <= ssT;
+
+      if (mrIn || msIn) {
+        var parts = [];
+        if (mrIn) parts.push('moonrise ' + fmtFn(output.moonriseUTC));
+        if (msIn) parts.push('moonset '  + fmtFn(output.moonsetUTC));
+        var phaseName = Moon ? Moon.getMoonPhaseName(output.moonPhase).toLowerCase() : '';
+        var moonText = parts.join(' · ') + (phaseName ? ' — ' + phaseName : '');
+        dom.moonLegend.textContent = moonText;
+        dom.moonLegend.hidden = false;
+      }
+    }
+
+    if (output.waypoints && output.waypoints.length > 0 && route !== 'custom') {
+      var names = output.waypoints.map(function (wp) { return wp.name; });
+      var nameList;
+      if (names.length <= 8) {
+        nameList = names.join(', ');
+      } else {
+        nameList = names.slice(0, 3).join(', ') + '… and ' + (names.length - 3) + ' more';
+      }
+      var count = output.waypoints.length;
+      var siteWord = count === 1 ? 'sacred site' : 'sacred sites';
+      dom.waypointsLegend.textContent = 'passes ' + count + ' ' + siteWord + ': ' + nameList + '.';
+      dom.waypointsLegend.hidden = false;
+    }
+  }
+
   function runAndRender() {
     var state  = buildState();
     var output = recompute(state);
@@ -1277,6 +1323,7 @@
         || output.error === 'incomplete custom route');
       dom.result.textContent = silent ? '' : output.error;
       renderAnnotations([]);
+      hideLegends();
       if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
@@ -1309,6 +1356,7 @@
       }
       dom.result.appendChild(document.createTextNode(line));
       renderAnnotations(output.annotations || []);
+      hideLegends();
       if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
@@ -1326,6 +1374,7 @@
         }
       }
       renderAnnotations(output.annotations || []);
+      hideLegends();
       if (dom.icsBtn) dom.icsBtn.hidden = true;
       return;
     }
@@ -1333,6 +1382,7 @@
     if (output.mode === 'reverse') {
       if (output.latestDepartUTC === null) {
         renderAnnotations(output.annotations || []);
+        hideLegends();
         if (dom.icsBtn) dom.icsBtn.hidden = true;
         return;
       }
@@ -1368,6 +1418,7 @@
 
     dom.result.appendChild(document.createTextNode(line));
     renderAnnotations(output.annotations || []);
+    renderLegends(output, state.route, fmt);
 
     // ICS export — valid result reached; show the button and wire click handler.
     if (dom.icsBtn && DaylightMath && DaylightMath.buildICS) {
@@ -1405,6 +1456,7 @@
     }
     if (dom.result) dom.result.textContent = '';
     renderAnnotations([]);
+    hideLegends();
   }
 
   function triggerICSDownload(icsStr, filename) {
