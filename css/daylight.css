@@ -303,6 +303,27 @@
   opacity: 0.85;
 }
 
+.dl-bar-moon-tick {
+  stroke: rgba(184, 175, 162, 0.6);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.dl-bar-container {
+  position: relative;
+}
+
+.dl-moon-glyph {
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+}
+
 .dl-bar-label {
   font-family: 'Lato', sans-serif;
   font-weight: 300;
@@ -660,6 +681,10 @@ body.constellation .dl-bar-astronomical {
 body.constellation .dl-bar-tick-sunrise,
 body.constellation .dl-bar-tick-sunset {
   stroke: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-moon-tick {
+  stroke: rgba(232, 224, 255, 0.4);
 }
 
 body.constellation .dl-bar-walk,

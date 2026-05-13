@@ -20,8 +20,8 @@ function getMoonPhaseName(phase) {
   return 'New Moon';
 }
 
-function renderMoon(container) {
-  const phase = getMoonPhase(new Date());
+function renderMoon(container, phaseValue) {
+  const phase = (phaseValue !== undefined && phaseValue !== null) ? phaseValue : getMoonPhase(new Date());
   const name = getMoonPhaseName(phase);
 
   container.setAttribute('aria-label', name);

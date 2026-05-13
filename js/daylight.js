@@ -153,6 +153,10 @@
       astronomicalDusk = SunPathMath.astronomicalDuskUTC(lat, lon, walkDate);
     }
 
+    var moonriseUTC = SunPathMath.moonriseUTC(lat, lon, walkDate);
+    var moonsetUTC  = SunPathMath.moonsetUTC(lat, lon, walkDate);
+    var moonPhase   = SunPathMath.moonPhaseAtUTC(walkDate);
+
     var annotations = [];
 
     if (isPolarDay) {
@@ -188,7 +192,10 @@
           nauticalDawn:        null,
           nauticalDusk:        null,
           astronomicalDawn:    null,
-          astronomicalDusk:    null
+          astronomicalDusk:    null,
+          moonriseUTC:         moonriseUTC,
+          moonsetUTC:          moonsetUTC,
+          moonPhase:           moonPhase
         };
       }
 
@@ -213,7 +220,10 @@
           nauticalDawn:        null,
           nauticalDusk:        null,
           astronomicalDawn:    null,
-          astronomicalDusk:    null
+          astronomicalDusk:    null,
+          moonriseUTC:         moonriseUTC,
+          moonsetUTC:          moonsetUTC,
+          moonPhase:           moonPhase
         };
       }
 
@@ -245,7 +255,10 @@
           nauticalDawn:        nauticalDawn,
           nauticalDusk:        nauticalDusk,
           astronomicalDawn:    astronomicalDawn,
-          astronomicalDusk:    astronomicalDusk
+          astronomicalDusk:    astronomicalDusk,
+          moonriseUTC:         moonriseUTC,
+          moonsetUTC:          moonsetUTC,
+          moonPhase:           moonPhase
         };
       }
 
@@ -266,7 +279,10 @@
         nauticalDawn:        nauticalDawn,
         nauticalDusk:        nauticalDusk,
         astronomicalDawn:    astronomicalDawn,
-        astronomicalDusk:    astronomicalDusk
+        astronomicalDusk:    astronomicalDusk,
+        moonriseUTC:         moonriseUTC,
+        moonsetUTC:          moonsetUTC,
+        moonPhase:           moonPhase
       };
     }
 
@@ -299,7 +315,10 @@
         nauticalDawn:        null,
         nauticalDusk:        null,
         astronomicalDawn:    null,
-        astronomicalDusk:    null
+        astronomicalDusk:    null,
+        moonriseUTC:         moonriseUTC,
+        moonsetUTC:          moonsetUTC,
+        moonPhase:           moonPhase
       };
     }
 
@@ -321,7 +340,10 @@
         nauticalDawn:        null,
         nauticalDusk:        null,
         astronomicalDawn:    null,
-        astronomicalDusk:    null
+        astronomicalDusk:    null,
+        moonriseUTC:         moonriseUTC,
+        moonsetUTC:          moonsetUTC,
+        moonPhase:           moonPhase
       };
     }
 
@@ -360,7 +382,10 @@
       nauticalDawn:        nauticalDawn,
       nauticalDusk:        nauticalDusk,
       astronomicalDawn:    astronomicalDawn,
-      astronomicalDusk:    astronomicalDusk
+      astronomicalDusk:    astronomicalDusk,
+      moonriseUTC:         moonriseUTC,
+      moonsetUTC:          moonsetUTC,
+      moonPhase:           moonPhase
     };
   }
 
@@ -574,6 +599,30 @@
     sunsetLbl.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
     svgEl.appendChild(sunsetLbl);
 
+    if (output.moonriseUTC) {
+      var mrT = output.moonriseUTC.getTime();
+      if (mrT >= sunrise.getTime() && mrT <= sunset.getTime()) {
+        var mrX = utcToBarX(output.moonriseUTC, sunrise, sunset);
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-moon-tick',
+          x1: mrX, y1: BAR_Y - 6,
+          x2: mrX, y2: BAR_Y + 6
+        }));
+      }
+    }
+
+    if (output.moonsetUTC) {
+      var msT = output.moonsetUTC.getTime();
+      if (msT >= sunrise.getTime() && msT <= sunset.getTime()) {
+        var msX = utcToBarX(output.moonsetUTC, sunrise, sunset);
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-moon-tick',
+          x1: msX, y1: BAR_Y - 6,
+          x2: msX, y2: BAR_Y + 6
+        }));
+      }
+    }
+
     var sameDay = (nowUTC.getUTCFullYear() === sunrise.getUTCFullYear()
       && nowUTC.getUTCMonth()    === sunrise.getUTCMonth()
       && nowUTC.getUTCDate()     === sunrise.getUTCDate());
@@ -649,6 +698,7 @@
     dom.bufferWrap    = document.getElementById('dl-buffer-wrap');
     dom.bufferInput   = document.getElementById('dl-buffer');
     dom.barSvg        = document.getElementById('dl-bar-svg');
+    dom.moonGlyph     = document.getElementById('dl-moon-glyph');
     dom.result        = document.getElementById('dl-result');
     dom.annotations   = document.getElementById('dl-annotations');
     dom.shareBtn      = document.getElementById('dl-share-btn');
@@ -1158,6 +1208,16 @@
     var output = recompute(state);
 
     renderSVG(output, dom.barSvg, output.stageTz || null, _prefs.clockFormat);
+
+    if (dom.moonGlyph) {
+      if (output.moonPhase !== null && output.moonPhase !== undefined
+          && typeof window.Moon !== 'undefined') {
+        dom.moonGlyph.hidden = false;
+        window.Moon.renderMoon(dom.moonGlyph, output.moonPhase);
+      } else {
+        dom.moonGlyph.hidden = true;
+      }
+    }
 
     var isCustom = (state.route === 'custom');
     if (dom.shareBtn) {
