@@ -12,14 +12,66 @@
    The outer shell only wires DOM listeners when
    typeof window !== 'undefined' && typeof document !== 'undefined'.
 
-   navigator.geolocation is accessed ONLY in the "use my location"
-   button handler below (grep-assertable, per slice-5 requirement).
+   navigator.geolocation appears 3× in this file — all inside the
+   locate-button click handler (per AC #14).
    ============================================= */
 
 (function (root) {
   'use strict';
 
   var MS_PER_MIN = 60000;
+
+  /* ==========================================
+     Timezone helpers (D4 + D5)
+     ========================================== */
+
+  function pad2(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function dateInTz(utcDate, ianaTz) {
+    var opts = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    if (ianaTz) opts.timeZone = ianaTz;
+    var parts = new Intl.DateTimeFormat('en-CA', opts).formatToParts(utcDate);
+    var y = parts.find(function (p) { return p.type === 'year'; }).value;
+    var m = parts.find(function (p) { return p.type === 'month'; }).value;
+    var d = parts.find(function (p) { return p.type === 'day'; }).value;
+    return y + '-' + m + '-' + d;
+  }
+
+  function timeInTz(utcDate, ianaTz, clockFmt) {
+    var opts = {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: clockFmt === '12h'
+    };
+    if (ianaTz) opts.timeZone = ianaTz;
+    return new Intl.DateTimeFormat('en-US', opts).format(utcDate);
+  }
+
+  function tzOffsetMinutes(utcDate, ianaTz) {
+    var formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: ianaTz,
+      timeZoneName: 'shortOffset',
+      hour: 'numeric'
+    });
+    var parts = formatter.formatToParts(utcDate);
+    var off = parts.find(function (p) { return p.type === 'timeZoneName'; }).value;
+    var gmt = /GMT([+-]\d+)(?::(\d+))?/.exec(off);
+    if (!gmt) return 0;
+    var hours = parseInt(gmt[1], 10);
+    var mins = gmt[2] ? (hours < 0 ? -1 : 1) * parseInt(gmt[2], 10) : 0;
+    return hours * 60 + mins;
+  }
+
+  function wallTimeToUTC(yyyyMmDd, hh, mm, ianaTz) {
+    if (!ianaTz) {
+      return new Date(yyyyMmDd + 'T' + pad2(hh) + ':' + pad2(mm) + ':00');
+    }
+    var tentative = new Date(yyyyMmDd + 'T' + pad2(hh) + ':' + pad2(mm) + ':00Z');
+    var offsetMin = tzOffsetMinutes(tentative, ianaTz);
+    return new Date(tentative.getTime() - offsetMin * 60000);
+  }
 
   /* ==========================================
      Inner core — pure math
@@ -46,6 +98,8 @@
 
     var lat, lon, distanceKm, elevGainM;
 
+    var stageTz = null;
+
     if (route === 'custom') {
       lat        = parseFloat(state.customLat);
       lon        = parseFloat(state.customLon);
@@ -63,6 +117,7 @@
       lon        = s.startLon;
       distanceKm = s.distanceKm;
       elevGainM  = s.elevGainM || 0;
+      stageTz    = s.ianaTz || null;
     }
 
     if (!dateStr) return { error: 'missing date' };
@@ -108,6 +163,7 @@
           sunsetUTC:     null,
           walkMin:       walkMin,
           bufferMin:     bufferMin,
+          stageTz:       stageTz,
           annotations:   annotations,
           isPolarNight:  true,
           isPolarDay:    false
@@ -131,6 +187,7 @@
           walkEndUTC:      walkEndPD,
           walkMin:         walkMin,
           bufferMin:       bufferMin,
+          stageTz:         stageTz,
           annotations:     annotations,
           isPolarDay:      true,
           isPolarNight:    false
@@ -156,6 +213,7 @@
           walkEndUTC:      walkEndUTC,
           walkMin:         walkMin,
           bufferMin:       bufferMin,
+          stageTz:         stageTz,
           annotations:     annotations,
           isPolarDay:      false,
           isPolarNight:    false
@@ -170,6 +228,7 @@
         walkEndUTC:      walkEndUTC,
         walkMin:         walkMin,
         bufferMin:       bufferMin,
+        stageTz:         stageTz,
         annotations:     annotations,
         isPolarDay:      false,
         isPolarNight:    false
@@ -181,14 +240,10 @@
       return { error: 'missing or invalid startTimeMin' };
     }
 
-    var dayMidnightUTC = Date.UTC(
-      parseInt(parts[0], 10),
-      parseInt(parts[1], 10) - 1,
-      parseInt(parts[2], 10),
-      0, 0, 0
-    );
+    var startHH  = Math.floor(startMin / 60);
+    var startMM  = startMin % 60;
+    var startUTC = wallTimeToUTC(dateStr, startHH, startMM, stageTz);
 
-    var startUTC   = new Date(dayMidnightUTC + startMin * MS_PER_MIN);
     var arrivalUTC = new Date(startUTC.getTime() + walkMin * MS_PER_MIN);
 
     if (isPolarNight) {
@@ -200,6 +255,7 @@
         arrivalUTC:    arrivalUTC,
         walkMin:       walkMin,
         cushionMin:    null,
+        stageTz:       stageTz,
         annotations:   annotations,
         isPolarNight:  true,
         isPolarDay:    false
@@ -215,6 +271,7 @@
         arrivalUTC:   arrivalUTC,
         walkMin:      walkMin,
         cushionMin:   null,
+        stageTz:      stageTz,
         annotations:  annotations,
         isPolarDay:   true,
         isPolarNight: false
@@ -224,9 +281,12 @@
     var cushionMin = (sunsetDate.getTime() - arrivalUTC.getTime()) / MS_PER_MIN;
 
     if (startUTC.getTime() < sunriseDate.getTime()) {
+      var sunriseLabel = stageTz
+        ? timeInTz(sunriseDate, stageTz, '24h')
+        : fmtUTC(sunriseDate) + ' UTC';
       annotations.push({
         kind: 'edge',
-        text: 'You\'re starting before sunrise (' + fmtUTC(sunriseDate) + ' UTC). The first stretch will be torchlit.'
+        text: 'You\'re starting before sunrise (' + sunriseLabel + '). The first stretch will be torchlit.'
       });
     }
 
@@ -246,6 +306,7 @@
       arrivalUTC:   arrivalUTC,
       walkMin:      walkMin,
       cushionMin:   cushionMin,
+      stageTz:      stageTz,
       annotations:  annotations,
       isPolarDay:   false,
       isPolarNight: false
@@ -521,6 +582,7 @@
     dom.elevInput     = document.getElementById('dl-elev');
     dom.locateBtn     = document.getElementById('dl-locate');
     dom.dateInput     = document.getElementById('dl-date');
+    dom.dateLabel     = document.getElementById('dl-date-label');
     dom.paceInput     = document.getElementById('dl-pace');
     dom.startInput    = document.getElementById('dl-start');
     dom.startWrap     = document.getElementById('dl-start-wrap');
@@ -643,7 +705,7 @@
     var routeValid   = params.route && knownRouteIds.indexOf(params.route) !== -1;
     var routePresent = Boolean(params.route);
     var hasCoParams  = Boolean(params.date || params.pace || params.start
-      || params.buffer !== null || params.elevGain
+      || params.stage || params.buffer !== null || params.elevGain
       || params.customLat || params.customLon || params.customDist);
 
     if (!routePresent) {
@@ -722,19 +784,20 @@
     applyPrefsToUI();
   }
 
+  function currentStageTz() {
+    if (!_currentRoute || _currentRoute === 'custom') return null;
+    var stageIdx = parseInt(dom.stageSel && dom.stageSel.value, 10);
+    if (isNaN(stageIdx) || !_stageData[_currentRoute]) return null;
+    var s = _stageData[_currentRoute][stageIdx];
+    return (s && s.ianaTz) ? s.ianaTz : null;
+  }
+
   function todayString() {
-    var n = new Date();
-    var y = n.getFullYear();
-    var m = n.getMonth() + 1;
-    var d = n.getDate();
-    return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+    return dateInTz(new Date(), currentStageTz());
   }
 
   function nowTimeString() {
-    var n = new Date();
-    var h = n.getHours();
-    var m = n.getMinutes();
-    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    return timeInTz(new Date(), currentStageTz(), '24h');
   }
 
   /* ==========================================
@@ -957,7 +1020,14 @@
     onFieldChange();
   }
 
+  function updateDateLabel() {
+    if (!dom.dateLabel) return;
+    var tz = currentStageTz();
+    dom.dateLabel.textContent = 'Date' + (tz ? ' (' + tz + ')' : '');
+  }
+
   function onFieldChange() {
+    updateDateLabel();
     pushURL();
     runAndRender();
   }
@@ -1045,9 +1115,16 @@
 
     dom.result.textContent = '';
 
-    var clockFmt = _prefs.clockFormat;
+    var clockFmt  = _prefs.clockFormat;
+    var stageTz   = output.stageTz || null;
+    var isCustom2 = (state.route === 'custom');
+    var timeSuffix = isCustom2 ? ' (local time)' : '';
 
-    var distKm = (state.route === 'custom')
+    function fmt(utcDate) {
+      return timeInTz(utcDate, stageTz, clockFmt) + timeSuffix;
+    }
+
+    var distKm = isCustom2
       ? parseFloat(state.customDistance)
       : (state.stage ? state.stage.distanceKm : NaN);
     var distStr = (!isNaN(distKm) && distKm > 0)
@@ -1058,7 +1135,7 @@
     if (output.isPolarNight) {
       if (output.mode === 'forward') {
         var walkStrPN = fmtDuration(output.walkMin);
-        line = distStr + 'Arrive ∼' + fmtTime(output.arrivalUTC, clockFmt) + ' UTC  ·  ' + walkStrPN + ' walking';
+        line = distStr + 'Arrive ∼' + fmt(output.arrivalUTC) + '  ·  ' + walkStrPN + ' walking';
       } else {
         line = distStr + fmtDuration(output.walkMin) + ' walking';
       }
@@ -1070,12 +1147,12 @@
     if (output.isPolarDay) {
       if (output.mode === 'forward') {
         var walkStrPD = fmtDuration(output.walkMin);
-        line = distStr + 'Arrive ∼' + fmtTime(output.arrivalUTC, clockFmt) + ' UTC  ·  ' + walkStrPD + ' walking';
+        line = distStr + 'Arrive ∼' + fmt(output.arrivalUTC) + '  ·  ' + walkStrPD + ' walking';
         dom.result.appendChild(document.createTextNode(line));
       } else {
         var walkStrPDR = fmtDuration(output.walkMin);
         if (output.latestDepartUTC) {
-          line = distStr + 'Leave by ' + fmtTime(output.latestDepartUTC, clockFmt) + '  ·  ' + walkStrPDR + ' walking';
+          line = distStr + 'Leave by ' + fmt(output.latestDepartUTC) + '  ·  ' + walkStrPDR + ' walking';
           dom.result.appendChild(document.createTextNode(line));
         }
       }
@@ -1088,8 +1165,8 @@
         renderAnnotations(output.annotations || []);
         return;
       }
-      var departStr = fmtTime(output.latestDepartUTC, clockFmt) + ' UTC';
-      var arrStr    = fmtTime(output.walkEndUTC,      clockFmt) + ' UTC';
+      var departStr = fmt(output.latestDepartUTC);
+      var arrStr    = fmt(output.walkEndUTC);
       var walkStr   = fmtDuration(output.walkMin);
       var bufStr    = fmtDuration(output.bufferMin);
       line = distStr + 'Leave by ' + departStr
@@ -1107,7 +1184,7 @@
         resultEl.classList.remove('daylight-result--warn');
       }
 
-      var arriveStr  = fmtTime(output.arrivalUTC, clockFmt) + ' UTC';
+      var arriveStr  = fmt(output.arrivalUTC);
       var walkStrFwd = fmtDuration(output.walkMin);
       var cushionAbs = fmtDuration(Math.abs(output.cushionMin));
       var cushionSign = output.cushionMin >= 0 ? '' : '−';

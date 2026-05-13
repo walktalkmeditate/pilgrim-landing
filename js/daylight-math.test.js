@@ -100,12 +100,15 @@ var caminoStage0 = {
   ianaTz:     'Europe/Madrid'
 };
 
+// Use 09:00 Madrid wall-clock (= 07:00 UTC in CEST, after sunrise ~06:17 UTC).
+// 07:00 Madrid would be 05:00 UTC — before sunrise, which gives a cushion > daylightSpan
+// - walkMin and breaks the round-trip algebraic identity.
 var fwdResult = Daylight.recompute({
   route:        'camino-frances',
   stage:        caminoStage0,
   date:         '2026-10-15',
   paceKey:      'standard',
-  startTimeMin: 7 * 60,
+  startTimeMin: 9 * 60,
   mode:         'forward'
 });
 
