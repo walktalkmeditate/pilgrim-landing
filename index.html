@@ -161,6 +161,14 @@
           "@type": "Answer",
           "text": "Pilgrim's Walk Reliquary gathers photos from your Apple Photos library that match a walk's time window and GPS coordinates, and offers them as candidates in a carousel on your walk summary. Long-press a photo and tap the pin to commit it as a relic — it becomes a circular thumbnail anchored to exactly where you were standing when you took it. The app stores no pixels, only a reference back to Apple Photos. The whole feature is opt-in and defaults off. Photos without GPS are excluded. Screenshots are filtered out. No prompts, no ambient photo scraping."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Pilgrim work for the Camino de Santiago, Shikoku 88, or Kumano Kodo?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. The companion site at pilgrim.cafe/daylight includes route data for the Shikoku 88 Temple Pilgrimage, Kumano Kodo, and five Camino variants (Frances, Inglés, Norte, Portugués, Primitivo) — sourced from the open-source open-pilgrimages dataset. The daylight walk-budget tool computes sunrise/sunset and walking duration in the stage's local timezone for any of these routes."
+        }
       }
     ]
   }
@@ -345,6 +353,33 @@
       .privacy-features {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* =============================================
+       FAQ section
+       ============================================= */
+    .faq-list {
+      max-width: 640px;
+      margin-top: var(--padding-lg);
+    }
+
+    .faq-question {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--ink);
+      margin: 2rem 0 0.5rem;
+      line-height: 1.4;
+    }
+
+    .faq-question:first-of-type {
+      margin-top: 0;
+    }
+
+    .faq-answer {
+      margin-top: 0;
+      color: var(--ink);
+      opacity: 0.85;
     }
 
     /* =============================================
@@ -1468,6 +1503,140 @@
           <a href="/press">
             Press Kit &#8599;
           </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         9. How Pilgrim differs
+         ========================================== -->
+    <section class="story section" aria-label="How Pilgrim differs from other walking apps">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Different by design</h2>
+
+        <p class="body-text reveal">
+          Most walking apps measure pace, elevation, and competition.
+          Pilgrim doesn't. There are no leaderboards, no monthly distance
+          targets, no PRs to chase. Instead Pilgrim records what arises
+          during the walk — voice notes transcribed on your phone, photos
+          from where you stood, a breathing-circle meditation mode, whispers
+          and cairns you can leave for the next walker who passes.
+        </p>
+
+        <p class="body-text reveal">
+          Pilgrim is built for the kind of walking that asks something of
+          you. Long-route pilgrimage — the
+          <a href="https://en.wikipedia.org/wiki/Shikoku_Pilgrimage" target="_blank" rel="noopener noreferrer">Shikoku 88 Temple Pilgrimage</a>,
+          the
+          <a href="https://en.wikipedia.org/wiki/Camino_de_Santiago" target="_blank" rel="noopener noreferrer">Camino de Santiago</a>,
+          the
+          <a href="https://en.wikipedia.org/wiki/Kumano_Kod%C5%8D" target="_blank" rel="noopener noreferrer">Kumano Kodo</a> —
+          fits naturally. Daily walks that double as thinking time fit too.
+          What Pilgrim isn't built for: race training, social fitness, or
+          algorithmic route recommendation.
+        </p>
+
+        <p class="body-text reveal">
+          The companion site at <a href="/sunpath/">/sunpath</a> and
+          <a href="/daylight/">/daylight</a> publishes contemplative
+          instruments — tools that answer one quiet question well rather
+          than dashboards that flatter you with numbers. Pilgrim and the
+          almanac share the same posture: the walk is the practice.
+        </p>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         9b. Frequently asked questions
+              (matches FAQPage JSON-LD in <head>)
+         ========================================== -->
+    <section class="story section" aria-label="Frequently asked questions">
+      <div class="section-inner">
+        <h2 class="display-large reveal">Frequently asked</h2>
+
+        <div class="faq-list reveal">
+          <h3 class="faq-question">What is the best privacy-focused walking app?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim is a privacy-first walking and meditation companion for
+            iOS. It has no accounts, no analytics, no cloud storage, and no
+            telemetry. Voice transcription runs entirely on-device using
+            WhisperKit. All data stays on your phone. It is open source
+            (GPLv3) and free forever.
+          </p>
+
+          <h3 class="faq-question">Is there a free meditation app with no subscription?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim is completely free with no subscriptions, no in-app
+            purchases, and no ads. It includes walking meditation with a
+            breathing circle, guided voice prompts from seven voice guides,
+            and ambient soundscapes. It is open source and will remain
+            free forever.
+          </p>
+
+          <h3 class="faq-question">What open-source fitness apps are available for iPhone?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim is an open source (GPLv3) walking and meditation
+            companion for iOS. It tracks walks with GPS, records voice
+            notes with on-device transcription, and has a meditation mode.
+            The full source code is at
+            <a href="https://github.com/walktalkmeditate/pilgrim-ios" target="_blank" rel="noopener noreferrer">github.com/walktalkmeditate/pilgrim-ios</a>.
+          </p>
+
+          <h3 class="faq-question">What app can I use for walking meditation?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim is designed specifically for walking meditation. It
+            includes a dedicated meditation mode with a breathing circle,
+            ambient soundscapes, and guided voice prompts. It also tracks
+            your route, records voice reflections, and generates a digital
+            goshuin seal for each walk.
+          </p>
+
+          <h3 class="faq-question">How can I record voice notes while walking?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim lets you record voice notes during walks and
+            transcribes them entirely on-device using WhisperKit (based on
+            OpenAI's Whisper model). Nothing is uploaded to any server.
+            Your voice recordings and transcriptions stay on your phone.
+          </p>
+
+          <h3 class="faq-question">Can I leave something behind on a walking path for other walkers?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim lets you leave anonymous traces along your walking
+            paths. Place a whisper — a curated audio gift from seven
+            energies like presence, gratitude, or courage — at a meaningful
+            spot on the map. Or stack a virtual cairn of stones at a place
+            worth remembering. When any walker passes within range of a
+            whisper or cairn, their phone gives a quiet haptic pulse. No
+            accounts, no identities, no tracking — just small offerings on
+            the land.
+          </p>
+
+          <h3 class="faq-question">Can I attach photos to my walks without uploading them anywhere?</h3>
+          <p class="body-text faq-answer">
+            Pilgrim's Walk Reliquary gathers photos from your Apple Photos
+            library that match a walk's time window and GPS coordinates,
+            and offers them as candidates in a carousel on your walk
+            summary. Long-press a photo and tap the pin to commit it as a
+            relic — it becomes a circular thumbnail anchored to exactly
+            where you were standing when you took it. The app stores no
+            pixels, only a reference back to Apple Photos. The whole
+            feature is opt-in and defaults off. Photos without GPS are
+            excluded. Screenshots are filtered out. No prompts, no ambient
+            photo scraping.
+          </p>
+
+          <h3 class="faq-question">Does Pilgrim work for the Camino de Santiago, Shikoku 88, or Kumano Kodo?</h3>
+          <p class="body-text faq-answer">
+            Yes. The companion site at
+            <a href="/daylight/">pilgrim.cafe/daylight</a> includes route
+            data for the Shikoku 88 Temple Pilgrimage, Kumano Kodo, and
+            five Camino variants (Frances, Inglés, Norte, Portugués,
+            Primitivo) — sourced from the open-source
+            <a href="https://github.com/walktalkmeditate/open-pilgrimages" target="_blank" rel="noopener noreferrer">open-pilgrimages</a>
+            dataset. The daylight walk-budget tool computes sunrise/sunset
+            and walking duration in the stage's local timezone for any of
+            these routes.
+          </p>
         </div>
       </div>
     </section>
