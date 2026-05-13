@@ -687,6 +687,12 @@
   function applyParamsFromURL() {
     var params = coerceParams(parseParams(location.search));
 
+    /* Per-route SEO pages set data-default-route on <body>. Use it as a
+       fallback when the URL carries no route param (bare /daylight/<route>/ URL). */
+    if (!params.route && document.body && document.body.dataset.defaultRoute) {
+      params.route = document.body.dataset.defaultRoute;
+    }
+
     if (params.date)  dom.dateInput.value  = params.date;
     if (params.pace)  dom.paceInput.value  = params.pace;
     if (params.start) dom.startInput.value = params.start;
@@ -787,7 +793,7 @@
 
   function loadRouteMeta() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '../assets/daylight/route-meta.json');
+    xhr.open('GET', '/assets/daylight/route-meta.json');
     xhr.onload = function () {
       if (xhr.status !== 200) return;
       var meta;
@@ -900,7 +906,7 @@
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '../assets/daylight/' + routeId + '.json');
+    xhr.open('GET', '/assets/daylight/' + routeId + '.json');
     xhr.onload = function () {
       if (xhr.status !== 200) return;
       var stages;

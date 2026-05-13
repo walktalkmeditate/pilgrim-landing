@@ -3,7 +3,9 @@
    bake-daylight-routes
 
    Reads stage data from the sibling open-pilgrimages repo and writes
-   trimmed, daylight-budget-ready JSON into assets/daylight/.
+   trimmed, daylight-budget-ready JSON into assets/daylight/. Also
+   writes per-route SEO pages into daylight/<route>/index.html from
+   scripts/bake-daylight-routes-templates/route.html.
 
    Run from repo root (or any working directory — paths are resolved
    from __dirname). Re-running produces byte-identical output.
@@ -15,6 +17,9 @@
    Output:
      assets/daylight/<route-id>.json   — array of stage records
      assets/daylight/route-meta.json   — summary for all 7 routes
+     daylight/<route-id>/index.html    — per-route SEO page (7 files)
+
+   Template syntax: {{placeholder_name}} — keys defined in buildRouteHtmlMap().
    ============================================= */
 
 'use strict';
@@ -24,10 +29,12 @@ var path = require('path');
 
 /* --- Constants --- */
 
-var REPO_ROOT    = path.resolve(__dirname, '..');
-var SIBLING_ROOT = path.resolve(REPO_ROOT, '..', 'open-pilgrimages');
-var ROUTES_DIR   = path.join(SIBLING_ROOT, 'routes');
-var OUT_DIR      = path.join(REPO_ROOT, 'assets', 'daylight');
+var REPO_ROOT     = path.resolve(__dirname, '..');
+var SIBLING_ROOT  = path.resolve(REPO_ROOT, '..', 'open-pilgrimages');
+var ROUTES_DIR    = path.join(SIBLING_ROOT, 'routes');
+var OUT_DIR       = path.join(REPO_ROOT, 'assets', 'daylight');
+var HTML_OUT_DIR  = path.join(REPO_ROOT, 'daylight');
+var TEMPLATE_PATH = path.join(__dirname, 'bake-daylight-routes-templates', 'route.html');
 
 /* Ordered list of routes to bake. Order is canonical — do not rely on
    object key enumeration anywhere below. */
@@ -203,6 +210,124 @@ function bakeRouteMeta() {
   }
 }
 
+/* --- HTML baking helpers --- */
+
+function firstSegment(stageName) {
+  return stageName.split(' to ')[0].trim();
+}
+
+function lastSegment(stageName) {
+  var parts = stageName.split(' to ');
+  return parts[parts.length - 1].trim();
+}
+
+/* Build the stages-prose sentence from stage data and route metadata.
+   Format: "N stages from <origin> to <destination>, covering X km of the <route name>."
+   Kept under 200 chars. */
+function buildStagesProse(stages, nameEn, distanceKm) {
+  var origin      = firstSegment(stages[0].nameEn);
+  var destination = lastSegment(stages[stages.length - 1].nameEn);
+  return (
+    stages.length + ' stages from ' + origin + ' to ' + destination +
+    ', covering ' + distanceKm + ' km of the ' + nameEn + '.'
+  );
+}
+
+/* Build the walk-link block if walk-<route>.html exists at repo root. */
+function buildWalkLinkBlock(routeId, nameEn) {
+  var walkPath = path.join(REPO_ROOT, 'walk-' + routeId + '.html');
+  if (!fs.existsSync(walkPath)) return '';
+  return (
+    '<section class="daylight-walk-link">\n' +
+    '      <p>See also: <a href="/walk-' + routeId + '.html">Walking the ' + nameEn + '</a>.</p>\n' +
+    '    </section>'
+  );
+}
+
+/* Substitute {{key}} placeholders in template text.
+   Unknown keys are replaced with '' (silent) so partial maps don't explode. */
+function renderTemplate(templateText, map) {
+  return templateText.replace(/\{\{(\w+)\}\}/g, function (_, key) {
+    return (map[key] !== undefined) ? String(map[key]) : '';
+  });
+}
+
+/* Assert that the rendered HTML contains required SEO signals.
+   Fails loud if any signal is missing. */
+function assertSeoSignals(html, routeId, nameEn, distanceKm) {
+  var checks = [
+    { signal: nameEn,              label: 'route_name_en' },
+    { signal: String(distanceKm),  label: 'route_distance_km' },
+    { signal: 'daylight',          label: '"daylight"' }
+  ];
+  checks.forEach(function (c) {
+    if (html.indexOf(c.signal) === -1) {
+      die(
+        'SEO assertion failed for ' + routeId +
+        ' — rendered HTML does not contain ' + c.label + ' (' + JSON.stringify(c.signal) + ')'
+      );
+    }
+  });
+}
+
+/* Bake one per-route HTML page. Returns the output path. */
+function bakeRouteHtml(routeId, nameEn, distanceKm, stages, templateText) {
+  var stagesCount = stages.length;
+  var stagesProse = buildStagesProse(stages, nameEn, distanceKm);
+  var walkLinkBlock = buildWalkLinkBlock(routeId, nameEn);
+
+  var map = {
+    route_id:          routeId,
+    route_name_en:     nameEn,
+    route_distance_km: distanceKm,
+    stages_count:      stagesCount,
+    stages_prose:      stagesProse,
+    walk_link_block:   walkLinkBlock
+  };
+
+  var html = renderTemplate(templateText, map);
+  assertSeoSignals(html, routeId, nameEn, distanceKm);
+
+  var routeDir = path.join(HTML_OUT_DIR, routeId);
+  if (!fs.existsSync(routeDir)) {
+    fs.mkdirSync(routeDir, { recursive: true });
+  }
+
+  var outPath = path.join(routeDir, 'index.html');
+  try {
+    fs.writeFileSync(outPath, html, 'utf8');
+  } catch (e) {
+    die('could not write ' + outPath + ': ' + e.message);
+  }
+  return outPath;
+}
+
+/* Bake all 7 per-route HTML pages.
+   Reads already-baked JSON stage files from OUT_DIR (so JSON pass must run first). */
+function bakeAllRouteHtml(routeMeta) {
+  if (!fs.existsSync(TEMPLATE_PATH)) {
+    die('missing template: ' + TEMPLATE_PATH);
+  }
+  var templateText;
+  try {
+    templateText = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+  } catch (e) {
+    die('could not read template ' + TEMPLATE_PATH + ': ' + e.message);
+  }
+
+  routeMeta.forEach(function (meta) {
+    var stagesPath = path.join(OUT_DIR, meta.id + '.json');
+    var stages = readJson(stagesPath, 'baked stages for ' + meta.id);
+
+    if (!Array.isArray(stages) || stages.length === 0) {
+      die('missing or invalid ' + stagesPath + ' — expected non-empty array');
+    }
+
+    bakeRouteHtml(meta.id, meta.nameEn, meta.distanceKm, stages, templateText);
+    process.stdout.write('  ' + meta.id + '/index.html written\n');
+  });
+}
+
 /* --- Entry point --- */
 
 function main() {
@@ -219,7 +344,7 @@ function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
   }
 
-  /* Bake each route */
+  /* Bake each route — JSON pass */
   ROUTE_IDS.forEach(function (routeId) {
     var stageCount = bakeRoute(routeId);
     process.stdout.write('  ' + routeId + ' — ' + stageCount + ' stages\n');
@@ -228,6 +353,13 @@ function main() {
   /* Bake route-meta */
   bakeRouteMeta();
   process.stdout.write('  route-meta.json written\n');
+
+  /* Bake per-route SEO HTML pages */
+  var routeMetaPath = path.join(OUT_DIR, 'route-meta.json');
+  var routeMeta = readJson(routeMetaPath, 'route-meta.json');
+  process.stdout.write('baking HTML pages...\n');
+  bakeAllRouteHtml(routeMeta);
+  process.stdout.write('  HTML pass complete\n');
 }
 
 main();
