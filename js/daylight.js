@@ -281,9 +281,7 @@
     var cushionMin = (sunsetDate.getTime() - arrivalUTC.getTime()) / MS_PER_MIN;
 
     if (startUTC.getTime() < sunriseDate.getTime()) {
-      var sunriseLabel = stageTz
-        ? timeInTz(sunriseDate, stageTz, '24h')
-        : fmtUTC(sunriseDate) + ' UTC';
+      var sunriseLabel = timeInTz(sunriseDate, stageTz, '24h');
       annotations.push({
         kind: 'edge',
         text: 'You\'re starting before sunrise (' + sunriseLabel + '). The first stretch will be torchlit.'
@@ -338,23 +336,6 @@
     return el;
   }
 
-  function fmtUTC(date) {
-    var h = date.getUTCHours();
-    var m = date.getUTCMinutes();
-    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-  }
-
-  function fmtTime(date, clockFormat) {
-    var h = date.getUTCHours();
-    var m = date.getUTCMinutes();
-    if (clockFormat === '12h') {
-      var period = h >= 12 ? 'PM' : 'AM';
-      var h12 = h % 12 || 12;
-      return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + period;
-    }
-    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-  }
-
   function fmtDuration(totalMin) {
     var h = Math.floor(Math.abs(totalMin) / 60);
     var m = Math.round(Math.abs(totalMin) % 60);
@@ -377,7 +358,7 @@
     return BAR_X1 + frac * BAR_W;
   }
 
-  function renderSVG(output, svgEl) {
+  function renderSVG(output, svgEl, stageTz, clockFmt) {
     clearSVG(svgEl);
 
     if (output.error) return;
@@ -392,7 +373,9 @@
     var nowUTC = new Date();
 
     var titleEl = document.createElementNS(SVG_NS, 'title');
-    titleEl.textContent = 'Daylight from ' + fmtUTC(sunrise) + ' to ' + fmtUTC(sunset) + ' UTC';
+    var tzSuffix = stageTz ? '' : ' (local time)';
+    titleEl.textContent = 'Daylight from ' + timeInTz(sunrise, stageTz, clockFmt || '24h')
+      + ' to ' + timeInTz(sunset, stageTz, clockFmt || '24h') + tzSuffix;
     svgEl.appendChild(titleEl);
 
     svgEl.appendChild(makeSVGEl('line', {
@@ -417,7 +400,7 @@
           x: BAR_X1, y: BAR_Y + 22,
           'text-anchor': 'middle'
         });
-        sunriseLblOnly.textContent = fmtUTC(sunrise);
+        sunriseLblOnly.textContent = timeInTz(sunrise, stageTz, clockFmt || '24h');
         svgEl.appendChild(sunriseLblOnly);
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-tick-sunset',
@@ -429,7 +412,7 @@
           x: BAR_X2, y: BAR_Y + 22,
           'text-anchor': 'middle'
         });
-        sunsetLblOnly.textContent = fmtUTC(sunset);
+        sunsetLblOnly.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
         svgEl.appendChild(sunsetLblOnly);
         return;
       }
@@ -498,7 +481,7 @@
       x: BAR_X1, y: BAR_Y + 22,
       'text-anchor': 'middle'
     });
-    sunriseLbl.textContent = fmtUTC(sunrise);
+    sunriseLbl.textContent = timeInTz(sunrise, stageTz, clockFmt || '24h');
     svgEl.appendChild(sunriseLbl);
 
     svgEl.appendChild(makeSVGEl('line', {
@@ -511,7 +494,7 @@
       x: BAR_X2, y: BAR_Y + 22,
       'text-anchor': 'middle'
     });
-    sunsetLbl.textContent = fmtUTC(sunset);
+    sunsetLbl.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
     svgEl.appendChild(sunsetLbl);
 
     var sameDay = (nowUTC.getUTCFullYear() === sunrise.getUTCFullYear()
@@ -544,7 +527,6 @@
   var api = {
     recompute:   recompute,
     renderSVG:   renderSVG,
-    fmtUTC:      fmtUTC,
     fmtDuration: fmtDuration
   };
 
@@ -1093,7 +1075,7 @@
     var state  = buildState();
     var output = recompute(state);
 
-    renderSVG(output, dom.barSvg);
+    renderSVG(output, dom.barSvg, output.stageTz || null, _prefs.clockFormat);
 
     var isCustom = (state.route === 'custom');
     if (dom.shareBtn) {
