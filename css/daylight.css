@@ -365,6 +365,8 @@
   gap: 1.4rem;
 }
 
+.dl-prefs-panel[hidden] { display: none; }
+
 .dl-prefs-fieldset {
   border: none;
   padding: 0;
@@ -475,6 +477,8 @@
   color: var(--stone);
   opacity: 0.55;
 }
+
+.dl-share-hint[hidden] { display: none; }
 
 .daylight-noscript {
   font-style: italic;
