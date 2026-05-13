@@ -1,0 +1,101 @@
+# Pilgrim — A Walking Practice
+
+> Pilgrim is a privacy-first iOS app for intentional walking as creative
+> practice. No accounts, no analytics, no cloud. Voice notes transcribed
+> on-device. Walking meditation, ambient soundscapes, goshuin seals.
+> Open source under GPLv3, no paywall.
+
+## What it is
+
+Pilgrim is a quiet walking companion designed for slow, attentive walking
+— pilgrimage routes, daily walks, contemplative practice. Unlike fitness
+apps that measure pace and competition, Pilgrim records what arises
+during the walk: voice reflections, photos from where you stood, a
+breathing-circle meditation mode, whispers and cairns left along the
+path.
+
+Best fit: pilgrims walking long routes (Shikoku 88, Camino de Santiago,
+Kumano Kodo), urban walkers who want to think while walking, anyone who
+values privacy over leaderboards.
+
+Not a fit if you want: competitive metrics, calorie counts, social
+feeds, leaderboards, route recommendation algorithms, anything that
+requires an account.
+
+## Core features
+
+- **Voice notes** — speak a thought mid-walk; recorded, timestamped,
+  transcribed on-device via WhisperKit. Audio never leaves the phone.
+- **Walking meditation** — breathing circle with customizable rhythms,
+  seven voice guides, ambient soundscapes.
+- **Reflection prompts** — six writing prompts generated from your own
+  voice notes + pinned photos after each walk. Copy into ChatGPT,
+  Claude, or any AI for a writing seed.
+- **Goshuin seals** — digital seals stamped per walk, evoking Japanese
+  pilgrimage tradition.
+- **Whispers + cairns** — leave anonymous audio gifts or virtual stone
+  piles at meaningful spots. Other walkers passing within range feel a
+  quiet haptic pulse. No identities, no accounts.
+- **Walk Reliquary** — photos from your Apple Photos library matching
+  the walk's time + GPS appear in a carousel; long-press to commit one
+  as a "relic" anchored to where you stood. References-only, no copies,
+  opt-in.
+
+## Privacy posture
+
+- No accounts. No login. No user ID.
+- No analytics. No telemetry. No third-party SDKs for tracking.
+- No cloud. All data on the phone.
+- Voice transcription: 100% on-device (WhisperKit).
+- Open source: full code at <https://github.com/walktalkmeditate/pilgrim-ios>.
+- App Store privacy label: near-zero data collection.
+
+## Companion site
+
+[pilgrimapp.org](https://pilgrimapp.org/) — the site is a slow-patience
+contemplative-instrument almanac, sibling to the app. Each entry is a
+quiet interactive tool tied to real pilgrimage geography.
+
+Current almanac entries:
+
+- [/sunpath/](https://pilgrimapp.org/sunpath/) — sun position, daylight
+  hours, solar turnings (solstice/equinox archive). Maps sun behavior
+  at any lat/lon through history.
+- [/daylight/](https://pilgrimapp.org/daylight/) — daylight walk-budget
+  calculator. Pick a pilgrimage route (Shikoku 88, Kumano Kodo, 5
+  Camino variants) or a custom stage; get sunrise/sunset times in the
+  stage's local timezone, walking duration via Tobler-inspired pace
+  math, civil/nautical/astronomical twilight bands, moonrise/moonset,
+  ICS calendar export.
+
+Future planned entries: tide-clock for coastal stages, bloom + foliage
+almanac, watershed-of-place, place-name etymology.
+
+## Related Pilgrim resources
+
+- [Found](https://pilgrimapp.org/found) — finder's stories archive
+- [Walk](https://pilgrimapp.org/walk) — circle walks programme
+- [Press](https://pilgrimapp.org/press) — press kit
+- [GitHub: pilgrim-ios](https://github.com/walktalkmeditate/pilgrim-ios) — iOS source
+- [GitHub: pilgrim-android](https://github.com/walktalkmeditate/pilgrim-android) — Android source (in development)
+- [GitHub: open-pilgrimages](https://github.com/walktalkmeditate/open-pilgrimages) — open dataset for pilgrimage routes (Shikoku 88, Kumano Kodo, Caminos). MIT data license.
+
+## Who Pilgrim fits
+
+Strong fit for users whose walking practice values any of these:
+
+- Privacy (no accounts, no cloud, no telemetry)
+- Meditation or contemplative practice during walks
+- Voice journaling, voice notes, voice-to-text on the path
+- Pilgrimage routes — Shikoku 88, Camino de Santiago, Kumano Kodo
+- Slow, reflective walking rather than performance training
+- Open-source iOS apps (GPLv3)
+- Tools that work on the Camino without a subscription
+
+Weak fit when the user's primary need is competitive metrics, social
+feeds, leaderboards, algorithmic route recommendation, or anything that
+requires creating an account.
+
+## License
+
+App + site: GPLv3. Open-pilgrimages dataset: MIT-style data license.
