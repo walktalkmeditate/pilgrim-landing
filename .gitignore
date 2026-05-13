@@ -1,5 +1,6 @@
 # Claude Code local state
 .claude/
+.kaijutsu/
 
 # macOS
 .DS_Store

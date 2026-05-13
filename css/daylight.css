@@ -1,0 +1,817 @@
+/* =============================================
+   Daylight Walk Budget — page styles
+
+   Sibling of sunpath.css. Inherits all tokens
+   from css/styles.css. Keep the two pages feeling
+   like the same publication.
+   ============================================= */
+
+.daylight-body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--parchment);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.daylight-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem) 6rem;
+}
+
+/* =============================================
+   Header
+   ============================================= */
+
+.daylight-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.4em;
+}
+
+.daylight-lede {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0 0 2.4rem;
+  max-width: 480px;
+}
+
+/* =============================================
+   Picker panel
+   ============================================= */
+
+.daylight-picker-panel {
+  margin: 0 0 2.4rem;
+}
+
+.daylight-field {
+  margin: 0 0 1.2rem;
+}
+
+.daylight-label {
+  display: block;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  margin: 0 0 0.3rem;
+}
+
+/* Shared base for select + text input + date + time. */
+.daylight-select,
+.daylight-input {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 0;
+  padding: 0.25rem 0;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.daylight-select:focus,
+.daylight-input:focus {
+  border-bottom-color: var(--stone);
+}
+
+/* Remove default select arrow; the underline design implies interactivity. */
+.daylight-select {
+  cursor: pointer;
+  padding-right: 1.2rem;
+  background-image: none;
+}
+
+.daylight-input[type="date"],
+.daylight-input[type="time"] {
+  max-width: 200px;
+  letter-spacing: 0.04em;
+}
+
+.daylight-input::placeholder {
+  color: var(--stone);
+  opacity: 0.55;
+}
+
+/* =============================================
+   Custom-route panel
+   ============================================= */
+
+.daylight-custom-panel {
+  margin: 0 0 1.2rem;
+  padding: 1rem 0 0.2rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.18);
+}
+
+.daylight-locate-btn {
+  margin: 0.6rem 0 0;
+  background: none;
+  border: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 2px;
+  padding: 0.3rem 0.8rem;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.daylight-locate-btn:hover,
+.daylight-locate-btn:focus-visible {
+  border-color: var(--stone);
+  color: var(--ink);
+  outline: none;
+}
+
+/* =============================================
+   Mode toggle
+   ============================================= */
+
+.daylight-mode-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 2rem;
+}
+
+.daylight-mode-legend {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  margin: 0 0 0.5rem;
+  padding: 0;
+  float: left;
+  width: 100%;
+}
+
+.daylight-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+  margin-right: 1.6rem;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.daylight-mode-label:has(.daylight-mode-radio:checked) {
+  opacity: 1;
+}
+
+.daylight-mode-radio {
+  accent-color: var(--stone);
+  width: 0.85em;
+  height: 0.85em;
+  cursor: pointer;
+}
+
+/* =============================================
+   Buffer field — inline number + unit
+   ============================================= */
+
+.daylight-input-unit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.daylight-input--short {
+  max-width: 80px;
+}
+
+.daylight-unit-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  opacity: 0.75;
+}
+
+/* =============================================
+   Output panel
+   ============================================= */
+
+.daylight-output {
+  margin: 0 0 4rem;
+}
+
+.daylight-bar-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0 0 1rem;
+  overflow: visible;
+}
+
+/* SVG elements — styled here so CSS can reference them by class
+   from JS without needing inline style strings. */
+
+.dl-bar-track {
+  stroke: rgba(184, 175, 162, 0.25);
+  stroke-width: 1;
+  fill: none;
+}
+
+.dl-bar-daylight {
+  stroke: rgba(184, 175, 162, 0.22);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-civil {
+  stroke: rgba(184, 175, 162, 0.14);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-nautical {
+  stroke: rgba(184, 175, 162, 0.09);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-astronomical {
+  stroke: rgba(184, 175, 162, 0.05);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-walk {
+  stroke: #C4956A;
+  stroke-width: 4;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.dl-bar-dot {
+  stroke: #C4956A;
+  fill: none;
+  opacity: 0.85;
+}
+
+.dl-bar-buffer {
+  stroke: rgba(184, 175, 162, 0.45);
+  stroke-width: 4;
+  stroke-dasharray: 3 4;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-tick-sunrise,
+.dl-bar-tick-sunset {
+  stroke: var(--stone);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.dl-bar-tick-now {
+  stroke: #DAA520;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.dl-bar-moon-tick {
+  stroke: rgba(184, 175, 162, 0.6);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.dl-bar-waypoint {
+  stroke: rgba(184, 175, 162, 0.5);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+body.constellation .dl-bar-waypoint {
+  stroke: rgba(232, 224, 255, 0.45);
+}
+
+.dl-bar-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  fill: var(--stone);
+  fill-opacity: 0.75;
+}
+
+.dl-bar-label-now {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  fill: #DAA520;
+  fill-opacity: 0.9;
+}
+
+.daylight-result {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.55;
+  min-height: 1.6em;
+}
+
+.daylight-result em {
+  font-style: normal;
+  color: var(--stone);
+  font-size: 0.92em;
+}
+
+/* =============================================
+   Routes index (slice 7)
+   ============================================= */
+
+.dl-routes-index {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  opacity: 0.75;
+  margin: 0 0 1.4rem;
+  line-height: 1.6;
+}
+
+.dl-routes-index[hidden] { display: none; }
+
+.dl-routes-index-link {
+  color: var(--stone);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-routes-index-link:hover {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+}
+
+/* =============================================
+   Validation message (AC #13)
+   ============================================= */
+
+.dl-validation-msg {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--stone);
+  margin: 0 0 1.6rem;
+}
+
+/* =============================================
+   Preferences expander (AC #16)
+   ============================================= */
+
+.dl-prefs-wrap {
+  margin: 0 0 2rem;
+}
+
+.dl-prefs-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+
+.dl-prefs-toggle:hover,
+.dl-prefs-toggle:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.dl-prefs-panel {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+}
+
+.dl-prefs-panel[hidden] { display: none; }
+
+.dl-prefs-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dl-prefs-legend {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--stone);
+  opacity: 0.75;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  display: block;
+}
+
+.dl-prefs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--ink);
+  cursor: pointer;
+  margin-right: 1rem;
+  opacity: 0.8;
+}
+
+.dl-prefs-label input[type="radio"] {
+  accent-color: var(--stone);
+  width: 0.8em;
+  height: 0.8em;
+  cursor: pointer;
+}
+
+/* =============================================
+   Tick legends — moon + waypoints
+   ============================================= */
+
+.dl-tick-legend-moon,
+.dl-tick-legend-waypoints {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  margin: 0.4rem 0 0;
+  line-height: 1.5;
+}
+
+.dl-tick-legend-moon[hidden],
+.dl-tick-legend-waypoints[hidden] { display: none; }
+
+body.constellation .dl-tick-legend-moon,
+body.constellation .dl-tick-legend-waypoints {
+  color: rgba(232, 224, 255, 0.55);
+}
+
+/* =============================================
+   Annotation lines (AC #15)
+   ============================================= */
+
+.dl-annotations {
+  margin-top: 0.5rem;
+}
+
+.dl-annotation {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--stone);
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+.dl-annotation--warn {
+  color: #9E4B35;
+  opacity: 0.85;
+}
+
+/* =============================================
+   Muted-red cushion for forward past-sunset
+   ============================================= */
+
+.daylight-result--warn {
+  color: #9E4B35;
+  opacity: 0.85;
+}
+
+/* =============================================
+   Share button (AC #20)
+   ============================================= */
+
+.dl-share-wrap {
+  margin-top: 1.2rem;
+}
+
+.dl-share-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-share-btn:hover,
+.dl-share-btn:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+  outline: none;
+}
+
+.dl-share-hint {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--stone);
+  opacity: 0.55;
+}
+
+.dl-share-hint[hidden] { display: none; }
+
+/* =============================================
+   ICS calendar export link
+   ============================================= */
+
+.dl-ics-wrap {
+  margin-top: 0.6rem;
+}
+
+.dl-ics-btn {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  padding-bottom: 1px;
+  text-decoration: none;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.dl-ics-btn:hover,
+.dl-ics-btn:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+  outline: none;
+}
+
+.dl-ics-btn[hidden] { display: none; }
+
+.daylight-noscript {
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.95rem;
+  margin: 2rem 0;
+}
+
+/* =============================================
+   Footer
+   ============================================= */
+
+.daylight-footer {
+  margin-top: 6rem;
+  padding: 3rem clamp(1rem, 4vw, 2rem) 4rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.18);
+  text-align: center;
+  color: var(--stone);
+}
+
+.daylight-footer-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.daylight-footer-attribution {
+  margin: 0 0 1.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.daylight-footer-attribution a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.4);
+  padding-bottom: 1px;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.daylight-footer-attribution a:hover {
+  border-bottom-color: var(--ink);
+}
+
+.daylight-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 1.6rem;
+  font-size: 0.9rem;
+}
+
+.daylight-footer-links a {
+  color: var(--stone);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.daylight-footer-links a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+}
+
+.daylight-footer-sep {
+  color: var(--stone);
+  opacity: 0.35;
+}
+
+.daylight-footer-license {
+  margin: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  opacity: 0.55;
+}
+
+/* =============================================
+   Dark mode / constellation
+   ============================================= */
+
+body.constellation .daylight-footer {
+  border-top-color: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .daylight-footer-attribution {
+  color: rgba(232, 224, 255, 0.92);
+}
+
+body.constellation .daylight-footer-attribution a {
+  border-bottom-color: rgba(232, 224, 255, 0.35);
+}
+
+body.constellation .daylight-footer-links a {
+  color: rgba(232, 224, 255, 0.55);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .daylight-footer-links a:hover {
+  color: rgba(232, 224, 255, 0.95);
+  border-bottom-color: rgba(232, 224, 255, 0.5);
+}
+
+body.constellation .daylight-select,
+body.constellation .daylight-input {
+  color: rgba(232, 224, 255, 0.85);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+/* Native form-control chrome: dark in both dark and star modes.
+   color-scheme on :root tells the browser to render UA-supplied widgets
+   (date picker, time picker, scrollbars) with dark theming. We also
+   override the ::picker-indicator background-image directly with light
+   SVGs — Chrome's filter support on this pseudo is inconsistent across
+   versions, so background-image is the reliable path. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23E8E0FF'%3E%3Cpath d='M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z'/%3E%3C/svg%3E");
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='%23E8E0FF'%3E%3Cpath d='M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3Cpath fill='%23E8E0FF' d='M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z'/%3E%3C/svg%3E");
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+body.constellation .dl-bar-label {
+  fill: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-daylight {
+  stroke: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .dl-bar-civil {
+  stroke: rgba(232, 224, 255, 0.10);
+}
+
+body.constellation .dl-bar-nautical {
+  stroke: rgba(232, 224, 255, 0.065);
+}
+
+body.constellation .dl-bar-astronomical {
+  stroke: rgba(232, 224, 255, 0.035);
+}
+
+body.constellation .dl-bar-tick-sunrise,
+body.constellation .dl-bar-tick-sunset {
+  stroke: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-moon-tick {
+  stroke: rgba(232, 224, 255, 0.4);
+}
+
+body.constellation .dl-bar-walk,
+body.constellation .dl-bar-dot {
+  stroke: rgba(232, 224, 255, 0.65);
+}
+
+body.constellation .dl-bar-buffer {
+  stroke: rgba(232, 224, 255, 0.3);
+}
+
+body.constellation .dl-routes-index {
+  color: rgba(232, 224, 255, 0.5);
+}
+
+body.constellation .dl-routes-index-link {
+  color: rgba(232, 224, 255, 0.5);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .dl-routes-index-link:hover {
+  color: rgba(232, 224, 255, 0.9);
+  border-bottom-color: rgba(232, 224, 255, 0.5);
+}
+
+/* =============================================
+   Responsive
+   ============================================= */
+
+@media (max-width: 600px) {
+  .daylight-main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .daylight-select,
+  .daylight-input {
+    max-width: 100%;
+  }
+
+  .daylight-input--short { max-width: 80px; }
+
+  .daylight-input[type="date"],
+  .daylight-input[type="time"] {
+    max-width: 100%;
+  }
+}

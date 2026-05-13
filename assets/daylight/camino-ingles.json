@@ -1,0 +1,62 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Ferrol to Neda",
+    "startLat": 43.4777,
+    "startLon": -8.2436,
+    "distanceKm": 12.4,
+    "elevGainM": 90,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 1,
+    "nameEn": "Neda to Pontedeume",
+    "startLat": 43.5,
+    "startLon": -8.159,
+    "distanceKm": 15.3,
+    "elevGainM": 230,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 2,
+    "nameEn": "Pontedeume to Betanzos",
+    "startLat": 43.4065,
+    "startLon": -8.1705,
+    "distanceKm": 19.7,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 3,
+    "nameEn": "Betanzos to Hospital de Bruma",
+    "startLat": 43.279,
+    "startLon": -8.211,
+    "distanceKm": 24,
+    "elevGainM": 560,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 4,
+    "nameEn": "Hospital de Bruma to Sigüeiro",
+    "startLat": 43.15,
+    "startLon": -8.363,
+    "distanceKm": 24.5,
+    "elevGainM": 320,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 5,
+    "nameEn": "Sigüeiro to Santiago de Compostela",
+    "startLat": 42.969,
+    "startLon": -8.442,
+    "distanceKm": 15.7,
+    "elevGainM": 210,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  }
+]

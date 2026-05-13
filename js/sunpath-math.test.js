@@ -150,6 +150,166 @@ approx(M.dayOfYear(new Date(Date.UTC(2026, 0, 1))), 1, 0, 'Jan 1 = day 1');
 approx(M.dayOfYear(new Date(Date.UTC(2026, 11, 31))), 365, 0, 'Dec 31 = day 365 (non-leap)');
 approx(M.dayOfYear(new Date(Date.UTC(2024, 11, 31))), 366, 0, 'Dec 31 leap year = day 366');
 
+console.log('\n=== sunriseUTC / sunsetUTC — NOAA reference 2026-10-15 ===\n');
+
+// NOAA reference values fetched 2026-05-12 via gml.noaa.gov/grad/solcalc/table.php.
+// Local times from NOAA table converted to UTC using the stated timezone offsets.
+// Tolerances: ±2 min for mid-latitude sites, ±10 min for Reykjavik (high lat).
+
+function approxUTC(actualDate, refDate, toleranceMinutes, label) {
+  if (actualDate === null) {
+    failed++;
+    failures.push(label + ': got null, expected ' + refDate.toISOString());
+    console.log('  ✗ ' + label + '  (got null)');
+    return;
+  }
+  var diffMin = Math.abs(actualDate.getTime() - refDate.getTime()) / 60000;
+  if (diffMin <= toleranceMinutes) {
+    passed++;
+    console.log('  ✓ ' + label + '  (' + actualDate.toISOString() + ', Δ ' + diffMin.toFixed(1) + ' min)');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + refDate.toISOString() + ' ±' + toleranceMinutes + 'min, got ' + actualDate.toISOString() + ' (Δ ' + diffMin.toFixed(1) + ' min)');
+    console.log('  ✗ ' + label + '  (' + actualDate.toISOString() + ', Δ ' + diffMin.toFixed(1) + ' min)');
+  }
+}
+
+var oct15 = new Date(Date.UTC(2026, 9, 15, 12, 0, 0));
+
+// León (42.60°N, 5.57°W) — NOAA local 08:35 / 19:40 CEST (UTC+2) → 06:35 / 17:40 UTC
+approxUTC(M.sunriseUTC(42.60, -5.57,  oct15), new Date(Date.UTC(2026, 9, 15,  6, 35)), 2, 'León sunrise UTC');
+approxUTC(M.sunsetUTC( 42.60, -5.57,  oct15), new Date(Date.UTC(2026, 9, 15, 17, 40)), 2, 'León sunset UTC');
+
+// Tokushima (34.16°N, 134.50°E) — NOAA local 06:07 / 17:28 JST (UTC+9) → 21:07 Oct14 / 08:28 Oct15 UTC
+approxUTC(M.sunriseUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 14, 21,  7)), 2, 'Tokushima sunrise UTC');
+approxUTC(M.sunsetUTC( 34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  8, 28)), 2, 'Tokushima sunset UTC');
+
+// Quito (0.18°S, 78.47°W) — NOAA local 05:56 / 18:03 ECT (UTC-5) → 10:56 / 23:03 UTC
+approxUTC(M.sunriseUTC(-0.18, -78.47, oct15), new Date(Date.UTC(2026, 9, 15, 10, 56)), 2, 'Quito sunrise UTC');
+approxUTC(M.sunsetUTC( -0.18, -78.47, oct15), new Date(Date.UTC(2026, 9, 15, 23,  3)), 2, 'Quito sunset UTC');
+
+// Reykjavik (64.13°N, 21.94°W) — NOAA local 08:18 / 18:08 UTC+0 → 08:18 / 18:08 UTC
+approxUTC(M.sunriseUTC(64.13, -21.94, oct15), new Date(Date.UTC(2026, 9, 15,  8, 18)), 10, 'Reykjavik sunrise UTC');
+approxUTC(M.sunsetUTC( 64.13, -21.94, oct15), new Date(Date.UTC(2026, 9, 15, 18,  8)), 10, 'Reykjavik sunset UTC');
+
+// Polar sentinel: Tromsø (69.65°N) winter solstice → polar night → null
+var winterSol2 = new Date(Date.UTC(2026, 11, 21, 20, 51));
+var polarRise = M.sunriseUTC(69.65, 18.97, winterSol2);
+var polarSet  = M.sunsetUTC( 69.65, 18.97, winterSol2);
+if (polarRise === null && polarSet === null) {
+  passed++;
+  console.log('  ✓ Tromsø winter solstice polar night → null, null');
+} else {
+  failed++;
+  failures.push('Tromsø polar night: expected null,null, got ' + polarRise + ',' + polarSet);
+  console.log('  ✗ Tromsø winter solstice polar night: expected null,null');
+}
+
+// ===========================================================================
+// v2 additions: twilight + moon
+// ===========================================================================
+
+console.log('\n=== Twilight UTC — self-consistent reference 2026-10-15 ===\n');
+
+// Reference values computed by this library's own Spencer-series math at
+// the correct solar elevation for each twilight band. Verified plausible
+// against NOAA Solar Calculator (gml.noaa.gov/grad/solcalc/) 2026-05-13:
+// León  civil dawn  ≈ 08:05 CEST (UTC+2) → 06:05 UTC  ✓ matches
+// León  astro dawn  ≈ 07:00 CEST          → 05:00 UTC  ✓ matches
+// Tolerances: ±2 min (same as sunriseUTC tolerances at mid-latitudes).
+
+// León (42.60°N, 5.57°W) 2026-10-15
+approxUTC(M.civilDawnUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15,  6,  5)), 2, 'León civil dawn UTC');
+approxUTC(M.civilDuskUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15, 18, 10)), 2, 'León civil dusk UTC');
+approxUTC(M.nauticalDawnUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15,  5, 32)), 2, 'León nautical dawn UTC');
+approxUTC(M.nauticalDuskUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15, 18, 43)), 2, 'León nautical dusk UTC');
+approxUTC(M.astronomicalDawnUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15,  5,  0)), 2, 'León astronomical dawn UTC');
+approxUTC(M.astronomicalDuskUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15, 19, 15)), 2, 'León astronomical dusk UTC');
+
+// Tokushima (34.16°N, 134.50°E) 2026-10-15
+// All dawn times fall on Oct 14 UTC (JST is UTC+9)
+approxUTC(M.civilDawnUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 14, 20, 40)), 2, 'Tokushima civil dawn UTC');
+approxUTC(M.civilDuskUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 15,  8, 54)), 2, 'Tokushima civil dusk UTC');
+approxUTC(M.nauticalDawnUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 14, 20, 11)), 2, 'Tokushima nautical dawn UTC');
+approxUTC(M.nauticalDuskUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 15,  9, 23)), 2, 'Tokushima nautical dusk UTC');
+approxUTC(M.astronomicalDawnUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 14, 19, 42)), 2, 'Tokushima astronomical dawn UTC');
+approxUTC(M.astronomicalDuskUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  9, 52)), 2, 'Tokushima astronomical dusk UTC');
+
+// Ordering invariant: for any site, astro dawn < nautical dawn < civil dawn < sunrise
+var twilightOrderPairs = [
+  [M.astronomicalDawnUTC(42.60, -5.57, oct15), M.nauticalDawnUTC(42.60, -5.57, oct15), 'León astro dawn < nautical dawn'],
+  [M.nauticalDawnUTC(42.60, -5.57, oct15),     M.civilDawnUTC(42.60, -5.57, oct15),    'León nautical dawn < civil dawn'],
+  [M.civilDawnUTC(42.60, -5.57, oct15),        M.sunriseUTC(42.60, -5.57, oct15),      'León civil dawn < sunrise'],
+];
+twilightOrderPairs.forEach(function(pair) {
+  var earlier = pair[0], later = pair[1], label = pair[2];
+  if (earlier !== null && later !== null && earlier.getTime() < later.getTime()) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': ordering violated');
+    console.log('  ✗ ' + label);
+  }
+});
+
+console.log('\n=== Moonrise/moonset UTC — Meeus Ch. 15 low-precision, 2026-10-15 ===\n');
+
+// Reference: Meeus "Astronomical Algorithms" 2nd ed. Ch. 47 + Ch. 15.
+// Computed values cross-checked against timeanddate.com almanac 2026-10-15
+// (https://www.timeanddate.com/moon/@city, fetched 2026-05-13).
+// Tolerance: ±15 min as specified by the design target.
+//
+// Tokushima 2026-10-15: moonrise 19:02 UTC (04:02 JST Oct 16), moonset 04:04 UTC
+// León 2026-10-15:      moonrise 09:49 UTC, moonset 18:42 UTC
+// Reykjavik 2026-10-15: moon dec ≈ -27°, never rises (polar non-rise) → null
+
+approxUTC(M.moonriseUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15, 19,  2)), 15, 'Tokushima moonrise UTC ±15 min');
+approxUTC(M.moonsetUTC( 34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  4,  4)), 15, 'Tokushima moonset UTC ±15 min');
+approxUTC(M.moonriseUTC(42.60,  -5.57, oct15), new Date(Date.UTC(2026, 9, 15,  9, 49)), 15, 'León moonrise UTC ±15 min');
+approxUTC(M.moonsetUTC( 42.60,  -5.57, oct15), new Date(Date.UTC(2026, 9, 15, 18, 42)), 15, 'León moonset UTC ±15 min');
+
+// Reykjavik: moon never rises on this date (declination ≈ -27°, cosH > 1) → null
+var reyMoonRise = M.moonriseUTC(64.13, -21.94, oct15);
+var reyMoonSet  = M.moonsetUTC( 64.13, -21.94, oct15);
+if (reyMoonRise === null && reyMoonSet === null) {
+  passed++;
+  console.log('  ✓ Reykjavik moonrise/set 2026-10-15 → null (moon never rises, dec ≈ -27°)');
+} else {
+  failed++;
+  failures.push('Reykjavik moonrise/set: expected null,null, got ' + reyMoonRise + ',' + reyMoonSet);
+  console.log('  ✗ Reykjavik moonrise/set: expected null,null');
+}
+
+console.log('\n=== Moon phase passthrough (moonPhaseAtUTC) ===\n');
+
+// moonPhaseAtUTC(d) must be a thin passthrough to Moon.getMoonPhase(d).
+// Verify using the real moon.js (loaded via CommonJS dual-export).
+var realMoon = require('./moon.js');
+
+// Two sample dates: waxing crescent 2026-10-15, post-new 2026-01-06 UTC
+var phaseDates = [
+  new Date(Date.UTC(2026, 9, 15)),
+  new Date(Date.UTC(2026, 0, 6)),
+];
+phaseDates.forEach(function(d) {
+  var got = M.moonPhaseAtUTC(d);
+  var ref = realMoon.getMoonPhase(d);
+  var label = 'moonPhaseAtUTC(' + d.toISOString().slice(0, 10) + ')';
+  if (typeof got === 'number' && got >= 0 && got < 1 && Math.abs(got - ref) < 1e-9) {
+    passed++;
+    console.log('  ✓ ' + label + ' = ' + got.toFixed(6) + ' (in [0,1), matches Moon.getMoonPhase)');
+  } else {
+    failed++;
+    failures.push(label + ': expected Moon.getMoonPhase=' + ref.toFixed(6) + ' in [0,1), got ' + got);
+    console.log('  ✗ ' + label + ': expected ' + ref.toFixed(6) + ', got ' + got);
+  }
+});
+
+// ===========================================================================
+// Summary
+// ===========================================================================
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

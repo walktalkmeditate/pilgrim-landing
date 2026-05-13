@@ -1,0 +1,342 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Irún to San Sebastián",
+    "startLat": 43.338,
+    "startLon": -1.789,
+    "distanceKm": 24.7,
+    "elevGainM": 720,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 1,
+    "nameEn": "San Sebastián to Zarautz",
+    "startLat": 43.321,
+    "startLon": -1.986,
+    "distanceKm": 22.1,
+    "elevGainM": 620,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 2,
+    "nameEn": "Zarautz to Deba",
+    "startLat": 43.286,
+    "startLon": -2.175,
+    "distanceKm": 21,
+    "elevGainM": 540,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 3,
+    "nameEn": "Deba to Markina-Xemein",
+    "startLat": 43.296,
+    "startLon": -2.354,
+    "distanceKm": 24,
+    "elevGainM": 820,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 4,
+    "nameEn": "Markina-Xemein to Gernika",
+    "startLat": 43.269,
+    "startLon": -2.496,
+    "distanceKm": 25.4,
+    "elevGainM": 620,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 5,
+    "nameEn": "Gernika to Lezama",
+    "startLat": 43.3144,
+    "startLon": -2.6779,
+    "distanceKm": 19.8,
+    "elevGainM": 580,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 6,
+    "nameEn": "Lezama to Bilbao",
+    "startLat": 43.276,
+    "startLon": -2.832,
+    "distanceKm": 11,
+    "elevGainM": 280,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 7,
+    "nameEn": "Bilbao to Portugalete",
+    "startLat": 43.257,
+    "startLon": -2.924,
+    "distanceKm": 19.2,
+    "elevGainM": 430,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 8,
+    "nameEn": "Portugalete to Castro Urdiales",
+    "startLat": 43.319,
+    "startLon": -3.019,
+    "distanceKm": 32.1,
+    "elevGainM": 640,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 9,
+    "nameEn": "Castro Urdiales to Laredo",
+    "startLat": 43.384,
+    "startLon": -3.215,
+    "distanceKm": 30.5,
+    "elevGainM": 610,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 10,
+    "nameEn": "Laredo to Güemes",
+    "startLat": 43.4106,
+    "startLon": -3.4173,
+    "distanceKm": 28.7,
+    "elevGainM": 540,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 11,
+    "nameEn": "Güemes to Santander",
+    "startLat": 43.4558,
+    "startLon": -3.6348,
+    "distanceKm": 15.3,
+    "elevGainM": 210,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 12,
+    "nameEn": "Santander to Santillana del Mar",
+    "startLat": 43.463,
+    "startLon": -3.805,
+    "distanceKm": 36.3,
+    "elevGainM": 540,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 13,
+    "nameEn": "Santillana del Mar to Comillas",
+    "startLat": 43.393,
+    "startLon": -4.105,
+    "distanceKm": 22.2,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 14,
+    "nameEn": "Comillas to Colombres",
+    "startLat": 43.387,
+    "startLon": -4.289,
+    "distanceKm": 28,
+    "elevGainM": 530,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 15,
+    "nameEn": "Colombres to Llanes",
+    "startLat": 43.375,
+    "startLon": -4.541,
+    "distanceKm": 22.9,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 16,
+    "nameEn": "Llanes to Ribadesella",
+    "startLat": 43.421,
+    "startLon": -4.756,
+    "distanceKm": 30,
+    "elevGainM": 490,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 17,
+    "nameEn": "Ribadesella to Colunga",
+    "startLat": 43.463,
+    "startLon": -5.058,
+    "distanceKm": 20.1,
+    "elevGainM": 350,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 18,
+    "nameEn": "Colunga to Villaviciosa",
+    "startLat": 43.4851,
+    "startLon": -5.2707,
+    "distanceKm": 17.5,
+    "elevGainM": 330,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 19,
+    "nameEn": "Villaviciosa to Gijón",
+    "startLat": 43.483,
+    "startLon": -5.433,
+    "distanceKm": 29.8,
+    "elevGainM": 560,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 20,
+    "nameEn": "Gijón to Avilés",
+    "startLat": 43.545,
+    "startLon": -5.663,
+    "distanceKm": 25.4,
+    "elevGainM": 320,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 21,
+    "nameEn": "Avilés to Muros de Nalón",
+    "startLat": 43.5554,
+    "startLon": -5.9222,
+    "distanceKm": 23.2,
+    "elevGainM": 500,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 22,
+    "nameEn": "Muros de Nalón to Soto de Luiña",
+    "startLat": 43.543,
+    "startLon": -6.1046,
+    "distanceKm": 15.3,
+    "elevGainM": 320,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 23,
+    "nameEn": "Soto de Luiña to Cadavedo",
+    "startLat": 43.561,
+    "startLon": -6.231,
+    "distanceKm": 18.5,
+    "elevGainM": 460,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 24,
+    "nameEn": "Cadavedo to Luarca",
+    "startLat": 43.548,
+    "startLon": -6.386,
+    "distanceKm": 15.3,
+    "elevGainM": 360,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 25,
+    "nameEn": "Luarca to La Caridad",
+    "startLat": 43.542,
+    "startLon": -6.536,
+    "distanceKm": 30.5,
+    "elevGainM": 570,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 26,
+    "nameEn": "La Caridad to Ribadeo",
+    "startLat": 43.551,
+    "startLon": -6.829,
+    "distanceKm": 21.3,
+    "elevGainM": 380,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 27,
+    "nameEn": "Ribadeo to Gondán",
+    "startLat": 43.534,
+    "startLon": -7.04,
+    "distanceKm": 20.9,
+    "elevGainM": 490,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 28,
+    "nameEn": "Gondán to Mondoñedo",
+    "startLat": 43.487,
+    "startLon": -7.239,
+    "distanceKm": 15.6,
+    "elevGainM": 340,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 29,
+    "nameEn": "Mondoñedo to Abadín",
+    "startLat": 43.428,
+    "startLon": -7.363,
+    "distanceKm": 16.6,
+    "elevGainM": 580,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 30,
+    "nameEn": "Abadín to Vilalba",
+    "startLat": 43.3637,
+    "startLon": -7.4753,
+    "distanceKm": 20.8,
+    "elevGainM": 280,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 31,
+    "nameEn": "Vilalba to Baamonde",
+    "startLat": 43.296,
+    "startLon": -7.679,
+    "distanceKm": 18.5,
+    "elevGainM": 240,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 32,
+    "nameEn": "Baamonde to Sobrado dos Monxes",
+    "startLat": 43.175,
+    "startLon": -7.756,
+    "distanceKm": 39.8,
+    "elevGainM": 760,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 33,
+    "nameEn": "Sobrado dos Monxes to Arzúa (joins Camino Francés)",
+    "startLat": 43.042,
+    "startLon": -8.023,
+    "distanceKm": 22,
+    "elevGainM": 350,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  }
+]

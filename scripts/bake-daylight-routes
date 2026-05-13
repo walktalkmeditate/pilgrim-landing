@@ -1,0 +1,349 @@
+#!/usr/bin/env node
+/* =============================================
+   bake-daylight-routes
+
+   Reads stage data from the sibling open-pilgrimages repo and writes
+   trimmed, daylight-budget-ready JSON into assets/daylight/.
+
+   Run from repo root (or any working directory — paths are resolved
+   from __dirname). Re-running produces byte-identical output.
+
+   Usage:
+     node scripts/bake-daylight-routes
+     ./scripts/bake-daylight-routes
+
+   Output:
+     assets/daylight/<route-id>.json   — array of stage records (with waypoints)
+     assets/daylight/route-meta.json   — summary for all 7 routes
+   ============================================= */
+
+'use strict';
+
+var fs   = require('fs');
+var path = require('path');
+
+/* --- Constants --- */
+
+var REPO_ROOT     = path.resolve(__dirname, '..');
+var SIBLING_ROOT  = path.resolve(REPO_ROOT, '..', 'open-pilgrimages');
+var ROUTES_DIR    = path.join(SIBLING_ROOT, 'routes');
+var OUT_DIR       = path.join(REPO_ROOT, 'assets', 'daylight');
+
+/* Ordered list of routes to bake. Order is canonical — do not rely on
+   object key enumeration anywhere below. */
+var ROUTE_IDS = [
+  'shikoku-88',
+  'kumano-kodo',
+  'camino-frances',
+  'camino-ingles',
+  'camino-norte',
+  'camino-portugues',
+  'camino-primitivo'
+];
+
+/* IANA timezone per route, with per-stage overrides for routes that cross
+   IANA zone boundaries (D4: bake-time resolution, no runtime tz lookup). */
+var ROUTE_TZ = {
+  'shikoku-88':      'Asia/Tokyo',
+  'kumano-kodo':     'Asia/Tokyo',
+  'camino-frances':  'Europe/Madrid',
+  'camino-ingles':   'Europe/Madrid',
+  'camino-norte':    'Europe/Madrid',
+  'camino-portugues':'Europe/Lisbon',
+  'camino-primitivo':'Europe/Madrid'
+};
+
+/* Per-stage tz overrides for routes whose stages cross IANA zone boundaries.
+   Function returns the zone for `stageIndex`, or null to fall back to ROUTE_TZ.
+   Camino Portugues: stages 0-4 start in Portugal (Europe/Lisbon, UTC+0/+1);
+   stages 5-10 start in Galicia after the Tui border crossing (Europe/Madrid,
+   UTC+1/+2). The crossing stage is 4 ("Rubiaes to Tui") — start coordinate
+   is in Portugal, so it stays on Lisbon time. */
+var STAGE_TZ_OVERRIDES = {
+  'camino-portugues': function (stageIndex) {
+    return stageIndex <= 4 ? 'Europe/Lisbon' : 'Europe/Madrid';
+  }
+};
+
+function getStageTz(routeId, stageIndex) {
+  var override = STAGE_TZ_OVERRIDES[routeId];
+  if (override) {
+    var z = override(stageIndex);
+    if (z) return z;
+  }
+  return ROUTE_TZ[routeId];
+}
+
+/* Required schema version in stages.json and metadata.json. */
+var REQUIRED_SCHEMA_VERSION = '1.0.0';
+
+/* Minimum km gap between consecutive kept waypoints within a stage.
+   Ensures at most one sacred-site tick per 3-km window on the bar. */
+var WAYPOINT_MIN_SPACING_KM = 3;
+
+/* --- Fail-loud helper --- */
+
+function die(reason) {
+  process.stderr.write('bake-daylight-routes: ' + reason + '\n');
+  process.exit(1);
+}
+
+/* --- Waypoint loading + decimation --- */
+
+/* Reads waypoints.geojson for a route, filters to sacred_site features,
+   applies 3-km density decimation within each stage, and returns a map of
+   stageIndex -> [{name, kmFromStart}].
+
+   Fail-loud contract (matches D2 pattern):
+   - Exits non-zero if the file is absent.
+   - Warns loudly to stderr (but continues with an empty map) if the file
+     contains zero sacred_site features. The data for several Camino routes
+     currently has no sacred_sites — dying here would break the bake entirely
+     for routes that are otherwise valid. */
+function loadAndDecimateWaypoints(routeId) {
+  var wpPath = path.join(ROUTES_DIR, routeId, 'waypoints.geojson');
+  if (!fs.existsSync(wpPath)) {
+    die('missing or invalid ' + wpPath + ' — waypoints.geojson not found for ' + routeId);
+  }
+  var raw;
+  try {
+    raw = fs.readFileSync(wpPath, 'utf8');
+  } catch (e) {
+    die('missing or invalid ' + wpPath + ' — could not read: ' + e.message);
+  }
+  var geojson;
+  try {
+    geojson = JSON.parse(raw);
+  } catch (e) {
+    die('missing or invalid ' + wpPath + ' — invalid JSON: ' + e.message);
+  }
+
+  if (!geojson.features || !Array.isArray(geojson.features)) {
+    die('missing or invalid ' + wpPath + ' — "features" must be an array');
+  }
+
+  var sacredSites = geojson.features.filter(function (f) {
+    return f.properties && f.properties.type === 'sacred_site';
+  });
+
+  if (sacredSites.length === 0) {
+    process.stderr.write(
+      'bake-daylight-routes: warning — ' + wpPath +
+      ' contains zero sacred_site features; waypoints will be empty for ' + routeId + '\n'
+    );
+    return {};
+  }
+
+  /* Group by stageIndex */
+  var byStage = {};
+  sacredSites.forEach(function (f) {
+    var idx = f.properties.stageIndex;
+    if (idx === undefined || idx === null) return;
+    if (!byStage[idx]) byStage[idx] = [];
+    byStage[idx].push({
+      name:        String(f.properties.name || ''),
+      kmFromStart: Number(f.properties.kmFromStart) || 0
+    });
+  });
+
+  /* Sort each stage's waypoints by kmFromStart, then apply decimation */
+  var decimated = {};
+  Object.keys(byStage).forEach(function (idx) {
+    var sorted = byStage[idx].slice().sort(function (a, b) {
+      return a.kmFromStart - b.kmFromStart;
+    });
+    var kept = [];
+    var lastKeptKm = -Infinity;
+    sorted.forEach(function (wp) {
+      if (wp.kmFromStart - lastKeptKm >= WAYPOINT_MIN_SPACING_KM) {
+        kept.push(wp);
+        lastKeptKm = wp.kmFromStart;
+      }
+    });
+    decimated[Number(idx)] = kept;
+  });
+
+  return decimated;
+}
+
+/* --- Validation --- */
+
+function readJson(filePath, label) {
+  if (!fs.existsSync(filePath)) {
+    die('missing or invalid ' + filePath + ' — ' + label + ' not found');
+  }
+  var raw;
+  try {
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (e) {
+    die('missing or invalid ' + filePath + ' — could not read: ' + e.message);
+  }
+  var parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    die('missing or invalid ' + filePath + ' — invalid JSON: ' + e.message);
+  }
+  return parsed;
+}
+
+function assertSchemaVersion(data, filePath) {
+  if (data.schemaVersion !== REQUIRED_SCHEMA_VERSION) {
+    die(
+      'missing or invalid ' + filePath +
+      ' — schemaVersion must be "' + REQUIRED_SCHEMA_VERSION +
+      '", got ' + JSON.stringify(data.schemaVersion)
+    );
+  }
+}
+
+function assertField(value, fieldName, filePath) {
+  if (value === undefined || value === null) {
+    die('missing or invalid ' + filePath + ' — required field "' + fieldName + '" is absent');
+  }
+}
+
+/* --- Stage transformation --- */
+
+/* waypointsByStage: map from stageIndex (number) -> [{name, kmFromStart}],
+   produced by loadAndDecimateWaypoints. Pass {} if not available. */
+function bakeStage(stage, ianaTz, stagesPath, waypointsByStage) {
+  var loc = stagesPath + ' stage[' + (stage.index != null ? stage.index : '?') + ']';
+
+  assertField(stage.index,              'index',               loc);
+  assertField(stage.name,               'name',                loc);
+  assertField(stage.name.en,            'name.en',             loc);
+  assertField(stage.start,              'start',               loc);
+  assertField(stage.start.coordinates,  'start.coordinates',   loc);
+  assertField(stage.distanceKm,         'distanceKm',          loc);
+  assertField(stage.elevationGainMeters,'elevationGainMeters', loc);
+
+  var coords = stage.start.coordinates; // [lng, lat, elev_m]
+  if (!Array.isArray(coords) || coords.length < 2) {
+    die('missing or invalid ' + loc + ' — start.coordinates must be [lng, lat, ...]');
+  }
+
+  var waypoints = (waypointsByStage && waypointsByStage[stage.index]) || [];
+
+  /* open-pilgrimages uses [lng, lat, elev]; baked schema uses startLat, startLon */
+  return {
+    index:      stage.index,
+    nameEn:     stage.name.en,
+    startLat:   coords[1],
+    startLon:   coords[0],
+    distanceKm: stage.distanceKm,
+    elevGainM:  stage.elevationGainMeters,
+    ianaTz:     ianaTz,
+    waypoints:  waypoints
+  };
+}
+
+/* --- Per-route bake --- */
+
+function bakeRoute(routeId) {
+  var ianaTz = ROUTE_TZ[routeId];
+  if (!ianaTz) {
+    die('missing or invalid route "' + routeId + '" — no entry in ROUTE_TZ table');
+  }
+
+  var stagesPath = path.join(ROUTES_DIR, routeId, 'stages.json');
+  var stagesData = readJson(stagesPath, 'stages.json for ' + routeId);
+
+  assertSchemaVersion(stagesData, stagesPath);
+  assertField(stagesData.stages, 'stages', stagesPath);
+
+  if (!Array.isArray(stagesData.stages) || stagesData.stages.length === 0) {
+    die('missing or invalid ' + stagesPath + ' — "stages" must be a non-empty array');
+  }
+
+  /* Load waypoints for this route */
+  var waypointsByStage = loadAndDecimateWaypoints(routeId);
+
+  var baked = stagesData.stages.map(function (stage) {
+    var stageTz = getStageTz(routeId, stage.index);
+    if (!stageTz) {
+      die('missing or invalid ' + stagesPath + ' — could not resolve ianaTz for stage ' + stage.index);
+    }
+    return bakeStage(stage, stageTz, stagesPath, waypointsByStage);
+  });
+
+  var outPath = path.join(OUT_DIR, routeId + '.json');
+  try {
+    fs.writeFileSync(outPath, JSON.stringify(baked, null, 2) + '\n', 'utf8');
+  } catch (e) {
+    die('could not write ' + outPath + ': ' + e.message);
+  }
+
+  return { stageCount: baked.length };
+}
+
+/* --- Route-meta bake --- */
+
+function bakeRouteMeta() {
+  var meta = ROUTE_IDS.map(function (routeId) {
+    var metaPath = path.join(ROUTES_DIR, routeId, 'metadata.json');
+    var data     = readJson(metaPath, 'metadata.json for ' + routeId);
+
+    assertSchemaVersion(data, metaPath);
+    assertField(data.id,       'id',       metaPath);
+    assertField(data.name,     'name',     metaPath);
+    assertField(data.name.en,  'name.en',  metaPath);
+    assertField(data.overview, 'overview', metaPath);
+
+    var distanceKm = data.overview.distanceKm;
+    assertField(distanceKm, 'overview.distanceKm', metaPath);
+
+    /* country: use overview.countries array (ISO-2); join with '/' for
+       multi-country routes so the field stays a plain string */
+    var countries = data.overview.countries;
+    assertField(countries, 'overview.countries', metaPath);
+    if (!Array.isArray(countries) || countries.length === 0) {
+      die('missing or invalid ' + metaPath + ' — overview.countries must be a non-empty array');
+    }
+    var country = countries.join('/');
+
+    return {
+      id:         data.id,
+      nameEn:     data.name.en,
+      distanceKm: distanceKm,
+      country:    country,
+      ianaTz:     ROUTE_TZ[routeId]
+    };
+  });
+
+  var outPath = path.join(OUT_DIR, 'route-meta.json');
+  try {
+    fs.writeFileSync(outPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
+  } catch (e) {
+    die('could not write ' + outPath + ': ' + e.message);
+  }
+}
+
+/* --- Entry point --- */
+
+function main() {
+  /* Validate sibling repo exists */
+  if (!fs.existsSync(SIBLING_ROOT)) {
+    die('missing or invalid ' + SIBLING_ROOT + ' — sibling repo not found');
+  }
+  if (!fs.existsSync(ROUTES_DIR)) {
+    die('missing or invalid ' + ROUTES_DIR + ' — routes directory not found in sibling repo');
+  }
+
+  /* Ensure output directory exists */
+  if (!fs.existsSync(OUT_DIR)) {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+  }
+
+  /* Bake each route — JSON pass */
+  ROUTE_IDS.forEach(function (routeId) {
+    var result = bakeRoute(routeId);
+    process.stdout.write('  ' + routeId + ' — ' + result.stageCount + ' stages\n');
+  });
+
+  /* Bake route-meta */
+  bakeRouteMeta();
+  process.stdout.write('  route-meta.json written\n');
+}
+
+main();

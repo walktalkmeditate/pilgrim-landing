@@ -1,0 +1,112 @@
+[
+  {
+    "index": 0,
+    "nameEn": "Porto to Vairão",
+    "startLat": 41.143,
+    "startLon": -8.611,
+    "distanceKm": 25,
+    "elevGainM": 240,
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
+  },
+  {
+    "index": 1,
+    "nameEn": "Vairão to Barcelos",
+    "startLat": 41.333,
+    "startLon": -8.669,
+    "distanceKm": 30,
+    "elevGainM": 280,
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
+  },
+  {
+    "index": 2,
+    "nameEn": "Barcelos to Ponte de Lima",
+    "startLat": 41.532,
+    "startLon": -8.62,
+    "distanceKm": 33,
+    "elevGainM": 420,
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
+  },
+  {
+    "index": 3,
+    "nameEn": "Ponte de Lima to Rubiães",
+    "startLat": 41.767,
+    "startLon": -8.567,
+    "distanceKm": 18,
+    "elevGainM": 450,
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
+  },
+  {
+    "index": 4,
+    "nameEn": "Rubiães to Tui",
+    "startLat": 41.896,
+    "startLon": -8.625,
+    "distanceKm": 20,
+    "elevGainM": 180,
+    "ianaTz": "Europe/Lisbon",
+    "waypoints": []
+  },
+  {
+    "index": 5,
+    "nameEn": "Tui to O Porriño",
+    "startLat": 42.046,
+    "startLon": -8.645,
+    "distanceKm": 18,
+    "elevGainM": 150,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 6,
+    "nameEn": "O Porriño to Redondela",
+    "startLat": 42.167,
+    "startLon": -8.617,
+    "distanceKm": 16,
+    "elevGainM": 230,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 7,
+    "nameEn": "Redondela to Pontevedra",
+    "startLat": 42.283,
+    "startLon": -8.617,
+    "distanceKm": 20,
+    "elevGainM": 290,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 8,
+    "nameEn": "Pontevedra to Caldas de Reis",
+    "startLat": 42.431,
+    "startLon": -8.644,
+    "distanceKm": 19,
+    "elevGainM": 310,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 9,
+    "nameEn": "Caldas de Reis to Padrón",
+    "startLat": 42.603,
+    "startLon": -8.639,
+    "distanceKm": 19,
+    "elevGainM": 220,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  },
+  {
+    "index": 10,
+    "nameEn": "Padrón to Santiago de Compostela",
+    "startLat": 42.74,
+    "startLon": -8.66,
+    "distanceKm": 25,
+    "elevGainM": 430,
+    "ianaTz": "Europe/Madrid",
+    "waypoints": []
+  }
+]
