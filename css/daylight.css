@@ -1,0 +1,392 @@
+/* =============================================
+   Daylight Walk Budget — page styles
+
+   Sibling of sunpath.css. Inherits all tokens
+   from css/styles.css. Keep the two pages feeling
+   like the same publication.
+   ============================================= */
+
+.daylight-body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--parchment);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.daylight-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem) 6rem;
+}
+
+/* =============================================
+   Header
+   ============================================= */
+
+.daylight-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.4em;
+}
+
+.daylight-lede {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0 0 2.4rem;
+  max-width: 480px;
+}
+
+/* =============================================
+   Picker panel
+   ============================================= */
+
+.daylight-picker-panel {
+  margin: 0 0 2.4rem;
+}
+
+.daylight-field {
+  margin: 0 0 1.2rem;
+}
+
+.daylight-label {
+  display: block;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  margin: 0 0 0.3rem;
+}
+
+/* Shared base for select + text input + date + time. */
+.daylight-select,
+.daylight-input {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 0;
+  padding: 0.25rem 0;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.daylight-select:focus,
+.daylight-input:focus {
+  border-bottom-color: var(--stone);
+}
+
+/* Remove default select arrow; the underline design implies interactivity. */
+.daylight-select {
+  cursor: pointer;
+  padding-right: 1.2rem;
+  background-image: none;
+}
+
+.daylight-input[type="date"],
+.daylight-input[type="time"] {
+  max-width: 200px;
+  letter-spacing: 0.04em;
+}
+
+.daylight-input::placeholder {
+  color: var(--stone);
+  opacity: 0.55;
+}
+
+/* =============================================
+   Custom-route panel
+   ============================================= */
+
+.daylight-custom-panel {
+  margin: 0 0 1.2rem;
+  padding: 1rem 0 0.2rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.18);
+}
+
+.daylight-locate-btn {
+  margin: 0.6rem 0 0;
+  background: none;
+  border: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 2px;
+  padding: 0.3rem 0.8rem;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--stone);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.daylight-locate-btn:hover,
+.daylight-locate-btn:focus-visible {
+  border-color: var(--stone);
+  color: var(--ink);
+  outline: none;
+}
+
+/* =============================================
+   Output panel
+   ============================================= */
+
+.daylight-output {
+  margin: 0 0 4rem;
+}
+
+.daylight-bar-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0 0 1rem;
+  overflow: visible;
+}
+
+/* SVG elements — styled here so CSS can reference them by class
+   from JS without needing inline style strings. */
+
+.dl-bar-track {
+  stroke: rgba(184, 175, 162, 0.25);
+  stroke-width: 1;
+  fill: none;
+}
+
+.dl-bar-daylight {
+  stroke: rgba(184, 175, 162, 0.22);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dl-bar-walk {
+  stroke: #C4956A;
+  stroke-width: 4;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.dl-bar-dot {
+  stroke: #C4956A;
+  fill: none;
+  opacity: 0.85;
+}
+
+.dl-bar-tick-sunrise,
+.dl-bar-tick-sunset {
+  stroke: var(--stone);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.dl-bar-tick-now {
+  stroke: #DAA520;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.dl-bar-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  fill: var(--stone);
+  fill-opacity: 0.75;
+}
+
+.dl-bar-label-now {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  fill: #DAA520;
+  fill-opacity: 0.9;
+}
+
+.daylight-result {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.55;
+  min-height: 1.6em;
+}
+
+.daylight-result em {
+  font-style: normal;
+  color: var(--stone);
+  font-size: 0.92em;
+}
+
+.daylight-noscript {
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.95rem;
+  margin: 2rem 0;
+}
+
+/* =============================================
+   Footer
+   ============================================= */
+
+.daylight-footer {
+  margin-top: 6rem;
+  padding: 3rem clamp(1rem, 4vw, 2rem) 4rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.18);
+  text-align: center;
+  color: var(--stone);
+}
+
+.daylight-footer-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.daylight-footer-attribution {
+  margin: 0 0 1.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.daylight-footer-attribution a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.4);
+  padding-bottom: 1px;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.daylight-footer-attribution a:hover {
+  border-bottom-color: var(--ink);
+}
+
+.daylight-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 1.6rem;
+  font-size: 0.9rem;
+}
+
+.daylight-footer-links a {
+  color: var(--stone);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.daylight-footer-links a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--stone);
+}
+
+.daylight-footer-sep {
+  color: var(--stone);
+  opacity: 0.35;
+}
+
+.daylight-footer-license {
+  margin: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  opacity: 0.55;
+}
+
+/* =============================================
+   Dark mode / constellation
+   ============================================= */
+
+body.constellation .daylight-footer {
+  border-top-color: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .daylight-footer-attribution {
+  color: rgba(232, 224, 255, 0.92);
+}
+
+body.constellation .daylight-footer-attribution a {
+  border-bottom-color: rgba(232, 224, 255, 0.35);
+}
+
+body.constellation .daylight-footer-links a {
+  color: rgba(232, 224, 255, 0.55);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .daylight-footer-links a:hover {
+  color: rgba(232, 224, 255, 0.95);
+  border-bottom-color: rgba(232, 224, 255, 0.5);
+}
+
+body.constellation .daylight-select,
+body.constellation .daylight-input {
+  color: rgba(232, 224, 255, 0.85);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .dl-bar-label {
+  fill: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-daylight {
+  stroke: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .dl-bar-tick-sunrise,
+body.constellation .dl-bar-tick-sunset {
+  stroke: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-walk,
+body.constellation .dl-bar-dot {
+  stroke: rgba(232, 224, 255, 0.65);
+}
+
+/* =============================================
+   Responsive
+   ============================================= */
+
+@media (max-width: 600px) {
+  .daylight-main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .daylight-select,
+  .daylight-input {
+    max-width: 100%;
+  }
+
+  .daylight-input[type="date"],
+  .daylight-input[type="time"] {
+    max-width: 100%;
+  }
+}
