@@ -1,5 +1,7 @@
 # Spec: Daylight Walk Budget — v2 Enrichment Bundle
 
+**Post-merge simplification (2026-05-13):** user feedback judged the per-route subpages, moon glyph, and permalink line redundant. Spider dial removed with the subpages. Twilight bands, moonrise/moonset ticks, waypoint ticks, ICS export, and routes-index discoverability all retained.
+
 **Status:** draft v3 — addresses doc-review rounds 1+2, decisions D7-D10 locked, ready for round-3 convergence check
 **Date:** 2026-05-13
 **Parent:** `docs/specs/2026-05-12-daylight-walk-budget.md` (v1, shipped 2026-05-13)

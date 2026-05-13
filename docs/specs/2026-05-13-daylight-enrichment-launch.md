@@ -80,3 +80,19 @@ The bar's protagonists (daylight span, walk window, sunrise/sunset markers) rema
 ## Sign-off
 
 All 17 acceptance criteria met or documented as deferred-to-human. Branch ready for PR.
+
+## Simplification pass (2026-05-13)
+
+User feedback after initial implementation judged three additions redundant. Removed cleanly on the same branch before merging.
+
+**Removed:**
+- **Moon glyph** (`<div id="dl-moon-glyph">`, `.dl-moon-glyph` CSS, `Moon.renderMoon(...)` call) — redundant with the site-wide moon-toggle in the top-right corner.
+- **Per-route subpages** — all 7 `daylight/<route>/index.html` files deleted, `scripts/bake-daylight-routes-templates/` deleted, HTML pass removed from bake script, 7 entries removed from `sitemap.xml`. The hub at `/daylight/?route=<id>` provides the same experience via URL param.
+- **Spider dial** — removed with the subpages (CSS classes `.dl-spider-dial`, `.dl-spider-dial-bg`, `.dl-spider-dial-fg` deleted; `buildSpiderDialSVG` and `totalWaypointCount` removed from bake script).
+- **Permalink line** (`<p id="dl-permalink">`, `.dl-permalink` CSS, show/hide logic in `runAndRender`) — routes-index discoverability in the footer serves the same navigation need.
+- **`.dl-bar-container` wrapper** — was added solely to position the glyph; dropped with it.
+- **`data-default-route` body attribute reading** in `applyParamsFromURL` — was only consumed by per-route subpages.
+
+**Routes-index links** updated from `/daylight/<id>/` to `/daylight/?route=<id>` so the hub picks up the route.
+
+**Retained:** twilight bands, moonrise/moonset ticks on bar, waypoint ticks, ICS export, routes-index discoverability, all moon math in `js/sunpath-math.js`.

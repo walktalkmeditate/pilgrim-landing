@@ -738,7 +738,6 @@
     dom.bufferWrap    = document.getElementById('dl-buffer-wrap');
     dom.bufferInput   = document.getElementById('dl-buffer');
     dom.barSvg        = document.getElementById('dl-bar-svg');
-    dom.moonGlyph     = document.getElementById('dl-moon-glyph');
     dom.result        = document.getElementById('dl-result');
     dom.annotations   = document.getElementById('dl-annotations');
     dom.shareBtn      = document.getElementById('dl-share-btn');
@@ -747,7 +746,6 @@
     dom.validationMsg = document.getElementById('dl-validation-msg');
     dom.prefsToggle      = document.getElementById('dl-prefs-toggle');
     dom.prefsPanel       = document.getElementById('dl-prefs-panel');
-    dom.permalink        = document.getElementById('dl-permalink');
     dom.routesIndex      = document.getElementById('dl-routes-index');
     dom.routesIndexLinks = document.getElementById('dl-routes-index-links');
 
@@ -901,12 +899,6 @@
 
   function applyParamsFromURL() {
     var params = coerceParams(parseParams(location.search));
-
-    /* Per-route SEO pages set data-default-route on <body>. Use it as a
-       fallback when the URL carries no route param (bare /daylight/<route>/ URL). */
-    if (!params.route && document.body && document.body.dataset.defaultRoute) {
-      params.route = document.body.dataset.defaultRoute;
-    }
 
     if (params.date)  dom.dateInput.value  = params.date;
     if (params.pace)  dom.paceInput.value  = params.pace;
@@ -1073,7 +1065,7 @@
       }
       meta.forEach(function (r, i) {
         var a = document.createElement('a');
-        a.href        = '/daylight/' + r.id + '/';
+        a.href        = '/daylight/?route=' + r.id;
         a.textContent = r.nameEn;
         a.className   = 'dl-routes-index-link';
         dom.routesIndexLinks.appendChild(a);
@@ -1270,32 +1262,12 @@
 
     renderSVG(output, dom.barSvg, output.stageTz || null, _prefs.clockFormat);
 
-    if (dom.moonGlyph) {
-      if (output.moonPhase !== null && output.moonPhase !== undefined
-          && typeof window.Moon !== 'undefined') {
-        dom.moonGlyph.hidden = false;
-        window.Moon.renderMoon(dom.moonGlyph, output.moonPhase);
-      } else {
-        dom.moonGlyph.hidden = true;
-      }
-    }
-
     var isCustom = (state.route === 'custom');
     if (dom.shareBtn) {
       dom.shareBtn.hidden = !isCustom;
     }
     if (dom.shareHint) {
       dom.shareHint.hidden = !isCustom;
-    }
-
-    var isNamedRoute = state.route && state.route !== 'custom';
-    if (dom.permalink) {
-      if (isNamedRoute) {
-        dom.permalink.textContent = 'direct link: /daylight/' + state.route + '/';
-        dom.permalink.hidden = false;
-      } else {
-        dom.permalink.hidden = true;
-      }
     }
 
     if (output.error) {
