@@ -48,8 +48,8 @@ var ROUTE_IDS = [
   'camino-primitivo'
 ];
 
-/* Per-route IANA timezone. Each stage record inherits the route's zone
-   (D4: bake-time resolution, no runtime tz lookup needed). */
+/* IANA timezone per route, with per-stage overrides for routes that cross
+   IANA zone boundaries (D4: bake-time resolution, no runtime tz lookup). */
 var ROUTE_TZ = {
   'shikoku-88':      'Asia/Tokyo',
   'kumano-kodo':     'Asia/Tokyo',
@@ -59,6 +59,27 @@ var ROUTE_TZ = {
   'camino-portugues':'Europe/Lisbon',
   'camino-primitivo':'Europe/Madrid'
 };
+
+/* Per-stage tz overrides for routes whose stages cross IANA zone boundaries.
+   Function returns the zone for `stageIndex`, or null to fall back to ROUTE_TZ.
+   Camino Portugués: stages 0–4 start in Portugal (Europe/Lisbon, UTC+0/+1);
+   stages 5–10 start in Galicia after the Tui border crossing (Europe/Madrid,
+   UTC+1/+2). The crossing stage is 4 ("Rubiães to Tui") — start coordinate
+   is in Portugal, so it stays on Lisbon time. */
+var STAGE_TZ_OVERRIDES = {
+  'camino-portugues': function (stageIndex) {
+    return stageIndex <= 4 ? 'Europe/Lisbon' : 'Europe/Madrid';
+  }
+};
+
+function getStageTz(routeId, stageIndex) {
+  var override = STAGE_TZ_OVERRIDES[routeId];
+  if (override) {
+    var z = override(stageIndex);
+    if (z) return z;
+  }
+  return ROUTE_TZ[routeId];
+}
 
 /* Required schema version in stages.json and metadata.json. */
 var REQUIRED_SCHEMA_VERSION = '1.0.0';
@@ -156,7 +177,11 @@ function bakeRoute(routeId) {
   }
 
   var baked = stagesData.stages.map(function (stage) {
-    return bakeStage(stage, ianaTz, stagesPath);
+    var stageTz = getStageTz(routeId, stage.index);
+    if (!stageTz) {
+      die('missing or invalid ' + stagesPath + ' — could not resolve ianaTz for stage ' + stage.index);
+    }
+    return bakeStage(stage, stageTz, stagesPath);
   });
 
   var outPath = path.join(OUT_DIR, routeId + '.json');
