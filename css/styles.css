@@ -165,6 +165,14 @@ a:focus-visible {
   border-radius: 22px;
 }
 
+/* Star/constellation theme swaps the hero logo for its night variant.
+   `content: url()` replaces the rendered image while the <img>'s src
+   attribute stays the same — main.js sets body.constellation before
+   first paint so there's no flicker. */
+body.constellation .hero-logo {
+  content: url('../assets/pilgrim-logo-constellation.png');
+}
+
 .hero-logo.heartbeat {
   animation: logo-heartbeat 1.2s ease-in-out infinite alternate;
 }
