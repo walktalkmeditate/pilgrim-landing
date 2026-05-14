@@ -1,0 +1,114 @@
+{
+  "_epoch": "1900-01-01T00:00:00Z",
+  "_speedSource": "NOAA CO-OPS standard (Schureman 1958 / Doodson notation)",
+  "_constituents": ["M2", "S2", "N2", "K1", "O1", "P1", "Q1", "K2", "M4", "MS4"],
+  "_note": "Phase_GMT referenced to 1900-01-01T00:00:00Z per NOAA CO-OPS convention. Amplitudes in metres.",
+  "_deferred": [
+    "Cascais (Portugal) — BODC/GLOSS CSCS; constituent lookup pending",
+    "A Coruña (Spain) — Puertos del Estado PORTUS; constituent lookup pending",
+    "San Sebastián (Spain) — Puertos del Estado PORTUS; constituent lookup pending",
+    "Saint-Malo (France) — IOC/GLOSS harmonics dataset; constituent lookup pending",
+    "Port Elizabeth / Gqeberha (South Africa) — IOC/GLOSS station 218; constituent lookup pending",
+    "Karachi (Pakistan) — UHSLC/IOC GLOSS; constituent lookup pending",
+    "Sydney / Fort Denison (Australia) — BoM/NTC CC BY 3.0 AU; constituent lookup pending",
+    "Auckland (New Zealand) — LINZ CC BY 4.0; constituent lookup pending"
+  ],
+  "ports": [
+    {
+      "id": "honolulu",
+      "name": "Honolulu",
+      "country": "US",
+      "lat": 21.307,
+      "lon": -157.867,
+      "source": "NOAA Tides and Currents, station 1612340",
+      "source_url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/1612340/harcon.json?units=metric",
+      "license": "Public domain — US federal government work (17 U.S.C. §105)",
+      "harcon_fetched": "2026-05-14",
+      "harcon_period": "Vector average 5 years (2014–2018); SA from 17-year record (1998–2018)",
+      "constituents": {
+        "M2":  { "amp": 0.171, "phase":  59.4, "speed": 28.9841042 },
+        "S2":  { "amp": 0.056, "phase":  54.7, "speed": 30.0 },
+        "N2":  { "amp": 0.033, "phase":  48.8, "speed": 28.4397295 },
+        "K1":  { "amp": 0.149, "phase": 226.8, "speed": 15.0410686 },
+        "O1":  { "amp": 0.081, "phase": 215.9, "speed": 13.9430356 },
+        "P1":  { "amp": 0.045, "phase": 224.9, "speed": 14.9589314 },
+        "Q1":  { "amp": 0.014, "phase": 209.6, "speed": 13.3986609 },
+        "K2":  { "amp": 0.016, "phase":  45.7, "speed": 30.0821373 },
+        "M4":  { "amp": 0.001, "phase": 195.3, "speed": 57.9682084 },
+        "MS4": { "amp": 0.001, "phase": 104.0, "speed": 58.9841042 }
+      }
+    },
+    {
+      "id": "boston",
+      "name": "Boston",
+      "country": "US",
+      "lat": 42.355,
+      "lon": -71.052,
+      "source": "NOAA Tides and Currents, station 8443970",
+      "source_url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/harcon.json?units=metric",
+      "license": "Public domain — US federal government work (17 U.S.C. §105)",
+      "harcon_fetched": "2026-05-14",
+      "harcon_period": "Vector average 5 years (2015–2019); long-period constituents from 20-year record (2000–2019)",
+      "constituents": {
+        "M2":  { "amp": 1.371, "phase": 109.2, "speed": 28.9841042 },
+        "S2":  { "amp": 0.208, "phase": 146.2, "speed": 30.0 },
+        "N2":  { "amp": 0.305, "phase":  76.7, "speed": 28.4397295 },
+        "K1":  { "amp": 0.143, "phase": 205.6, "speed": 15.0410686 },
+        "O1":  { "amp": 0.116, "phase": 187.1, "speed": 13.9430356 },
+        "P1":  { "amp": 0.047, "phase": 204.8, "speed": 14.9589314 },
+        "Q1":  { "amp": 0.019, "phase": 172.1, "speed": 13.3986609 },
+        "K2":  { "amp": 0.059, "phase": 146.1, "speed": 30.0821373 },
+        "M4":  { "amp": 0.023, "phase":  29.0, "speed": 57.9682084 },
+        "MS4": { "amp": 0.009, "phase":  74.0, "speed": 58.9841042 }
+      }
+    },
+    {
+      "id": "san-francisco",
+      "name": "San Francisco",
+      "country": "US",
+      "lat": 37.806,
+      "lon": -122.465,
+      "source": "NOAA Tides and Currents, station 9414290",
+      "source_url": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9414290/harcon.json?units=metric",
+      "license": "Public domain — US federal government work (17 U.S.C. §105)",
+      "harcon_fetched": "2026-05-14",
+      "harcon_period": "Vector average 5 years",
+      "constituents": {
+        "M2":  { "amp": 0.576, "phase": 208.2, "speed": 28.9841042 },
+        "S2":  { "amp": 0.137, "phase": 216.2, "speed": 30.0 },
+        "N2":  { "amp": 0.122, "phase": 183.2, "speed": 28.4397295 },
+        "K1":  { "amp": 0.370, "phase": 225.4, "speed": 15.0410686 },
+        "O1":  { "amp": 0.230, "phase": 208.4, "speed": 13.9430356 },
+        "P1":  { "amp": 0.114, "phase": 222.1, "speed": 14.9589314 },
+        "Q1":  { "amp": 0.041, "phase": 202.4, "speed": 13.3986609 },
+        "K2":  { "amp": 0.040, "phase": 206.0, "speed": 30.0821373 },
+        "M4":  { "amp": 0.022, "phase": 136.8, "speed": 57.9682084 },
+        "MS4": { "amp": 0.010, "phase": 149.0, "speed": 58.9841042 }
+      }
+    },
+    {
+      "id": "newlyn",
+      "name": "Newlyn",
+      "country": "GB",
+      "lat": 50.103,
+      "lon": -5.543,
+      "source": "NTSLF / NOC — National Tidal and Sea Level Facility, Newlyn (UK national datum reference gauge)",
+      "source_url": "https://www.ntslf.org/tides/tidepred?port=Newlyn",
+      "license": "Open Government Licence v3.0 (OGL v3) — https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "harcon_ref": "Pugh & Woodworth (2014) Sea-Level Science, Cambridge Univ. Press, Table A3.1; NTSLF Technical Note 2013-01",
+      "harcon_period": "Long-term harmonic analysis of Newlyn tide gauge record",
+      "constituents": {
+        "M2":  { "amp": 1.559, "phase":  99.4, "speed": 28.9841042 },
+        "S2":  { "amp": 0.547, "phase": 142.8, "speed": 30.0 },
+        "N2":  { "amp": 0.318, "phase":  73.9, "speed": 28.4397295 },
+        "K1":  { "amp": 0.074, "phase": 176.4, "speed": 15.0410686 },
+        "O1":  { "amp": 0.055, "phase": 158.8, "speed": 13.9430356 },
+        "P1":  { "amp": 0.022, "phase": 174.4, "speed": 14.9589314 },
+        "Q1":  { "amp": 0.012, "phase": 145.3, "speed": 13.3986609 },
+        "K2":  { "amp": 0.149, "phase": 143.4, "speed": 30.0821373 },
+        "M4":  { "amp": 0.094, "phase": 198.5, "speed": 57.9682084 },
+        "MS4": { "amp": 0.040, "phase": 202.5, "speed": 58.9841042 }
+      }
+    }
+  ]
+}
