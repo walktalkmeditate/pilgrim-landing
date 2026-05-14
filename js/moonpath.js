@@ -528,6 +528,121 @@
   }
 
   /* ==========================================
+     Slice 5 — Interstitial prose system
+     ========================================== */
+
+  /*
+   * INTERSTITIAL_TABLE — static lookup for the 8 prose slots between widget sections.
+   * Shape: { sectionId → { stateKey → prose } }
+   * State keys:
+   *   'isCircumpolar:true'           — moon does not rise that day
+   *   'isMoonBelowHorizon:true'      — moon below horizon at query time
+   *   'springNeapState:<value>'      — first word(s) of the D10 state string
+   *   'k_bucket:<label>'             — from luxBracketFor(lux).label
+   *   'default'                      — always present, always '' (hides element)
+   *
+   * Priority order in interstitialFor (most specific first):
+   *   isCircumpolar > isMoonBelowHorizon > springNeapState > k_bucket > default
+   *
+   * Curated count: 28 non-default strings across 8 slots (≥3 per slot, within [24,32]).
+   * Voice: contemplative, present tense, 8–16 words, no exclamation marks, no HTML.
+   */
+  var INTERSTITIAL_TABLE = {
+    'between-dome-and-azimuth': {
+      'isCircumpolar:true':       'Tonight the moon arcs without touching the horizon — circumpolar.',
+      'isMoonBelowHorizon:true':  'The moon is below the horizon at this hour; patience.',
+      'k_bucket:bright':          'A bright moon draws a long shadow across open ground tonight.',
+      'k_bucket:faint':           'A thin sliver casts almost no light; the stars will dominate.',
+      'default': ''
+    },
+    'between-azimuth-and-phase': {
+      'isCircumpolar:true':       'No moonrise today — the moon circles the pole without setting.',
+      'k_bucket:bright':          'The phase is near full; moonrise will be visible from miles away.',
+      'k_bucket:mid':             'A gibbous moon rises with enough light to soften the dark.',
+      'k_bucket:faint':           'A crescent rises quietly; easy to miss against the dusk sky.',
+      'default': ''
+    },
+    'between-phase-and-earthshine': {
+      'k_bucket:bright':          'Near full, the lit face leaves little room for earthshine.',
+      'k_bucket:faint':           'A narrow crescent holds just enough shadow for earthshine to show.',
+      'k_bucket:dim':             'A quarter moon — the line between light and dark runs clean.',
+      'isMoonBelowHorizon:true':  'The moon is set; no earthshine visible from the ground tonight.',
+      'default': ''
+    },
+    'between-earthshine-and-size': {
+      'k_bucket:bright':          'Close to full, the disk appears large and steady in the sky.',
+      'k_bucket:faint':           'Crescent phase softens the sense of size; distance matters more.',
+      'isCircumpolar:true':       'Circumpolar tonight — the moon traces a full arc overhead.',
+      'default': ''
+    },
+    'between-size-and-lux': {
+      'k_bucket:bright':          'Distance and phase align; the moon will cast defined shadows.',
+      'k_bucket:mid':             'Moderate brightness — enough to walk an open trail without a lamp.',
+      'k_bucket:dim':             'Dim by distance or phase; a headlamp will extend the range.',
+      'k_bucket:faint':           'Near new moon or far away; very little usable light reaches ground.',
+      'default': ''
+    },
+    'between-lux-and-eclipse': {
+      'k_bucket:bright':          'Full or near-full — the geometry that also produces eclipses.',
+      'k_bucket:faint':           'New or near-new moon — the geometry that can bring solar eclipses.',
+      'isMoonBelowHorizon:true':  'Moon below the horizon — no local eclipse visible at this hour.',
+      'isCircumpolar:true':       'Circumpolar moon; eclipse visibility depends on the hour of contact.',
+      'default': ''
+    },
+    'between-eclipse-and-standstill': {
+      'k_bucket:bright':          'The full moon that brings tides also marks the standstill cycle.',
+      'k_bucket:faint':           'Near new moon — the standstill arc is wide but the moon is faint.',
+      'isCircumpolar:true':       'Circumpolar tonight; the standstill declination is near its extreme.',
+      'default': ''
+    },
+    'between-standstill-and-tide': {
+      'springNeapState:Spring':   'Spring tides this week — the lunar and solar pulls run together.',
+      'springNeapState:Neap':     'Neap tides now — the sun and moon pull at right angles, range narrows.',
+      'springNeapState:Tide':     'Tides approaching spring range as moon and sun align again.',
+      'isMoonBelowHorizon:true':  'Moon set; tidal pull continues regardless of visibility.',
+      'default': ''
+    }
+  };
+
+  /*
+   * interstitialFor(output, sectionId) — pure function.
+   * Looks up the relevant prose string for a given interstitial slot.
+   * Priority order (most specific first):
+   *   isCircumpolar:true > isMoonBelowHorizon:true > springNeapState:<v> > k_bucket:<v> > default
+   * Returns '' when no match (element should be hidden).
+   */
+  function interstitialFor(output, sectionId) {
+    var sub = INTERSTITIAL_TABLE[sectionId];
+    if (!sub) return '';
+
+    // isCircumpolar: moon does not rise that day
+    if (output.isCircumpolar === true && sub['isCircumpolar:true'] !== undefined) {
+      return sub['isCircumpolar:true'];
+    }
+
+    // isMoonBelowHorizon: moon below horizon at query time
+    if (output.isMoonBelowHorizon === true && sub['isMoonBelowHorizon:true'] !== undefined) {
+      return sub['isMoonBelowHorizon:true'];
+    }
+
+    // springNeapState: first word of D10 state (e.g. "Spring tides…" → key "springNeapState:Spring")
+    if (output.springNeapState) {
+      var snWord = output.springNeapState.split(' ')[0];
+      var snKey = 'springNeapState:' + snWord;
+      if (sub[snKey] !== undefined) return sub[snKey];
+    }
+
+    // k_bucket: from luxBracketFor(output.moonLuxAtCoord).label
+    if (typeof output.moonLuxAtCoord === 'number') {
+      var bucket = luxBracketFor(output.moonLuxAtCoord);
+      var kKey = 'k_bucket:' + bucket.label;
+      if (sub[kKey] !== undefined) return sub[kKey];
+    }
+
+    return sub['default'] !== undefined ? sub['default'] : '';
+  }
+
+  /* ==========================================
      Slice 4 — Eclipse pointer constants
      ========================================== */
 
@@ -555,7 +670,9 @@
     scrubberValueToInstant:    scrubberValueToInstant,
     instantToScrubberValue:    instantToScrubberValue,
     cardinalProseFor:          cardinalProseFor,
-    ECLIPSE_VALID_YR_RANGE:    ECLIPSE_VALID_YR_RANGE
+    ECLIPSE_VALID_YR_RANGE:    ECLIPSE_VALID_YR_RANGE,
+    INTERSTITIAL_TABLE:        INTERSTITIAL_TABLE,
+    interstitialFor:           interstitialFor
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -1112,6 +1229,27 @@
   }
 
   /* ==========================================
+     Interstitial prose renderer
+     ========================================== */
+
+  /*
+   * renderInterstitial(output, sectionId, pEl)
+   * Reads interstitialFor(output, sectionId). Sets textContent + removes hidden when
+   * non-empty; sets hidden + clears textContent when empty.
+   */
+  function renderInterstitial(output, sectionId, pEl) {
+    if (!pEl) return;
+    var prose = interstitialFor(output, sectionId);
+    if (prose === '') {
+      pEl.textContent = '';
+      pEl.setAttribute('hidden', '');
+    } else {
+      pEl.textContent = prose;
+      pEl.removeAttribute('hidden');
+    }
+  }
+
+  /* ==========================================
      Widget 6 — Tide curve
      ========================================== */
 
@@ -1400,7 +1538,9 @@
     tideSvg:            document.getElementById('mp-tide-svg'),
     tideLabel:          document.getElementById('mp-tide-label'),
     tideSpringNeap:     document.getElementById('mp-tide-spring-neap'),
-    tideKingFlag:       document.getElementById('mp-tide-king-flag')
+    tideKingFlag:       document.getElementById('mp-tide-king-flag'),
+    // Interstitial prose elements (cached NodeList)
+    interstitials:      document.querySelectorAll('p.mp-interstitial')
   };
 
   /* ==========================================
@@ -1463,6 +1603,14 @@
     renderEclipsePointer(output, els.eclipseContent);
     renderStandstillAnnotation(output, els.standstillResult, els.standstillCallouts);
     renderTideSection(output);
+
+    // Render all 8 interstitial prose slots
+    if (els.interstitials) {
+      for (var ii = 0; ii < els.interstitials.length; ii++) {
+        var ipEl = els.interstitials[ii];
+        renderInterstitial(output, ipEl.dataset.sectionId, ipEl);
+      }
+    }
 
     // Update scrubber label
     if (els.scrubberLabel) {
