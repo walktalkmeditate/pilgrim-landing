@@ -473,62 +473,102 @@
 }
 
 /* =============================================
-   Footer
+   Footer — matches sunpath/daylight footer rules
    ============================================= */
 
 .moonpath-footer {
-  border-top: 1px solid rgba(184, 175, 162, 0.25);
-  padding: 2rem 0 0;
-  margin: 0;
+  margin-top: 6rem;
+  padding: 3rem clamp(1rem, 4vw, 2rem) 4rem;
+  border-top: 1px solid rgba(184, 175, 162, 0.18);
+  text-align: center;
+  color: var(--stone);
 }
 
 .moonpath-footer-inner {
-  max-width: 640px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2rem) 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .moonpath-footer-attribution {
-  font-size: 0.88rem;
-  color: var(--stone);
-  margin: 0;
+  margin: 0 0 1.4rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
 }
 
 .moonpath-footer-attribution a {
   color: inherit;
   text-decoration: none;
-  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  border-bottom: 1px solid rgba(184, 175, 162, 0.4);
+  padding-bottom: 1px;
+  transition: border-bottom-color 0.2s ease;
+}
+
+.moonpath-footer-attribution a:hover {
+  border-bottom-color: var(--ink);
 }
 
 .moonpath-footer-links {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.82rem;
-  color: var(--stone);
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 1.6rem;
+  font-size: 0.9rem;
 }
 
 .moonpath-footer-links a {
-  color: inherit;
+  color: var(--stone);
   text-decoration: none;
   border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
 }
 
 .moonpath-footer-links a:hover {
+  color: var(--ink);
   border-bottom-color: var(--stone);
 }
 
 .moonpath-footer-sep {
-  color: rgba(184, 175, 162, 0.5);
+  color: var(--stone);
+  opacity: 0.35;
 }
 
 .moonpath-footer-license {
-  font-size: 0.78rem;
-  color: var(--stone);
-  opacity: 0.6;
   margin: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  opacity: 0.55;
+}
+
+body.constellation .moonpath-footer {
+  border-top-color: rgba(232, 224, 255, 0.15);
+}
+
+body.constellation .moonpath-footer-attribution {
+  color: rgba(232, 224, 255, 0.92);
+}
+
+body.constellation .moonpath-footer-attribution a {
+  border-bottom-color: rgba(232, 224, 255, 0.35);
+}
+
+body.constellation .moonpath-footer-attribution a:hover {
+  border-bottom-color: rgba(232, 224, 255, 0.85);
+}
+
+body.constellation .moonpath-footer-links a {
+  color: rgba(232, 224, 255, 0.55);
+  border-bottom-color: rgba(232, 224, 255, 0.2);
+}
+
+body.constellation .moonpath-footer-links a:hover {
+  color: rgba(232, 224, 255, 0.95);
+  border-bottom-color: rgba(232, 224, 255, 0.5);
 }
