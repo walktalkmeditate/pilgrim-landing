@@ -67,9 +67,15 @@ Current almanac entries:
   stage's local timezone, walking duration via Tobler-inspired pace
   math, civil/nautical/astronomical twilight bands, moonrise/moonset,
   ICS calendar export.
+- [/moonpath/](https://pilgrimapp.org/moonpath/) — universal moon and
+  tide viewer. Enter any coord; see moon altitude, phase, apparent
+  size, earthshine window, lunar-lux bracket, tide curve for the
+  nearest baked port (within 200 km), spring/neap state, king-tide
+  flag, and a lunar-standstill time-machine (±5,000 yr). ICS exports
+  for full moons and king tides.
 
-Future planned entries: tide-clock for coastal stages, bloom + foliage
-almanac, watershed-of-place, place-name etymology.
+Future planned entries: bloom + foliage almanac, watershed-of-place,
+place-name etymology.
 
 ## Related Pilgrim resources
 
