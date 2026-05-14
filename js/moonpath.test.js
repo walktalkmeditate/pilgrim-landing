@@ -411,35 +411,45 @@ ok(MoonPath.STANDSTILL_SLIDER_MIN <= -1800, 'slider min reaches Callanish (-1800
    Slice 6 — springNeapStateFromDays D10 five-state table
    ========================================== */
 
-console.log('\n=== springNeapStateFromDays — D10 five states ===\n');
+console.log('\n=== springNeapStateFromDays — D10 verbatim five states ===\n');
 
-var VALID_STATES = ['spring', 'approaching spring', 'neap', 'approaching neap', 'mid'];
+var VALID_STATES = [
+  'Spring tides this week (new moon)',
+  'Spring tides this week (full moon)',
+  'Tide range trending toward neap',
+  'Neap tides — sun and moon pull at right angles',
+  'Tide range trending toward spring',
+  'Spring tides approaching'
+];
 
-// spring: within ±2 days of syzygy → daysFromSyzygy ≤ 2
-equal(MoonPath.springNeapStateFromDays(0, 7),   'spring', 'daysFromSyzygy=0 → spring');
-equal(MoonPath.springNeapStateFromDays(2, 7),   'spring', 'daysFromSyzygy=2 → spring (boundary)');
-equal(MoonPath.springNeapStateFromDays(1.5, 7), 'spring', 'daysFromSyzygy=1.5 → spring');
+// 0–2 days since last syzygy → "Spring tides this week (<kind> moon)"
+equal(MoonPath.springNeapStateFromDays(0,   'new'),  'Spring tides this week (new moon)',  'd=0 new  → spring (new)');
+equal(MoonPath.springNeapStateFromDays(2,   'full'), 'Spring tides this week (full moon)', 'd=2 full → spring (full, boundary)');
+equal(MoonPath.springNeapStateFromDays(1.5, 'new'),  'Spring tides this week (new moon)',  'd=1.5 → spring');
 
-// approaching spring: 3–4 days before next syzygy
-equal(MoonPath.springNeapStateFromDays(3, 7),   'approaching spring', 'daysFromSyzygy=3 → approaching spring');
-equal(MoonPath.springNeapStateFromDays(4, 7),   'approaching spring', 'daysFromSyzygy=4 → approaching spring (boundary)');
+// 3–4 days → "Tide range trending toward neap"
+equal(MoonPath.springNeapStateFromDays(3, 'new'), 'Tide range trending toward neap', 'd=3 → trending toward neap');
+equal(MoonPath.springNeapStateFromDays(4, 'full'), 'Tide range trending toward neap', 'd=4 → trending toward neap (boundary)');
 
-// neap: within ±2 days of quarter
-equal(MoonPath.springNeapStateFromDays(5, 0),   'neap', 'daysFromQuarter=0 → neap');
-equal(MoonPath.springNeapStateFromDays(5, 2),   'neap', 'daysFromQuarter=2 → neap (boundary)');
+// 5–9 days → "Neap tides — sun and moon pull at right angles"
+equal(MoonPath.springNeapStateFromDays(5, 'new'), 'Neap tides — sun and moon pull at right angles', 'd=5 → neap');
+equal(MoonPath.springNeapStateFromDays(7, 'full'), 'Neap tides — sun and moon pull at right angles', 'd=7 → neap (mid)');
+equal(MoonPath.springNeapStateFromDays(9, 'new'), 'Neap tides — sun and moon pull at right angles', 'd=9 → neap (boundary)');
 
-// approaching neap: 3–4 days before next quarter
-equal(MoonPath.springNeapStateFromDays(5, 3),   'approaching neap', 'daysFromQuarter=3 → approaching neap');
-equal(MoonPath.springNeapStateFromDays(5, 4),   'approaching neap', 'daysFromQuarter=4 → approaching neap (boundary)');
+// 10–11 days → "Tide range trending toward spring"
+equal(MoonPath.springNeapStateFromDays(10, 'full'), 'Tide range trending toward spring', 'd=10 → trending toward spring');
+equal(MoonPath.springNeapStateFromDays(11, 'new'),  'Tide range trending toward spring', 'd=11 → trending toward spring (boundary)');
 
-// mid: everything else
-equal(MoonPath.springNeapStateFromDays(5, 5),   'mid', 'daysFromSyzygy=5 daysFromQuarter=5 → mid');
-equal(MoonPath.springNeapStateFromDays(6, 6),   'mid', 'daysFromSyzygy=6 daysFromQuarter=6 → mid');
+// 12+ days → "Spring tides approaching"
+equal(MoonPath.springNeapStateFromDays(12, 'full'),   'Spring tides approaching', 'd=12 → spring approaching');
+equal(MoonPath.springNeapStateFromDays(14.5, 'new'),  'Spring tides approaching', 'd=14.5 → spring approaching (max range)');
 
 // All returned values are in the valid set
 var testCases = [
-  [0, 7], [2, 7], [3, 7], [4, 7],
-  [5, 0], [5, 2], [5, 3], [5, 4], [5, 5]
+  [0, 'new'], [2, 'full'], [3, 'new'], [4, 'full'],
+  [5, 'new'], [7, 'full'], [9, 'new'],
+  [10, 'full'], [11, 'new'],
+  [12, 'full'], [14, 'new']
 ];
 testCases.forEach(function (tc) {
   var result = MoonPath.springNeapStateFromDays(tc[0], tc[1]);

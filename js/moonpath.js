@@ -116,27 +116,27 @@
 
   /* ==========================================
      Spring/neap state — D10 5-state table.
-     phase: moonPhaseAtUTC value in [0, 1).
-     Uses syzygyMomentAfter + moonPhaseAtUTC to determine
-     daysFromSyzygy and daysFromQuarter, then classifies.
+     Keyed on days-since-previous-syzygy (0 to ~14.77 days, since new/full
+     alternate every half-synodic-period).  Returns verbatim D10 prose.
      ========================================== */
 
-  function springNeapStateFromDays(daysFromSyzygy, daysFromQuarter) {
-    if (daysFromSyzygy <= 2)           return 'spring';
-    if (daysFromSyzygy <= 4)           return 'approaching spring';
-    if (daysFromQuarter <= 2)          return 'neap';
-    if (daysFromQuarter <= 4)          return 'approaching neap';
-    return 'mid';
+  function springNeapStateFromDays(daysSinceLastSyzygy, lastSyzygyKind) {
+    var d = daysSinceLastSyzygy;
+    if (d <= 2)  return 'Spring tides this week (' + lastSyzygyKind + ' moon)';
+    if (d <= 4)  return 'Tide range trending toward neap';
+    if (d <= 9)  return 'Neap tides — sun and moon pull at right angles';
+    if (d <= 11) return 'Tide range trending toward spring';
+    return 'Spring tides approaching';
   }
 
   /*
-   * computeSpringNeapState(now) — determine the 5-state spring/neap label.
-   * Finds the minimum days-from-syzygy (new or full) and minimum
-   * days-from-quarter-moon (first or last quarter), using both previous and
-   * upcoming events.
+   * computeSpringNeapState(now) — determine the D10 5-state annotation.
+   * Finds the most recent prior syzygy (new or full) and its kind,
+   * then classifies by days-since-then.  Returns null when math
+   * helpers aren't available.
    */
   function computeSpringNeapState(now) {
-    if (!SunPathMath) return 'mid';
+    if (!SunPathMath) return null;
 
     var SYNODIC_MS = 29.53059 * 86400000;
     var nowMs = now.getTime();
@@ -144,36 +144,17 @@
     var nextNew  = SunPathMath.syzygyMomentAfter(now, 'new');
     var nextFull = SunPathMath.syzygyMomentAfter(now, 'full');
 
-    var msToNew  = nextNew  ? nextNew.utcMs  - nowMs : Infinity;
-    var msToFull = nextFull ? nextFull.utcMs - nowMs : Infinity;
+    if (!nextNew || !nextFull) return null;
 
-    var msSinceLastNew  = nextNew  ? SYNODIC_MS - msToNew  : Infinity;
-    var msSinceLastFull = nextFull ? SYNODIC_MS - msToFull : Infinity;
+    var lastNewMs  = nextNew.utcMs  - SYNODIC_MS;
+    var lastFullMs = nextFull.utcMs - SYNODIC_MS;
 
-    var daysFromSyzygy = Math.min(
-      Math.abs(msToNew)  / 86400000,
-      Math.abs(msToFull) / 86400000,
-      Math.abs(msSinceLastNew)  / 86400000,
-      Math.abs(msSinceLastFull) / 86400000
-    );
+    var lastSyzygyMs, lastKind;
+    if (lastNewMs > lastFullMs) { lastSyzygyMs = lastNewMs;  lastKind = 'new';  }
+    else                        { lastSyzygyMs = lastFullMs; lastKind = 'full'; }
 
-    // Quarter moons sit at phase 0.25 and 0.75 — 7.38 days from syzygy.
-    var QUARTER_OFFSET_MS = SYNODIC_MS * 0.25;
-
-    var msToFirstQuarter  = msToNew  !== Infinity ? msToNew  - QUARTER_OFFSET_MS : Infinity;
-    var msToLastQuarter   = msToFull !== Infinity ? msToFull - QUARTER_OFFSET_MS : Infinity;
-
-    if (msToFirstQuarter < 0) msToFirstQuarter += SYNODIC_MS;
-    if (msToLastQuarter  < 0) msToLastQuarter  += SYNODIC_MS;
-
-    var daysFromQuarter = Math.min(
-      Math.abs(msToFirstQuarter) / 86400000,
-      Math.abs(msToLastQuarter)  / 86400000,
-      Math.abs(msToFirstQuarter - SYNODIC_MS) / 86400000,
-      Math.abs(msToLastQuarter  - SYNODIC_MS) / 86400000
-    );
-
-    return springNeapStateFromDays(daysFromSyzygy, daysFromQuarter);
+    var daysSince = (nowMs - lastSyzygyMs) / 86400000;
+    return springNeapStateFromDays(daysSince, lastKind);
   }
 
   /* ==========================================
@@ -388,12 +369,12 @@
      Slice 5 pure helpers — standstill
      ========================================== */
 
-  var CURRENT_YEAR = 2026;
+  var CURRENT_YEAR = new Date().getFullYear();
   // Range is ±5,000 yr per D20, floor-extended to reach all three archaeo sites.
-  // Newgrange at -3200 requires min ≤ -3200; CURRENT_YEAR-5000 = -2974, so we
-  // take the lower of the two to guarantee coverage.
-  var STANDSTILL_SLIDER_MIN = Math.min(CURRENT_YEAR - 5000, -3250);  // -3250
-  var STANDSTILL_SLIDER_MAX = CURRENT_YEAR + 5000;                    // 7026
+  // Newgrange at -3200 requires min ≤ -3200; for any CURRENT_YEAR < 8200,
+  // CURRENT_YEAR-5000 won't reach it, so we floor-extend to -3250.
+  var STANDSTILL_SLIDER_MIN = Math.min(CURRENT_YEAR - 5000, -3250);
+  var STANDSTILL_SLIDER_MAX = CURRENT_YEAR + 5000;
 
   /*
    * ARCHAEO_CALLOUTS — fixed table of archaeological sites with known
@@ -507,10 +488,10 @@
       x1: 0, y1: HORIZON_Y, x2: W, y2: HORIZON_Y
     }));
 
-    // Compute altitude at each hour of the 24-hour UTC window centred on now-midnight
+    // Browser-local midnight (D5/D18 fallback — no coord-IANA-tz library shipped).
     var lat = output.lat, lon = output.lon;
     var now = output.now;
-    var midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
     var points = [];
     for (var h = 0; h <= 24; h++) {
