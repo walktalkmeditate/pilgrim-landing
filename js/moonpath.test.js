@@ -317,6 +317,62 @@ ok(!MoonPath.earthshineVisibleFor(0.0299),'k=0.0299 → not visible (just below 
 ok(!MoonPath.earthshineVisibleFor(0.1501),'k=0.1501 → not visible (just above upper)');
 
 /* ==========================================
+   Slice 5 — activeCalloutsFor + ARCHAEO_CALLOUTS
+   ========================================== */
+
+console.log('\n=== activeCalloutsFor — ±50 yr filter ===\n');
+
+// Slider at exactly Callanish pinned year: -1800
+var cCallouts = MoonPath.activeCalloutsFor(-1800);
+ok(cCallouts.length === 1, 'at -1800 exactly one callout fires (Callanish)');
+equal(cCallouts[0].site, 'Callanish', 'callout is Callanish');
+
+// Slider within ±50 of Callanish: -1820
+var cNear = MoonPath.activeCalloutsFor(-1820);
+ok(cNear.length === 1, 'at -1820 (within 50 of -1800) Callanish fires');
+equal(cNear[0].site, 'Callanish', 'callout is Callanish at -1820');
+
+// Slider just outside ±50 of Callanish: -1851
+var cFar = MoonPath.activeCalloutsFor(-1851);
+ok(cFar.length === 0, 'at -1851 (>50 from -1800) no callout fires');
+
+// Slider at Newgrange pinned year: -3200
+var nCallouts = MoonPath.activeCalloutsFor(-3200);
+ok(nCallouts.length === 1, 'at -3200 exactly one callout fires (Newgrange)');
+equal(nCallouts[0].site, 'Newgrange', 'callout is Newgrange');
+
+// Slider at +50 of Newgrange: -3150
+var nNear = MoonPath.activeCalloutsFor(-3150);
+ok(nNear.length === 1, 'at -3150 (at edge, ±50 of -3200) Newgrange fires');
+
+// Slider just outside ±50 of Newgrange: -3251
+var nFar = MoonPath.activeCalloutsFor(-3251);
+ok(nFar.length === 0, 'at -3251 (>50 from -3200) no callout fires');
+
+// Slider at Chimney Rock pinned year: +1100
+var crCallouts = MoonPath.activeCalloutsFor(1100);
+ok(crCallouts.length === 1, 'at 1100 exactly one callout fires (Chimney Rock)');
+equal(crCallouts[0].site, 'Chimney Rock', 'callout is Chimney Rock');
+
+// Slider at present year (0 CE approximately) — no callout fires
+var zeroCallouts = MoonPath.activeCalloutsFor(0);
+ok(zeroCallouts.length === 0, 'at year 0 no callouts fire');
+
+// Slider at current year 2026 — no callout fires
+var modernCallouts = MoonPath.activeCalloutsFor(2026);
+ok(modernCallouts.length === 0, 'at year 2026 no callouts fire');
+
+// Prose text for each callout is non-empty
+ok(MoonPath.ARCHAEO_CALLOUTS[0].prose.length > 0, 'Callanish prose non-empty');
+ok(MoonPath.ARCHAEO_CALLOUTS[1].prose.length > 0, 'Newgrange prose non-empty');
+ok(MoonPath.ARCHAEO_CALLOUTS[2].prose.length > 0, 'Chimney Rock prose non-empty');
+
+// Slider range covers all archaeo callout years
+ok(MoonPath.STANDSTILL_SLIDER_MIN <= -3200, 'slider min reaches Newgrange (-3200)');
+ok(MoonPath.STANDSTILL_SLIDER_MAX >= 1100,  'slider max reaches Chimney Rock (1100)');
+ok(MoonPath.STANDSTILL_SLIDER_MIN <= -1800, 'slider min reaches Callanish (-1800)');
+
+/* ==========================================
    Summary
    ========================================== */
 

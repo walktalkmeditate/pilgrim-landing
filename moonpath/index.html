@@ -135,10 +135,24 @@
       </p>
     </section>
 
-    <!-- Standstill time-machine — slot for slice 5 -->
+    <!-- Standstill time-machine — slice 5 -->
     <section class="moonpath-section moonpath-section--widget" id="mp-standstill" hidden aria-label="Lunar standstill time machine">
       <h2 class="moonpath-section-heading">Standstill</h2>
-      <div class="moonpath-widget-slot" id="mp-standstill-widget"></div>
+
+      <div class="moonpath-standstill-slider-wrap">
+        <label class="moonpath-label" for="mp-standstill-slider">Year</label>
+        <input class="moonpath-standstill-slider" type="range"
+               id="mp-standstill-slider"
+               min="-3250" max="7026" value="2026"
+               aria-label="Year for lunar standstill">
+        <p class="moonpath-standstill-result" id="mp-standstill-result" aria-live="polite"></p>
+      </div>
+
+      <div class="moonpath-standstill-callouts" id="mp-standstill-callouts" aria-live="polite"></div>
+
+      <p class="moonpath-standstill-footnote">
+        <em>Standstill years are computed accurate to ±1 year within ±2,000 yr of today (Meeus low-precision envelope). Beyond that range, the slider is a navigation widget — historical anchors are pinned from archaeological literature, not derived from the model.</em>
+      </p>
     </section>
 
     <!-- Tide section — slot for slice 6 -->

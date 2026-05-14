@@ -226,6 +226,51 @@
   }
 
   /* ==========================================
+     Slice 5 pure helpers — standstill
+     ========================================== */
+
+  var CURRENT_YEAR = 2026;
+  // Range is ±5,000 yr per D20, floor-extended to reach all three archaeo sites.
+  // Newgrange at -3200 requires min ≤ -3200; CURRENT_YEAR-5000 = -2974, so we
+  // take the lower of the two to guarantee coverage.
+  var STANDSTILL_SLIDER_MIN = Math.min(CURRENT_YEAR - 5000, -3250);  // -3250
+  var STANDSTILL_SLIDER_MAX = CURRENT_YEAR + 5000;                    // 7026
+
+  /*
+   * ARCHAEO_CALLOUTS — fixed table of archaeological sites with known
+   * lunar standstill alignments.  Fires when |sliderYear - site.year| <= 50.
+   * Callouts fire by year-match, not by computed standstill math —
+   * so the accuracy envelope at -3200 does not gate the Newgrange callout.
+   */
+  var ARCHAEO_CALLOUTS = [
+    {
+      site:  'Callanish',
+      year:  -1800,
+      prose: 'Outer Hebrides — major standstill alignment observed at the Callanish stones.'
+    },
+    {
+      site:  'Newgrange',
+      year:  -3200,
+      prose: 'Boyne Valley — winter-moonrise alignment at the megalithic passage tomb.'
+    },
+    {
+      site:  'Chimney Rock',
+      year:  1100,
+      prose: 'Chacoan outlier — major standstill moonrise framed between the rock spires.'
+    }
+  ];
+
+  /*
+   * activeCalloutsFor(sliderYear) — returns the subset of ARCHAEO_CALLOUTS
+   * whose |site.year - sliderYear| <= 50.
+   */
+  function activeCalloutsFor(sliderYear) {
+    return ARCHAEO_CALLOUTS.filter(function (c) {
+      return Math.abs(c.year - sliderYear) <= 50;
+    });
+  }
+
+  /* ==========================================
      Exports (inner core only — DOM glue below)
      ========================================== */
 
@@ -235,7 +280,11 @@
     nearestPortFor:            nearestPortFor,
     luxBracketFor:             luxBracketFor,
     apparentSizePercentString: apparentSizePercentString,
-    earthshineVisibleFor:      earthshineVisibleFor
+    earthshineVisibleFor:      earthshineVisibleFor,
+    activeCalloutsFor:         activeCalloutsFor,
+    ARCHAEO_CALLOUTS:          ARCHAEO_CALLOUTS,
+    STANDSTILL_SLIDER_MIN:     STANDSTILL_SLIDER_MIN,
+    STANDSTILL_SLIDER_MAX:     STANDSTILL_SLIDER_MAX
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -281,7 +330,7 @@
     clearEl(svgEl);
     if (!svgEl) return;
 
-    var W = 600, H = 180;
+    var W = 600;
     var HORIZON_Y = 140;
     var ZENITH_Y  = 10;
 
@@ -312,12 +361,10 @@
 
     // Moon arc — above-horizon segments are solid, below are dashed
     var pathAbove = '', pathBelow = '';
-    var abovePoints = [], belowPoints = [];
 
     for (var i = 0; i < points.length; i++) {
       var pt = points[i];
       if (pt.alt > 0) {
-        abovePoints.push(pt);
         if (pathAbove === '') {
           pathAbove = 'M ' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1);
         } else {
@@ -621,6 +668,43 @@
   }
 
   /* ==========================================
+     Widget 6 — Standstill time-machine
+     ========================================== */
+
+  /*
+   * renderStandstillSlider(sliderEl, resultEl, calloutsEl)
+   * Reads the current slider value, calls lunarStandstillNear,
+   * updates the result label, and renders active archaeo callouts.
+   */
+  function renderStandstillSlider(sliderEl, resultEl, calloutsEl) {
+    if (!sliderEl || !resultEl) return;
+
+    var sliderYear = parseInt(sliderEl.value, 10);
+    if (isNaN(sliderYear)) return;
+
+    var standstill = SunPathMath.lunarStandstillNear(new Date(), sliderYear);
+    var standstillYear = Math.round(standstill.year);
+    var decl = standstill.peakDeclination.toFixed(1);
+
+    resultEl.textContent =
+      'Year: ' + sliderYear + ', nearest standstill: ' + standstillYear +
+      ' (' + standstill.type + ', declination ' + decl + '°)';
+
+    if (calloutsEl) {
+      var active = activeCalloutsFor(sliderYear);
+      while (calloutsEl.firstChild) calloutsEl.removeChild(calloutsEl.firstChild);
+      active.forEach(function (c) {
+        var p = document.createElement('p');
+        p.className = 'moonpath-standstill-callout';
+        var em = document.createElement('em');
+        em.textContent = c.site + ' — ' + c.prose;
+        p.appendChild(em);
+        calloutsEl.appendChild(p);
+      });
+    }
+  }
+
+  /* ==========================================
      State
      ========================================== */
 
@@ -653,7 +737,11 @@
     sizeSvg:      document.getElementById('mp-size-svg'),
     sizeLabel:    document.getElementById('mp-size-label'),
     luxSvg:       document.getElementById('mp-lux-svg'),
-    luxLabel:     document.getElementById('mp-lux-label')
+    luxLabel:     document.getElementById('mp-lux-label'),
+    // Slice 5 — standstill
+    standstillSlider:   document.getElementById('mp-standstill-slider'),
+    standstillResult:   document.getElementById('mp-standstill-result'),
+    standstillCallouts: document.getElementById('mp-standstill-callouts')
   };
 
   /* ==========================================
@@ -709,6 +797,7 @@
     renderEarthshineAnnotation(output, els.earthshineP);
     renderApparentSizeDial(output, els.sizeSvg, els.sizeLabel);
     renderLuxRing(output, els.luxSvg, els.luxLabel);
+    renderStandstillSlider(els.standstillSlider, els.standstillResult, els.standstillCallouts);
   }
 
   /* ==========================================
@@ -778,6 +867,16 @@
     els.lonInput.addEventListener('blur', tryManualEntry);
     els.lonInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') tryManualEntry();
+    });
+  }
+
+  /* ==========================================
+     Standstill slider — live update on change
+     ========================================== */
+
+  if (els.standstillSlider) {
+    els.standstillSlider.addEventListener('input', function () {
+      renderStandstillSlider(els.standstillSlider, els.standstillResult, els.standstillCallouts);
     });
   }
 
