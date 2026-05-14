@@ -4,9 +4,12 @@
    Run via:  node js/moonpath.test.js
 
    Covers:
-     - parseParams()      — valid input, malformed input → defaults
-     - nearestPortFor()   — stub returns null (real impl in slice 6)
-     - recompute()        — early return when coords absent
+     - parseParams()               — valid input, malformed input → defaults
+     - nearestPortFor()            — stub returns null (real impl in slice 6)
+     - recompute()                 — early return when coords absent; slice 4 fields
+     - luxBracketFor()             — boundary / property tests (D19 half-open)
+     - apparentSizePercentString() — one-decimal rounding (D14 / D16)
+     - earthshineVisibleFor()      — [0.03, 0.15] threshold (D7)
    ============================================= */
 
 'use strict';
@@ -168,6 +171,150 @@ var r5 = MoonPath.recompute({
 equal(r5.ready, true, 'valid coords → ready: true');
 ok(typeof r5.moonPhase === 'number', 'moonPhase is a number');
 ok(r5.moonPhase >= 0 && r5.moonPhase < 1, 'moonPhase in [0, 1)');
+
+/* ==========================================
+   recompute — slice 4 output fields
+   ========================================== */
+
+console.log('\n=== recompute — slice 4 fields ===\n');
+
+var r6 = MoonPath.recompute({
+  lat: '35.6762',
+  lon: '139.6503',
+  now: new Date('2026-05-14T06:00:00Z')
+});
+equal(r6.ready, true, 'slice 4: ready true with valid coords');
+ok(typeof r6.moonK === 'number',             'moonK is a number');
+ok(r6.moonK >= 0 && r6.moonK <= 1,          'moonK in [0, 1]');
+ok(typeof r6.moonAltAz === 'object',         'moonAltAz is an object');
+ok(typeof r6.moonAltAz.altitude === 'number','moonAltAz.altitude is a number');
+ok(typeof r6.moonAltAz.azimuth === 'number', 'moonAltAz.azimuth is a number');
+ok(typeof r6.isMoonBelowHorizon === 'boolean', 'isMoonBelowHorizon is boolean');
+ok(typeof r6.moonDistanceKm === 'number',    'moonDistanceKm is a number');
+ok(r6.moonDistanceKm > 300000 && r6.moonDistanceKm < 450000, 'moonDistanceKm in plausible range');
+ok(typeof r6.moonApparentDiameterDeg === 'number', 'moonApparentDiameterDeg is a number');
+ok(r6.moonApparentDiameterDeg > 0.4 && r6.moonApparentDiameterDeg < 0.6, 'moonApparentDiameterDeg ~0.5°');
+ok(typeof r6.moonLuxAtCoord === 'number',    'moonLuxAtCoord is a number');
+ok(r6.moonLuxAtCoord >= 0,                   'moonLuxAtCoord is non-negative');
+
+// isMoonBelowHorizon consistent with altitude
+ok(r6.isMoonBelowHorizon === (r6.moonAltAz.altitude <= 0), 'isMoonBelowHorizon matches altitude sign');
+
+// moonK derivation sanity: at full moon (phase~0.5) k should be ~1.0.
+// 2000-01-21 04:40 UTC is the known full moon (USNO J2000 reference).
+var fullMoonDate = new Date('2000-01-21T04:40:00Z');
+var r7 = MoonPath.recompute({ lat: '0', lon: '0', now: fullMoonDate });
+ok(r7.moonK >= 0.9, 'moonK near 1.0 at full moon (2000-01-21): ' + r7.moonK.toFixed(3));
+
+// moonK at new moon should be ~0.
+// 2000-01-06 18:14 UTC is the known new moon (USNO J2000 reference).
+var newMoonDate = new Date('2000-01-06T18:14:00Z');
+var r8 = MoonPath.recompute({ lat: '0', lon: '0', now: newMoonDate });
+ok(r8.moonK <= 0.1, 'moonK near 0 at new moon (2000-01-06): ' + r8.moonK.toFixed(3));
+
+/* ==========================================
+   luxBracketFor — D19 boundary / property tests
+   ========================================== */
+
+console.log('\n=== luxBracketFor — D19 half-open bracket boundaries ===\n');
+
+// Bright bracket [0.2, ∞)
+var bBright = MoonPath.luxBracketFor(0.2);
+equal(bBright.label, 'bright', 'lux=0.2 → bright (boundary into upper bracket)');
+
+var bBright2 = MoonPath.luxBracketFor(1.0);
+equal(bBright2.label, 'bright', 'lux=1.0 → bright');
+
+var bBright3 = MoonPath.luxBracketFor(0.25);
+equal(bBright3.label, 'bright', 'lux=0.25 → bright');
+
+// Mid bracket [0.05, 0.2)
+var bMid = MoonPath.luxBracketFor(0.05);
+equal(bMid.label, 'mid', 'lux=0.05 → mid (boundary into upper bracket)');
+
+var bMid2 = MoonPath.luxBracketFor(0.1);
+equal(bMid2.label, 'mid', 'lux=0.1 → mid');
+
+var bJustBelow02 = MoonPath.luxBracketFor(0.1999);
+equal(bJustBelow02.label, 'mid', 'lux=0.1999 → mid (just below 0.2)');
+
+// Dim bracket [0.005, 0.05)
+var bDim = MoonPath.luxBracketFor(0.005);
+equal(bDim.label, 'dim', 'lux=0.005 → dim (boundary into upper bracket)');
+
+var bDim2 = MoonPath.luxBracketFor(0.01);
+equal(bDim2.label, 'dim', 'lux=0.01 → dim');
+
+var bJustBelow005 = MoonPath.luxBracketFor(0.0049);
+equal(bJustBelow005.label, 'faint', 'lux=0.0049 → faint (just below 0.005)');
+
+// Faint bracket [0, 0.005)
+var bFaint = MoonPath.luxBracketFor(0.001);
+equal(bFaint.label, 'faint', 'lux=0.001 → faint');
+
+var bFaint2 = MoonPath.luxBracketFor(0);
+equal(bFaint2.label, 'faint', 'lux=0 → faint');
+
+// Prose strings are non-empty for all brackets
+ok(bBright.prose.length > 0, 'bright prose non-empty');
+ok(bMid.prose.length > 0,    'mid prose non-empty');
+ok(bDim.prose.length > 0,    'dim prose non-empty');
+ok(bFaint.prose.length > 0,  'faint prose non-empty');
+
+/* ==========================================
+   apparentSizePercentString — D14 one decimal
+   ========================================== */
+
+console.log('\n=== apparentSizePercentString — D14 rounding ===\n');
+
+// Mean distance → exactly 0.0% larger (but rounding may give 0.0)
+var atMean = MoonPath.apparentSizePercentString(384400);
+ok(atMean.indexOf('0.0%') !== -1, 'mean distance → "0.0%" (got: ' + atMean + ')');
+
+// Perigee ≈ 356500 km → ~7.8% larger
+var atPerigee = MoonPath.apparentSizePercentString(356500);
+ok(atPerigee.indexOf('larger') !== -1, 'perigee → larger (got: ' + atPerigee + ')');
+var pctPerigee = parseFloat(atPerigee);
+ok(pctPerigee >= 7.0 && pctPerigee <= 9.0, 'perigee pct in [7, 9]: ' + pctPerigee);
+
+// Apogee ≈ 406700 km → ~5.6% smaller
+var atApogee = MoonPath.apparentSizePercentString(406700);
+ok(atApogee.indexOf('smaller') !== -1, 'apogee → smaller (got: ' + atApogee + ')');
+var pctApogee = parseFloat(atApogee);
+ok(pctApogee >= 4.0 && pctApogee <= 7.0, 'apogee pct in [4, 7]: ' + pctApogee);
+
+// One-decimal format: must match X.X pattern
+ok(/\d+\.\d%/.test(atPerigee),   'perigee result has one-decimal format');
+ok(/\d+\.\d%/.test(atApogee),    'apogee result has one-decimal format');
+
+// Specific fixture: 370000 km → (384400/370000 - 1)*100 ≈ 3.891% → rounds to 3.9%
+var at370 = MoonPath.apparentSizePercentString(370000);
+ok(at370.indexOf('3.9%') !== -1, '370000 km → "3.9% larger" (got: ' + at370 + ')');
+
+/* ==========================================
+   earthshineVisibleFor — D7 [0.03, 0.15]
+   ========================================== */
+
+console.log('\n=== earthshineVisibleFor — D7 threshold [0.03, 0.15] ===\n');
+
+// Inside the range — visible
+ok(MoonPath.earthshineVisibleFor(0.03),  'k=0.03 → visible (lower boundary)');
+ok(MoonPath.earthshineVisibleFor(0.09),  'k=0.09 → visible (midpoint)');
+ok(MoonPath.earthshineVisibleFor(0.15),  'k=0.15 → visible (upper boundary)');
+ok(MoonPath.earthshineVisibleFor(0.10),  'k=0.10 → visible');
+
+// Outside the range — not visible
+ok(!MoonPath.earthshineVisibleFor(0.02),  'k=0.02 → not visible (below lower)');
+ok(!MoonPath.earthshineVisibleFor(0.00),  'k=0.00 → not visible (new moon)');
+ok(!MoonPath.earthshineVisibleFor(0.16),  'k=0.16 → not visible (above upper)');
+ok(!MoonPath.earthshineVisibleFor(0.50),  'k=0.50 → not visible (quarter)');
+ok(!MoonPath.earthshineVisibleFor(1.00),  'k=1.00 → not visible (full moon)');
+
+// Just inside the boundary on both sides
+ok(MoonPath.earthshineVisibleFor(0.031),  'k=0.031 → visible (just above lower)');
+ok(MoonPath.earthshineVisibleFor(0.149),  'k=0.149 → visible (just below upper)');
+ok(!MoonPath.earthshineVisibleFor(0.0299),'k=0.0299 → not visible (just below lower)');
+ok(!MoonPath.earthshineVisibleFor(0.1501),'k=0.1501 → not visible (just above upper)');
 
 /* ==========================================
    Summary

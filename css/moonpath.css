@@ -149,13 +149,169 @@
 }
 
 /* =============================================
-   Widget slots — placeholder space
-   Slice 4 / 5 / 6 will replace these with
-   real SVG widgets.
+   Slice 4 SVG widgets
    ============================================= */
 
-.moonpath-widget-slot {
-  min-height: 8rem;
+/* --- Moon-in-sky dome diagram --- */
+
+.moonpath-dome-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  overflow: visible;
+}
+
+.mp-dome-horizon {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.mp-dome-arc {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-opacity: 0.7;
+}
+
+.mp-dome-arc--below {
+  stroke-dasharray: 3 4;
+  stroke-opacity: 0.25;
+}
+
+.mp-dome-marker {
+  stroke: var(--stone);
+  stroke-width: 1;
+}
+
+.mp-dome-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  fill: var(--stone);
+  text-anchor: middle;
+}
+
+.mp-dome-transit {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1.5;
+}
+
+.mp-dome-now {
+  fill: var(--ink);
+  opacity: 0.75;
+}
+
+/* --- Phase clock --- */
+
+.moonpath-phase-svg {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+}
+
+.mp-phase-ring {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.mp-phase-wedge {
+  fill: var(--ink);
+  opacity: 0.2;
+}
+
+.mp-phase-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  fill: var(--stone);
+  text-anchor: middle;
+}
+
+.mp-phase-pct {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 16px;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+
+/* --- Apparent size dial --- */
+
+.moonpath-dial-svg {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  height: auto;
+}
+
+.mp-size-dial-ring {
+  fill: none;
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.25;
+}
+
+.mp-size-dial-mean {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.5;
+  stroke-dasharray: 2 3;
+}
+
+.mp-size-dial-needle {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0.65;
+}
+
+.mp-size-dial-dot {
+  fill: var(--ink);
+  opacity: 0.65;
+}
+
+/* --- Lux brightness ring --- */
+
+.moonpath-lux-svg {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  height: auto;
+}
+
+.mp-lux-ring {
+  fill: none;
+  stroke-width: 6;
+}
+
+.mp-lux-ring--bright {
+  stroke: var(--ink);
+  opacity: 0.55;
+}
+
+.mp-lux-ring--mid {
+  stroke: var(--ink);
+  opacity: 0.35;
+}
+
+.mp-lux-ring--dim {
+  stroke: var(--stone);
+  opacity: 0.3;
+}
+
+.mp-lux-ring--faint {
+  stroke: var(--stone);
+  opacity: 0.15;
+}
+
+.mp-lux-ring--below {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.18;
+  stroke-dasharray: 3 4;
 }
 
 /* =============================================
