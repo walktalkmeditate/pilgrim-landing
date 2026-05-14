@@ -5,11 +5,13 @@
 
    Covers:
      - parseParams()               — valid input, malformed input → defaults
-     - nearestPortFor()            — stub returns null (real impl in slice 6)
+     - nearestPortFor()            — round-trip + D23 boundary
      - recompute()                 — early return when coords absent; slice 4 fields
      - luxBracketFor()             — boundary / property tests (D19 half-open)
      - apparentSizePercentString() — one-decimal rounding (D14 / D16)
      - earthshineVisibleFor()      — [0.03, 0.15] threshold (D7)
+     - springNeapStateFromDays()   — D10 five-state table
+     - recompute tide fields        — slice 6
    ============================================= */
 
 'use strict';
@@ -130,14 +132,47 @@ equal(p6.lat, '35.68', 'lat-only: lat set');
 isNull(p6.lon, 'lat-only: lon still null');
 
 /* ==========================================
-   nearestPortFor — stub
+   nearestPortFor — slice 6 real impl
    ========================================== */
 
-console.log('\n=== nearestPortFor — stub until slice 6 ===\n');
+console.log('\n=== nearestPortFor — round-trip + D23 boundary ===\n');
 
-isNull(MoonPath.nearestPortFor(35.68, 139.65),  'Tokyo coord → null (stub)');
-isNull(MoonPath.nearestPortFor(-33.87, 151.21), 'Sydney coord → null (stub)');
-isNull(MoonPath.nearestPortFor(0, 0),           'equator/meridian → null (stub)');
+var PORTS = require('../assets/moonpath/tide-ports.json').ports;
+
+// Round-trip: Honolulu's own coord returns Honolulu + distance ≈ 0
+var honolulu = PORTS.find(function (p) { return p.id === 'honolulu'; });
+var rtHonolulu = MoonPath.nearestPortFor(honolulu.lat, honolulu.lon, PORTS);
+equal(rtHonolulu.port.id, 'honolulu', 'Honolulu own coord returns Honolulu');
+ok(rtHonolulu.distanceKm < 1, 'Honolulu own coord distance < 1 km (got: ' + rtHonolulu.distanceKm.toFixed(4) + ')');
+
+// Round-trip: Boston's own coord returns Boston
+var boston = PORTS.find(function (p) { return p.id === 'boston'; });
+var rtBoston = MoonPath.nearestPortFor(boston.lat, boston.lon, PORTS);
+equal(rtBoston.port.id, 'boston', 'Boston own coord returns Boston');
+ok(rtBoston.distanceKm < 1, 'Boston own coord distance < 1 km');
+
+// null when no ports provided
+isNull(MoonPath.nearestPortFor(35.68, 139.65, []),   'empty ports array → null');
+isNull(MoonPath.nearestPortFor(35.68, 139.65, null), 'null ports → null');
+
+// D23 boundary test — build a coord exactly 200 km from Honolulu
+// Bearing north: 200 km north = 200/6371 rad ≈ 1.7957° north
+var DEG_PER_KM_LAT = 1 / (Math.PI / 180 * 6371);  // ≈ 0.008993 deg/km
+var lat200 = honolulu.lat + 200 * DEG_PER_KM_LAT;
+var result200 = MoonPath.nearestPortFor(lat200, honolulu.lon, PORTS);
+ok(result200 !== null, 'D23: 200 km coord returns a result');
+ok(result200.port.id === 'honolulu', 'D23: 200 km from Honolulu nearest is Honolulu');
+var d200 = result200.distanceKm;
+// Haversine at near-exact 200 km should be ≤ 200 (visible) with a tiny tolerance
+ok(d200 <= 200.1, 'D23: 200 km coord distance ≤ 200 (visible boundary): ' + d200.toFixed(4));
+
+// Coord at 200.001 km (slightly beyond) → distance > 200 (hidden)
+var lat200plus = honolulu.lat + 200.001 * DEG_PER_KM_LAT;
+var result200plus = MoonPath.nearestPortFor(lat200plus, honolulu.lon, PORTS);
+ok(result200plus !== null, 'D23: 200.001 km coord returns a result');
+ok(result200plus.port.id === 'honolulu', 'D23: 200.001 km from Honolulu nearest is Honolulu');
+var d200plus = result200plus.distanceKm;
+ok(d200plus > 200, 'D23: 200.001 km coord distance > 200 (hidden): ' + d200plus.toFixed(4));
 
 /* ==========================================
    recompute — no coords → not ready
@@ -371,6 +406,83 @@ ok(MoonPath.ARCHAEO_CALLOUTS[2].prose.length > 0, 'Chimney Rock prose non-empty'
 ok(MoonPath.STANDSTILL_SLIDER_MIN <= -3200, 'slider min reaches Newgrange (-3200)');
 ok(MoonPath.STANDSTILL_SLIDER_MAX >= 1100,  'slider max reaches Chimney Rock (1100)');
 ok(MoonPath.STANDSTILL_SLIDER_MIN <= -1800, 'slider min reaches Callanish (-1800)');
+
+/* ==========================================
+   Slice 6 — springNeapStateFromDays D10 five-state table
+   ========================================== */
+
+console.log('\n=== springNeapStateFromDays — D10 five states ===\n');
+
+var VALID_STATES = ['spring', 'approaching spring', 'neap', 'approaching neap', 'mid'];
+
+// spring: within ±2 days of syzygy → daysFromSyzygy ≤ 2
+equal(MoonPath.springNeapStateFromDays(0, 7),   'spring', 'daysFromSyzygy=0 → spring');
+equal(MoonPath.springNeapStateFromDays(2, 7),   'spring', 'daysFromSyzygy=2 → spring (boundary)');
+equal(MoonPath.springNeapStateFromDays(1.5, 7), 'spring', 'daysFromSyzygy=1.5 → spring');
+
+// approaching spring: 3–4 days before next syzygy
+equal(MoonPath.springNeapStateFromDays(3, 7),   'approaching spring', 'daysFromSyzygy=3 → approaching spring');
+equal(MoonPath.springNeapStateFromDays(4, 7),   'approaching spring', 'daysFromSyzygy=4 → approaching spring (boundary)');
+
+// neap: within ±2 days of quarter
+equal(MoonPath.springNeapStateFromDays(5, 0),   'neap', 'daysFromQuarter=0 → neap');
+equal(MoonPath.springNeapStateFromDays(5, 2),   'neap', 'daysFromQuarter=2 → neap (boundary)');
+
+// approaching neap: 3–4 days before next quarter
+equal(MoonPath.springNeapStateFromDays(5, 3),   'approaching neap', 'daysFromQuarter=3 → approaching neap');
+equal(MoonPath.springNeapStateFromDays(5, 4),   'approaching neap', 'daysFromQuarter=4 → approaching neap (boundary)');
+
+// mid: everything else
+equal(MoonPath.springNeapStateFromDays(5, 5),   'mid', 'daysFromSyzygy=5 daysFromQuarter=5 → mid');
+equal(MoonPath.springNeapStateFromDays(6, 6),   'mid', 'daysFromSyzygy=6 daysFromQuarter=6 → mid');
+
+// All returned values are in the valid set
+var testCases = [
+  [0, 7], [2, 7], [3, 7], [4, 7],
+  [5, 0], [5, 2], [5, 3], [5, 4], [5, 5]
+];
+testCases.forEach(function (tc) {
+  var result = MoonPath.springNeapStateFromDays(tc[0], tc[1]);
+  ok(VALID_STATES.indexOf(result) !== -1, 'springNeapStateFromDays(' + tc[0] + ',' + tc[1] + ') is a valid state: ' + result);
+});
+
+/* ==========================================
+   Slice 6 — recompute tide fields
+   ========================================== */
+
+console.log('\n=== recompute — tide fields (slice 6) ===\n');
+
+var tideState = {
+  lat: String(honolulu.lat),
+  lon: String(honolulu.lon),
+  now: new Date('2026-05-14T12:00:00Z'),
+  ports: PORTS
+};
+
+var rTide = MoonPath.recompute(tideState);
+equal(rTide.ready, true, 'tide recompute: ready true');
+ok(rTide.nearestPort !== null, 'nearestPort is not null');
+equal(rTide.nearestPort.id, 'honolulu', 'nearestPort is Honolulu (own coord)');
+ok(rTide.nearestPortDistanceKm < 1, 'nearestPortDistanceKm < 1 at own coord');
+ok(Array.isArray(rTide.tideHeights24h), 'tideHeights24h is an array');
+ok(rTide.tideHeights24h.length === 97, 'tideHeights24h has 97 samples (-48 to +48 at 30 min)');
+ok(typeof rTide.tideHeights24h[0].heightM === 'number', 'first sample heightM is a number');
+ok(VALID_STATES.indexOf(rTide.springNeapState) !== -1, 'springNeapState is valid: ' + rTide.springNeapState);
+ok(typeof rTide.kingTideUpcoming === 'boolean', 'kingTideUpcoming is boolean');
+
+// Hidden case: coord >200 km from all ports (mid-Pacific, no port nearby)
+// 0°N, 160°W is far from all 4 baked ports
+var midPacificState = {
+  lat: '0',
+  lon: '-160',
+  now: new Date('2026-05-14T12:00:00Z'),
+  ports: PORTS
+};
+var rMidPacific = MoonPath.recompute(midPacificState);
+equal(rMidPacific.ready, true, 'mid-Pacific: ready true');
+ok(rMidPacific.nearestPortDistanceKm > 200, 'mid-Pacific: nearestPortDistanceKm > 200');
+ok(rMidPacific.tideHeights24h === null, 'mid-Pacific: tideHeights24h is null (hidden)');
+ok(rMidPacific.springNeapState === null, 'mid-Pacific: springNeapState is null (hidden)');
 
 /* ==========================================
    Summary

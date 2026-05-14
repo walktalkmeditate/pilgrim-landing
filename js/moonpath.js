@@ -73,13 +73,139 @@
   }
 
   /* ==========================================
-     Port proximity — stub until slice 6
+     Tide Math — loaded in browser via <script>,
+     required in Node for tests.
      ========================================== */
 
-  function nearestPortFor(lat, lon) {
-    void lat;
-    void lon;
-    return null;
+  var TideMath = (typeof root !== 'undefined' && root.TideMath)
+    ? root.TideMath
+    : (typeof require === 'function' ? require('./tide-math.js') : null);
+
+  /* ==========================================
+     Port proximity — haversine distance to each baked port.
+     D23: 200 km closed-left (≤200 visible), open-right (>200 hidden).
+     Returns { port, distanceKm } — always returns nearest port.
+     Caller checks distanceKm > 200 for visibility.
+     ========================================== */
+
+  var EARTH_R_KM = 6371;
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return EARTH_R_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function nearestPortFor(lat, lon, ports) {
+    if (!ports || ports.length === 0) return null;
+    var best = null;
+    var bestDist = Infinity;
+    for (var i = 0; i < ports.length; i++) {
+      var p = ports[i];
+      var d = haversineKm(lat, lon, p.lat, p.lon);
+      if (d < bestDist) {
+        bestDist = d;
+        best = p;
+      }
+    }
+    return { port: best, distanceKm: bestDist };
+  }
+
+  /* ==========================================
+     Spring/neap state — D10 5-state table.
+     phase: moonPhaseAtUTC value in [0, 1).
+     Uses syzygyMomentAfter + moonPhaseAtUTC to determine
+     daysFromSyzygy and daysFromQuarter, then classifies.
+     ========================================== */
+
+  function springNeapStateFromDays(daysFromSyzygy, daysFromQuarter) {
+    if (daysFromSyzygy <= 2)           return 'spring';
+    if (daysFromSyzygy <= 4)           return 'approaching spring';
+    if (daysFromQuarter <= 2)          return 'neap';
+    if (daysFromQuarter <= 4)          return 'approaching neap';
+    return 'mid';
+  }
+
+  /*
+   * computeSpringNeapState(now) — determine the 5-state spring/neap label.
+   * Finds the minimum days-from-syzygy (new or full) and minimum
+   * days-from-quarter-moon (first or last quarter), using both previous and
+   * upcoming events.
+   */
+  function computeSpringNeapState(now) {
+    if (!SunPathMath) return 'mid';
+
+    var SYNODIC_MS = 29.53059 * 86400000;
+    var nowMs = now.getTime();
+
+    var nextNew  = SunPathMath.syzygyMomentAfter(now, 'new');
+    var nextFull = SunPathMath.syzygyMomentAfter(now, 'full');
+
+    var msToNew  = nextNew  ? nextNew.utcMs  - nowMs : Infinity;
+    var msToFull = nextFull ? nextFull.utcMs - nowMs : Infinity;
+
+    var msSinceLastNew  = nextNew  ? SYNODIC_MS - msToNew  : Infinity;
+    var msSinceLastFull = nextFull ? SYNODIC_MS - msToFull : Infinity;
+
+    var daysFromSyzygy = Math.min(
+      Math.abs(msToNew)  / 86400000,
+      Math.abs(msToFull) / 86400000,
+      Math.abs(msSinceLastNew)  / 86400000,
+      Math.abs(msSinceLastFull) / 86400000
+    );
+
+    // Quarter moons sit at phase 0.25 and 0.75 — 7.38 days from syzygy.
+    var QUARTER_OFFSET_MS = SYNODIC_MS * 0.25;
+
+    var msToFirstQuarter  = msToNew  !== Infinity ? msToNew  - QUARTER_OFFSET_MS : Infinity;
+    var msToLastQuarter   = msToFull !== Infinity ? msToFull - QUARTER_OFFSET_MS : Infinity;
+
+    if (msToFirstQuarter < 0) msToFirstQuarter += SYNODIC_MS;
+    if (msToLastQuarter  < 0) msToLastQuarter  += SYNODIC_MS;
+
+    var daysFromQuarter = Math.min(
+      Math.abs(msToFirstQuarter) / 86400000,
+      Math.abs(msToLastQuarter)  / 86400000,
+      Math.abs(msToFirstQuarter - SYNODIC_MS) / 86400000,
+      Math.abs(msToLastQuarter  - SYNODIC_MS) / 86400000
+    );
+
+    return springNeapStateFromDays(daysFromSyzygy, daysFromQuarter);
+  }
+
+  /* ==========================================
+     King-tide detection — D17 + D21.
+     Walks forward 30 days from now, finds next perigee,
+     checks if any syzygy (new or full) falls within ±3 days.
+     Returns boolean.
+     ========================================== */
+
+  function computeKingTideUpcoming(now) {
+    if (!SunPathMath) return false;
+
+    var perigee = SunPathMath.perigeeMomentAfter(now);
+    if (!perigee) return false;
+
+    var perigeeMs = perigee.utcMs;
+    var nowMs = now.getTime();
+
+    if (perigeeMs - nowMs > 30 * 86400000) return false;
+
+    var perigeeDate = new Date(perigeeMs);
+    var WINDOW_MS = 3 * 86400000;
+
+    var nextNew  = SunPathMath.syzygyMomentAfter(perigeeDate, 'new');
+    var nextFull = SunPathMath.syzygyMomentAfter(perigeeDate, 'full');
+
+    var SYNODIC_MS = 29.53059 * 86400000;
+
+    var checkNew  = nextNew  ? Math.min(Math.abs(nextNew.utcMs  - perigeeMs), SYNODIC_MS - Math.abs(nextNew.utcMs  - perigeeMs)) : Infinity;
+    var checkFull = nextFull ? Math.min(Math.abs(nextFull.utcMs - perigeeMs), SYNODIC_MS - Math.abs(nextFull.utcMs - perigeeMs)) : Infinity;
+
+    return checkNew <= WINDOW_MS || checkFull <= WINDOW_MS;
   }
 
   /* ==========================================
@@ -192,20 +318,53 @@
     var moonrise = SunPathMath.moonriseUTC(lat, lon, now);
     var moonset  = SunPathMath.moonsetUTC(lat, lon, now);
 
+    // --- Tide fields (D9: gated by 200 km threshold) ---
+    var ports = state.ports || null;
+    var portResult = ports ? nearestPortFor(lat, lon, ports) : null;
+    var nearestPort = portResult ? portResult.port : null;
+    var nearestPortDistanceKm = portResult ? portResult.distanceKm : Infinity;
+    var tideVisible = nearestPortDistanceKm <= 200;
+
+    var tideHeights24h = null;
+    var springNeapState = null;
+    var kingTideUpcoming = false;
+
+    if (tideVisible && nearestPort && TideMath) {
+      // Sample tide heights at 30-min intervals across -24h to +24h
+      var nowMs = now.getTime();
+      var samples = [];
+      for (var s = -48; s <= 48; s++) {
+        var sMs = nowMs + s * 30 * 60 * 1000;
+        var h = TideMath.harmonicTideHeightM(sMs / 1000, nearestPort.constituents);
+        samples.push({ offsetMin: s * 30, heightM: h, timeMs: sMs });
+      }
+      tideHeights24h = samples;
+    }
+
+    if (tideVisible) {
+      springNeapState = computeSpringNeapState(now);
+      kingTideUpcoming = computeKingTideUpcoming(now);
+    }
+
     return {
-      ready:                  true,
-      lat:                    lat,
-      lon:                    lon,
-      now:                    now,
-      moonPhase:              phase,
-      moonK:                  k,
-      moonAltAz:              moonAltAz,
-      isMoonBelowHorizon:     isMoonBelowHorizon,
-      moonDistanceKm:         moonDistanceKm,
-      moonApparentDiameterDeg: moonApparentDiameterDeg,
-      moonLuxAtCoord:         moonLuxAtCoord,
-      moonrise:               moonrise,
-      moonset:                moonset
+      ready:                    true,
+      lat:                      lat,
+      lon:                      lon,
+      now:                      now,
+      moonPhase:                phase,
+      moonK:                    k,
+      moonAltAz:                moonAltAz,
+      isMoonBelowHorizon:       isMoonBelowHorizon,
+      moonDistanceKm:           moonDistanceKm,
+      moonApparentDiameterDeg:  moonApparentDiameterDeg,
+      moonLuxAtCoord:           moonLuxAtCoord,
+      moonrise:                 moonrise,
+      moonset:                  moonset,
+      nearestPort:              nearestPort,
+      nearestPortDistanceKm:    nearestPortDistanceKm,
+      tideHeights24h:           tideHeights24h,
+      springNeapState:          springNeapState,
+      kingTideUpcoming:         kingTideUpcoming
     };
   }
 
@@ -278,6 +437,10 @@
     recompute:                 recompute,
     parseParams:               parseParams,
     nearestPortFor:            nearestPortFor,
+    haversineKm:               haversineKm,
+    springNeapStateFromDays:   springNeapStateFromDays,
+    computeSpringNeapState:    computeSpringNeapState,
+    computeKingTideUpcoming:   computeKingTideUpcoming,
     luxBracketFor:             luxBracketFor,
     apparentSizePercentString: apparentSizePercentString,
     earthshineVisibleFor:      earthshineVisibleFor,
@@ -668,7 +831,166 @@
   }
 
   /* ==========================================
-     Widget 6 — Standstill time-machine
+     Widget 6 — Tide curve
+     ========================================== */
+
+  /*
+   * renderTideCurve(output, svgEl) — SVG polyline of tide heights
+   * from -24h to +24h, with high/low markers annotated.
+   * SVG: W=600, H=160. Baseline at mid-height.
+   */
+  function renderTideCurve(output, svgEl) {
+    if (!svgEl) return;
+    clearEl(svgEl);
+
+    var W = 600;
+    var H = 160;
+    var PAD_T = 16;
+    var PAD_B = 24;
+    var PLOT_H = H - PAD_T - PAD_B;
+
+    var title = document.createElementNS(SVG_NS, 'title');
+    title.textContent = 'Tide height at ' + output.nearestPort.name + ' — 48 h window';
+    svgEl.appendChild(title);
+
+    var samples = output.tideHeights24h;
+    if (!samples || samples.length === 0) return;
+
+    // Find min/max for scaling
+    var minH = Infinity, maxH = -Infinity;
+    for (var i = 0; i < samples.length; i++) {
+      if (samples[i].heightM < minH) minH = samples[i].heightM;
+      if (samples[i].heightM > maxH) maxH = samples[i].heightM;
+    }
+    var range = maxH - minH;
+    if (range < 0.01) range = 0.01;
+
+    function toX(idx) {
+      return (idx / (samples.length - 1)) * W;
+    }
+    function toY(hm) {
+      return PAD_T + PLOT_H - ((hm - minH) / range) * PLOT_H;
+    }
+
+    // Baseline (zero = MSL) if it's within visible range
+    var zeroY = toY(0);
+    if (zeroY >= PAD_T && zeroY <= H - PAD_B) {
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'mp-tide-zero',
+        x1: 0, y1: zeroY.toFixed(1), x2: W, y2: zeroY.toFixed(1)
+      }));
+    }
+
+    // Now-line (center of 48h window = index 48)
+    var nowX = (48 / (samples.length - 1)) * W;
+    svgEl.appendChild(makeSVGEl('line', {
+      class: 'mp-tide-now',
+      x1: nowX.toFixed(1), y1: PAD_T, x2: nowX.toFixed(1), y2: H - PAD_B
+    }));
+
+    // Polyline
+    var pts = [];
+    for (var j = 0; j < samples.length; j++) {
+      pts.push(toX(j).toFixed(1) + ',' + toY(samples[j].heightM).toFixed(1));
+    }
+    svgEl.appendChild(makeSVGEl('polyline', {
+      class: 'mp-tide-curve',
+      points: pts.join(' '),
+      fill: 'none'
+    }));
+
+    // High/low marker detection — local extrema
+    for (var k = 1; k < samples.length - 1; k++) {
+      var prev = samples[k - 1].heightM;
+      var curr = samples[k].heightM;
+      var next = samples[k + 1].heightM;
+      var isHigh = curr > prev && curr > next;
+      var isLow  = curr < prev && curr < next;
+      if (!isHigh && !isLow) continue;
+
+      var mx = toX(k);
+      var my = toY(curr);
+      svgEl.appendChild(makeSVGEl('circle', {
+        class: isHigh ? 'mp-tide-marker mp-tide-marker--high' : 'mp-tide-marker mp-tide-marker--low',
+        cx: mx.toFixed(1),
+        cy: my.toFixed(1),
+        r: 2.5
+      }));
+
+      var lblY = isHigh ? my - 5 : my + 12;
+      var lbl = makeSVGEl('text', {
+        class: 'mp-tide-label',
+        x: mx.toFixed(1),
+        y: lblY.toFixed(1)
+      });
+      lbl.textContent = curr.toFixed(1) + ' m';
+      svgEl.appendChild(lbl);
+    }
+  }
+
+  /*
+   * renderSpringNeapAnnotation(output, pEl) — sets italic prose text
+   * from D10 five-state table.
+   */
+  function renderSpringNeapAnnotation(output, pEl) {
+    if (!pEl) return;
+    var snState = output.springNeapState;
+    if (!snState) { pEl.setAttribute('hidden', ''); return; }
+    pEl.removeAttribute('hidden');
+    var emEl = pEl.querySelector('em') || pEl;
+    emEl.textContent = snState;
+  }
+
+  /*
+   * renderKingTideFlag(output, pEl) — shows king-tide notice when
+   * section is visible + perigee/syzygy alignment within 30 days (D17).
+   */
+  function renderKingTideFlag(output, pEl) {
+    if (!pEl) return;
+    if (output.kingTideUpcoming) {
+      pEl.removeAttribute('hidden');
+    } else {
+      pEl.setAttribute('hidden', '');
+    }
+  }
+
+  /*
+   * renderTideSection(output) — top-level coordinator.
+   * Hides section when nearest port >200 km; shows curve + annotations otherwise.
+   */
+  function renderTideSection(output) {
+    var section = els.tideSection;
+    if (!section) return;
+
+    var distKm = output.nearestPortDistanceKm;
+    var tideLabel = els.tideLabel;
+
+    if (distKm > 200) {
+      // Section remains visible (shown by showWidgets), but show fallback text.
+      if (tideLabel) {
+        var kmRounded = isFinite(distKm) ? Math.round(distKm) : '—';
+        tideLabel.textContent =
+          'Tides not applicable at this coord — nearest baked port is ' + kmRounded + ' km away.';
+        tideLabel.removeAttribute('hidden');
+      }
+      if (els.tideSvg) els.tideSvg.setAttribute('hidden', '');
+      if (els.tideSpringNeap) els.tideSpringNeap.setAttribute('hidden', '');
+      if (els.tideKingFlag)   els.tideKingFlag.setAttribute('hidden', '');
+      return;
+    }
+
+    // Tide section visible — render curve
+    if (els.tideSvg) {
+      els.tideSvg.removeAttribute('hidden');
+      renderTideCurve(output, els.tideSvg);
+    }
+    if (tideLabel) tideLabel.setAttribute('hidden', '');
+    renderSpringNeapAnnotation(output, els.tideSpringNeap);
+    renderKingTideFlag(output, els.tideKingFlag);
+  }
+
+  /* ==========================================
+     Widget 7 — Standstill time-machine
      ========================================== */
 
   /*
@@ -709,10 +1031,11 @@
      ========================================== */
 
   var state = {
-    lat:  null,
-    lon:  null,
-    date: null,
-    now:  new Date()
+    lat:   null,
+    lon:   null,
+    date:  null,
+    now:   new Date(),
+    ports: null
   };
 
   /* ==========================================
@@ -741,7 +1064,12 @@
     // Slice 5 — standstill
     standstillSlider:   document.getElementById('mp-standstill-slider'),
     standstillResult:   document.getElementById('mp-standstill-result'),
-    standstillCallouts: document.getElementById('mp-standstill-callouts')
+    standstillCallouts: document.getElementById('mp-standstill-callouts'),
+    // Slice 6 — tide
+    tideSvg:            document.getElementById('mp-tide-svg'),
+    tideLabel:          document.getElementById('mp-tide-label'),
+    tideSpringNeap:     document.getElementById('mp-tide-spring-neap'),
+    tideKingFlag:       document.getElementById('mp-tide-king-flag')
   };
 
   /* ==========================================
@@ -798,6 +1126,7 @@
     renderApparentSizeDial(output, els.sizeSvg, els.sizeLabel);
     renderLuxRing(output, els.luxSvg, els.luxLabel);
     renderStandstillSlider(els.standstillSlider, els.standstillResult, els.standstillCallouts);
+    renderTideSection(output);
   }
 
   /* ==========================================
@@ -882,6 +1211,7 @@
 
   /* ==========================================
      Bootstrap from URL params
+     Fetches tide-ports.json then renders.
      ========================================== */
 
   (function init() {
@@ -891,7 +1221,17 @@
       state.lon  = params.lon;
       state.date = params.date;
     }
-    runAndRender();
+
+    fetch('/assets/moonpath/tide-ports.json')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        state.ports = data.ports || [];
+        runAndRender();
+      })
+      .catch(function () {
+        state.ports = [];
+        runAndRender();
+      });
   })();
 
 })(typeof window !== 'undefined' ? window : globalThis);

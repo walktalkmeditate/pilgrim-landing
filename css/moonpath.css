@@ -416,6 +416,63 @@
 }
 
 /* =============================================
+   Slice 6 — Tide curve
+   ============================================= */
+
+.moonpath-tide-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  overflow: visible;
+}
+
+.mp-tide-zero {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.2;
+  stroke-dasharray: 2 4;
+}
+
+.mp-tide-now {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.mp-tide-curve {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-opacity: 0.65;
+}
+
+.mp-tide-marker {
+  fill: none;
+  stroke-width: 1;
+}
+
+.mp-tide-marker--high {
+  stroke: var(--ink);
+  opacity: 0.6;
+}
+
+.mp-tide-marker--low {
+  stroke: var(--stone);
+  opacity: 0.5;
+}
+
+.mp-tide-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  fill: var(--stone);
+  text-anchor: middle;
+}
+
+.mp-tide-king-flag {
+  color: var(--stone);
+}
+
+/* =============================================
    Footer
    ============================================= */
 

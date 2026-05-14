@@ -155,11 +155,18 @@
       </p>
     </section>
 
-    <!-- Tide section — slot for slice 6 -->
+    <!-- Tide section — slice 6 -->
     <section class="moonpath-section moonpath-section--widget" id="mp-tide" hidden aria-label="Tide curve">
       <h2 class="moonpath-section-heading">Tide</h2>
-      <div class="moonpath-widget-slot" id="mp-tide-widget"></div>
-      <p class="moonpath-annotation" id="mp-tide-label"></p>
+      <svg class="moonpath-tide-svg" id="mp-tide-svg"
+           viewBox="0 0 600 160" role="img" aria-label="Tide height curve"></svg>
+      <p class="moonpath-annotation" id="mp-tide-label" hidden></p>
+      <p class="moonpath-annotation" id="mp-tide-spring-neap" hidden>
+        <em id="mp-tide-spring-neap-text"></em>
+      </p>
+      <p class="moonpath-annotation mp-tide-king-flag" id="mp-tide-king-flag" hidden>
+        <em>King tide approaching — perigee and syzygy align within 30 days.</em>
+      </p>
     </section>
 
   </main>
@@ -187,6 +194,7 @@
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/sunpath-math.js"></script>
+  <script src="/js/tide-math.js"></script>
   <script src="/js/moonpath.js"></script>
 </body>
 </html>
