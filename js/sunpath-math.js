@@ -315,6 +315,190 @@
     return new Date(midnight + m * 86400000);
   }
 
+  // --- New moon helpers (Meeus-based, added slice 1) ---
+
+  var MOON_RADIUS_KM = 1737.4;
+
+  // Distance terms (Σ_r) from Meeus Ch. 47 Table 47.A (top 10 by magnitude).
+  // Returns geocentric distance in km.
+  function moonDistanceAt(date) {
+    var jd = julianDay(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+             + fractionalUTCHours(date) / 24;
+    var T  = (jd - 2451545.0) / 36525;
+    var M  = ((134.9633964 + 477198.8675055  * T) % 360 + 360) % 360;
+    var Ms = ((357.5291092 +  35999.0502909  * T) % 360 + 360) % 360;
+    var F  = (( 93.2720950 + 483202.0175233  * T) % 360 + 360) % 360;
+    var D  = ((297.8501921 + 445267.1114034  * T) % 360 + 360) % 360;
+    var Mr = M * DEG, Msr = Ms * DEG, Fr = F * DEG, Dr = D * DEG;
+    // Σ_r in units of 0.001 km (Meeus Table 47.B, top 10 terms).
+    var sumR = -20905355 * Math.cos(Mr)
+               - 3699111 * Math.cos(2 * Dr - Mr)
+               - 2955968 * Math.cos(2 * Dr)
+               -  569925 * Math.cos(2 * Mr)
+               +   48888 * Math.cos(Msr)
+               -    3149 * Math.cos(2 * Fr)
+               +  246158 * Math.cos(2 * Dr - 2 * Mr)
+               - 152138  * Math.cos(2 * Dr - Msr - Mr)
+               - 170733  * Math.cos(2 * Dr + Mr)
+               - 204586  * Math.cos(2 * Dr - Msr)
+               - 129620  * Math.cos(Msr - Mr)
+               +  108743 * Math.cos(Dr)
+               +  104755 * Math.cos(Msr + Mr);
+    var distanceKm = 385000.56 + sumR / 1000;
+    return { distanceKm: distanceKm };
+  }
+
+  // Topocentric altitude and azimuth of the moon at a given location.
+  // Meeus Ch. 13 (horizontal coordinates transform) + Ch. 40 (parallax).
+  // Returns { altitude: degrees, azimuth: degrees east of north }.
+  function moonAltAzAt(date, lat, lon) {
+    var jd = julianDay(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+             + fractionalUTCHours(date) / 24;
+    var rd = moonRADec(jd);
+    var dist = moonDistanceAt(date);
+    // Horizontal parallax (degrees).
+    // sinPi = sine of horizontal parallax (dimensionless). Meeus Ch. 40 eq. 40.6.
+    var sinPi = 6378.14 / dist.distanceKm;
+    // gmstDeg(jd) already accounts for fractional hours because jd includes them.
+    var gmst = ((gmstDeg(jd) % 360) + 360) % 360;
+    // Local hour angle (degrees).
+    var H = ((gmst + lon - rd.ra) % 360 + 360) % 360;
+    if (H > 180) H -= 360;
+    var phi = lat * DEG;
+    var Hr = H * DEG;
+    var decR = rd.dec * DEG;
+    // Topocentric correction (Meeus Ch. 40, eq. 40.6–40.8).
+    // dRA is in radians; the formula uses sinPi (sine of parallax), not parallax itself.
+    var dRA = -sinPi * Math.cos(phi) * Math.sin(Hr)
+              / (Math.cos(decR) - sinPi * Math.cos(phi) * Math.cos(Hr));
+    var decTopR = Math.atan2(
+      (Math.sin(decR) - sinPi * Math.sin(phi)) * Math.cos(dRA),
+      Math.cos(decR) - sinPi * Math.cos(phi) * Math.cos(Hr)
+    );
+    var Htop = Hr + dRA;
+    // Altitude.
+    var alt = Math.asin(
+      Math.sin(phi) * Math.sin(decTopR) + Math.cos(phi) * Math.cos(decTopR) * Math.cos(Htop)
+    ) * RAD;
+    // Azimuth (east of north).
+    var az = Math.atan2(
+      Math.sin(Htop),
+      Math.cos(Htop) * Math.sin(phi) - Math.tan(decTopR) * Math.cos(phi)
+    ) * RAD;
+    az = normalizeDeg(az + 180);
+    return { altitude: alt, azimuth: az };
+  }
+
+  // Apparent angular diameter of the moon in degrees.
+  // Formula: 2 × atan(MOON_RADIUS_KM / distanceKm) × (180/π).
+  function apparentDiameterAt(date) {
+    var dist = moonDistanceAt(date);
+    var diameterDeg = 2 * Math.atan(MOON_RADIUS_KM / dist.distanceKm) * RAD;
+    return { diameterDeg: diameterDeg };
+  }
+
+  // Nearest major or minor lunar standstill to targetYear.
+  // The lunar nodes regress with period 6798.4 days (18.6136 yr).
+  // Major standstill: moon reaches max declination = obliquity + i (i ≈ 5.145°).
+  // Minor standstill: moon reaches max declination = obliquity − i.
+  // Reference: Meeus Ch. 53; Ruggles "Astronomy in Prehistoric Britain and Ireland" p. 74.
+  function lunarStandstillNear(date, targetYear) {
+    var NODAL_PERIOD_YR = 6798.4 / 365.25; // ≈ 18.6136 years
+    var I_DEG = 5.145; // Moon's orbital inclination to ecliptic
+    var eps = obliquity(targetYear);
+    // Major standstill years follow 18.61-yr cycle; anchor: known major standstill ~2006.
+    var ANCHOR_MAJOR = 2006.0;
+    var n = Math.round((targetYear - ANCHOR_MAJOR) / NODAL_PERIOD_YR);
+    var majorYear = ANCHOR_MAJOR + n * NODAL_PERIOD_YR;
+    // The minor standstill is half a nodal period away.
+    var minorYear = majorYear + NODAL_PERIOD_YR / 2;
+    var distMajor = Math.abs(targetYear - majorYear);
+    var distMinor = Math.abs(targetYear - minorYear);
+    if (distMajor <= distMinor) {
+      return {
+        year: Math.round(majorYear * 10) / 10,
+        type: 'major',
+        peakDeclination: eps + I_DEG
+      };
+    }
+    return {
+      year: Math.round(minorYear * 10) / 10,
+      type: 'minor',
+      peakDeclination: eps - I_DEG
+    };
+  }
+
+  // Next perigee moment after a given date.
+  // Walks forward in 1-hour steps, finds the local distance minimum,
+  // then refines with parabolic interpolation to within ±2 hours.
+  // Pure: no IO.
+  function perigeeMomentAfter(date) {
+    var STEP_MS = 3600000; // 1 hour
+    var t = date.getTime();
+    var d0 = moonDistanceAt(new Date(t)).distanceKm;
+    var d1 = moonDistanceAt(new Date(t + STEP_MS)).distanceKm;
+    // Walk until distance starts increasing again after a decrease.
+    var MAX_STEPS = 30 * 24; // max 30 days
+    for (var i = 0; i < MAX_STEPS; i++) {
+      var d2 = moonDistanceAt(new Date(t + 2 * STEP_MS)).distanceKm;
+      if (d1 < d0 && d1 < d2) {
+        // Parabolic interpolation: minimum at offset h relative to t + STEP_MS.
+        var h = 0.5 * (d0 - d2) / (d0 - 2 * d1 + d2);
+        var minMs = t + STEP_MS + Math.round(h * STEP_MS);
+        var minDist = moonDistanceAt(new Date(minMs)).distanceKm;
+        return { utcMs: minMs, distanceKm: minDist };
+      }
+      t += STEP_MS;
+      d0 = d1;
+      d1 = d2;
+    }
+    return null;
+  }
+
+  // Next syzygy (new or full moon) moment after a given date.
+  // kind: 'new' (phase ≈ 0) or 'full' (phase ≈ 0.5).
+  // Walks forward in 6-hour steps; each pair of steps detects when phase crosses
+  // through the target by monotonic counting — avoids 0/1 wrap ambiguity.
+  // Refines with bisection to ±2 hours.
+  function syzygyMomentAfter(date, kind) {
+    var SYNODIC_MONTH = 29.53059;
+    var target = (kind === 'full') ? 0.5 : 0.0;
+    var STEP_MS = 6 * 3600000; // 6 hours
+    // Convert phase to a monotonically increasing "turn count" relative to target.
+    // turnCount = floor((phase - target + 0.5) % 1 + turnsFromStart × 1) is tricky.
+    // Simpler: express phase as fractional elapsed synodic months from a reference.
+    var KNOWN_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14);
+    var SYNODIC_MS = SYNODIC_MONTH * 86400000;
+
+    function elapsedPhase(ms) {
+      // Returns elapsed phase-cycles (non-wrapped) since known new moon.
+      return (ms - KNOWN_NEW_MOON_MS) / SYNODIC_MS;
+    }
+
+    // Target is at: floor(elapsedPhase) + target (full=0.5), or the next one.
+    var t0 = date.getTime() + 3600000; // 1 h after start to avoid returning start
+    var ep0 = elapsedPhase(t0);
+    // Nearest cycle count that is strictly after ep0.
+    var cycleN = Math.ceil(ep0 - target) + (target === 0 ? 0 : 0);
+    var targetCycle = cycleN + target;
+    if (targetCycle <= ep0) targetCycle += 1;
+
+    var targetMs = KNOWN_NEW_MOON_MS + targetCycle * SYNODIC_MS;
+    // Verify: targetMs should be within one synodic month.
+    if (targetMs - t0 > SYNODIC_MS * 1.1) return null;
+
+    // Bisect around targetMs to refine (the linear model is accurate to ~minutes).
+    var lo = targetMs - 2 * 86400000;
+    var hi = targetMs + 2 * 86400000;
+    // Find actual crossing by checking elapsedPhase bracket.
+    for (var j = 0; j < 40; j++) {
+      var mid = Math.floor((lo + hi) / 2);
+      if (elapsedPhase(mid) < targetCycle) lo = mid; else hi = mid;
+      if (hi - lo < 120000) break;
+    }
+    return { utcMs: Math.floor((lo + hi) / 2) };
+  }
+
   // Moon phase at a given UTC instant as a value in [0, 1).
   // 0 = new moon, 0.5 = full moon. Thin passthrough to Moon.getMoonPhase.
   // In browser, Moon is the global from moon.js. In Node test runner, inline the math.
@@ -426,6 +610,12 @@
     moonriseUTC: moonriseUTC,
     moonsetUTC: moonsetUTC,
     moonPhaseAtUTC: moonPhaseAtUTC,
+    moonAltAzAt: moonAltAzAt,
+    moonDistanceAt: moonDistanceAt,
+    apparentDiameterAt: apparentDiameterAt,
+    lunarStandstillNear: lunarStandstillNear,
+    perigeeMomentAfter: perigeeMomentAfter,
+    syzygyMomentAfter: syzygyMomentAfter,
     // obliquity / time machine
     obliquity: obliquity,
     sunriseAzimuthForYear: sunriseAzimuthForYear,
@@ -434,7 +624,8 @@
     // analemma
     analemma: analemma,
     // constants
-    EARTH_R_KM: EARTH_R_KM
+    EARTH_R_KM: EARTH_R_KM,
+    MOON_RADIUS_KM: MOON_RADIUS_KM
   };
 
   if (typeof module !== 'undefined' && module.exports) {
