@@ -1,0 +1,25 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pilgrim//Moon Path//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Moon Path — King Tides · Boston
+X-WR-CALDESC:King tides (perigee + syzygy alignment) in the next 30 days at Boston. From walktalkmeditate.org/moonpath/
+
+BEGIN:VEVENT
+UID:king-tide-boston-2026-05-17@walktalkmeditate.org
+DTSTAMP:20260517T140024Z
+DTSTART:20260517T140024Z
+DTEND:20260517T150024Z
+SUMMARY:King Tide at Boston (new moon)
+DESCRIPTION:Perigee + new moon alignment — highest predicted tides at Bosto
+ n.\n\nhttps://walktalkmeditate.org/moonpath/
+CATEGORIES:Tides,King Tide,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:King tide approaching at Boston — new moon + perigee
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+END:VCALENDAR

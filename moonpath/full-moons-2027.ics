@@ -1,0 +1,201 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pilgrim//Moon Path//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Moon Path — Full Moons 2027
+X-WR-CALDESC:All full moons in 2027 at their exact UTC instants. From walktalkmeditate.org/moonpath/
+
+BEGIN:VEVENT
+UID:full-moon-2027-01-22@walktalkmeditate.org
+DTSTAMP:20270122T174835Z
+DTSTART:20270122T174835Z
+DTEND:20270122T184835Z
+SUMMARY:Full Moon · 2027-01-22
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-02-21@walktalkmeditate.org
+DTSTAMP:20270221T063238Z
+DTSTART:20270221T063238Z
+DTEND:20270221T073238Z
+SUMMARY:Full Moon · 2027-02-21
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-03-22@walktalkmeditate.org
+DTSTAMP:20270322T191641Z
+DTSTART:20270322T191641Z
+DTEND:20270322T201641Z
+SUMMARY:Full Moon · 2027-03-22
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-04-21@walktalkmeditate.org
+DTSTAMP:20270421T080044Z
+DTSTART:20270421T080044Z
+DTEND:20270421T090044Z
+SUMMARY:Full Moon · 2027-04-21
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-05-20@walktalkmeditate.org
+DTSTAMP:20270520T204447Z
+DTSTART:20270520T204447Z
+DTEND:20270520T214447Z
+SUMMARY:Full Moon · 2027-05-20
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-06-19@walktalkmeditate.org
+DTSTAMP:20270619T092850Z
+DTSTART:20270619T092850Z
+DTEND:20270619T102850Z
+SUMMARY:Full Moon · 2027-06-19
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-07-18@walktalkmeditate.org
+DTSTAMP:20270718T221253Z
+DTSTART:20270718T221253Z
+DTEND:20270718T231253Z
+SUMMARY:Full Moon · 2027-07-18
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-08-17@walktalkmeditate.org
+DTSTAMP:20270817T105656Z
+DTSTART:20270817T105656Z
+DTEND:20270817T115656Z
+SUMMARY:Full Moon · 2027-08-17
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-09-15@walktalkmeditate.org
+DTSTAMP:20270915T234059Z
+DTSTART:20270915T234059Z
+DTEND:20270916T004059Z
+SUMMARY:Full Moon · 2027-09-15
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-10-15@walktalkmeditate.org
+DTSTAMP:20271015T122502Z
+DTSTART:20271015T122502Z
+DTEND:20271015T132502Z
+SUMMARY:Full Moon · 2027-10-15
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-11-14@walktalkmeditate.org
+DTSTAMP:20271114T010905Z
+DTSTART:20271114T010905Z
+DTEND:20271114T020905Z
+SUMMARY:Full Moon · 2027-11-14
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:full-moon-2027-12-13@walktalkmeditate.org
+DTSTAMP:20271213T135308Z
+DTSTART:20271213T135308Z
+DTEND:20271213T145308Z
+SUMMARY:Full Moon · 2027-12-13
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
+ lkmeditate.org/moonpath/
+CATEGORIES:Moon,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Full Moon tomorrow — peak moonlight tonight
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+END:VCALENDAR
