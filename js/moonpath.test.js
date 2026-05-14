@@ -810,6 +810,74 @@ ok(
 );
 
 /* ==========================================
+   Slice 4 — Eclipse pointer widget tests (D26, D27)
+   ========================================== */
+
+console.log('\n=== Slice 4 — eclipse pointer: recompute fields ===\n');
+
+var ECLIPSE_RANGE = MoonPath.ECLIPSE_VALID_YR_RANGE; // 3000
+
+// Fixture 1: scrub year 3001 yr ahead of nowOriginal → both eclipse fields null
+var nowOrig2026 = new Date('2026-05-14T12:00:00Z');
+var yr3001Ahead = new Date(Date.UTC(2026 + 3001, 4, 14, 12, 0, 0));
+var rEclipseOutOfRange = MoonPath.recompute({
+  lat: '21.307',
+  lon: '-157.867',
+  now: yr3001Ahead,
+  nowOriginal: nowOrig2026
+});
+equal(rEclipseOutOfRange.ready, true, 'eclipse out-of-range: ready true');
+isNull(rEclipseOutOfRange.nextSolarEclipse, 'scrubYear +3001: nextSolarEclipse === null');
+isNull(rEclipseOutOfRange.nextLunarEclipse, 'scrubYear +3001: nextLunarEclipse === null');
+
+// Fixture 2: scrub year exactly 3000 yr ahead → eclipse fields computed (not null)
+var yr3000Ahead = new Date(Date.UTC(2026 + 3000, 4, 14, 12, 0, 0));
+var rEclipseAtBoundary = MoonPath.recompute({
+  lat: '21.307',
+  lon: '-157.867',
+  now: yr3000Ahead,
+  nowOriginal: nowOrig2026
+});
+equal(rEclipseAtBoundary.ready, true, 'eclipse boundary +3000: ready true');
+ok(rEclipseAtBoundary.nextSolarEclipse !== null, 'scrubYear +3000: nextSolarEclipse not null (boundary inclusive)');
+ok(rEclipseAtBoundary.nextLunarEclipse !== null, 'scrubYear +3000: nextLunarEclipse not null (boundary inclusive)');
+
+// Fixture 3: today coord → both eclipse fields are objects with expected shape
+var rEclipseToday = MoonPath.recompute({
+  lat: '21.307',
+  lon: '-157.867',
+  now: new Date('2026-05-14T12:00:00Z'),
+  nowOriginal: nowOrig2026
+});
+equal(rEclipseToday.ready, true, 'eclipse today Honolulu: ready true');
+ok(rEclipseToday.nextSolarEclipse !== null, 'today: nextSolarEclipse not null');
+ok(rEclipseToday.nextLunarEclipse !== null, 'today: nextLunarEclipse not null');
+ok(
+  typeof rEclipseToday.nextSolarEclipse.magnitudePct === 'number' &&
+  rEclipseToday.nextSolarEclipse.magnitudePct >= 0 &&
+  rEclipseToday.nextSolarEclipse.magnitudePct <= 100,
+  'today: nextSolarEclipse.magnitudePct is 0–100 number — got: ' + rEclipseToday.nextSolarEclipse.magnitudePct
+);
+ok(
+  ['total', 'partial', 'penumbral'].indexOf(rEclipseToday.nextLunarEclipse.kind) !== -1,
+  'today: nextLunarEclipse.kind ∈ {total,partial,penumbral} — got: ' + rEclipseToday.nextLunarEclipse.kind
+);
+
+// Boundary negative: scrub year 3001 yr BEFORE nowOriginal → both eclipse fields null
+var yr3001Before = new Date(Date.UTC(2026 - 3001, 4, 14, 12, 0, 0));
+var rEclipseNegOutOfRange = MoonPath.recompute({
+  lat: '21.307',
+  lon: '-157.867',
+  now: yr3001Before,
+  nowOriginal: nowOrig2026
+});
+isNull(rEclipseNegOutOfRange.nextSolarEclipse, 'scrubYear -3001: nextSolarEclipse === null');
+isNull(rEclipseNegOutOfRange.nextLunarEclipse, 'scrubYear -3001: nextLunarEclipse === null');
+
+// ECLIPSE_VALID_YR_RANGE is 3000 (constant gate)
+equal(ECLIPSE_RANGE, 3000, 'ECLIPSE_VALID_YR_RANGE === 3000');
+
+/* ==========================================
    Summary
    ========================================== */
 

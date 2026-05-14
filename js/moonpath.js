@@ -405,6 +405,18 @@
     // --- Moonrise azimuth (D28) ---
     var moonriseAzimuthDeg = SunPathMath.moonriseAzimuthAt(now, lat, lon);
 
+    // --- Eclipse pointer (D26, D27) ---
+    // Gate: |scrubYear - originalYear| > ECLIPSE_VALID_YR_RANGE → null.
+    // Boundary at exactly ±3000 yr is inclusive (not null).
+    var scrubYear    = now.getFullYear();
+    var originalYear = nowOriginal.getFullYear();
+    var nextSolarEclipse = null;
+    var nextLunarEclipse = null;
+    if (Math.abs(scrubYear - originalYear) <= ECLIPSE_VALID_YR_RANGE) {
+      nextSolarEclipse = SunPathMath.nextSolarEclipseAfter(now, lat, lon);
+      nextLunarEclipse = SunPathMath.nextLunarEclipseAfter(now, lat, lon);
+    }
+
     return {
       ready:                    true,
       lat:                      lat,
@@ -421,6 +433,8 @@
       moonrise:                 moonrise,
       moonset:                  moonset,
       moonriseAzimuthDeg:       moonriseAzimuthDeg,
+      nextSolarEclipse:         nextSolarEclipse,
+      nextLunarEclipse:         nextLunarEclipse,
       nearestPort:              nearestPort,
       nearestPortDistanceKm:    nearestPortDistanceKm,
       tideHeights24h:           tideHeights24h,
@@ -514,6 +528,12 @@
   }
 
   /* ==========================================
+     Slice 4 — Eclipse pointer constants
+     ========================================== */
+
+  var ECLIPSE_VALID_YR_RANGE = 3000;
+
+  /* ==========================================
      Exports (inner core only — DOM glue below)
      ========================================== */
 
@@ -534,7 +554,8 @@
     STANDSTILL_SLIDER_MAX:     STANDSTILL_SLIDER_MAX,
     scrubberValueToInstant:    scrubberValueToInstant,
     instantToScrubberValue:    instantToScrubberValue,
-    cardinalProseFor:          cardinalProseFor
+    cardinalProseFor:          cardinalProseFor,
+    ECLIPSE_VALID_YR_RANGE:    ECLIPSE_VALID_YR_RANGE
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -1038,6 +1059,59 @@
   }
 
   /* ==========================================
+     Widget 7 — Eclipse pointer (slot 7)
+     ========================================== */
+
+  /*
+   * renderEclipsePointer(output, contentEl)
+   * When both eclipse fields are null (out-of-range scrub year per D27),
+   * renders a single fallback line.
+   * Otherwise renders two <p> lines: next solar + next lunar eclipse.
+   * Date format: ISO YYYY-MM-DD (UTC). Solar: magnitude N%. Lunar: lowercase kind.
+   */
+  function renderEclipsePointer(output, contentEl) {
+    if (!contentEl) return;
+    while (contentEl.firstChild) contentEl.removeChild(contentEl.firstChild);
+
+    if (output.nextSolarEclipse === null && output.nextLunarEclipse === null) {
+      var fallback = document.createElement('p');
+      fallback.className = 'mp-eclipse-fallback';
+      fallback.textContent = 'Eclipse predictions unavailable beyond ±3,000 yr — Meeus low-precision envelope.';
+      contentEl.appendChild(fallback);
+      return;
+    }
+
+    if (output.nextSolarEclipse) {
+      var solarDate = new Date(output.nextSolarEclipse.utcMs);
+      var sy = solarDate.getUTCFullYear();
+      var sm = solarDate.getUTCMonth() + 1;
+      var sd = solarDate.getUTCDate();
+      var sISO = sy + '-' +
+        (sm < 10 ? '0' + sm : sm) + '-' +
+        (sd < 10 ? '0' + sd : sd);
+      var sMag = Math.round(output.nextSolarEclipse.magnitudePct);
+      var solarLine = document.createElement('p');
+      solarLine.className = 'mp-eclipse-line';
+      solarLine.textContent = 'Next solar eclipse from this coord: ' + sISO + ', magnitude ' + sMag + '%.';
+      contentEl.appendChild(solarLine);
+    }
+
+    if (output.nextLunarEclipse) {
+      var lunarDate = new Date(output.nextLunarEclipse.utcMs);
+      var ly = lunarDate.getUTCFullYear();
+      var lm = lunarDate.getUTCMonth() + 1;
+      var ld = lunarDate.getUTCDate();
+      var lISO = ly + '-' +
+        (lm < 10 ? '0' + lm : lm) + '-' +
+        (ld < 10 ? '0' + ld : ld);
+      var lunarLine = document.createElement('p');
+      lunarLine.className = 'mp-eclipse-line';
+      lunarLine.textContent = 'Next lunar eclipse from this coord: ' + lISO + ', ' + output.nextLunarEclipse.kind + '.';
+      contentEl.appendChild(lunarLine);
+    }
+  }
+
+  /* ==========================================
      Widget 6 — Tide curve
      ========================================== */
 
@@ -1317,6 +1391,8 @@
     // Widget 3 — azimuth dial (slot 2)
     azimuthSvg:   document.getElementById('mp-azimuth-svg'),
     azimuthLabel: document.getElementById('mp-azimuth-label'),
+    // Widget 7 — eclipse pointer (slot 7)
+    eclipseContent: document.getElementById('mp-eclipse-content'),
     // Widget 8 — standstill (no slider; scrubbed year from state.now)
     standstillResult:   document.getElementById('mp-standstill-result'),
     standstillCallouts: document.getElementById('mp-standstill-callouts'),
@@ -1384,6 +1460,7 @@
     renderEarthshineAnnotation(output, els.earthshineP);
     renderApparentSizeDial(output, els.sizeSvg, els.sizeLabel);
     renderLuxRing(output, els.luxSvg, els.luxLabel);
+    renderEclipsePointer(output, els.eclipseContent);
     renderStandstillAnnotation(output, els.standstillResult, els.standstillCallouts);
     renderTideSection(output);
 

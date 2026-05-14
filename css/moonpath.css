@@ -663,3 +663,28 @@ body.constellation .moonpath-footer-links a:hover {
   color: rgba(232, 224, 255, 0.95);
   border-bottom-color: rgba(232, 224, 255, 0.5);
 }
+
+/* =============================================
+   Slice 4 — Eclipse pointer widget
+   ============================================= */
+
+.mp-eclipse-content {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mp-eclipse-line {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0.2rem 0;
+  font-size: 0.95rem;
+}
+
+.mp-eclipse-fallback {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0.2rem 0;
+  font-size: 0.95rem;
+  opacity: 0.65;
+}
