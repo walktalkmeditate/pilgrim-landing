@@ -585,6 +585,222 @@
     return pts;
   }
 
+  // --- Eclipse helpers (Meeus Ch. 54) ---
+
+  // Moonrise azimuth at a given location on a given date.
+  // Returns compass bearing in [0, 360) (0 = N, clockwise), or null when the
+  // moon does not rise that day (circumpolar or polar conditions).
+  function moonriseAzimuthAt(date, lat, lon) {
+    var riseInstant = moonriseUTC(lat, lon, date);
+    if (riseInstant === null) return null;
+    var altaz = moonAltAzAt(riseInstant, lat, lon);
+    var az = altaz.azimuth % 360;
+    if (az < 0) az += 360;
+    // Ensure strict [0, 360) — never return exactly 360.
+    if (az >= 360) az = az - 360;
+    return az;
+  }
+
+  // Compute ecliptic latitude of the moon (degrees) at JD.
+  // Uses the same Meeus Ch. 47 fundamental arguments as moonRADec.
+  function _moonEclipticLatAt(jd) {
+    var T = (jd - 2451545.0) / 36525;
+    var M  = ((134.9633964 + 477198.8675055  * T) % 360 + 360) % 360;
+    var Ms = ((357.5291092 +  35999.0502909  * T) % 360 + 360) % 360;
+    var F  = (( 93.2720950 + 483202.0175233  * T) % 360 + 360) % 360;
+    var D  = ((297.8501921 + 445267.1114034  * T) % 360 + 360) % 360;
+    var Mr = M * DEG, Msr = Ms * DEG, Fr = F * DEG, Dr = D * DEG;
+    return 5.128122 * Math.sin(Fr)
+      + 0.280602 * Math.sin(Mr + Fr)
+      + 0.277693 * Math.sin(Mr - Fr)
+      + 0.173237 * Math.sin(2 * Dr - Fr)
+      + 0.055413 * Math.sin(2 * Dr + Fr - Mr)
+      + 0.046271 * Math.sin(2 * Dr - Fr - Mr)
+      + 0.032573 * Math.sin(2 * Dr + Fr)
+      + 0.017198 * Math.sin(2 * Mr + Fr)
+      + 0.009266 * Math.sin(2 * Dr + Mr - Fr);
+  }
+
+  // Meeus Ch. 54 — gamma at a given JD (signed shadow-axis distance in Earth radii).
+  // Used to find the eclipse maximum by scanning for minimum |gamma| near new moon.
+  function _moonGammaAt(jd) {
+    var dist = moonDistanceAt(new Date((jd - 2440587.5) * 86400000)).distanceKm;
+    return Math.sin(_moonEclipticLatAt(jd) * DEG) * (dist / 6378.14);
+  }
+
+  // Meeus Ch. 54 — solar eclipse check for a new moon.
+  // Scans ±15 h around jdNewMoon to find the minimum |gamma| (eclipse maximum).
+  // Absorbs the linear-syzygy model's ±8 h timing error.
+  // Returns null if no eclipse touches Earth, or {magnitudePct, gamma, utcMs} otherwise.
+  // magnitudePct = Meeus linear magnitude × 100 (clamped to [0, 100]).
+  function _solarEclipseAtNewMoon(jdNewMoon) {
+    var T0 = (jdNewMoon - 2451545.0) / 36525;
+    var F0 = (( 93.2720950 + 483202.0175233 * T0) % 360 + 360) % 360;
+    var Fabs = F0 % 360;
+    if (Fabs > 180) Fabs = 360 - Fabs;
+    // Meeus §54: eclipse only possible when |F| < 37° or > 143°.
+    if (Fabs >= 37 && Fabs <= 143) return null;
+
+    // Scan ±15 h to find minimum |gamma| (true eclipse maximum time).
+    var newMoonMs = (jdNewMoon - 2440587.5) * 86400000;
+    var minGammaAbs = Infinity;
+    var bestJd = jdNewMoon;
+    var bestMs = newMoonMs;
+    for (var dh = -15; dh <= 15; dh++) {
+      var tMs = newMoonMs + dh * 3600000;
+      var jd  = 2440587.5 + tMs / 86400000;
+      var ga  = Math.abs(_moonGammaAt(jd));
+      if (ga < minGammaAbs) { minGammaAbs = ga; bestJd = jd; bestMs = tMs; }
+    }
+
+    // Meeus solar eclipse limits (low-precision constants, u ≈ 0.0059):
+    var u = 0.0059;
+    var penumbraLimit = 1.5433 + u; // ≈ 1.5492
+    if (minGammaAbs >= penumbraLimit) return null;
+
+    // Meeus linear magnitude formula (§54):
+    // mag = (1.0128 - u - |gamma|) / (0.5450 + 0.0200)
+    // Clamped to [0, 1]; values > 1 (total/annular) → 1.
+    var mag = (1.0128 - u - minGammaAbs) / (0.5450 + 0.0200);
+    if (mag < 0) mag = 0;
+    if (mag > 1) mag = 1;
+    return { magnitudePct: mag * 100, gamma: _moonGammaAt(bestJd), utcMs: bestMs };
+  }
+
+  // Observer visibility check: within the ±15 h eclipse window, is there any
+  // moment when the sun is above the horizon at (lat, lon)?
+  // Solar eclipses are only visible from the sunlit hemisphere.
+  function _solarEclipseObserverVisible(newMoonMs, lat, lon) {
+    var phi1 = lat * DEG;
+    for (var dh = -15; dh <= 15; dh += 2) {
+      var sub = subsolarPoint(new Date(newMoonMs + dh * 3600000));
+      var phi2 = sub.lat * DEG;
+      var dLon = (lon - sub.lon) * DEG;
+      if (Math.sin(phi1) * Math.sin(phi2) + Math.cos(phi1) * Math.cos(phi2) * Math.cos(dLon) > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Next solar eclipse visible from (lat, lon) after date.
+  // Returns {utcMs, magnitudePct} or null if none found within search window.
+  // Meeus Ch. 54 low-precision. Accuracy: ±1 day, ±5 pct-points magnitude.
+  function nextSolarEclipseAfter(date, lat, lon) {
+    var SYNODIC_MONTH = 29.53059;
+    var SYNODIC_MS    = SYNODIC_MONTH * 86400000;
+    var MAX_MONTHS    = 600;
+
+    var syzygy = syzygyMomentAfter(date, 'new');
+    if (!syzygy) return null;
+    var currentMs = syzygy.utcMs;
+
+    for (var i = 0; i < MAX_MONTHS; i++) {
+      var jd = 2440587.5 + currentMs / 86400000;
+      var eclipseInfo = _solarEclipseAtNewMoon(jd);
+      if (eclipseInfo !== null && _solarEclipseObserverVisible(currentMs, lat, lon)) {
+        return { utcMs: eclipseInfo.utcMs, magnitudePct: Math.round(eclipseInfo.magnitudePct * 10) / 10 };
+      }
+      var nextDate   = new Date(currentMs + SYNODIC_MS * 0.9);
+      var nextSyzygy = syzygyMomentAfter(nextDate, 'new');
+      if (!nextSyzygy) break;
+      currentMs = nextSyzygy.utcMs;
+    }
+    return null;
+  }
+
+  // Meeus Ch. 54 — lunar eclipse check for a full moon.
+  // Returns null if no eclipse, or {kind, utcPeak, halfDurationMs} if one occurs.
+  // kind: 'total' | 'partial' | 'penumbral'
+  // halfDurationMs: half the penumbral contact duration for horizon-overlap check.
+  function _lunarEclipseAtFullMoon(jdFullMoon) {
+    var T = (jdFullMoon - 2451545.0) / 36525;
+    var F = (( 93.2720950 + 483202.0175233 * T) % 360 + 360) % 360;
+    var Fabs = F % 360;
+    if (Fabs > 180) Fabs = 360 - Fabs;
+    // Meeus §54: lunar eclipse only possible when |F| < 21° or > 159°.
+    if (Fabs >= 21 && Fabs <= 159) return null;
+
+    var beta     = _moonEclipticLatAt(jdFullMoon);
+    var dist     = moonDistanceAt(new Date((jdFullMoon - 2440587.5) * 86400000)).distanceKm;
+    var moonDistER = dist / 6378.14;
+
+    // Shadow cone radii (Meeus §54 low-precision constants):
+    // u = 0.2725 (moon's semi-diameter in units of Earth's shadow half-width)
+    // Penumbra half-width at Moon ≈ 1.0128 + u = 1.2853 (in Earth-radii equivalent)
+    // Umbra half-width ≈ 1.0128 - u = 0.7403
+    // Total: moon fully inside umbra when |gamma| ≤ 1.0128 - 2u = 0.4678
+    var u            = 0.2725;
+    var penumbraLimit = 1.0128 + u;  // 1.2853
+    var umbraLimit    = 1.0128 - u;  // 0.7403
+    var totalLimit    = umbraLimit - u; // 0.4678
+
+    // gamma: Moon's center distance from Earth's shadow axis (in Earth-radii equiv.).
+    // For full moon: gamma = sin(beta) × (dist / 6378.14).
+    var gamma    = Math.sin(beta * DEG) * moonDistER;
+    var gammaAbs = Math.abs(gamma);
+    if (gammaAbs >= penumbraLimit) return null;
+
+    var kind = gammaAbs <= totalLimit ? 'total'
+             : gammaAbs <= umbraLimit ? 'partial'
+             : 'penumbral';
+
+    // Half-duration (penumbral contacts to contacts): Meeus §54 approximate.
+    // Moon's apparent velocity relative to shadow ≈ 0.5080°/hr.
+    var moonVelDegPerHr  = 0.5080;
+    var halfDurationHr   = Math.sqrt(Math.max(0, penumbraLimit * penumbraLimit - gammaAbs * gammaAbs))
+                          / moonVelDegPerHr;
+    var halfDurationMs   = halfDurationHr * 3600000;
+    var utcPeak          = (jdFullMoon - 2440587.5) * 86400000;
+
+    return { kind: kind, utcPeak: utcPeak, halfDurationMs: halfDurationMs };
+  }
+
+  // Next lunar eclipse visible from (lat, lon) after date.
+  // "Visible" = any portion of the eclipse window overlaps with moon above horizon.
+  // Returns {utcMs, kind} or null.
+  function nextLunarEclipseAfter(date, lat, lon) {
+    var SYNODIC_MONTH = 29.53059;
+    var SYNODIC_MS    = SYNODIC_MONTH * 86400000;
+    var MAX_MONTHS    = 600;
+
+    var syzygy = syzygyMomentAfter(date, 'full');
+    if (!syzygy) return null;
+    var currentMs = syzygy.utcMs;
+
+    for (var i = 0; i < MAX_MONTHS; i++) {
+      var jd = 2440587.5 + currentMs / 86400000;
+      var eclipseInfo = _lunarEclipseAtFullMoon(jd);
+      if (eclipseInfo !== null) {
+        var peakMs = eclipseInfo.utcPeak;
+        var halfMs = eclipseInfo.halfDurationMs;
+        // Sample 5 evenly-spaced points across the full eclipse window.
+        var checkPoints = [
+          peakMs - halfMs,
+          peakMs - halfMs * 0.5,
+          peakMs,
+          peakMs + halfMs * 0.5,
+          peakMs + halfMs
+        ];
+        var visible = false;
+        for (var k = 0; k < checkPoints.length; k++) {
+          if (moonAltAzAt(new Date(checkPoints[k]), lat, lon).altitude > 0) {
+            visible = true;
+            break;
+          }
+        }
+        if (visible) {
+          return { utcMs: peakMs, kind: eclipseInfo.kind };
+        }
+      }
+      var nextDate   = new Date(currentMs + SYNODIC_MS * 0.9);
+      var nextSyzygy = syzygyMomentAfter(nextDate, 'full');
+      if (!nextSyzygy) break;
+      currentMs = nextSyzygy.utcMs;
+    }
+    return null;
+  }
+
   var api = {
     // helpers
     dayOfYear: dayOfYear,
@@ -616,6 +832,10 @@
     lunarStandstillNear: lunarStandstillNear,
     perigeeMomentAfter: perigeeMomentAfter,
     syzygyMomentAfter: syzygyMomentAfter,
+    // eclipse + azimuth (v1.1 slice 1)
+    moonriseAzimuthAt: moonriseAzimuthAt,
+    nextSolarEclipseAfter: nextSolarEclipseAfter,
+    nextLunarEclipseAfter: nextLunarEclipseAfter,
     // obliquity / time machine
     obliquity: obliquity,
     sunriseAzimuthForYear: sunriseAzimuthForYear,
