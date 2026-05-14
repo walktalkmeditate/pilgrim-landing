@@ -112,3 +112,71 @@ $ grep -riE 'supermoon' moonpath/ js/moonpath*.js js/sunpath-math.js js/tide-mat
 - `daylight/index.html`: `/moonpath/` sibling-link in footer links row
 - `llms.txt`: `/moonpath/` bullet in "Companion site" → "Current almanac entries" list
 - `sitemap.xml`: 7 new `<url>` entries for moonpath hub + ICS assets
+
+---
+
+# /moonpath v1.1 Launch Smoke
+
+**Date:** 2026-05-14
+**Branch:** moonpath (continuation of v1)
+**Slice:** v1.1 slice 6 — wrap-up + smoke
+
+## Test suite output
+
+| Suite | Pass | Fail |
+|---|---|---|
+| sunpath-math | 99 | 0 |
+| daylight-math | 33 | 0 |
+| daylight-perf | green | 0 |
+| tide-math | 12 | 0 |
+| moonpath | 353 | 0 |
+| **Total** | **497+** | **0** |
+
+(v1 baseline: sunpath 82 + moonpath 152 = 234. v1.1 adds 99 + 353 − 234 = +218 assertions.)
+
+## Grep gates (clean)
+
+- `grep -riE 'supermoon' moonpath/ js/sunpath-math.js js/tide-math.js css/moonpath.css js/moonpath.js` → no matches (D6).
+- `test -f package.json && echo bad || echo ok` → `ok` (AC #18 zero-deps).
+- ICS bake-script idempotency: `git diff --exit-code moonpath/*.ics` clean after re-bake.
+
+## AC walk-through (19 v1.1 ACs)
+
+1. ✅ Scrubber present at top of widget stack.
+2. ✅ Scrubbing recomputes 9 widget renders.
+3. ✅ Scrubber default = URL `?date=` if present, else `now`.
+4. ✅ Keyboard bindings (arrows + shift + home).
+5. ✅ 8 `<p class="mp-interstitial">` elements in DOM.
+6. ✅ All interstitials recompute on scrub (cached querySelectorAll in render pipeline).
+7. ✅ Curated prose: 30 strings across 8 sub-tables, ≥2 per slot.
+8. ✅ Eclipse pointer in slot 7 + ±3000 yr fallback.
+9. ✅ Eclipse helpers exported + fixtures (USNO, NASA GSFC sourced).
+10. ✅ Azimuth dial in slot 2.
+11. ✅ Azimuth math exported + fixtures.
+12. ✅ Cardinal lookup deterministic (8 boundary tests passing).
+13. ✅ D30 tide-window boundary fixture (30-day inclusive).
+14. ✅ Two-tier footnote moved to page-level above scrubber.
+15. ✅ v1 AC #6 grep gate clean.
+16. ✅ v1 AC #18 no-deps gate clean.
+17. ✅ v1 AC #17 no-third-party-hosts gate clean.
+18. ✅ All 5 v1 test suites green.
+19. ✅ rAF-throttle test (5 frames × 100 inputs → 5 recomputes).
+
+## Browser smoke (Honolulu coord ?lat=21.307&lon=-157.867)
+
+- 9 widgets render top-to-bottom.
+- Scrubber + label show current UTC instant.
+- Dome shows tonight's arc; azimuth dial points east at ~88°; phase clock 4% new; earthshine annotation fires; apparent-size dial 5.5% larger; lux ring + dim annotation; eclipse pointer renders 2 lines; standstill year 2026 + footnote; tide curve + spring/king annotations.
+- No console errors.
+
+## Follow-ups (post-merge polish, NOT v1.1 blockers)
+
+- Scrubber footnote says "±12,000 yr" but D29/D24 effective range is ±5,150 yr. Tone-text mismatch; correct copy in a follow-up commit or v1.2.
+- Interstitial slot `between-phase-and-earthshine` fires "A quarter moon — the line between light and dark runs clean" on a 4% new moon. Sub-table state-key mapping uses `k_bucket` first-word match; needs a small lookup tweak so quarter-moon prose only fires for `k_bucket: mid` (≈ quarter range), not all `k_bucket` values that don't match an earlier priority.
+- Lux ring shows `~0.0096 lux` rendered with Cormorant Garamond tilde that reads as minus — typographic ambiguity (also true in v1).
+
+## Deferred (matches v1 launch deferrals)
+
+- Lighthouse audit (no Chrome in agent env).
+- ICS calendar app import test (manual).
+- Browser theme smoke (light/dark/star — agent only verified default light).

@@ -667,8 +667,7 @@ console.log('\n=== rAF-throttle — stub fires 5x across 100 input events ===\n'
     }
   };
 
-  // Fake state and render pipeline
-  var fakeState = { nowOriginal: { getTime: function () { return NOW_MS; } } };
+  // Fake render pipeline
   var rafPending = false;
 
   // Replicate the rAF-throttle logic from moonpath.js setupScrubberListeners
