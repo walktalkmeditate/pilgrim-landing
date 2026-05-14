@@ -99,24 +99,55 @@
       </div>
     </section>
 
-    <!-- Moon-in-sky widget — slice 4 -->
+    <!-- Date scrubber — accuracy footnote above, scrubber, label below -->
+    <p class="mp-scrubber-footnote">
+      <em>Positions are computed to ±0.3° accuracy within ±2,000 yr of today (Meeus low-precision). Near center ticks advance by minutes; near the edges by years — drag far for centuries, near center for hours. Standstill years accurate to ±1 yr within ±2,000 yr; beyond that range the scrubber navigates by archaeological anchor, not model.</em>
+    </p>
+    <input class="mp-date-scrubber" type="range"
+           id="mp-date-scrubber"
+           min="-500" max="500" step="1" value="0"
+           aria-label="Scrub date"
+           aria-valuetext="now">
+    <p class="mp-scrubber-label" id="mp-scrubber-label" aria-live="polite"></p>
+
+    <!-- Slot 1: Moon-in-sky dome diagram -->
     <section class="moonpath-section moonpath-section--widget" id="mp-sky" hidden aria-label="Moon position tonight">
       <h2 class="moonpath-section-heading">Tonight's arc</h2>
       <svg class="moonpath-dome-svg" id="mp-sky-svg"
            viewBox="0 0 600 180" role="img" aria-label="Moon altitude tonight"></svg>
     </section>
 
-    <!-- Phase clock — slice 4 -->
+    <!-- Interstitial 1: between dome and azimuth -->
+    <p class="mp-interstitial" data-section-id="between-dome-and-azimuth" hidden></p>
+
+    <!-- Slot 2: Moonrise azimuth dial — placeholder, filled by slice 3 -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-azimuth" hidden aria-label="Moonrise direction">
+    </section>
+
+    <!-- Interstitial 2: between azimuth and phase -->
+    <p class="mp-interstitial" data-section-id="between-azimuth-and-phase" hidden></p>
+
+    <!-- Slot 3: Phase clock -->
     <section class="moonpath-section moonpath-section--widget" id="mp-phase" hidden aria-label="Lunar phase">
       <h2 class="moonpath-section-heading">Phase</h2>
       <svg class="moonpath-phase-svg" id="mp-phase-svg"
            viewBox="0 0 240 210" role="img" aria-label="Lunar phase clock"></svg>
+    </section>
+
+    <!-- Interstitial 3: between phase and earthshine -->
+    <p class="mp-interstitial" data-section-id="between-phase-and-earthshine" hidden></p>
+
+    <!-- Slot 4: Earthshine annotation -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-earthshine-section" hidden aria-label="Earthshine">
       <p class="moonpath-annotation" id="mp-earthshine" hidden>
         <em>Earthshine visible — the old moon in the new moon's arms.</em>
       </p>
     </section>
 
-    <!-- Apparent size dial — slice 4 -->
+    <!-- Interstitial 4: between earthshine and apparent-size -->
+    <p class="mp-interstitial" data-section-id="between-earthshine-and-size" hidden></p>
+
+    <!-- Slot 5: Apparent size dial -->
     <section class="moonpath-section moonpath-section--widget" id="mp-size" hidden aria-label="Apparent size">
       <h2 class="moonpath-section-heading">Apparent size</h2>
       <svg class="moonpath-dial-svg" id="mp-size-svg"
@@ -124,7 +155,10 @@
       <p class="moonpath-annotation" id="mp-size-label"></p>
     </section>
 
-    <!-- Moonlight lux — slice 4 -->
+    <!-- Interstitial 4: between apparent-size and lux -->
+    <p class="mp-interstitial" data-section-id="between-size-and-lux" hidden></p>
+
+    <!-- Slot 5: Moonlight lux -->
     <section class="moonpath-section moonpath-section--widget" id="mp-lux" hidden aria-label="Moonlight brightness">
       <h2 class="moonpath-section-heading">Moonlight</h2>
       <svg class="moonpath-lux-svg" id="mp-lux-svg"
@@ -135,27 +169,29 @@
       </p>
     </section>
 
-    <!-- Standstill time-machine — slice 5 -->
+    <!-- Interstitial 5: between lux and eclipse -->
+    <p class="mp-interstitial" data-section-id="between-lux-and-eclipse" hidden></p>
+
+    <!-- Slot 6: Eclipse pointer — placeholder, filled by slice 4 -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-eclipse" hidden aria-label="Next eclipse">
+    </section>
+
+    <!-- Interstitial 6: between eclipse and standstill -->
+    <p class="mp-interstitial" data-section-id="between-eclipse-and-standstill" hidden></p>
+
+    <!-- Slot 7: Standstill time-machine (year driven by scrubber) -->
     <section class="moonpath-section moonpath-section--widget" id="mp-standstill" hidden aria-label="Lunar standstill time machine">
       <h2 class="moonpath-section-heading">Standstill</h2>
 
-      <div class="moonpath-standstill-slider-wrap">
-        <label class="moonpath-label" for="mp-standstill-slider">Year</label>
-        <input class="moonpath-standstill-slider" type="range"
-               id="mp-standstill-slider"
-               min="-3250" max="7026" value="2026"
-               aria-label="Year for lunar standstill">
-        <p class="moonpath-standstill-result" id="mp-standstill-result" aria-live="polite"></p>
-      </div>
+      <p class="moonpath-standstill-result" id="mp-standstill-result" aria-live="polite"></p>
 
       <div class="moonpath-standstill-callouts" id="mp-standstill-callouts" aria-live="polite"></div>
-
-      <p class="moonpath-standstill-footnote">
-        <em>Standstill years are computed accurate to ±1 year within ±2,000 yr of today (Meeus low-precision envelope). Beyond that range, the slider is a navigation widget — historical anchors are pinned from archaeological literature, not derived from the model.</em>
-      </p>
     </section>
 
-    <!-- Tide section — slice 6 -->
+    <!-- Interstitial 7: between standstill and tide -->
+    <p class="mp-interstitial" data-section-id="between-standstill-and-tide" hidden></p>
+
+    <!-- Slot 8: Tide section -->
     <section class="moonpath-section moonpath-section--widget" id="mp-tide" hidden aria-label="Tide curve">
       <h2 class="moonpath-section-heading">Tide</h2>
       <svg class="moonpath-tide-svg" id="mp-tide-svg"
@@ -168,6 +204,7 @@
         <em>King tide approaching — perigee and syzygy align within 30 days.</em>
       </p>
     </section>
+
 
   </main>
 

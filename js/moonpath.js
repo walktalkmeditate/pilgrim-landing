@@ -8,10 +8,14 @@
    Export shape:
      Browser → window.MoonPath = { recompute, parseParams, nearestPortFor,
                                    luxBracketFor, apparentSizePercentString,
-                                   earthshineVisibleFor }
+                                   earthshineVisibleFor,
+                                   scrubberValueToInstant,
+                                   instantToScrubberValue }
      Node    → module.exports  = { recompute, parseParams, nearestPortFor,
                                    luxBracketFor, apparentSizePercentString,
-                                   earthshineVisibleFor }
+                                   earthshineVisibleFor,
+                                   scrubberValueToInstant,
+                                   instantToScrubberValue }
 
    The outer shell only wires DOM listeners when
    typeof window !== 'undefined' && typeof document !== 'undefined'.
@@ -256,9 +260,61 @@
   }
 
   /* ==========================================
+     Date scrubber math — D24 log scale, base 1.0293
+     ========================================== */
+
+  var SCRUBBER_BASE = 1.0293;
+  var SCRUBBER_LOG_BASE = Math.log(SCRUBBER_BASE);
+
+  /*
+   * scrubberValueToInstant(i, nowMs) — convert integer tick i to ms timestamp.
+   * Formula: daysFromNow(i) = sign(i) * (1.0293^|i| - 1)
+   * i=0 returns exactly nowMs (no rounding at center).
+   * D24: tick range ±500 maps to approx ±5150 yr.
+   */
+  function scrubberValueToInstant(i, nowMs) {
+    if (i === 0) return nowMs;
+    var sign = i > 0 ? 1 : -1;
+    var absI = Math.abs(i);
+    var daysFromNow = sign * (Math.pow(SCRUBBER_BASE, absI) - 1);
+    return nowMs + Math.round(daysFromNow * 86400000);
+  }
+
+  /*
+   * instantToScrubberValue(ms, nowMs) — algebraic inverse of scrubberValueToInstant.
+   * daysDiff = (ms - nowMs) / 86_400_000
+   * i = sign(daysDiff) * round( ln(|daysDiff| + 1) / ln(1.0293) )
+   * Clamped to [-500, 500].
+   * Round-trip property: instantToScrubberValue(scrubberValueToInstant(i, n), n) ≈ i ±1.
+   */
+  function instantToScrubberValue(ms, nowMs) {
+    var daysDiff = (ms - nowMs) / 86400000;
+    if (daysDiff === 0) return 0;
+    var sign = daysDiff > 0 ? 1 : -1;
+    var absDays = Math.abs(daysDiff);
+    var i = sign * Math.round(Math.log(absDays + 1) / SCRUBBER_LOG_BASE);
+    if (i < -500) i = -500;
+    if (i >  500) i =  500;
+    return i;
+  }
+
+  /* ==========================================
      Inner core — pure computation
      ========================================== */
 
+  /*
+   * recompute(state) — pure inner core, no DOM side-effects.
+   *
+   * state fields:
+   *   lat         — string or number, decimal degrees
+   *   lon         — string or number, decimal degrees
+   *   now         — Date (or absent → current wall clock). The scrubber-controlled instant.
+   *   nowOriginal — optional Date or ms number. The true wall-clock "now" captured at page load.
+   *                 When absent, defaults to state.now (backward-compat: v1 tests pass unchanged).
+   *                 Used for D30 tide window: |now - nowOriginal| ≤ 30 × 86_400_000 ms shows curve;
+   *                 outside that window shows a fallback line.
+   *   ports       — array of tide-port objects (optional)
+   */
   function recompute(state) {
     if (!state || state.lat === null || state.lon === null) {
       return { ready: false };
@@ -272,6 +328,16 @@
     }
 
     var now = state.now instanceof Date ? state.now : new Date();
+
+    // nowOriginal: when absent defaults to `now` for back-compat (v1 callers).
+    var nowOriginal;
+    if (state.nowOriginal instanceof Date) {
+      nowOriginal = state.nowOriginal;
+    } else if (typeof state.nowOriginal === 'number') {
+      nowOriginal = new Date(state.nowOriginal);
+    } else {
+      nowOriginal = now;
+    }
 
     if (!SunPathMath) {
       return { ready: false, error: 'SunPathMath not loaded' };
@@ -299,27 +365,36 @@
     var moonrise = SunPathMath.moonriseUTC(lat, lon, now);
     var moonset  = SunPathMath.moonsetUTC(lat, lon, now);
 
-    // --- Tide fields (D9: gated by 200 km threshold) ---
+    // --- Tide fields (D9: gated by 200 km threshold + D30: ±30 day window) ---
     var ports = state.ports || null;
     var portResult = ports ? nearestPortFor(lat, lon, ports) : null;
     var nearestPort = portResult ? portResult.port : null;
     var nearestPortDistanceKm = portResult ? portResult.distanceKm : Infinity;
     var tideVisible = nearestPortDistanceKm <= 200;
 
+    // D30: tide curve only within ±30 days of nowOriginal (inclusive boundary)
+    var TIDE_WINDOW_MS = 30 * 86400000;
+    var tideInWindow = Math.abs(now.getTime() - nowOriginal.getTime()) <= TIDE_WINDOW_MS;
+
     var tideHeights24h = null;
+    var tideOutOfWindow = false;
     var springNeapState = null;
     var kingTideUpcoming = false;
 
     if (tideVisible && nearestPort && TideMath) {
-      // Sample tide heights at 30-min intervals across -24h to +24h
-      var nowMs = now.getTime();
-      var samples = [];
-      for (var s = -48; s <= 48; s++) {
-        var sMs = nowMs + s * 30 * 60 * 1000;
-        var h = TideMath.harmonicTideHeightM(sMs / 1000, nearestPort.constituents);
-        samples.push({ offsetMin: s * 30, heightM: h, timeMs: sMs });
+      if (tideInWindow) {
+        // Sample tide heights at 30-min intervals across -24h to +24h
+        var nowMs = now.getTime();
+        var samples = [];
+        for (var s = -48; s <= 48; s++) {
+          var sMs = nowMs + s * 30 * 60 * 1000;
+          var h = TideMath.harmonicTideHeightM(sMs / 1000, nearestPort.constituents);
+          samples.push({ offsetMin: s * 30, heightM: h, timeMs: sMs });
+        }
+        tideHeights24h = samples;
+      } else {
+        tideOutOfWindow = true;
       }
-      tideHeights24h = samples;
     }
 
     if (tideVisible) {
@@ -332,6 +407,7 @@
       lat:                      lat,
       lon:                      lon,
       now:                      now,
+      nowOriginal:              nowOriginal,
       moonPhase:                phase,
       moonK:                    k,
       moonAltAz:                moonAltAz,
@@ -344,6 +420,7 @@
       nearestPort:              nearestPort,
       nearestPortDistanceKm:    nearestPortDistanceKm,
       tideHeights24h:           tideHeights24h,
+      tideOutOfWindow:          tideOutOfWindow,
       springNeapState:          springNeapState,
       kingTideUpcoming:         kingTideUpcoming
     };
@@ -428,7 +505,9 @@
     activeCalloutsFor:         activeCalloutsFor,
     ARCHAEO_CALLOUTS:          ARCHAEO_CALLOUTS,
     STANDSTILL_SLIDER_MIN:     STANDSTILL_SLIDER_MIN,
-    STANDSTILL_SLIDER_MAX:     STANDSTILL_SLIDER_MAX
+    STANDSTILL_SLIDER_MAX:     STANDSTILL_SLIDER_MAX,
+    scrubberValueToInstant:    scrubberValueToInstant,
+    instantToScrubberValue:    instantToScrubberValue
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -688,15 +767,25 @@
   }
 
   /* ==========================================
-     Widget 3 — Earthshine annotation
+     Widget 4 — Earthshine annotation
      ========================================== */
 
   function renderEarthshineAnnotation(output, pEl) {
     if (!pEl) return;
-    if (earthshineVisibleFor(output.moonK)) {
+    var visible = earthshineVisibleFor(output.moonK);
+    if (visible) {
       pEl.removeAttribute('hidden');
     } else {
       pEl.setAttribute('hidden', '');
+    }
+    // Also show/hide the parent section so no empty gap appears
+    var sectionEl = els && els.earthshineSection;
+    if (sectionEl) {
+      if (visible) {
+        sectionEl.removeAttribute('hidden');
+      } else {
+        sectionEl.setAttribute('hidden', '');
+      }
     }
   }
 
@@ -938,6 +1027,7 @@
   /*
    * renderTideSection(output) — top-level coordinator.
    * Hides section when nearest port >200 km; shows curve + annotations otherwise.
+   * D30: when scrubbed date is outside ±30 day window of nowOriginal, shows fallback.
    */
   function renderTideSection(output) {
     var section = els.tideSection;
@@ -960,6 +1050,18 @@
       return;
     }
 
+    // D30 out-of-window fallback
+    if (output.tideOutOfWindow) {
+      if (tideLabel) {
+        tideLabel.textContent = 'Tide curve unavailable beyond the bake window — try a date within ±30 days.';
+        tideLabel.removeAttribute('hidden');
+      }
+      if (els.tideSvg) els.tideSvg.setAttribute('hidden', '');
+      if (els.tideSpringNeap) els.tideSpringNeap.setAttribute('hidden', '');
+      if (els.tideKingFlag)   els.tideKingFlag.setAttribute('hidden', '');
+      return;
+    }
+
     // Tide section visible — render curve
     if (els.tideSvg) {
       els.tideSvg.removeAttribute('hidden');
@@ -971,30 +1073,30 @@
   }
 
   /* ==========================================
-     Widget 7 — Standstill time-machine
+     Widget 8 — Standstill annotation (reads scrubbed year from state.now)
      ========================================== */
 
   /*
-   * renderStandstillSlider(sliderEl, resultEl, calloutsEl)
-   * Reads the current slider value, calls lunarStandstillNear,
+   * renderStandstillAnnotation(output, resultEl, calloutsEl)
+   * Reads the scrubbed year from output.now (state.now), calls lunarStandstillNear,
    * updates the result label, and renders active archaeo callouts.
+   * (v1's renderStandstillSlider used a dedicated year slider — removed in slice 2.)
    */
-  function renderStandstillSlider(sliderEl, resultEl, calloutsEl) {
-    if (!sliderEl || !resultEl) return;
+  function renderStandstillAnnotation(output, resultEl, calloutsEl) {
+    if (!resultEl) return;
 
-    var sliderYear = parseInt(sliderEl.value, 10);
-    if (isNaN(sliderYear)) return;
+    var scrubYear = new Date(output.now).getFullYear();
 
-    var standstill = SunPathMath.lunarStandstillNear(new Date(), sliderYear);
+    var standstill = SunPathMath.lunarStandstillNear(new Date(), scrubYear);
     var standstillYear = Math.round(standstill.year);
     var decl = standstill.peakDeclination.toFixed(1);
 
     resultEl.textContent =
-      'Year: ' + sliderYear + ', nearest standstill: ' + standstillYear +
+      'Year: ' + scrubYear + ', nearest standstill: ' + standstillYear +
       ' (' + standstill.type + ', declination ' + decl + '°)';
 
     if (calloutsEl) {
-      var active = activeCalloutsFor(sliderYear);
+      var active = activeCalloutsFor(scrubYear);
       while (calloutsEl.firstChild) calloutsEl.removeChild(calloutsEl.firstChild);
       active.forEach(function (c) {
         var p = document.createElement('p');
@@ -1008,15 +1110,41 @@
   }
 
   /* ==========================================
+     Date scrubber label formatter
+     ========================================== */
+
+  var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  /*
+   * formatScrubberLabel(ms) — returns e.g. "Sat 14 May 2026, 14:32 UTC"
+   */
+  function formatScrubberLabel(ms) {
+    var d = new Date(ms);
+    var dow  = DAY_NAMES[d.getUTCDay()];
+    var day  = d.getUTCDate();
+    var mon  = MONTH_NAMES[d.getUTCMonth()];
+    var yr   = d.getUTCFullYear();
+    var h    = d.getUTCHours();
+    var m    = d.getUTCMinutes();
+    var hh   = h < 10 ? '0' + h : '' + h;
+    var mm   = m < 10 ? '0' + m : '' + m;
+    return dow + ' ' + day + ' ' + mon + ' ' + yr + ', ' + hh + ':' + mm + ' UTC';
+  }
+
+  /* ==========================================
      State
      ========================================== */
 
+  var nowAtLoad = new Date();
+
   var state = {
-    lat:   null,
-    lon:   null,
-    date:  null,
-    now:   new Date(),
-    ports: null
+    lat:         null,
+    lon:         null,
+    date:        null,
+    now:         nowAtLoad,
+    nowOriginal: nowAtLoad,
+    ports:       null
   };
 
   /* ==========================================
@@ -1028,12 +1156,19 @@
     locateBtn:   document.getElementById('mp-locate'),
     latInput:    document.getElementById('mp-lat'),
     lonInput:    document.getElementById('mp-lon'),
-    skySection:  document.getElementById('mp-sky'),
-    phaseSection: document.getElementById('mp-phase'),
-    sizeSection: document.getElementById('mp-size'),
-    luxSection:  document.getElementById('mp-lux'),
-    standstillSection: document.getElementById('mp-standstill'),
-    tideSection: document.getElementById('mp-tide'),
+    // Sections
+    skySection:            document.getElementById('mp-sky'),
+    azimuthSection:        document.getElementById('mp-azimuth'),
+    phaseSection:          document.getElementById('mp-phase'),
+    earthshineSection:     document.getElementById('mp-earthshine-section'),
+    sizeSection:           document.getElementById('mp-size'),
+    luxSection:            document.getElementById('mp-lux'),
+    eclipseSection:        document.getElementById('mp-eclipse'),
+    standstillSection:     document.getElementById('mp-standstill'),
+    tideSection:           document.getElementById('mp-tide'),
+    // Scrubber
+    dateScrubber:     document.getElementById('mp-date-scrubber'),
+    scrubberLabel:    document.getElementById('mp-scrubber-label'),
     // Widget slots
     skySvg:       document.getElementById('mp-sky-svg'),
     phaseSvg:     document.getElementById('mp-phase-svg'),
@@ -1042,11 +1177,10 @@
     sizeLabel:    document.getElementById('mp-size-label'),
     luxSvg:       document.getElementById('mp-lux-svg'),
     luxLabel:     document.getElementById('mp-lux-label'),
-    // Slice 5 — standstill
-    standstillSlider:   document.getElementById('mp-standstill-slider'),
+    // Widget 8 — standstill (no slider; scrubbed year from state.now)
     standstillResult:   document.getElementById('mp-standstill-result'),
     standstillCallouts: document.getElementById('mp-standstill-callouts'),
-    // Slice 6 — tide
+    // Tide
     tideSvg:            document.getElementById('mp-tide-svg'),
     tideLabel:          document.getElementById('mp-tide-label'),
     tideSpringNeap:     document.getElementById('mp-tide-spring-neap'),
@@ -1075,9 +1209,12 @@
   function showWidgets(show) {
     var sections = [
       els.skySection,
+      els.azimuthSection,
       els.phaseSection,
+      els.earthshineSection,
       els.sizeSection,
       els.luxSection,
+      els.eclipseSection,
       els.standstillSection,
       els.tideSection
     ];
@@ -1106,8 +1243,17 @@
     renderEarthshineAnnotation(output, els.earthshineP);
     renderApparentSizeDial(output, els.sizeSvg, els.sizeLabel);
     renderLuxRing(output, els.luxSvg, els.luxLabel);
-    renderStandstillSlider(els.standstillSlider, els.standstillResult, els.standstillCallouts);
+    renderStandstillAnnotation(output, els.standstillResult, els.standstillCallouts);
     renderTideSection(output);
+
+    // Update scrubber label
+    if (els.scrubberLabel) {
+      els.scrubberLabel.textContent = formatScrubberLabel(output.now.getTime());
+    }
+    // Update scrubber aria-valuetext
+    if (els.dateScrubber) {
+      els.dateScrubber.setAttribute('aria-valuetext', formatScrubberLabel(output.now.getTime()));
+    }
   }
 
   /* ==========================================
@@ -1181,14 +1327,47 @@
   }
 
   /* ==========================================
-     Standstill slider — live update on change
+     Date scrubber — rAF-throttled input pipeline (AC #19)
      ========================================== */
 
-  if (els.standstillSlider) {
-    els.standstillSlider.addEventListener('input', function () {
-      renderStandstillSlider(els.standstillSlider, els.standstillResult, els.standstillCallouts);
+  (function setupScrubberListeners() {
+    if (!els.dateScrubber) return;
+
+    var rafPending = false;
+
+    els.dateScrubber.addEventListener('input', function () {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(function () {
+        rafPending = false;
+        var i = parseInt(els.dateScrubber.value, 10);
+        state.now = new Date(scrubberValueToInstant(i, state.nowOriginal.getTime()));
+        runAndRender();
+      });
     });
-  }
+
+    // Keyboard: Shift+Left/Right = ±10 ticks; Home = reset to i=0
+    els.dateScrubber.addEventListener('keydown', function (e) {
+      var current = parseInt(els.dateScrubber.value, 10);
+      var handled = false;
+
+      if (e.key === 'ArrowLeft' && e.shiftKey) {
+        els.dateScrubber.value = Math.max(-500, current - 10);
+        handled = true;
+      } else if (e.key === 'ArrowRight' && e.shiftKey) {
+        els.dateScrubber.value = Math.min(500, current + 10);
+        handled = true;
+      } else if (e.key === 'Home') {
+        els.dateScrubber.value = 0;
+        handled = true;
+      }
+
+      if (handled) {
+        e.preventDefault();
+        els.dateScrubber.dispatchEvent(new Event('input'));
+      }
+    });
+  })();
 
   /* ==========================================
      Bootstrap from URL params
@@ -1201,6 +1380,19 @@
       state.lat  = params.lat;
       state.lon  = params.lon;
       state.date = params.date;
+    }
+
+    // AC #3: if ?date= present, initialize scrubber to that instant
+    if (params.date) {
+      var parsedMs = Date.parse(params.date + 'T00:00:00Z');
+      if (!isNaN(parsedMs)) {
+        var initTick = instantToScrubberValue(parsedMs, nowAtLoad.getTime());
+        state.now = new Date(scrubberValueToInstant(initTick, nowAtLoad.getTime()));
+        if (els.dateScrubber) {
+          els.dateScrubber.value = initTick;
+          els.dateScrubber.setAttribute('aria-valuetext', formatScrubberLabel(state.now.getTime()));
+        }
+      }
     }
 
     fetch('/assets/moonpath/tide-ports.json')

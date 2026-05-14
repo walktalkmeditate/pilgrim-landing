@@ -350,19 +350,23 @@
 }
 
 /* =============================================
-   Slice 5 — Standstill time-machine
+   Slice 2 — Date scrubber
    ============================================= */
 
-.moonpath-standstill-slider-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0 0 1.2rem;
+.mp-scrubber-footnote {
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.82rem;
+  opacity: 0.75;
+  margin: 0 0 1rem;
+  max-width: 480px;
+  line-height: 1.55;
 }
 
-.moonpath-standstill-slider {
+.mp-date-scrubber {
   -webkit-appearance: none;
   appearance: none;
+  display: block;
   width: 100%;
   height: 1px;
   background: rgba(184, 175, 162, 0.4);
@@ -371,7 +375,7 @@
   margin: 0.4rem 0;
 }
 
-.moonpath-standstill-slider::-webkit-slider-thumb {
+.mp-date-scrubber::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 12px;
@@ -382,7 +386,7 @@
   cursor: pointer;
 }
 
-.moonpath-standstill-slider::-moz-range-thumb {
+.mp-date-scrubber::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -392,9 +396,42 @@
   cursor: pointer;
 }
 
-.moonpath-standstill-slider:focus {
+.mp-date-scrubber:focus {
   outline: none;
 }
+
+.mp-scrubber-label {
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.82rem;
+  color: var(--stone);
+  margin: 0.2rem 0 2rem;
+  letter-spacing: 0.02em;
+  min-height: 1.2em;
+  text-align: center;
+}
+
+/* =============================================
+   Slice 2 — Interstitial prose placeholders
+   ============================================= */
+
+.mp-interstitial {
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.92rem;
+  margin: -1rem 0 1.6rem;
+  max-width: 480px;
+  line-height: 1.55;
+}
+
+.mp-interstitial[hidden] {
+  display: none;
+}
+
+/* =============================================
+   Slice 5 — Standstill time-machine
+   ============================================= */
 
 .moonpath-standstill-result {
   font-family: var(--font-ui);
@@ -415,16 +452,6 @@
   color: var(--stone);
   font-size: 0.92rem;
   margin: 0 0 0.4rem;
-}
-
-.moonpath-standstill-footnote {
-  font-style: italic;
-  color: var(--stone);
-  font-size: 0.82rem;
-  opacity: 0.75;
-  margin: 0;
-  max-width: 480px;
-  line-height: 1.55;
 }
 
 /* =============================================

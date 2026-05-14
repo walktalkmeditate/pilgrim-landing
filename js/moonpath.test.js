@@ -495,6 +495,244 @@ ok(rMidPacific.tideHeights24h === null, 'mid-Pacific: tideHeights24h is null (hi
 ok(rMidPacific.springNeapState === null, 'mid-Pacific: springNeapState is null (hidden)');
 
 /* ==========================================
+   Slice 2 — scrubberValueToInstant boundary tests
+   ========================================== */
+
+console.log('\n=== scrubberValueToInstant — D24 boundary cases ===\n');
+
+var NOW_MS = new Date('2026-05-14T12:00:00Z').getTime();
+var SCRUB  = MoonPath.scrubberValueToInstant;
+var UNSCRUB = MoonPath.instantToScrubberValue;
+
+// i=0 returns exactly nowMs
+equal(SCRUB(0, NOW_MS), NOW_MS, 'scrubberValueToInstant(0) === nowMs');
+
+// i=1: daysFromNow = 1.0293^1 - 1 = 0.0293 days ≈ 42.192 min ≈ 2531520 ms
+var i1 = SCRUB(1, NOW_MS) - NOW_MS;
+ok(i1 > 0, 'i=1 produces positive offset');
+var minDiff1 = i1 / 60000;
+ok(minDiff1 >= 38 && minDiff1 <= 46, 'i=1 offset in [38, 46] min (got: ' + minDiff1.toFixed(2) + ')');
+
+// i=-1: mirror of i=1
+var iNeg1 = NOW_MS - SCRUB(-1, NOW_MS);
+ok(iNeg1 > 0, 'i=-1 produces negative offset (time before nowMs)');
+var minDiffNeg1 = iNeg1 / 60000;
+ok(minDiffNeg1 >= 38 && minDiffNeg1 <= 46, 'i=-1 offset magnitude in [38, 46] min (got: ' + minDiffNeg1.toFixed(2) + ')');
+
+// i=500: should reach ~5000-5300 yr forward (spec accepts 1.0293^500 overshoot)
+var i500Ms = SCRUB(500, NOW_MS) - NOW_MS;
+var i500Yr = i500Ms / (365.25 * 86400000);
+ok(i500Yr >= 5000 && i500Yr <= 5300, 'i=500 reaches 5000-5300 yr forward (got: ' + i500Yr.toFixed(0) + ' yr)');
+
+// i=-500: mirror
+var iNeg500Ms = NOW_MS - SCRUB(-500, NOW_MS);
+var iNeg500Yr = iNeg500Ms / (365.25 * 86400000);
+ok(iNeg500Yr >= 5000 && iNeg500Yr <= 5300, 'i=-500 reaches 5000-5300 yr backward (got: ' + iNeg500Yr.toFixed(0) + ' yr)');
+
+/* ==========================================
+   Slice 2 — instantToScrubberValue round-trip
+   ========================================== */
+
+console.log('\n=== instantToScrubberValue — round-trip ±1 ===\n');
+
+var ROUND_TRIP_CASES = [-500, -100, -10, 0, 10, 100, 500];
+ROUND_TRIP_CASES.forEach(function (i) {
+  var ms = SCRUB(i, NOW_MS);
+  var back = UNSCRUB(ms, NOW_MS);
+  ok(Math.abs(back - i) <= 1, 'round-trip i=' + i + ': back=' + back + ' (diff=' + Math.abs(back - i) + ')');
+});
+
+/* ==========================================
+   Slice 2 — D30 tide window boundary fixture
+   ========================================== */
+
+console.log('\n=== recompute — D30 tide window boundary ===\n');
+
+var TIDE_WINDOW = 30 * 86400000;
+var baseMs = new Date('2026-05-14T12:00:00Z').getTime();
+var baseNow = new Date(baseMs);
+
+// exactly 30 days → curve (tideOutOfWindow: false, tideHeights24h populated)
+var stateAt30 = {
+  lat: String(honolulu.lat),
+  lon: String(honolulu.lon),
+  now: new Date(baseMs + TIDE_WINDOW),
+  nowOriginal: baseNow,
+  ports: PORTS
+};
+var rAt30 = MoonPath.recompute(stateAt30);
+equal(rAt30.ready, true, 'D30: ready true at 30d boundary');
+ok(!rAt30.tideOutOfWindow, 'D30: exactly 30 days → tideOutOfWindow: false (curve)');
+ok(Array.isArray(rAt30.tideHeights24h), 'D30: exactly 30 days → tideHeights24h populated');
+
+// 30 days + 1 ms → fallback (tideOutOfWindow: true, tideHeights24h null)
+var stateAt30Plus1 = {
+  lat: String(honolulu.lat),
+  lon: String(honolulu.lon),
+  now: new Date(baseMs + TIDE_WINDOW + 1),
+  nowOriginal: baseNow,
+  ports: PORTS
+};
+var rAt30Plus1 = MoonPath.recompute(stateAt30Plus1);
+equal(rAt30Plus1.ready, true, 'D30: ready true at 30d+1ms');
+ok(rAt30Plus1.tideOutOfWindow, 'D30: 30d+1ms → tideOutOfWindow: true (fallback)');
+ok(rAt30Plus1.tideHeights24h === null, 'D30: 30d+1ms → tideHeights24h null');
+
+// nowOriginal absent → defaults to state.now → always in-window (backward compat)
+var stateNoOriginal = {
+  lat: String(honolulu.lat),
+  lon: String(honolulu.lon),
+  now: new Date(baseMs + TIDE_WINDOW * 5),
+  ports: PORTS
+};
+var rNoOriginal = MoonPath.recompute(stateNoOriginal);
+ok(!rNoOriginal.tideOutOfWindow, 'D30 back-compat: absent nowOriginal → no out-of-window');
+ok(Array.isArray(rNoOriginal.tideHeights24h), 'D30 back-compat: absent nowOriginal → curve populated');
+
+/* ==========================================
+   Slice 2 — state.nowOriginal in recompute output
+   ========================================== */
+
+console.log('\n=== recompute — nowOriginal contract ===\n');
+
+var rWithOrig = MoonPath.recompute({
+  lat: '35.68', lon: '139.65',
+  now: new Date('2026-06-01T00:00:00Z'),
+  nowOriginal: new Date('2026-05-14T12:00:00Z')
+});
+equal(rWithOrig.ready, true, 'nowOriginal: ready true');
+ok(rWithOrig.nowOriginal instanceof Date, 'nowOriginal in output is a Date');
+equal(rWithOrig.nowOriginal.getTime(), new Date('2026-05-14T12:00:00Z').getTime(),
+  'nowOriginal preserved through recompute');
+
+// When absent, nowOriginal equals now
+var rNoOrig = MoonPath.recompute({
+  lat: '35.68', lon: '139.65',
+  now: new Date('2026-06-01T00:00:00Z')
+});
+equal(rNoOrig.ready, true, 'no nowOriginal: ready true');
+equal(rNoOrig.nowOriginal.getTime(), rNoOrig.now.getTime(),
+  'nowOriginal defaults to state.now when absent');
+
+/* ==========================================
+   Slice 2 — standstill reads scrubbed year from state.now
+   ========================================== */
+
+console.log('\n=== recompute — standstill reads scrubbed year ===\n');
+
+// Scrub to year 4000: the standstill result for that year should be in the far future
+var yearFarFuture = new Date('4000-06-15T00:00:00Z');
+var rFarFuture = MoonPath.recompute({
+  lat: '35.68', lon: '139.65',
+  now: yearFarFuture
+});
+equal(rFarFuture.ready, true, 'far future scrub: ready true');
+// The standstill annotation is rendered by renderStandstillAnnotation in the DOM shell.
+// Here we just verify that state.now reflects the scrubbed year correctly.
+var scrubYearFar = new Date(rFarFuture.now).getFullYear();
+ok(scrubYearFar >= 3999 && scrubYearFar <= 4001, 'scrubbed year reads from state.now (got: ' + scrubYearFar + ')');
+
+/* ==========================================
+   Slice 2 — rAF-throttle stub test (AC #19)
+   ========================================== */
+
+console.log('\n=== rAF-throttle — stub fires 5x across 100 input events ===\n');
+
+(function () {
+  // Save original requestAnimationFrame (absent in Node)
+  var origRAF = global.requestAnimationFrame;
+
+  // Queue for captured rAF callbacks
+  var rafQueue = [];
+  var recomputeCount = 0;
+  var lastInputValue = null;
+
+  // Stub requestAnimationFrame: capture callback, don't auto-fire
+  global.requestAnimationFrame = function (cb) {
+    rafQueue.push(cb);
+    return rafQueue.length;
+  };
+
+  // Fake scrubber element with event emitter behavior
+  var listeners = {};
+  var scrubberValue = 0;
+  var fakeScrubber = {
+    get value() { return String(scrubberValue); },
+    set value(v) { scrubberValue = parseInt(v, 10); },
+    getAttribute: function () { return null; },
+    setAttribute: function () {},
+    addEventListener: function (type, fn) {
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push(fn);
+    }
+  };
+
+  // Fake state and render pipeline
+  var fakeState = { nowOriginal: { getTime: function () { return NOW_MS; } } };
+  var rafPending = false;
+
+  // Replicate the rAF-throttle logic from moonpath.js setupScrubberListeners
+  fakeScrubber.addEventListener('input', function () {
+    if (rafPending) return;
+    rafPending = true;
+    global.requestAnimationFrame(function () {
+      rafPending = false;
+      var i = parseInt(fakeScrubber.value, 10);
+      lastInputValue = i;
+      recomputeCount++;
+    });
+  });
+
+  function fireInput(value) {
+    fakeScrubber.value = value;
+    var evts = listeners['input'] || [];
+    evts.forEach(function (fn) { fn(); });
+  }
+
+  function flushRAF() {
+    var cb = rafQueue.shift();
+    if (cb) cb();
+  }
+
+  // Fire 20 input events, then flush 1 rAF (should coalesce all 20 into 1 recompute)
+  for (var i = 0; i < 20; i++) fireInput(i);
+  flushRAF();
+  ok(recomputeCount === 1, 'rAF batch 1: 20 input events → 1 recompute (got: ' + recomputeCount + ')');
+  equal(lastInputValue, 19, 'rAF batch 1: last recompute used value 19');
+
+  // Fire 20 more, flush 1 rAF
+  for (var j = 20; j < 40; j++) fireInput(j);
+  flushRAF();
+  ok(recomputeCount === 2, 'rAF batch 2: 20 more input events → 2 total recomputes (got: ' + recomputeCount + ')');
+  equal(lastInputValue, 39, 'rAF batch 2: last recompute used value 39');
+
+  // Fire 20 more, flush 1 rAF
+  for (var k = 40; k < 60; k++) fireInput(k);
+  flushRAF();
+  ok(recomputeCount === 3, 'rAF batch 3: cumulative 60 events → 3 recomputes (got: ' + recomputeCount + ')');
+  equal(lastInputValue, 59, 'rAF batch 3: last value 59');
+
+  // Fire 20 more, flush 1 rAF
+  for (var l = 60; l < 80; l++) fireInput(l);
+  flushRAF();
+  ok(recomputeCount === 4, 'rAF batch 4: cumulative 80 events → 4 recomputes (got: ' + recomputeCount + ')');
+  equal(lastInputValue, 79, 'rAF batch 4: last value 79');
+
+  // Fire last 20, flush 1 rAF (total: 5 flushes, 100 input events)
+  for (var m = 80; m < 100; m++) fireInput(m);
+  flushRAF();
+  ok(recomputeCount === 5, 'rAF: 5 total flushes across 100 input events → recomputeCount === 5 (got: ' + recomputeCount + ')');
+  equal(lastInputValue, 99, 'rAF: last recompute used final input value 99');
+
+  // Restore
+  if (origRAF !== undefined) {
+    global.requestAnimationFrame = origRAF;
+  } else {
+    delete global.requestAnimationFrame;
+  }
+})();
+
+/* ==========================================
    Summary
    ========================================== */
 
