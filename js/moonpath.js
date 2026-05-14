@@ -402,6 +402,9 @@
       kingTideUpcoming = computeKingTideUpcoming(now);
     }
 
+    // --- Moonrise azimuth (D28) ---
+    var moonriseAzimuthDeg = SunPathMath.moonriseAzimuthAt(now, lat, lon);
+
     return {
       ready:                    true,
       lat:                      lat,
@@ -417,6 +420,7 @@
       moonLuxAtCoord:           moonLuxAtCoord,
       moonrise:                 moonrise,
       moonset:                  moonset,
+      moonriseAzimuthDeg:       moonriseAzimuthDeg,
       nearestPort:              nearestPort,
       nearestPortDistanceKm:    nearestPortDistanceKm,
       tideHeights24h:           tideHeights24h,
@@ -488,6 +492,28 @@
   }
 
   /* ==========================================
+     Slice 3 — Cardinal prose helper (D28)
+     ========================================== */
+
+  /*
+   * cardinalProseFor(bearingDeg) — 8-bucket compass-direction lookup.
+   * Domain: [0, 360) — callers must ensure input is in this range.
+   * Half-open buckets: closed-left, open-right. Boundary values land in
+   * the upper bucket (e.g. 22.5 → "northeast", not "due north").
+   * Due-north wraps: [337.5, 360) ∪ [0, 22.5) → "due north".
+   */
+  function cardinalProseFor(bearingDeg) {
+    if (bearingDeg >= 337.5 || bearingDeg < 22.5)  return 'due north';
+    if (bearingDeg < 67.5)                          return 'northeast';
+    if (bearingDeg < 112.5)                         return 'due east';
+    if (bearingDeg < 157.5)                         return 'southeast';
+    if (bearingDeg < 202.5)                         return 'due south';
+    if (bearingDeg < 247.5)                         return 'southwest';
+    if (bearingDeg < 292.5)                         return 'due west';
+    return 'northwest';
+  }
+
+  /* ==========================================
      Exports (inner core only — DOM glue below)
      ========================================== */
 
@@ -507,7 +533,8 @@
     STANDSTILL_SLIDER_MIN:     STANDSTILL_SLIDER_MIN,
     STANDSTILL_SLIDER_MAX:     STANDSTILL_SLIDER_MAX,
     scrubberValueToInstant:    scrubberValueToInstant,
-    instantToScrubberValue:    instantToScrubberValue
+    instantToScrubberValue:    instantToScrubberValue,
+    cardinalProseFor:          cardinalProseFor
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -901,6 +928,116 @@
   }
 
   /* ==========================================
+     Widget 3 — Moonrise azimuth dial (slot 2)
+     ========================================== */
+
+  /*
+   * renderMoonriseAzimuthDial(output, svgEl, labelEl)
+   * Compass rose 120×120 viewBox. When moonriseAzimuthDeg is not null,
+   * draws a needle from center to perimeter at the bearing (0=N, clockwise).
+   * When null (circumpolar), dims the dial and shows a fallback annotation.
+   */
+  function renderMoonriseAzimuthDial(output, svgEl, labelEl) {
+    if (!svgEl) return;
+    clearEl(svgEl);
+
+    var cx = 60, cy = 60, r = 46;
+
+    // Outer ring
+    svgEl.appendChild(makeSVGEl('circle', {
+      class: 'mp-azimuth-ring',
+      cx: cx, cy: cy, r: r
+    }));
+
+    // Cardinal ticks (N/E/S/W) — longer
+    var cardinalAngles = [0, 90, 180, 270];
+    cardinalAngles.forEach(function (deg) {
+      var rad = (deg - 90) * Math.PI / 180;
+      var x1 = cx + (r - 8) * Math.cos(rad);
+      var y1 = cy + (r - 8) * Math.sin(rad);
+      var x2 = cx + r * Math.cos(rad);
+      var y2 = cy + r * Math.sin(rad);
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'mp-azimuth-tick--cardinal',
+        x1: x1.toFixed(2), y1: y1.toFixed(2),
+        x2: x2.toFixed(2), y2: y2.toFixed(2)
+      }));
+    });
+
+    // Intercardinal ticks (NE/SE/SW/NW) — shorter, fainter
+    var intercardinalAngles = [45, 135, 225, 315];
+    intercardinalAngles.forEach(function (deg) {
+      var rad = (deg - 90) * Math.PI / 180;
+      var x1 = cx + (r - 5) * Math.cos(rad);
+      var y1 = cy + (r - 5) * Math.sin(rad);
+      var x2 = cx + r * Math.cos(rad);
+      var y2 = cy + r * Math.sin(rad);
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'mp-azimuth-tick--intercardinal',
+        x1: x1.toFixed(2), y1: y1.toFixed(2),
+        x2: x2.toFixed(2), y2: y2.toFixed(2)
+      }));
+    });
+
+    // Cardinal text labels N/E/S/W just outside the ring
+    var cardinalLabels = [
+      { text: 'N', deg: 0   },
+      { text: 'E', deg: 90  },
+      { text: 'S', deg: 180 },
+      { text: 'W', deg: 270 }
+    ];
+    cardinalLabels.forEach(function (item) {
+      var rad = (item.deg - 90) * Math.PI / 180;
+      var lx = cx + (r + 8) * Math.cos(rad);
+      var ly = cy + (r + 8) * Math.sin(rad) + 3;
+      var lbl = makeSVGEl('text', {
+        class: 'mp-azimuth-label',
+        x: lx.toFixed(2),
+        y: ly.toFixed(2)
+      });
+      lbl.textContent = item.text;
+      svgEl.appendChild(lbl);
+    });
+
+    var bearingDeg = output.moonriseAzimuthDeg;
+
+    if (bearingDeg === null) {
+      // Circumpolar — dim the dial, no needle
+      svgEl.classList.add('mp-azimuth-dial--circumpolar');
+      if (labelEl) {
+        labelEl.textContent = 'Moon does not rise tonight — circumpolar.';
+      }
+      return;
+    }
+
+    // Remove circumpolar class if previously set
+    svgEl.classList.remove('mp-azimuth-dial--circumpolar');
+
+    // Needle: bearing 0=N, clockwise. Map to SVG angle: SVG 0=right, so subtract 90°.
+    var needleRad = (bearingDeg - 90) * Math.PI / 180;
+    var nx = cx + r * Math.cos(needleRad);
+    var ny = cy + r * Math.sin(needleRad);
+
+    svgEl.appendChild(makeSVGEl('line', {
+      class: 'mp-azimuth-needle',
+      x1: cx, y1: cy,
+      x2: nx.toFixed(2), y2: ny.toFixed(2)
+    }));
+
+    // Center dot
+    svgEl.appendChild(makeSVGEl('circle', {
+      class: 'mp-azimuth-center-dot',
+      cx: cx, cy: cy, r: 2.5
+    }));
+
+    if (labelEl) {
+      labelEl.textContent =
+        'Moon rises at ' + Math.round(bearingDeg) + '° tonight — look toward ' +
+        cardinalProseFor(bearingDeg) + '.';
+    }
+  }
+
+  /* ==========================================
      Widget 6 — Tide curve
      ========================================== */
 
@@ -1177,6 +1314,9 @@
     sizeLabel:    document.getElementById('mp-size-label'),
     luxSvg:       document.getElementById('mp-lux-svg'),
     luxLabel:     document.getElementById('mp-lux-label'),
+    // Widget 3 — azimuth dial (slot 2)
+    azimuthSvg:   document.getElementById('mp-azimuth-svg'),
+    azimuthLabel: document.getElementById('mp-azimuth-label'),
     // Widget 8 — standstill (no slider; scrubbed year from state.now)
     standstillResult:   document.getElementById('mp-standstill-result'),
     standstillCallouts: document.getElementById('mp-standstill-callouts'),
@@ -1239,6 +1379,7 @@
     showWidgets(true);
 
     renderMoonInSky(output, els.skySvg);
+    renderMoonriseAzimuthDial(output, els.azimuthSvg, els.azimuthLabel);
     renderPhaseClock(output, els.phaseSvg);
     renderEarthshineAnnotation(output, els.earthshineP);
     renderApparentSizeDial(output, els.sizeSvg, els.sizeLabel);

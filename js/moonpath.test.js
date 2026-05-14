@@ -733,6 +733,83 @@ console.log('\n=== rAF-throttle — stub fires 5x across 100 input events ===\n'
 })();
 
 /* ==========================================
+   Slice 3 — cardinalProseFor 8-bucket boundary tests
+   ========================================== */
+
+console.log('\n=== cardinalProseFor — 8-bucket boundary values ===\n');
+
+var CPF = MoonPath.cardinalProseFor;
+
+// Boundary at 22.5 lands in upper bucket (northeast), not due north
+equal(CPF(22.5),  'northeast', 'bearing 22.5 → northeast (upper bucket)');
+// Boundary at 67.5 lands in upper bucket (due east), not northeast
+equal(CPF(67.5),  'due east',  'bearing 67.5 → due east (upper bucket)');
+// Boundary at 112.5 lands in upper bucket (southeast), not due east
+equal(CPF(112.5), 'southeast', 'bearing 112.5 → southeast (upper bucket)');
+// Boundary at 157.5 lands in upper bucket (due south), not southeast
+equal(CPF(157.5), 'due south', 'bearing 157.5 → due south (upper bucket)');
+// Boundary at 202.5 lands in upper bucket (southwest), not due south
+equal(CPF(202.5), 'southwest', 'bearing 202.5 → southwest (upper bucket)');
+// Boundary at 247.5 lands in upper bucket (due west), not southwest
+equal(CPF(247.5), 'due west',  'bearing 247.5 → due west (upper bucket)');
+// Boundary at 292.5 lands in upper bucket (northwest), not due west
+equal(CPF(292.5), 'northwest', 'bearing 292.5 → northwest (upper bucket)');
+// Boundary at 337.5 lands in upper bucket (due north wrap), not northwest
+equal(CPF(337.5), 'due north', 'bearing 337.5 → due north (wraps into upper)');
+
+// Wrap test: 359.999 is in [337.5, 360) → due north
+equal(CPF(359.999), 'due north', 'bearing 359.999 → due north (wraps)');
+
+// Exactly 0 → due north
+equal(CPF(0), 'due north', 'bearing 0 → due north');
+
+// Mid-bucket samples for each non-wrap bucket
+equal(CPF(45),  'northeast', 'bearing 45 (mid NE) → northeast');
+equal(CPF(90),  'due east',  'bearing 90 (mid E)  → due east');
+equal(CPF(135), 'southeast', 'bearing 135 (mid SE) → southeast');
+equal(CPF(180), 'due south', 'bearing 180 (mid S) → due south');
+equal(CPF(225), 'southwest', 'bearing 225 (mid SW) → southwest');
+equal(CPF(270), 'due west',  'bearing 270 (mid W)  → due west');
+equal(CPF(315), 'northwest', 'bearing 315 (mid NW) → northwest');
+
+/* ==========================================
+   Slice 3 — recompute outputs moonriseAzimuthDeg
+   ========================================== */
+
+console.log('\n=== recompute — moonriseAzimuthDeg field ===\n');
+
+// Valid mid-latitude coord — returns a number in [0, 360) or null
+var rAzimuth = MoonPath.recompute({
+  lat: '21.307',
+  lon: '-157.867',
+  now: new Date('2026-05-14T12:00:00Z')
+});
+equal(rAzimuth.ready, true, 'azimuth recompute: ready true');
+ok(
+  rAzimuth.moonriseAzimuthDeg === null ||
+  (typeof rAzimuth.moonriseAzimuthDeg === 'number' &&
+   rAzimuth.moonriseAzimuthDeg >= 0 &&
+   rAzimuth.moonriseAzimuthDeg < 360),
+  'moonriseAzimuthDeg is null or a number in [0, 360) — got: ' + rAzimuth.moonriseAzimuthDeg
+);
+
+// High-latitude winter: Tromsø 69.6°N at winter solstice — circumpolar moon expected
+// (moon may not set, or may not rise — circumpolar)
+var rTromso = MoonPath.recompute({
+  lat: '69.6',
+  lon: '18.95',
+  now: new Date('2026-12-21T12:00:00Z')
+});
+equal(rTromso.ready, true, 'Tromsø winter recompute: ready true');
+ok(
+  rTromso.moonriseAzimuthDeg === null ||
+  (typeof rTromso.moonriseAzimuthDeg === 'number' &&
+   rTromso.moonriseAzimuthDeg >= 0 &&
+   rTromso.moonriseAzimuthDeg < 360),
+  'Tromsø winter: moonriseAzimuthDeg is null (circumpolar) or valid number — got: ' + rTromso.moonriseAzimuthDeg
+);
+
+/* ==========================================
    Summary
    ========================================== */
 

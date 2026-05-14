@@ -350,6 +350,58 @@
 }
 
 /* =============================================
+   Slice 3 — Moonrise azimuth dial
+   ============================================= */
+
+.moonpath-azimuth-svg {
+  display: block;
+  max-width: 160px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.mp-azimuth-ring {
+  fill: none;
+  stroke: var(--stone);
+  opacity: 0.25;
+  stroke-width: 1;
+}
+
+.mp-azimuth-tick--cardinal {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.mp-azimuth-tick--intercardinal {
+  stroke: var(--stone);
+  stroke-width: 1;
+  opacity: 0.2;
+}
+
+.mp-azimuth-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  fill: var(--stone);
+  text-anchor: middle;
+}
+
+.mp-azimuth-needle {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.mp-azimuth-center-dot {
+  fill: var(--ink);
+  opacity: 0.65;
+}
+
+.mp-azimuth-dial--circumpolar {
+  opacity: 0.5;
+}
+
+/* =============================================
    Slice 2 — Date scrubber
    ============================================= */
 
