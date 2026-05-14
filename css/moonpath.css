@@ -1,0 +1,243 @@
+/* =============================================
+   Moon Path — page styles
+
+   Sibling of sunpath.css and daylight.css.
+   Inherits all tokens from css/styles.css.
+   Keep the three pages feeling like the same publication.
+   ============================================= */
+
+.moonpath-body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--parchment);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.moonpath-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem) 6rem;
+}
+
+/* =============================================
+   Header
+   ============================================= */
+
+.moonpath-title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.4em;
+}
+
+.moonpath-lede {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0 0 2.4rem;
+  max-width: 480px;
+}
+
+/* =============================================
+   Sections
+   ============================================= */
+
+.moonpath-section {
+  margin: 0 0 2.8rem;
+}
+
+.moonpath-section-heading {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.8rem;
+}
+
+.moonpath-section--widget {
+  margin: 0 0 3.2rem;
+}
+
+/* =============================================
+   Coord entry block
+   ============================================= */
+
+.moonpath-entry-prose {
+  color: var(--stone);
+  font-style: italic;
+  margin: 0 0 1.4rem;
+  max-width: 420px;
+}
+
+.moonpath-locate-btn {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid rgba(184, 175, 162, 0.45);
+  border-radius: 2px;
+  padding: 0.55em 1.1em;
+  cursor: pointer;
+  margin: 0 0 1.6rem;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.moonpath-locate-btn:hover {
+  border-color: var(--stone);
+  color: var(--stone);
+}
+
+.moonpath-locate-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.moonpath-manual-entry {
+  display: flex;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.moonpath-field {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+
+.moonpath-label {
+  display: block;
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--stone);
+  margin: 0 0 0.3rem;
+}
+
+.moonpath-input {
+  display: block;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 0;
+  padding: 0.25rem 0;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.moonpath-input::-webkit-inner-spin-button,
+.moonpath-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.moonpath-input:focus {
+  border-bottom-color: var(--stone);
+}
+
+/* =============================================
+   Widget slots — placeholder space
+   Slice 4 / 5 / 6 will replace these with
+   real SVG widgets.
+   ============================================= */
+
+.moonpath-widget-slot {
+  min-height: 8rem;
+}
+
+/* =============================================
+   Annotations
+   ============================================= */
+
+.moonpath-annotation {
+  font-style: italic;
+  color: var(--stone);
+  margin: 0.8rem 0 0;
+  font-size: 0.95rem;
+}
+
+.moonpath-crosslink {
+  margin: 1.2rem 0 0;
+  font-size: 0.95rem;
+  color: var(--stone);
+}
+
+.moonpath-crosslink a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* =============================================
+   Footer
+   ============================================= */
+
+.moonpath-footer {
+  border-top: 1px solid rgba(184, 175, 162, 0.25);
+  padding: 2rem 0 0;
+  margin: 0;
+}
+
+.moonpath-footer-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem) 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.moonpath-footer-attribution {
+  font-size: 0.88rem;
+  color: var(--stone);
+  margin: 0;
+}
+
+.moonpath-footer-attribution a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.35);
+}
+
+.moonpath-footer-links {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--stone);
+  flex-wrap: wrap;
+}
+
+.moonpath-footer-links a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(184, 175, 162, 0.25);
+}
+
+.moonpath-footer-links a:hover {
+  border-bottom-color: var(--stone);
+}
+
+.moonpath-footer-sep {
+  color: rgba(184, 175, 162, 0.5);
+}
+
+.moonpath-footer-license {
+  font-size: 0.78rem;
+  color: var(--stone);
+  opacity: 0.6;
+  margin: 0;
+}
