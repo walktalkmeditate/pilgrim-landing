@@ -102,7 +102,7 @@
     <div class="moonpath-scrubber-strip" id="mp-scrubber-strip">
       <div class="moonpath-scrubber-row">
         <button type="button" class="mp-play-btn" id="mp-play-btn"
-                aria-label="Play time" aria-pressed="false">
+                aria-label="Play time" aria-pressed="false" data-speed="0">
           <span class="mp-play-glyph" aria-hidden="true">▶</span>
         </button>
         <input class="mp-date-scrubber" type="range"
@@ -122,48 +122,41 @@
 
     <div class="moonpath-widget-grid" id="mp-widget-grid">
 
-    <!-- Slot 1: Moon-in-sky dome diagram -->
-    <section class="moonpath-section moonpath-section--widget" id="mp-sky" hidden aria-label="Moon position tonight">
+    <!-- Slot 1: Moon-in-sky dome — full-width row (time-series benefits from breadth) -->
+    <section class="moonpath-section moonpath-section--widget moonpath-section--full" id="mp-sky" hidden aria-label="Moon position tonight">
       <h2 class="moonpath-section-heading">Tonight's arc</h2>
       <svg class="moonpath-dome-svg" id="mp-sky-svg"
            viewBox="0 0 600 180" role="img" aria-label="Moon altitude tonight"></svg>
       <p class="moonpath-annotation moonpath-tz-note"><em>hours shown in your browser's local time</em></p>
     </section>
 
-    <!-- Interstitial 1: between dome and azimuth -->
+    <!-- Interstitial: between dome row and dial pairs -->
     <p class="mp-interstitial" data-section-id="between-dome-and-azimuth" hidden></p>
 
-    <!-- Slot 2: Moonrise azimuth dial -->
+    <!-- Slot 2: Moonrise azimuth dial (paired with phase below) -->
     <section class="moonpath-section moonpath-section--widget" id="mp-azimuth" hidden aria-label="Moonrise direction">
       <h2 class="moonpath-section-heading">Moonrise direction</h2>
       <svg id="mp-azimuth-svg" class="moonpath-azimuth-svg" viewBox="0 0 120 120" role="img" aria-label="Moonrise azimuth dial"></svg>
       <p id="mp-azimuth-label" class="moonpath-annotation"></p>
     </section>
 
-    <!-- Interstitial 2: between azimuth and phase -->
+    <!-- Interstitial: between azimuth and phase -->
     <p class="mp-interstitial" data-section-id="between-azimuth-and-phase" hidden></p>
 
-    <!-- Slot 3: Phase clock -->
+    <!-- Slot 3: Phase clock — earthshine annotation merged in (only shows when k ∈ [0.03, 0.15]) -->
     <section class="moonpath-section moonpath-section--widget" id="mp-phase" hidden aria-label="Lunar phase">
       <h2 class="moonpath-section-heading">Phase</h2>
       <svg class="moonpath-phase-svg" id="mp-phase-svg"
            viewBox="0 0 240 210" role="img" aria-label="Lunar phase clock"></svg>
-    </section>
-
-    <!-- Interstitial 3: between phase and earthshine -->
-    <p class="mp-interstitial" data-section-id="between-phase-and-earthshine" hidden></p>
-
-    <!-- Slot 4: Earthshine annotation -->
-    <section class="moonpath-section moonpath-section--widget" id="mp-earthshine-section" hidden aria-label="Earthshine">
       <p class="moonpath-annotation" id="mp-earthshine" hidden>
         <em>Earthshine visible — the old moon in the new moon's arms.</em>
       </p>
     </section>
 
-    <!-- Interstitial 4: between earthshine and apparent-size -->
-    <p class="mp-interstitial" data-section-id="between-earthshine-and-size" hidden></p>
+    <!-- Interstitial: between phase and apparent-size -->
+    <p class="mp-interstitial" data-section-id="between-phase-and-earthshine" hidden></p>
 
-    <!-- Slot 5: Apparent size dial -->
+    <!-- Slot 4: Apparent size dial -->
     <section class="moonpath-section moonpath-section--widget" id="mp-size" hidden aria-label="Apparent size">
       <h2 class="moonpath-section-heading">Apparent size</h2>
       <svg class="moonpath-dial-svg" id="mp-size-svg"
@@ -171,7 +164,7 @@
       <p class="moonpath-annotation" id="mp-size-label"></p>
     </section>
 
-    <!-- Interstitial 4: between apparent-size and lux -->
+    <!-- Interstitial: between apparent-size and lux -->
     <p class="mp-interstitial" data-section-id="between-size-and-lux" hidden></p>
 
     <!-- Slot 5: Moonlight lux -->
@@ -185,32 +178,30 @@
       </p>
     </section>
 
-    <!-- Interstitial 5: between lux and eclipse -->
+    <!-- Interstitial: between lux and eclipse -->
     <p class="mp-interstitial" data-section-id="between-lux-and-eclipse" hidden></p>
 
-    <!-- Slot 7: Eclipse pointer -->
+    <!-- Slot 6: Eclipse pointer (paired with standstill — both text-only) -->
     <section class="moonpath-section moonpath-section--widget" id="mp-eclipse" hidden aria-label="Next eclipse">
       <h2 class="moonpath-section-heading">Next eclipse</h2>
       <div id="mp-eclipse-content" class="mp-eclipse-content"></div>
     </section>
 
-    <!-- Interstitial 6: between eclipse and standstill -->
+    <!-- Interstitial: between eclipse and standstill -->
     <p class="mp-interstitial" data-section-id="between-eclipse-and-standstill" hidden></p>
 
     <!-- Slot 7: Standstill time-machine (year driven by scrubber) -->
     <section class="moonpath-section moonpath-section--widget" id="mp-standstill" hidden aria-label="Lunar standstill time machine">
       <h2 class="moonpath-section-heading">Standstill</h2>
-
       <p class="moonpath-standstill-result" id="mp-standstill-result" aria-live="polite"></p>
-
       <div class="moonpath-standstill-callouts" id="mp-standstill-callouts" aria-live="polite"></div>
     </section>
 
     <!-- Interstitial 7: between standstill and tide -->
     <p class="mp-interstitial" data-section-id="between-standstill-and-tide" hidden></p>
 
-    <!-- Slot 8: Tide section -->
-    <section class="moonpath-section moonpath-section--widget" id="mp-tide" hidden aria-label="Tide curve">
+    <!-- Slot 8: Tide section — full-width row (sine curve benefits from breadth) -->
+    <section class="moonpath-section moonpath-section--widget moonpath-section--full" id="mp-tide" hidden aria-label="Tide curve">
       <h2 class="moonpath-section-heading">Tide</h2>
       <svg class="moonpath-tide-svg" id="mp-tide-svg"
            viewBox="0 0 600 160" role="img" aria-label="Tide height curve"></svg>

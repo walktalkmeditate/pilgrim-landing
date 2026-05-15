@@ -99,19 +99,22 @@ body.constellation .moonpath-scrubber-strip {
 
 .mp-play-btn {
   flex: 0 0 auto;
-  width: 32px;
+  min-width: 40px;
   height: 32px;
+  padding: 0 0.55em;
   border: 1px solid rgba(184, 175, 162, 0.45);
-  border-radius: 50%;
+  border-radius: 16px;
   background: transparent;
   color: var(--ink);
+  font-family: var(--font-ui);
   font-size: 0.7rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 0;
   transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -125,11 +128,11 @@ body.constellation .moonpath-scrubber-strip {
 
 .mp-play-glyph {
   display: block;
-  transform: translateX(1px); /* visual-center the ▶ */
 }
 
-.mp-play-btn[aria-pressed="true"] .mp-play-glyph {
-  transform: none;
+/* ▶ glyph needs slight optical-center offset when paused */
+.mp-play-btn[data-speed="0"] .mp-play-glyph {
+  transform: translateX(1px);
 }
 
 body.constellation .mp-play-btn {
@@ -198,6 +201,17 @@ body.constellation .mp-play-btn:hover {
      forced to span. Mobile (<768px) keeps them visible inline. */
   .moonpath-widget-grid > .mp-interstitial {
     display: none;
+  }
+
+  /* Time-series widgets (dome, tide) span both columns. */
+  .moonpath-widget-grid > .moonpath-section--full {
+    grid-column: 1 / -1;
+  }
+
+  /* When dome/tide span full width, SVG can grow wider. */
+  .moonpath-section--full .moonpath-dome-svg,
+  .moonpath-section--full .moonpath-tide-svg {
+    max-width: 560px;
   }
 }
 

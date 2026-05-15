@@ -1770,52 +1770,56 @@
   })();
 
   /* ==========================================
-     Auto-play — advance scrubber +1 tick / 80ms
-     Stops at max edge; toggles via mp-play-btn.
+     Auto-play — cycles paused → 1× → 4× → 16× → paused.
+     1× advances +1 tick / 80 ms; 4× = +1/20 ms; 16× = +1/5 ms.
+     Stops at scrubber max; resets on user-drag.
      ========================================== */
 
   (function setupPlayButton() {
     if (!els.playBtn || !els.dateScrubber) return;
 
-    var PLAY_STEP_MS = 80;
+    // Speed cycle: 0 = paused, 1 = 1×, 2 = 4×, 3 = 16×.
+    var SPEEDS = [
+      { label: '▶',    step: 0 },     // paused (glyph only)
+      { label: '1×',   step: 80 },    // ~40 s sweep across 1001 ticks
+      { label: '4×',   step: 20 },    // ~10 s sweep
+      { label: '16×',  step: 5 }      // ~2.5 s sweep
+    ];
+
+    var stage = 0;
     var playTimer = null;
 
-    function isPlaying() { return playTimer !== null; }
-
-    function stop() {
+    function setStage(newStage) {
+      stage = newStage;
       if (playTimer !== null) {
         clearInterval(playTimer);
         playTimer = null;
       }
-      els.playBtn.setAttribute('aria-pressed', 'false');
-      els.playBtn.setAttribute('aria-label', 'Play time');
+      var s = SPEEDS[stage];
+      els.playBtn.setAttribute('data-speed', String(stage));
+      els.playBtn.setAttribute('aria-pressed', stage > 0 ? 'true' : 'false');
+      els.playBtn.setAttribute('aria-label', stage > 0 ? 'Cycle playback speed (currently ' + s.label + ')' : 'Play time');
       var glyph = els.playBtn.querySelector('.mp-play-glyph');
-      if (glyph) glyph.textContent = '▶';
-    }
+      if (glyph) glyph.textContent = s.label;
 
-    function start() {
+      if (stage === 0) return;
+
       var maxTick = parseInt(els.dateScrubber.max, 10);
-      els.playBtn.setAttribute('aria-pressed', 'true');
-      els.playBtn.setAttribute('aria-label', 'Pause time');
-      var glyph = els.playBtn.querySelector('.mp-play-glyph');
-      if (glyph) glyph.textContent = '❚❚';
-
       playTimer = setInterval(function () {
         var current = parseInt(els.dateScrubber.value, 10);
-        if (current >= maxTick) { stop(); return; }
+        if (current >= maxTick) { setStage(0); return; }
         els.dateScrubber.value = current + 1;
         els.dateScrubber.dispatchEvent(new Event('input'));
-      }, PLAY_STEP_MS);
+      }, s.step);
     }
 
     els.playBtn.addEventListener('click', function () {
-      if (isPlaying()) stop(); else start();
+      setStage((stage + 1) % SPEEDS.length);
     });
 
-    // Pressing space or enter on the button also toggles (default button behavior),
-    // and pausing on user-drag avoids fighting the timer:
+    // User drag pauses immediately so the timer doesn't fight the cursor.
     els.dateScrubber.addEventListener('pointerdown', function () {
-      if (isPlaying()) stop();
+      if (stage !== 0) setStage(0);
     });
   })();
 
