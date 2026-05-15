@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function () {
+      var p = location.pathname;
+      if (p.endsWith('.html') && p !== '/404.html') {
+        history.replaceState(null, '',
+          p.replace(/\/index\.html$/, '/').replace(/\.html$/, '')
+          + location.search + location.hash);
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Moon Path — where the moon stands, and when the tide turns</title>
+  <meta name="description" content="A quiet view of tonight's moon: its position, phase, and the tide at your coast. For walkers who plan by moonlight.">
+
+  <link rel="canonical" href="https://pilgrimapp.org/moonpath">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Moon Path — where the moon stands, and when the tide turns">
+  <meta property="og:description" content="A quiet view of tonight's moon: its position, phase, and the tide at your coast. For walkers who plan by moonlight.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pilgrimapp.org/moonpath">
+  <meta property="og:image" content="https://pilgrimapp.org/assets/og-sunpath.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Moon Path">
+  <meta name="twitter:description" content="A quiet view of tonight's moon: its position, phase, and the tide at your coast.">
+  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-sunpath.png">
+
+  <link rel="icon" href="/assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/pilgrim-logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Lato:wght@300&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/moonpath.css">
+
+  <!-- Analytics -->
+  <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "url": "https://pilgrimapp.org/moonpath",
+        "name": "Moon Path — where the moon stands, and when the tide turns",
+        "description": "A quiet view of tonight's moon: its position, phase, and the tide at your coast. For walkers who plan by moonlight.",
+        "isPartOf": { "@id": "https://pilgrimapp.org#website" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://pilgrimapp.org#org",
+        "name": "Pilgrim",
+        "url": "https://pilgrimapp.org"
+      }
+    ]
+  }
+  </script>
+</head>
+<body class="moonpath-body">
+
+  <div class="moon-phase" role="button" tabindex="0" aria-label="Toggle dark mode" id="moon-toggle"></div>
+
+  <main class="moonpath-main">
+
+    <header class="moonpath-hero">
+      <h1 class="moonpath-title">Moon Path</h1>
+      <p class="moonpath-lede">Where the moon stands tonight, how bright it burns, and when the tide turns at your coast.</p>
+
+      <section class="moonpath-section" id="mp-coord-entry" aria-label="Set your location">
+        <p class="moonpath-entry-prose">To read the moon at your latitude, share your position or enter coordinates by hand.</p>
+        <button type="button" class="moonpath-locate-btn" id="mp-locate">Use my location</button>
+        <div class="moonpath-manual-entry" id="mp-manual-entry" aria-label="Manual coordinate entry">
+          <div class="moonpath-field">
+            <label class="moonpath-label" for="mp-lat">Latitude</label>
+            <input class="moonpath-input" type="number" id="mp-lat"
+              step="0.0001" min="-90" max="90"
+              placeholder="e.g. 35.68" aria-label="Latitude">
+          </div>
+          <div class="moonpath-field">
+            <label class="moonpath-label" for="mp-lon">Longitude</label>
+            <input class="moonpath-input" type="number" id="mp-lon"
+              step="0.0001" min="-180" max="180"
+              placeholder="e.g. 139.69" aria-label="Longitude">
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <!-- Sticky scrubber strip — date control + play/pause always visible -->
+    <div class="moonpath-scrubber-strip" id="mp-scrubber-strip">
+      <div class="moonpath-scrubber-row">
+        <button type="button" class="mp-play-btn" id="mp-play-btn"
+                aria-label="Play time" aria-pressed="false" data-speed="0">
+          <span class="mp-play-glyph" aria-hidden="true">▶</span>
+        </button>
+        <input class="mp-date-scrubber" type="range"
+               id="mp-date-scrubber"
+               min="-500" max="500" step="1" value="0"
+               aria-label="Scrub date"
+               aria-valuetext="now">
+        <p class="mp-scrubber-label" id="mp-scrubber-label" aria-live="polite"></p>
+      </div>
+      <details class="mp-scrubber-footnote-details">
+        <summary>Scrubber accuracy</summary>
+        <p class="mp-scrubber-footnote">
+          <em>Scrubber spans ±5,000 yr from today. Near the center, one tick advances by minutes; near the edges, by years — drag far for centuries, near center for hours. Meeus low-precision math is accurate to ±0.3° and ±1 yr within ±2,000 yr of today; beyond that range the scrubber is a navigation widget — historical anchors (Newgrange, Callanish) are pinned from archaeological literature, not derived from the model.</em>
+        </p>
+      </details>
+    </div>
+
+    <div class="moonpath-widget-grid" id="mp-widget-grid">
+
+    <!-- Slot 1: Moon-in-sky dome — full-width row (time-series benefits from breadth) -->
+    <section class="moonpath-section moonpath-section--widget moonpath-section--full" id="mp-sky" hidden aria-label="Moon position tonight">
+      <h2 class="moonpath-section-heading">Tonight's arc</h2>
+      <svg class="moonpath-dome-svg" id="mp-sky-svg"
+           viewBox="0 0 600 180" role="img" aria-label="Moon altitude tonight"></svg>
+      <p class="moonpath-annotation moonpath-tz-note"><em>hours shown in your browser's local time</em></p>
+    </section>
+
+    <!-- Interstitial: between dome row and dial pairs -->
+    <p class="mp-interstitial" data-section-id="between-dome-and-azimuth" hidden></p>
+
+    <!-- Slot 2: Moonrise azimuth dial (paired with phase below) -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-azimuth" hidden aria-label="Moonrise direction">
+      <h2 class="moonpath-section-heading">Moonrise direction</h2>
+      <svg id="mp-azimuth-svg" class="moonpath-azimuth-svg" viewBox="0 0 120 120" role="img" aria-label="Moonrise azimuth dial"></svg>
+      <p id="mp-azimuth-label" class="moonpath-annotation"></p>
+    </section>
+
+    <!-- Interstitial: between azimuth and phase -->
+    <p class="mp-interstitial" data-section-id="between-azimuth-and-phase" hidden></p>
+
+    <!-- Slot 3: Phase clock — earthshine annotation merged in (only shows when k ∈ [0.03, 0.15]) -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-phase" hidden aria-label="Lunar phase">
+      <h2 class="moonpath-section-heading">Phase</h2>
+      <svg class="moonpath-phase-svg" id="mp-phase-svg"
+           viewBox="0 0 240 210" role="img" aria-label="Lunar phase clock"></svg>
+      <p class="moonpath-annotation" id="mp-earthshine" hidden>
+        <em>Earthshine visible — the old moon in the new moon's arms.</em>
+      </p>
+    </section>
+
+    <!-- Interstitial: between phase and apparent-size -->
+    <p class="mp-interstitial" data-section-id="between-phase-and-earthshine" hidden></p>
+
+    <!-- Slot 4: Apparent size dial -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-size" hidden aria-label="Apparent size">
+      <h2 class="moonpath-section-heading">Apparent size</h2>
+      <svg class="moonpath-dial-svg" id="mp-size-svg"
+           viewBox="0 0 160 160" role="img" aria-label="Apparent size dial"></svg>
+      <p class="moonpath-annotation" id="mp-size-label"></p>
+    </section>
+
+    <!-- Interstitial: between apparent-size and lux -->
+    <p class="mp-interstitial" data-section-id="between-size-and-lux" hidden></p>
+
+    <!-- Slot 5: Moonlight lux -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-lux" hidden aria-label="Moonlight brightness">
+      <h2 class="moonpath-section-heading">Moonlight</h2>
+      <svg class="moonpath-lux-svg" id="mp-lux-svg"
+           viewBox="0 0 160 160" role="img" aria-label="Moonlight brightness ring"></svg>
+      <p class="moonpath-annotation" id="mp-lux-label"></p>
+      <p class="moonpath-crosslink">
+        <em>Planning a pre-dawn walk? <a href="/daylight/">Daylight Walk Budget</a> turns this into a usable answer.</em>
+      </p>
+    </section>
+
+    <!-- Interstitial: between lux and eclipse -->
+    <p class="mp-interstitial" data-section-id="between-lux-and-eclipse" hidden></p>
+
+    <!-- Slot 6: Eclipse pointer (paired with standstill — both text-only) -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-eclipse" hidden aria-label="Next eclipse">
+      <h2 class="moonpath-section-heading">Next eclipse</h2>
+      <div id="mp-eclipse-content" class="mp-eclipse-content"></div>
+    </section>
+
+    <!-- Interstitial: between eclipse and standstill -->
+    <p class="mp-interstitial" data-section-id="between-eclipse-and-standstill" hidden></p>
+
+    <!-- Slot 7: Standstill time-machine (year driven by scrubber) -->
+    <section class="moonpath-section moonpath-section--widget" id="mp-standstill" hidden aria-label="Lunar standstill time machine">
+      <h2 class="moonpath-section-heading">Standstill</h2>
+      <p class="moonpath-standstill-result" id="mp-standstill-result" aria-live="polite"></p>
+      <div class="moonpath-standstill-callouts" id="mp-standstill-callouts" aria-live="polite"></div>
+    </section>
+
+    <!-- Interstitial 7: between standstill and tide -->
+    <p class="mp-interstitial" data-section-id="between-standstill-and-tide" hidden></p>
+
+    <!-- Slot 8: Tide section — full-width row (sine curve benefits from breadth) -->
+    <section class="moonpath-section moonpath-section--widget moonpath-section--full" id="mp-tide" hidden aria-label="Tide curve">
+      <h2 class="moonpath-section-heading">Tide</h2>
+      <svg class="moonpath-tide-svg" id="mp-tide-svg"
+           viewBox="0 0 600 160" role="img" aria-label="Tide height curve"></svg>
+      <p class="moonpath-annotation" id="mp-tide-label" hidden></p>
+      <p class="moonpath-annotation" id="mp-tide-spring-neap" hidden>
+        <em id="mp-tide-spring-neap-text"></em>
+      </p>
+      <p class="moonpath-annotation mp-tide-king-flag" id="mp-tide-king-flag" hidden>
+        <em>King tide approaching — perigee and syzygy align within 30 days.</em>
+      </p>
+    </section>
+
+    </div><!-- /.moonpath-widget-grid -->
+
+  </main>
+
+  <footer class="moonpath-footer">
+    <div class="moonpath-footer-inner">
+      <p class="moonpath-footer-attribution">
+        Moon Path is part of <a href="/">Pilgrim</a> — a walking practice
+      </p>
+      <div class="moonpath-footer-links">
+        <a href="/sunpath/">Sun Path</a>
+        <span class="moonpath-footer-sep" aria-hidden="true">·</span>
+        <a href="/daylight/">Daylight</a>
+        <span class="moonpath-footer-sep" aria-hidden="true">·</span>
+        <a href="/privacy">Privacy</a>
+        <span class="moonpath-footer-sep" aria-hidden="true">·</span>
+        <a href="https://github.com/walktalkmeditate/pilgrim-landing/blob/main/moonpath/index.html" target="_blank" rel="noopener">Source</a>
+      </div>
+      <p class="moonpath-footer-license">open source · GPLv3</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/js/moon.js"></script>
+  <script src="/js/universe.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/sunpath-math.js"></script>
+  <script src="/js/tide-math.js"></script>
+  <script src="/js/moonpath.js"></script>
+</body>
+</html>
