@@ -133,6 +133,18 @@
     return 'Spring tides approaching';
   }
 
+  // Stable classifier key matching springNeapStateFromDays brackets — used by
+  // interstitialFor lookups so adjacent "Tide range..." or "Spring tides..."
+  // prose strings don't collide under first-word matching.
+  function springNeapKeyFromDays(daysSinceLastSyzygy) {
+    var d = daysSinceLastSyzygy;
+    if (d <= 2)  return 'spring_now';
+    if (d <= 4)  return 'tide_to_neap';
+    if (d <= 9)  return 'neap_now';
+    if (d <= 11) return 'tide_to_spring';
+    return 'spring_approaching';
+  }
+
   /*
    * computeSpringNeapState(now) — determine the D10 5-state annotation.
    * Finds the most recent prior syzygy (new or full) and its kind,
@@ -140,7 +152,7 @@
    * helpers aren't available.
    */
   function computeSpringNeapState(now) {
-    if (!SunPathMath) return null;
+    if (!SunPathMath) return { prose: null, key: null };
 
     var SYNODIC_MS = 29.53059 * 86400000;
     var nowMs = now.getTime();
@@ -148,7 +160,7 @@
     var nextNew  = SunPathMath.syzygyMomentAfter(now, 'new');
     var nextFull = SunPathMath.syzygyMomentAfter(now, 'full');
 
-    if (!nextNew || !nextFull) return null;
+    if (!nextNew || !nextFull) return { prose: null, key: null };
 
     var lastNewMs  = nextNew.utcMs  - SYNODIC_MS;
     var lastFullMs = nextFull.utcMs - SYNODIC_MS;
@@ -158,7 +170,10 @@
     else                        { lastSyzygyMs = lastFullMs; lastKind = 'full'; }
 
     var daysSince = (nowMs - lastSyzygyMs) / 86400000;
-    return springNeapStateFromDays(daysSince, lastKind);
+    return {
+      prose: springNeapStateFromDays(daysSince, lastKind),
+      key:   springNeapKeyFromDays(daysSince)
+    };
   }
 
   /* ==========================================
@@ -379,6 +394,7 @@
     var tideHeights24h = null;
     var tideOutOfWindow = false;
     var springNeapState = null;
+    var springNeapKey   = null;
     var kingTideUpcoming = false;
 
     if (tideVisible && nearestPort && TideMath) {
@@ -398,7 +414,9 @@
     }
 
     if (tideVisible) {
-      springNeapState = computeSpringNeapState(now);
+      var snResult = computeSpringNeapState(now);
+      springNeapState = snResult.prose;
+      springNeapKey   = snResult.key;
       kingTideUpcoming = computeKingTideUpcoming(now);
     }
 
@@ -440,6 +458,7 @@
       tideHeights24h:           tideHeights24h,
       tideOutOfWindow:          tideOutOfWindow,
       springNeapState:          springNeapState,
+      springNeapKey:            springNeapKey,
       kingTideUpcoming:         kingTideUpcoming
     };
   }
@@ -596,10 +615,12 @@
       'default': ''
     },
     'between-standstill-and-tide': {
-      'springNeapState:Spring':   'Spring tides this week — the lunar and solar pulls run together.',
-      'springNeapState:Neap':     'Neap tides now — the sun and moon pull at right angles, range narrows.',
-      'springNeapState:Tide':     'Tides approaching spring range as moon and sun align again.',
-      'isMoonBelowHorizon:true':  'Moon set; tidal pull continues regardless of visibility.',
+      'springNeapKey:spring_now':         'Spring tides this week — the lunar and solar pulls run together.',
+      'springNeapKey:neap_now':           'Neap tides now — the sun and moon pull at right angles, range narrows.',
+      'springNeapKey:tide_to_neap':       'Range narrowing — heading toward neap over the next several days.',
+      'springNeapKey:tide_to_spring':     'Range widening again — spring tides build over the coming week.',
+      'springNeapKey:spring_approaching': 'Spring tides approaching — moon and sun nearly align again.',
+      'isMoonBelowHorizon:true':          'Moon set; tidal pull continues regardless of visibility.',
       'default': ''
     }
   };
@@ -625,10 +646,11 @@
       return sub['isMoonBelowHorizon:true'];
     }
 
-    // springNeapState: first word of D10 state (e.g. "Spring tides…" → key "springNeapState:Spring")
-    if (output.springNeapState) {
-      var snWord = output.springNeapState.split(' ')[0];
-      var snKey = 'springNeapState:' + snWord;
+    // springNeapKey: stable 5-state classifier from D10 brackets
+    // (replaces first-word match on springNeapState which collided when
+    // two states both started with "Tide").
+    if (output.springNeapKey) {
+      var snKey = 'springNeapKey:' + output.springNeapKey;
       if (sub[snKey] !== undefined) return sub[snKey];
     }
 

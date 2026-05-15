@@ -976,32 +976,36 @@ equal(
   'priority: isMoonBelowHorizon beats k_bucket:mid'
 );
 
-// springNeapState beats k_bucket (use 'between-standstill-and-tide')
+// springNeapKey beats k_bucket (use 'between-standstill-and-tide')
 var springOutput = {
   isCircumpolar: false,
   isMoonBelowHorizon: false,
-  moonLuxAtCoord: 0.3,     // bright — overridden by springNeapState
-  springNeapState: 'Spring tides this week (full moon)'
+  moonLuxAtCoord: 0.3,     // bright — overridden by springNeapKey
+  springNeapKey: 'spring_now'
 };
 var springResult = IFor(springOutput, 'between-standstill-and-tide');
 equal(
   springResult,
-  IT['between-standstill-and-tide']['springNeapState:Spring'],
-  'priority: springNeapState beats k_bucket (Spring → key uses first word)'
+  IT['between-standstill-and-tide']['springNeapKey:spring_now'],
+  'priority: springNeapKey beats k_bucket (spring_now)'
 );
 
-// Neap state also resolves correctly
-var neapOutput = {
-  isCircumpolar: false,
-  isMoonBelowHorizon: false,
-  moonLuxAtCoord: 0.3,
-  springNeapState: 'Neap tides — sun and moon pull at right angles'
-};
+// Two distinct "Tide ..." states resolve to DIFFERENT prose (collision fix)
+var tideToNeapOutput   = { springNeapKey: 'tide_to_neap' };
+var tideToSpringOutput = { springNeapKey: 'tide_to_spring' };
+var rA = IFor(tideToNeapOutput,   'between-standstill-and-tide');
+var rB = IFor(tideToSpringOutput, 'between-standstill-and-tide');
+equal(rA, IT['between-standstill-and-tide']['springNeapKey:tide_to_neap'],   'tide_to_neap resolves');
+equal(rB, IT['between-standstill-and-tide']['springNeapKey:tide_to_spring'], 'tide_to_spring resolves');
+ok(rA !== rB, 'tide_to_neap and tide_to_spring produce DIFFERENT prose (collision fix)');
+
+// Neap state resolves correctly
+var neapOutput = { springNeapKey: 'neap_now' };
 var neapResult = IFor(neapOutput, 'between-standstill-and-tide');
 equal(
   neapResult,
-  IT['between-standstill-and-tide']['springNeapState:Neap'],
-  'springNeapState:Neap resolves correctly'
+  IT['between-standstill-and-tide']['springNeapKey:neap_now'],
+  'springNeapKey:neap_now resolves correctly'
 );
 
 // Empty fallback: output with no matchable state → '' (default)
