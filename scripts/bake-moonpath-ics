@@ -55,7 +55,7 @@ var REQUIRED_PORT_FIELDS  = ['id', 'name', 'country', 'lat', 'lon', 'source', 'l
 
 // ICS identity mirrors sunpath/turnings-2026.ics exactly.
 var PRODID         = '-//Pilgrim//Moon Path//EN';
-var UID_DOMAIN     = 'walktalkmeditate.org';
+var UID_DOMAIN     = 'pilgrimapp.org';
 
 // King-tide detection window: 30 days forward from bake date.
 var KING_TIDE_WINDOW_MS = 30 * 24 * 3600000;
@@ -217,7 +217,7 @@ function bakeFullMoonsForYear(year) {
   }
 
   // DTSTAMP is the full-moon instant itself (deterministic — not bake time).
-  // UID is deterministic: full-moon-<year>-<MM>-<DD>@walktalkmeditate.org
+  // UID is deterministic: full-moon-<year>-<MM>-<DD>@pilgrimapp.org
   var vevents = moons.map(function (moon) {
     var yy  = moon.getUTCFullYear();
     var mm  = moon.getUTCMonth() + 1;
@@ -235,7 +235,7 @@ function bakeFullMoonsForYear(year) {
       'DTSTART:'  + dtstart,
       'DTEND:'    + dtend,
       'SUMMARY:Full Moon · ' + yy + '-' + pad(mm) + '-' + pad(dd),
-      'DESCRIPTION:The full moon rises at its peak illumination.\\n\\nhttps://walktalkmeditate.org/moonpath/',
+      'DESCRIPTION:The full moon rises at its peak illumination.\\n\\nhttps://pilgrimapp.org/moonpath/',
       'CATEGORIES:Moon,Astronomy',
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
@@ -246,7 +246,7 @@ function bakeFullMoonsForYear(year) {
   });
 
   var calname  = 'Moon Path — Full Moons ' + year;
-  var caldesc  = 'All full moons in ' + year + ' computed via Meeus Ch. 49 (±1 hr near J2000\\, drifting to ±0.5 day at the centuries). From walktalkmeditate.org/moonpath/';
+  var caldesc  = 'All full moons in ' + year + ' computed via Meeus Ch. 49 (±1 hr near J2000\\, drifting to ±0.5 day at the centuries). From pilgrimapp.org/moonpath/';
   return buildVCalendar(calname, caldesc, vevents);
 }
 
@@ -327,7 +327,7 @@ function bakeTideICSForPort(port, bakeDate) {
       'DTSTART:'  + fmtICS(stubStart),
       'DTEND:'    + fmtICS(stubEnd),
       'SUMMARY:No king tides this month at ' + port.name,
-      'DESCRIPTION:No perigee-syzygy alignment in the next 30 days at ' + port.name + '.\\n\\nhttps://walktalkmeditate.org/moonpath/',
+      'DESCRIPTION:No perigee-syzygy alignment in the next 30 days at ' + port.name + '.\\n\\nhttps://pilgrimapp.org/moonpath/',
       'CATEGORIES:Tides,Astronomy',
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
@@ -352,7 +352,7 @@ function bakeTideICSForPort(port, bakeDate) {
         'DTSTART:'  + dtstamp,
         'DTEND:'    + dtend,
         'SUMMARY:King Tide at ' + port.name + ' (' + kindWord + ')',
-        'DESCRIPTION:Perigee + ' + kindWord + ' alignment — highest predicted tides at ' + port.name + '.\\n\\nhttps://walktalkmeditate.org/moonpath/',
+        'DESCRIPTION:Perigee + ' + kindWord + ' alignment — highest predicted tides at ' + port.name + '.\\n\\nhttps://pilgrimapp.org/moonpath/',
         'CATEGORIES:Tides,King Tide,Astronomy',
         'BEGIN:VALARM',
         'ACTION:DISPLAY',
@@ -364,7 +364,7 @@ function bakeTideICSForPort(port, bakeDate) {
   }
 
   var calname = 'Moon Path — King Tides · ' + port.name;
-  var caldesc = 'King tides (perigee + syzygy alignment) in the next 30 days at ' + port.name + '. From walktalkmeditate.org/moonpath/';
+  var caldesc = 'King tides (perigee + syzygy alignment) in the next 30 days at ' + port.name + '. From pilgrimapp.org/moonpath/';
   return buildVCalendar(calname, caldesc, vevents);
 }
 

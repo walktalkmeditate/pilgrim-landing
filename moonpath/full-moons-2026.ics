@@ -4,16 +4,16 @@ PRODID:-//Pilgrim//Moon Path//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:Moon Path — Full Moons 2026
-X-WR-CALDESC:All full moons in 2026 computed via Meeus Ch. 49 (±1 hr near J2000\, drifting to ±0.5 day at the centuries). From walktalkmeditate.org/moonpath/
+X-WR-CALDESC:All full moons in 2026 computed via Meeus Ch. 49 (±1 hr near J2000\, drifting to ±0.5 day at the centuries). From pilgrimapp.org/moonpath/
 
 BEGIN:VEVENT
-UID:full-moon-2026-01-03@walktalkmeditate.org
+UID:full-moon-2026-01-03@pilgrimapp.org
 DTSTAMP:20260103T100440Z
 DTSTART:20260103T100440Z
 DTEND:20260103T110440Z
 SUMMARY:Full Moon · 2026-01-03
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -23,13 +23,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-02-01@walktalkmeditate.org
+UID:full-moon-2026-02-01@pilgrimapp.org
 DTSTAMP:20260201T221049Z
 DTSTART:20260201T221049Z
 DTEND:20260201T231049Z
 SUMMARY:Full Moon · 2026-02-01
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -39,13 +39,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-03-03@walktalkmeditate.org
+UID:full-moon-2026-03-03@pilgrimapp.org
 DTSTAMP:20260303T113918Z
 DTSTART:20260303T113918Z
 DTEND:20260303T123918Z
 SUMMARY:Full Moon · 2026-03-03
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -55,13 +55,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-04-02@walktalkmeditate.org
+UID:full-moon-2026-04-02@pilgrimapp.org
 DTSTAMP:20260402T021321Z
 DTSTART:20260402T021321Z
 DTEND:20260402T031321Z
 SUMMARY:Full Moon · 2026-04-02
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -71,13 +71,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-05-01@walktalkmeditate.org
+UID:full-moon-2026-05-01@pilgrimapp.org
 DTSTAMP:20260501T172444Z
 DTSTART:20260501T172444Z
 DTEND:20260501T182444Z
 SUMMARY:Full Moon · 2026-05-01
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -87,13 +87,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-05-31@walktalkmeditate.org
+UID:full-moon-2026-05-31@pilgrimapp.org
 DTSTAMP:20260531T084659Z
 DTSTART:20260531T084659Z
 DTEND:20260531T094659Z
 SUMMARY:Full Moon · 2026-05-31
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -103,13 +103,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-06-29@walktalkmeditate.org
+UID:full-moon-2026-06-29@pilgrimapp.org
 DTSTAMP:20260629T235838Z
 DTSTART:20260629T235838Z
 DTEND:20260630T005838Z
 SUMMARY:Full Moon · 2026-06-29
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -119,13 +119,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-07-29@walktalkmeditate.org
+UID:full-moon-2026-07-29@pilgrimapp.org
 DTSTAMP:20260729T143744Z
 DTSTART:20260729T143744Z
 DTEND:20260729T153744Z
 SUMMARY:Full Moon · 2026-07-29
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -135,13 +135,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-08-28@walktalkmeditate.org
+UID:full-moon-2026-08-28@pilgrimapp.org
 DTSTAMP:20260828T042034Z
 DTSTART:20260828T042034Z
 DTEND:20260828T052034Z
 SUMMARY:Full Moon · 2026-08-28
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -151,13 +151,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-09-26@walktalkmeditate.org
+UID:full-moon-2026-09-26@pilgrimapp.org
 DTSTAMP:20260926T165108Z
 DTSTART:20260926T165108Z
 DTEND:20260926T175108Z
 SUMMARY:Full Moon · 2026-09-26
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -167,13 +167,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-10-26@walktalkmeditate.org
+UID:full-moon-2026-10-26@pilgrimapp.org
 DTSTAMP:20261026T041355Z
 DTSTART:20261026T041355Z
 DTEND:20261026T051355Z
 SUMMARY:Full Moon · 2026-10-26
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -183,13 +183,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-11-24@walktalkmeditate.org
+UID:full-moon-2026-11-24@pilgrimapp.org
 DTSTAMP:20261124T145534Z
 DTSTART:20261124T145534Z
 DTEND:20261124T155534Z
 SUMMARY:Full Moon · 2026-11-24
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY
@@ -199,13 +199,13 @@ END:VALARM
 END:VEVENT
 
 BEGIN:VEVENT
-UID:full-moon-2026-12-24@walktalkmeditate.org
+UID:full-moon-2026-12-24@pilgrimapp.org
 DTSTAMP:20261224T013001Z
 DTSTART:20261224T013001Z
 DTEND:20261224T023001Z
 SUMMARY:Full Moon · 2026-12-24
-DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://walkta
- lkmeditate.org/moonpath/
+DESCRIPTION:The full moon rises at its peak illumination.\n\nhttps://pilgri
+ mapp.org/moonpath/
 CATEGORIES:Moon,Astronomy
 BEGIN:VALARM
 ACTION:DISPLAY

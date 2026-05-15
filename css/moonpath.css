@@ -520,6 +520,12 @@ body.constellation .mp-play-btn:hover {
   font-size: 0.95rem;
 }
 
+.moonpath-tz-note {
+  font-size: 0.72rem;
+  opacity: 0.55;
+  letter-spacing: 0.04em;
+}
+
 .moonpath-crosslink {
   margin: 1.2rem 0 0;
   font-size: 0.95rem;

@@ -154,24 +154,34 @@
   function computeSpringNeapState(now) {
     if (!SunPathMath) return { prose: null, key: null };
 
-    var SYNODIC_MS = 29.53059 * 86400000;
     var nowMs = now.getTime();
+    // Look back ~32 days to make sure the next-syzygy search lands BEFORE now
+    // (each cycle is ~29.53 days; 32 days guarantees we walk at least one
+    // syzygy of each kind without including or skipping the current one).
+    var lookback = new Date(nowMs - 32 * 86400000);
 
-    var nextNew  = SunPathMath.syzygyMomentAfter(now, 'new');
-    var nextFull = SunPathMath.syzygyMomentAfter(now, 'full');
+    var prevNew  = SunPathMath.syzygyMomentAfter(lookback, 'new');
+    var prevFull = SunPathMath.syzygyMomentAfter(lookback, 'full');
+    if (!prevNew || !prevFull) return { prose: null, key: null };
 
-    if (!nextNew || !nextFull) return { prose: null, key: null };
+    // Of the candidate previous syzygies, pick the most recent one that is
+    // still strictly before `now`. (syzygyMomentAfter returns the next-after-
+    // lookback instant — usually before now, but can land slightly after if
+    // lookback is close to a syzygy.)
+    var candidates = [
+      { ms: prevNew.utcMs,  kind: 'new'  },
+      { ms: prevFull.utcMs, kind: 'full' }
+    ].filter(function (c) { return c.ms < nowMs; });
 
-    var lastNewMs  = nextNew.utcMs  - SYNODIC_MS;
-    var lastFullMs = nextFull.utcMs - SYNODIC_MS;
+    if (candidates.length === 0) return { prose: null, key: null };
 
-    var lastSyzygyMs, lastKind;
-    if (lastNewMs > lastFullMs) { lastSyzygyMs = lastNewMs;  lastKind = 'new';  }
-    else                        { lastSyzygyMs = lastFullMs; lastKind = 'full'; }
+    var last = candidates.reduce(function (acc, c) {
+      return c.ms > acc.ms ? c : acc;
+    });
 
-    var daysSince = (nowMs - lastSyzygyMs) / 86400000;
+    var daysSince = (nowMs - last.ms) / 86400000;
     return {
-      prose: springNeapStateFromDays(daysSince, lastKind),
+      prose: springNeapStateFromDays(daysSince, last.kind),
       key:   springNeapKeyFromDays(daysSince)
     };
   }
@@ -451,6 +461,7 @@
       moonrise:                 moonrise,
       moonset:                  moonset,
       moonriseAzimuthDeg:       moonriseAzimuthDeg,
+      isCircumpolar:            moonriseAzimuthDeg === null,
       nextSolarEclipse:         nextSolarEclipse,
       nextLunarEclipse:         nextLunarEclipse,
       nearestPort:              nearestPort,
@@ -745,7 +756,7 @@
     var ZENITH_Y  = 10;
 
     var titleEl = document.createElementNS(SVG_NS, 'title');
-    titleEl.textContent = 'Moon altitude tonight';
+    titleEl.textContent = 'Moon altitude tonight (browser local time)';
     svgEl.appendChild(titleEl);
 
     // Horizon line
