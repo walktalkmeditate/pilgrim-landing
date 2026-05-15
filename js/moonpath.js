@@ -1778,12 +1778,12 @@
   (function setupPlayButton() {
     if (!els.playBtn || !els.dateScrubber) return;
 
-    // Speed cycle: 0 = paused, 1 = 1×, 2 = 4×, 3 = 16×.
+    // Speed cycle: 0 = paused, 1 = 1×, 2 = 2×, 3 = 4×.
     var SPEEDS = [
-      { label: '▶',    step: 0 },     // paused (glyph only)
-      { label: '1×',   step: 80 },    // ~40 s sweep across 1001 ticks
-      { label: '4×',   step: 20 },    // ~10 s sweep
-      { label: '16×',  step: 5 }      // ~2.5 s sweep
+      { label: '▶',   step: 0 },     // paused (glyph only)
+      { label: '1×',  step: 160 },   // ~80 s sweep across 1001 ticks
+      { label: '2×',  step: 80 },    // ~40 s sweep
+      { label: '4×',  step: 40 }     // ~20 s sweep
     ];
 
     var stage = 0;
