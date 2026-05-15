@@ -1540,6 +1540,7 @@
     // Scrubber
     dateScrubber:     document.getElementById('mp-date-scrubber'),
     scrubberLabel:    document.getElementById('mp-scrubber-label'),
+    playBtn:          document.getElementById('mp-play-btn'),
     // Widget slots
     skySvg:       document.getElementById('mp-sky-svg'),
     phaseSvg:     document.getElementById('mp-phase-svg'),
@@ -1754,6 +1755,56 @@
         e.preventDefault();
         els.dateScrubber.dispatchEvent(new Event('input'));
       }
+    });
+  })();
+
+  /* ==========================================
+     Auto-play — advance scrubber +1 tick / 80ms
+     Stops at max edge; toggles via mp-play-btn.
+     ========================================== */
+
+  (function setupPlayButton() {
+    if (!els.playBtn || !els.dateScrubber) return;
+
+    var PLAY_STEP_MS = 80;
+    var playTimer = null;
+
+    function isPlaying() { return playTimer !== null; }
+
+    function stop() {
+      if (playTimer !== null) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      els.playBtn.setAttribute('aria-pressed', 'false');
+      els.playBtn.setAttribute('aria-label', 'Play time');
+      var glyph = els.playBtn.querySelector('.mp-play-glyph');
+      if (glyph) glyph.textContent = '▶';
+    }
+
+    function start() {
+      var maxTick = parseInt(els.dateScrubber.max, 10);
+      els.playBtn.setAttribute('aria-pressed', 'true');
+      els.playBtn.setAttribute('aria-label', 'Pause time');
+      var glyph = els.playBtn.querySelector('.mp-play-glyph');
+      if (glyph) glyph.textContent = '❚❚';
+
+      playTimer = setInterval(function () {
+        var current = parseInt(els.dateScrubber.value, 10);
+        if (current >= maxTick) { stop(); return; }
+        els.dateScrubber.value = current + 1;
+        els.dateScrubber.dispatchEvent(new Event('input'));
+      }, PLAY_STEP_MS);
+    }
+
+    els.playBtn.addEventListener('click', function () {
+      if (isPlaying()) stop(); else start();
+    });
+
+    // Pressing space or enter on the button also toggles (default button behavior),
+    // and pausing on user-drag avoids fighting the timer:
+    els.dateScrubber.addEventListener('pointerdown', function () {
+      if (isPlaying()) stop();
     });
   })();
 
