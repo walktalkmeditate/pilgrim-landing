@@ -271,6 +271,29 @@ body.constellation .mp-play-btn:hover {
   margin-right: auto;
 }
 
+/* Honor [hidden] attribute on widget children — the widget-level
+   display:block rules above otherwise win on specificity. */
+.moonpath-section--widget svg[hidden],
+.moonpath-section--widget p[hidden]:not(#mp-earthshine) {
+  display: none;
+}
+
+/* Earthshine annotation inside Phase widget always occupies its
+   natural height; we toggle opacity instead of [hidden] to keep
+   the Phase widget's height constant across scrub. The renderer
+   still sets the [hidden] attribute for a11y (screen-readers see
+   the prose appear/disappear), but the visual layout is stable. */
+#mp-phase #mp-earthshine {
+  margin-top: 0.6rem;
+  transition: opacity 0.2s ease;
+}
+
+#mp-phase #mp-earthshine[hidden] {
+  display: block;       /* override the broader [hidden] display:none rule */
+  opacity: 0;
+  visibility: hidden;   /* belt-and-suspenders so screen-reader still skips */
+}
+
 /* =============================================
    Coord entry block
    ============================================= */
