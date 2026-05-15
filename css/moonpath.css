@@ -343,6 +343,70 @@ body.constellation .mp-play-btn:hover {
   min-width: 120px;
 }
 
+/* =============================================
+   Preset places
+   ============================================= */
+
+.moonpath-presets-prose {
+  margin: 1.8rem 0 0.8rem;
+  font-style: italic;
+  color: var(--stone);
+  font-size: 0.88rem;
+}
+
+.moonpath-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.moonpath-preset {
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: var(--stone);
+  background: transparent;
+  border: 1px solid rgba(184, 175, 162, 0.35);
+  border-radius: 14px;
+  padding: 0.35em 0.85em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.moonpath-preset:hover {
+  border-color: var(--stone);
+  color: var(--ink);
+}
+
+.moonpath-preset-tide {
+  opacity: 0.5;
+  margin-left: 0.3em;
+  font-style: italic;
+}
+
+body.constellation .moonpath-preset {
+  border-color: rgba(232, 224, 255, 0.28);
+  color: rgba(232, 224, 255, 0.6);
+}
+
+body.constellation .moonpath-preset:hover {
+  border-color: rgba(232, 224, 255, 0.6);
+  color: rgba(232, 224, 255, 0.95);
+}
+
+/* Scrubber + play disabled until a coord is set */
+.mp-date-scrubber:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mp-play-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .moonpath-label {
   display: block;
   font-family: var(--font-ui);

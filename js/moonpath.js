@@ -1538,6 +1538,7 @@
     locateBtn:   document.getElementById('mp-locate'),
     latInput:    document.getElementById('mp-lat'),
     lonInput:    document.getElementById('mp-lon'),
+    presets:     document.getElementById('mp-presets'),
     // Sections
     skySection:            document.getElementById('mp-sky'),
     azimuthSection:        document.getElementById('mp-azimuth'),
@@ -1660,6 +1661,11 @@
      Coord commit — shared by locate + manual entry
      ========================================== */
 
+  function enableScrubberControls() {
+    if (els.dateScrubber) els.dateScrubber.removeAttribute('disabled');
+    if (els.playBtn)      els.playBtn.removeAttribute('disabled');
+  }
+
   function commitCoords(lat, lon) {
     state.lat = String(lat);
     state.lon = String(lon);
@@ -1667,6 +1673,7 @@
     if (els.latInput) els.latInput.value = lat;
     if (els.lonInput) els.lonInput.value = lon;
 
+    enableScrubberControls();
     buildURL({ lat: state.lat, lon: state.lon, date: state.date });
     runAndRender();
   }
@@ -1723,6 +1730,21 @@
     els.lonInput.addEventListener('blur', tryManualEntry);
     els.lonInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') tryManualEntry();
+    });
+  }
+
+  /* ==========================================
+     Preset places — one-tap coordinates
+     ========================================== */
+
+  if (els.presets) {
+    els.presets.addEventListener('click', function (e) {
+      var btn = e.target.closest('.moonpath-preset');
+      if (!btn) return;
+      var lat = parseFloat(btn.getAttribute('data-lat'));
+      var lon = parseFloat(btn.getAttribute('data-lon'));
+      if (isNaN(lat) || isNaN(lon)) return;
+      commitCoords(lat, lon);
     });
   }
 
@@ -1837,6 +1859,9 @@
       state.lat  = params.lat;
       state.lon  = params.lon;
       state.date = params.date;
+      if (els.latInput) els.latInput.value = params.lat;
+      if (els.lonInput) els.lonInput.value = params.lon;
+      enableScrubberControls();
     }
 
     // AC #3: if ?date= present, initialize scrubber to that instant
