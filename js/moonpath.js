@@ -1770,9 +1770,12 @@
   })();
 
   /* ==========================================
-     Auto-play — cycles paused → 1× → 4× → 16× → paused.
-     1× advances +1 tick / 80 ms; 4× = +1/20 ms; 16× = +1/5 ms.
+     Auto-play — cycles paused → 1× → 2× → 4× → paused.
+     1× advances +1 tick / 160 ms; 2× = +1 / 80 ms; 4× = +1 / 40 ms.
      Stops at scrubber max; resets on user-drag.
+     Each tick dispatches a synthetic input event, which goes through
+     the rAF-throttled recompute pipeline above (so high-speed timers
+     still coalesce to one recompute per animation frame).
      ========================================== */
 
   (function setupPlayButton() {
