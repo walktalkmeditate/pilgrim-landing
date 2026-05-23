@@ -51,7 +51,7 @@
       <img src="assets/pilgrim-logo.png" alt="Pilgrim logo" class="legal-logo" width="48" height="48">
     </a>
     <h1 class="display-large">Privacy Policy</h1>
-    <p class="legal-updated caption">Last updated: March 20, 2026</p>
+    <p class="legal-updated caption">Last updated: May 23, 2026</p>
   </header>
 
   <main class="legal-content section">
@@ -67,11 +67,12 @@
 
       <section class="legal-section">
         <h2>Data that stays on your device</h2>
-        <p>The following data is created and stored locally on your iPhone. It never leaves your device unless you explicitly choose to share or export it.</p>
+        <p>The following data is created and stored locally on your device. It never leaves your device unless you explicitly choose to share or export it.</p>
         <ul>
           <li><strong>Walking routes</strong> — GPS coordinates recorded during your walks</li>
           <li><strong>Voice recordings</strong> — Audio captured when you record thoughts during a walk</li>
-          <li><strong>Transcriptions</strong> — On-device speech-to-text processing of your voice recordings using WhisperKit (no audio is sent to any server)</li>
+          <li><strong>Transcriptions</strong> — On-device speech-to-text processing of your voice recordings (WhisperKit on iOS, whisper.cpp on Android). No audio is sent to any server.</li>
+          <li><strong>Photos</strong> — Images you attach to a walk from your device's photo library. Pilgrim stores only a reference to each photo; the image itself stays in your photo library and is never uploaded.</li>
           <li><strong>Walk statistics</strong> — Distance, duration, steps, elevation, pace</li>
           <li><strong>Intentions and reflections</strong> — Text you enter before or after a walk</li>
           <li><strong>Preferences</strong> — Your settings and customizations</li>
@@ -93,7 +94,7 @@
         <h2>Third-party services</h2>
         <p>Pilgrim uses a small number of third-party services that operate independently:</p>
         <ul>
-          <li><strong>Apple WeatherKit</strong> — When weather information is displayed, your approximate location is sent to Apple's weather service. This is governed by <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a>.</li>
+          <li><strong>Weather</strong> — When weather information is displayed, your approximate location is sent to a weather service to retrieve current conditions: <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple WeatherKit</a> on iOS, and <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo</a> on Android.</li>
           <li><strong>Mapbox</strong> — Map tiles are loaded from Mapbox's servers when you view maps. Mapbox may receive your IP address and general area to serve map data. This is governed by <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener noreferrer">Mapbox's Privacy Policy</a>.</li>
         </ul>
       </section>
@@ -122,9 +123,9 @@
       <section class="legal-section">
         <h2>Data export and deletion</h2>
         <p>
-          You can export your walk data at any time in the Pilgrim format or as GPX files.
-          You can delete any or all walks from within the app. When deleted, the data is permanently
-          removed from your device.
+          You can export your walk data at any time in the Pilgrim format, and as GPX files where
+          supported. You can delete any or all walks from within the app. When deleted, the data is
+          permanently removed from your device.
         </p>
       </section>
 
