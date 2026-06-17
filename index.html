@@ -46,13 +46,19 @@
     "@type": "MobileApplication",
     "name": "Pilgrim",
     "alternateName": "Pilgrim — A Walking Practice",
-    "operatingSystem": "iOS 18+",
+    "operatingSystem": "iOS 18+, iPadOS 18+, Android 9+",
     "applicationCategory": "HealthApplication",
     "applicationSubCategory": "Walking Meditation",
-    "description": "Privacy-first walking and meditation companion for iOS. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, earn digital goshuin seals. No accounts, no analytics, no cloud. Open source and free forever.",
+    "description": "Privacy-first walking and meditation companion for iPhone, iPad, and Android. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, earn digital goshuin seals. No accounts, no analytics, no cloud. Open source and free forever.",
     "url": "https://pilgrimapp.org",
-    "downloadUrl": "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
-    "installUrl": "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
+    "downloadUrl": [
+      "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
+      "https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim"
+    ],
+    "installUrl": [
+      "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
+      "https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim"
+    ],
     "softwareVersion": "1.4.0",
     "datePublished": "2026-04-16",
     "license": "https://www.gnu.org/licenses/gpl-3.0.html",
@@ -65,7 +71,7 @@
     },
     "featureList": [
       "GPS route tracking with altitude, distance, and steps",
-      "Voice recording with on-device transcription via WhisperKit",
+      "Voice recording with on-device transcription (WhisperKit on iOS, whisper.cpp on Android)",
       "Walking meditation mode with breathing circle",
       "Guided voice prompts from 7 AI-generated voice guides",
       "Ambient soundscapes for meditation",
@@ -74,7 +80,7 @@
       "Seasonal color theming calibrated to hemisphere",
       "Collective walking counter across pilgrimage routes",
       "GPX import for pilgrimage routes",
-      "Live Activities on lock screen",
+      "Live walk progress on the lock screen (Live Activities on iOS, foreground notification on Android)",
       "Home Screen widget with a daily walking mantra",
       "Whispers — anonymous audio gifts placed along walking routes with proximity detection",
       "Cairns — virtual stone cairns placed at meaningful spots, stackable by other walkers across seven tiers",
@@ -96,8 +102,11 @@
       "name": "Walk Talk Meditate",
       "url": "https://github.com/walktalkmeditate"
     },
-    "codeRepository": "https://github.com/walktalkmeditate/pilgrim-ios",
-    "programmingLanguage": "Swift",
+    "codeRepository": [
+      "https://github.com/walktalkmeditate/pilgrim-ios",
+      "https://github.com/walktalkmeditate/pilgrim-android"
+    ],
+    "programmingLanguage": ["Swift", "Kotlin"],
     "keywords": ["walking meditation", "mindful walking", "privacy fitness app", "on-device transcription", "goshuin", "pilgrimage app", "open source meditation", "walking practice", "voice journaling", "no account fitness app", "photo pinning", "geotagged photos", "walk photo journal"]
   }
   </script>
@@ -111,7 +120,7 @@
         "name": "What is the best privacy-focused walking app?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim is a privacy-first walking and meditation companion for iOS. It has no accounts, no analytics, no cloud storage, and no telemetry. Voice transcription runs entirely on-device using WhisperKit. All data stays on your phone. It is open source (GPLv3) and free forever."
+          "text": "Pilgrim is a privacy-first walking and meditation companion for iPhone, iPad, and Android. It has no accounts, no analytics, no cloud storage, and no telemetry. Voice transcription runs entirely on-device (WhisperKit on iOS, whisper.cpp on Android). All data stays on your phone. It is open source (GPLv3) and free forever."
         }
       },
       {
@@ -124,10 +133,10 @@
       },
       {
         "@type": "Question",
-        "name": "What open source fitness apps are available for iPhone?",
+        "name": "What open source walking apps are available for iPhone, iPad, and Android?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim is an open source (GPLv3) walking and meditation companion for iOS. It tracks walks with GPS, records voice notes with on-device transcription, and has a meditation mode. The full source code is available at github.com/walktalkmeditate/pilgrim-ios."
+          "text": "Pilgrim is an open source (GPLv3) walking and meditation companion for iPhone, iPad, and Android. It tracks walks with GPS, records voice notes with on-device transcription, and has a meditation mode. The source code is available at github.com/walktalkmeditate/pilgrim-ios and github.com/walktalkmeditate/pilgrim-android."
         }
       },
       {
@@ -143,7 +152,7 @@
         "name": "How can I record voice notes while walking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using WhisperKit (based on OpenAI's Whisper model). Nothing is uploaded to any server. Your voice recordings and transcriptions stay on your phone."
+          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using OpenAI's Whisper model (WhisperKit on iOS, whisper.cpp on Android). Nothing is uploaded to any server. Your voice recordings and transcriptions stay on your phone."
         }
       },
       {
@@ -159,7 +168,7 @@
         "name": "Can I attach photos to my walks without uploading them anywhere?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim's Walk Reliquary gathers photos from your Apple Photos library that match a walk's time window and GPS coordinates, and offers them as candidates in a carousel on your walk summary. Long-press a photo and tap the pin to commit it as a relic — it becomes a circular thumbnail anchored to exactly where you were standing when you took it. The app stores no pixels, only a reference back to Apple Photos. The whole feature is opt-in and defaults off. Photos without GPS are excluded. Screenshots are filtered out. No prompts, no ambient photo scraping."
+          "text": "Pilgrim's Walk Reliquary gathers photos from your device's photo library that match a walk's time window and GPS coordinates, and offers them as candidates in a carousel on your walk summary. Long-press a photo and tap the pin to commit it as a relic — it becomes a circular thumbnail anchored to exactly where you were standing when you took it. The app stores no pixels, only a reference back to your photo library. The whole feature is opt-in and defaults off. Photos without GPS are excluded. Screenshots are filtered out. No prompts, no ambient photo scraping."
         }
       },
       {
@@ -356,9 +365,10 @@
     }
 
     /* =============================================
-       App Store Badge
+       Store Badges (App Store + Google Play)
        ============================================= */
-    .app-store-badge {
+    .app-store-badge,
+    .google-play-badge {
       display: inline-flex;
       align-items: center;
       margin: 0 auto var(--padding-lg);
@@ -377,7 +387,8 @@
       letter-spacing: 0.01em;
     }
 
-    .app-store-badge:hover {
+    .app-store-badge:hover,
+    .google-play-badge:hover {
       opacity: 0.8;
       border-bottom-color: transparent;
     }
@@ -387,13 +398,22 @@
       line-height: 1;
     }
 
-    .app-store-badge-text {
+    .google-play-badge-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .app-store-badge-text,
+    .google-play-badge-text {
       display: flex;
       flex-direction: column;
       text-align: left;
     }
 
-    .app-store-badge-sub {
+    .app-store-badge-sub,
+    .google-play-badge-sub {
       font-size: 0.625rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -401,10 +421,25 @@
       line-height: 1.2;
     }
 
-    .app-store-badge-name {
+    .app-store-badge-name,
+    .google-play-badge-name {
       font-size: 0.9375rem;
       font-weight: 700;
       line-height: 1.2;
+    }
+
+    .store-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto var(--padding-lg);
+    }
+
+    .store-badges .app-store-badge,
+    .store-badges .google-play-badge {
+      margin: 0;
     }
 
     .journey-cta {
@@ -906,7 +941,7 @@
           <div class="practice-card practice-card--privacy reveal reveal-delay-4">
             <div class="practice-card-icon" aria-hidden="true">&#9670;</div>
             <h3>Privacy</h3>
-            <p>No accounts. No analytics. No cloud. The App Store privacy label shows near-zero data collection — and the source code is public for anyone to verify.</p>
+            <p>No accounts. No analytics. No cloud. The App Store privacy label and the Play Store data safety form both disclose near-zero data collection — and the source code is public for anyone to verify.</p>
           </div>
         </div>
       </div>
@@ -963,7 +998,7 @@
       <div class="section-inner traces-inner">
         <h2 class="display-large reveal traces-heading">Where you stood</h2>
         <p class="body-text reveal traces-lede">
-          The photos you take along a walk used to live orphaned in Apple Photos — disconnected from the walk that produced them. Pilgrim brings them home.
+          The photos you take along a walk used to live orphaned in your photo library — disconnected from the walk that produced them. Pilgrim brings them home.
         </p>
 
         <!-- Route reveal: when this section scrolls into view, a footprint
@@ -1193,7 +1228,7 @@
               </svg>
             </div>
             <h3 class="traces-card-title traces-card-title--reliquary">The Walk Reliquary</h3>
-            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from Apple Photos, never copied, never uploaded. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
+            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from your photo library, never copied, never uploaded. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
           </div>
         </div>
       </div>
@@ -1246,13 +1281,22 @@
       </div>
 
       <div class="journey-cta reveal">
-        <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
-          <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
-          <span class="app-store-badge-text">
-            <span class="app-store-badge-sub">Download on the</span>
-            <span class="app-store-badge-name">App Store</span>
-          </span>
-        </a>
+        <div class="store-badges">
+          <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
+            <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
+            <span class="app-store-badge-text">
+              <span class="app-store-badge-sub">Download on the</span>
+              <span class="app-store-badge-name">App Store</span>
+            </span>
+          </a>
+          <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim" class="google-play-badge" aria-label="Get it on Google Play" data-umami-event="click-google-play">
+            <svg class="google-play-badge-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 22V2l18 10L3 22z"/></svg>
+            <span class="google-play-badge-text">
+              <span class="google-play-badge-sub">Get it on</span>
+              <span class="google-play-badge-name">Google Play</span>
+            </span>
+          </a>
+        </div>
       </div>
     </section>
 
@@ -1406,7 +1450,7 @@
           <div class="privacy-feature reveal reveal-delay-1">
             <div class="privacy-feature-icon" aria-hidden="true">&#127908;</div>
             <h3>On-device transcription</h3>
-            <p>WhisperKit transcribes your voice recordings locally. No audio is ever sent to a server.</p>
+            <p>OpenAI's Whisper model transcribes your voice recordings locally — WhisperKit on iOS, whisper.cpp on Android. No audio is ever sent to a server.</p>
           </div>
 
           <div class="privacy-feature reveal reveal-delay-2">
@@ -1418,7 +1462,7 @@
           <div class="privacy-feature reveal reveal-delay-3">
             <div class="privacy-feature-icon" aria-hidden="true">&#10006;</div>
             <h3>No analytics</h3>
-            <p>No usage tracking, no crash reporters, no third-party SDKs. The App Store privacy label confirms it.</p>
+            <p>No usage tracking, no crash reporters, no third-party SDKs. The App Store privacy label and Play Store data safety form both confirm it.</p>
           </div>
 
           <div class="privacy-feature reveal reveal-delay-4">
@@ -1471,7 +1515,10 @@
             Inspired by the practice of Walk, Talk, Meditate &#8599;
           </a>
           <a href="https://github.com/walktalkmeditate/pilgrim-ios" target="_blank" rel="noopener noreferrer">
-            Open-source on GitHub &#8599;
+            iOS source on GitHub &#8599;
+          </a>
+          <a href="https://github.com/walktalkmeditate/pilgrim-android" target="_blank" rel="noopener noreferrer">
+            Android source on GitHub &#8599;
           </a>
           <a href="/press">
             Press Kit &#8599;
@@ -1522,13 +1569,22 @@
       <img src="assets/logos/pilgrim-dark.png" alt="" width="36" height="36">
     </div>
 
-    <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
-      <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
-      <span class="app-store-badge-text">
-        <span class="app-store-badge-sub">Download on the</span>
-        <span class="app-store-badge-name">App Store</span>
-      </span>
-    </a>
+    <div class="store-badges">
+      <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
+        <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
+        <span class="app-store-badge-text">
+          <span class="app-store-badge-sub">Download on the</span>
+          <span class="app-store-badge-name">App Store</span>
+        </span>
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim" class="google-play-badge" aria-label="Get it on Google Play" data-umami-event="click-google-play">
+        <svg class="google-play-badge-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 22V2l18 10L3 22z"/></svg>
+        <span class="google-play-badge-text">
+          <span class="google-play-badge-sub">Get it on</span>
+          <span class="google-play-badge-name">Google Play</span>
+        </span>
+      </a>
+    </div>
 
     <div class="horizon-links">
       <a href="/privacy">Privacy</a>
