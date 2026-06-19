@@ -626,7 +626,22 @@ body.constellation .sunpath-monument-detail {
 .sunpath-tm-pick:hover, .sunpath-tm-pick:focus-visible { opacity: 0.85; }
 .sunpath-tm-pick.is-active { opacity: 1; background: var(--ink); color: var(--bg, #faf8f2); }
 .sunpath-tm-label { text-align: center; font-style: italic; opacity: 0.8; margin: 0.25rem 0; }
-#sunpath-tm-slider { display: block; width: 100%; max-width: 28rem; margin: 0.5rem auto 1rem; }
+#sunpath-tm-slider {
+  display: block; width: 100%; max-width: 28rem; margin: 0.5rem auto 1rem;
+  -webkit-appearance: none; appearance: none;
+  height: 3px; border-radius: 2px; background: var(--stone); cursor: pointer;
+}
+#sunpath-tm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: var(--sun, #c8893a); cursor: pointer;
+}
+#sunpath-tm-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: var(--sun, #c8893a); cursor: pointer;
+}
+#sunpath-tm-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(200, 137, 58, 0.35); }
+#sunpath-tm-slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgba(200, 137, 58, 0.35); }
 .sunpath-tm-canvas { display: block; width: 100%; max-width: 32rem; margin: 0 auto; height: auto; }
 .sunpath-tm-horizon { stroke: var(--ink); stroke-width: 1; opacity: 0.5; }
 .sunpath-tm-tick { stroke: var(--ink); stroke-width: 1; opacity: 0.3; }
