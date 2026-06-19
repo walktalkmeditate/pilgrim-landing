@@ -595,6 +595,39 @@
     return normalizeDeg(az * RAD + 180);
   }
 
+  // Sunset azimuth for a year on a named turning — the mirror of sunrise about
+  // the N–S meridian (same declination). Degrees from true north.
+  function sunsetAzimuthForYear(lat, year, turning) {
+    var rise = sunriseAzimuthForYear(lat, year, turning);
+    if (rise === null) return null;
+    return normalizeDeg(360 - rise);
+  }
+
+  // Initial great-circle bearing from point 1 to point 2, degrees from true north.
+  function initialBearing(lat1, lon1, lat2, lon2) {
+    var phi1 = lat1 * DEG, phi2 = lat2 * DEG;
+    var dLon = (lon2 - lon1) * DEG;
+    var y = Math.sin(dLon) * Math.cos(phi2);
+    var x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
+    return normalizeDeg(Math.atan2(y, x) * RAD);
+  }
+
+  // Shortest angular distance between two azimuths, 0–180°.
+  function angularDistance(a, b) {
+    var d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  // Position of azimuth `az` within a horizon arc of ±halfWindow° around
+  // `centre`, as a fraction 0 (left) … 1 (right); null if outside the arc.
+  function azimuthToUnit(az, centre, halfWindow) {
+    var d = az - centre;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    if (d < -halfWindow || d > halfWindow) return null;
+    return (d + halfWindow) / (2 * halfWindow);
+  }
+
   // --- Great circle ---
 
   // Great-circle distance in kilometers between two lat/lon points.
@@ -890,6 +923,10 @@
     // obliquity / time machine
     obliquity: obliquity,
     sunriseAzimuthForYear: sunriseAzimuthForYear,
+    sunsetAzimuthForYear: sunsetAzimuthForYear,
+    initialBearing: initialBearing,
+    angularDistance: angularDistance,
+    azimuthToUnit: azimuthToUnit,
     // distance
     greatCircleKm: greatCircleKm,
     // analemma
