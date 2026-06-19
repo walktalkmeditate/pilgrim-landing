@@ -56,6 +56,8 @@
   }
   function markerName(m) { return m.marker ? (m.marker.label || m.marker.landmark) : null; }
   function centreAz(m) { return eventOf(m) === 'sunset' ? 270 : 90; }
+  // shortest angular distance between two azimuths, 0–180°
+  function angDiff(a, b) { var d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
 
   // azimuth → x within [x0,x1]; null if outside the ±HALF_WINDOW arc.
   function azToX(az, centre, x0, x1) {
@@ -74,7 +76,7 @@
     if (state.label) state.label.textContent = yearLabel(year);
     clear(state.canvas);
 
-    var W = 360, H = 180, x0 = 20, x1 = 340, yH = 120;
+    var x0 = 20, x1 = 340, yH = 120;
     var ev = eventOf(m), centre = centreAz(m);
 
     state.canvas.appendChild(svg('line',
@@ -120,8 +122,8 @@
     var txt;
     if (mAz != null && az != null && todayAz != null) {
       txt = 'Today the ' + turningOf(m).split('-')[0] + ' sun ' + verb + ' ' +
-        Math.abs(todayAz - mAz).toFixed(1) + '° from ' + markerName(m) + '; in ' +
-        yearLabel(year) + ', ' + Math.abs(az - mAz).toFixed(1) + '°. Earth’s tilt then: ' + tilt + '°.';
+        angDiff(todayAz, mAz).toFixed(1) + '° from ' + markerName(m) + '; in ' +
+        yearLabel(year) + ', ' + angDiff(az, mAz).toFixed(1) + '°. Earth’s tilt then: ' + tilt + '°.';
     } else if (az != null) {
       txt = 'The ' + turningOf(m).split('-')[0] + ' sun ' + verb + ' at ' + az.toFixed(1) +
         '° in ' + yearLabel(year) + '. Earth’s tilt then: ' + tilt + '°.';
