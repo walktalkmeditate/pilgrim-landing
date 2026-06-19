@@ -595,6 +595,23 @@
     return normalizeDeg(az * RAD + 180);
   }
 
+  // Sunset azimuth for a year on a named turning — the mirror of sunrise about
+  // the N–S meridian (same declination). Degrees from true north.
+  function sunsetAzimuthForYear(lat, year, turning) {
+    var rise = sunriseAzimuthForYear(lat, year, turning);
+    if (rise === null) return null;
+    return normalizeDeg(360 - rise);
+  }
+
+  // Initial great-circle bearing from point 1 to point 2, degrees from true north.
+  function initialBearing(lat1, lon1, lat2, lon2) {
+    var phi1 = lat1 * DEG, phi2 = lat2 * DEG;
+    var dLon = (lon2 - lon1) * DEG;
+    var y = Math.sin(dLon) * Math.cos(phi2);
+    var x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
+    return normalizeDeg(Math.atan2(y, x) * RAD);
+  }
+
   // --- Great circle ---
 
   // Great-circle distance in kilometers between two lat/lon points.
@@ -890,6 +907,8 @@
     // obliquity / time machine
     obliquity: obliquity,
     sunriseAzimuthForYear: sunriseAzimuthForYear,
+    sunsetAzimuthForYear: sunsetAzimuthForYear,
+    initialBearing: initialBearing,
     // distance
     greatCircleKm: greatCircleKm,
     // analemma

@@ -640,6 +640,23 @@ if (lunar3) {
   console.log('  ✗ nextLunarEclipseAfter 2026-08-28: returned null');
 }
 
+console.log('\n=== Sunset azimuth + bearing (Phase 2) ===\n');
+
+// Sunset mirrors sunrise about the meridian.
+var riseSS = M.sunriseAzimuthForYear(51.18, 2026, 'summer-solstice');
+approx(M.sunsetAzimuthForYear(51.18, 2026, 'summer-solstice'), 360 - riseSS, 0.001,
+  'sunset azimuth = 360 − sunrise azimuth');
+
+// Ōmori-Katsuyama latitude: winter-solstice sun sets in the SW (~239°).
+approx(M.sunsetAzimuthForYear(40.66, 2026, 'winter-solstice'), 239, 2.0,
+  'Ōmori winter-solstice sunset azimuth ~239° (SW)');
+
+// initialBearing sanity: due east / due north / a known city pair.
+approx(M.initialBearing(0, 0, 0, 1), 90, 0.01, 'bearing east along the equator = 90°');
+approx(M.initialBearing(0, 0, 1, 0), 0, 0.01, 'bearing due north = 0°');
+approx(M.initialBearing(51.5074, -0.1278, 48.8566, 2.3522), 148, 1.5,
+  'London → Paris initial bearing ~148° (SE)');
+
 // ===========================================================================
 // Summary
 // ===========================================================================
