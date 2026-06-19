@@ -9,7 +9,10 @@
   var mount = document.getElementById('sunpath-time-machine');
   if (!M || !mount) return;
 
-  var MIN_YEAR = -3000, MAX_YEAR = 3000, HALF_WINDOW = 35;
+  // ±degrees of horizon shown each side of due-east/west. Must exceed the
+  // largest solstice swing off-cardinal across the scrubber range — Newgrange
+  // reaches ~43.4° at high obliquity — or the sun clips off-canvas.
+  var MIN_YEAR = -3000, MAX_YEAR = 3000, HALF_WINDOW = 50;
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var reduceMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
