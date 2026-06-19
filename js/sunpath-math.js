@@ -612,6 +612,22 @@
     return normalizeDeg(Math.atan2(y, x) * RAD);
   }
 
+  // Shortest angular distance between two azimuths, 0–180°.
+  function angularDistance(a, b) {
+    var d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  // Position of azimuth `az` within a horizon arc of ±halfWindow° around
+  // `centre`, as a fraction 0 (left) … 1 (right); null if outside the arc.
+  function azimuthToUnit(az, centre, halfWindow) {
+    var d = az - centre;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    if (d < -halfWindow || d > halfWindow) return null;
+    return (d + halfWindow) / (2 * halfWindow);
+  }
+
   // --- Great circle ---
 
   // Great-circle distance in kilometers between two lat/lon points.
@@ -909,6 +925,8 @@
     sunriseAzimuthForYear: sunriseAzimuthForYear,
     sunsetAzimuthForYear: sunsetAzimuthForYear,
     initialBearing: initialBearing,
+    angularDistance: angularDistance,
+    azimuthToUnit: azimuthToUnit,
     // distance
     greatCircleKm: greatCircleKm,
     // analemma

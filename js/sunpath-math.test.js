@@ -657,6 +657,21 @@ approx(M.initialBearing(0, 0, 1, 0), 0, 0.01, 'bearing due north = 0°');
 approx(M.initialBearing(51.5074, -0.1278, 48.8566, 2.3522), 148, 1.5,
   'London → Paris initial bearing ~148° (SE)');
 
+console.log('\n=== Widget geometry helpers (Phase 2) ===\n');
+
+approx(M.angularDistance(350, 10), 20, 0.001, 'angularDistance wraps across 0° (350↔10 = 20°)');
+approx(M.angularDistance(49.6, 50.6), 1.0, 0.001, 'angularDistance of a 1° drift = 1°');
+approx(M.azimuthToUnit(90, 90, 50), 0.5, 0.001, 'azimuthToUnit: centre → 0.5');
+approx(M.azimuthToUnit(40, 90, 50), 0.0, 0.001, 'azimuthToUnit: −halfWindow edge → 0');
+approx(M.azimuthToUnit(140, 90, 50), 1.0, 0.001, 'azimuthToUnit: +halfWindow edge → 1');
+approx(M.azimuthToUnit(305, 270, 50), 0.85, 0.001, 'azimuthToUnit: sunset arc, 305° within window');
+if (M.azimuthToUnit(141, 90, 50) === null) {
+  passed++; console.log('  ✓ azimuthToUnit: null just outside the window');
+} else {
+  failed++; failures.push('azimuthToUnit(141,90,50) should be null (outside window)');
+  console.log('  ✗ azimuthToUnit: null just outside the window');
+}
+
 // ===========================================================================
 // Summary
 // ===========================================================================
