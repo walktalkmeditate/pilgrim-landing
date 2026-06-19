@@ -8,7 +8,10 @@
     "constructed": -2500,
     "alignment": "summer-solstice-sunrise",
     "alignmentDescription": "Heel Stone marks midsummer sunrise as seen from the center of the circle. Each year on the longest day, light rises behind the stone and pours through the trilithon gate into the heart of the monument.",
-    "sourceNote": "Ruggles, Astronomy in Prehistoric Britain and Ireland (1999)."
+    "sourceNote": "Ruggles, Astronomy in Prehistoric Britain and Ireland (1999).",
+    "turning": "summer-solstice",
+    "event": "sunrise",
+    "marker": { "azimuth": 49.6, "label": "the solstitial axis", "source": "Lockyer & Penrose 1901; Ruggles 1997; UNESCO Astronomical Heritage" }
   },
   {
     "id": "newgrange",
@@ -19,7 +22,23 @@
     "constructed": -3200,
     "alignment": "winter-solstice-sunrise",
     "alignmentDescription": "On the morning of the winter solstice, sunlight enters through a roof-box above the entrance and travels 19 metres along the inner passage to illuminate the burial chamber for about seventeen minutes. Built five centuries before the Pyramids.",
-    "sourceNote": "Heritage Ireland, OPW publications. M. J. O'Kelly, Newgrange (1982)."
+    "sourceNote": "Heritage Ireland, OPW publications. M. J. O'Kelly, Newgrange (1982).",
+    "turning": "winter-solstice",
+    "event": "sunrise"
+  },
+  {
+    "id": "omori-katsuyama",
+    "name": "Ōmori-Katsuyama",
+    "lat": 40.6664,
+    "lon": 140.3344,
+    "country": "Japan",
+    "constructed": -800,
+    "alignment": "winter-solstice-sunset",
+    "alignmentDescription": "A Final Jōmon stone circle on the northeast foot of Mount Iwaki. On the shortest day of the year, the setting sun comes to rest behind the volcano's summit — the wheel of the year read against a sacred mountain, three thousand years ago.",
+    "sourceNote": "Kaner, World Archaeology 115 (2022); UNESCO Jōmon Prehistoric Sites (jomon-japan.jp).",
+    "turning": "winter-solstice",
+    "event": "sunset",
+    "marker": { "landmark": "Mt. Iwaki's summit", "lat": 40.6533, "lon": 140.3028, "source": "summit coordinates (GSI); winter-solstice-sunset alignment per Kaner 2022 / UNESCO" }
   },
   {
     "id": "karnak",
@@ -30,7 +49,9 @@
     "constructed": -1500,
     "alignment": "winter-solstice-sunrise",
     "alignmentDescription": "The temple's main axis is aligned to the southeast so that midwinter sunrise enters along the axis of the precinct of Amun-Ra. The light reaches the inner sanctuary only on this one morning of the year.",
-    "sourceNote": "Belmonte and Shaltout, In Search of Cosmic Order (2009)."
+    "sourceNote": "Belmonte and Shaltout, In Search of Cosmic Order (2009).",
+    "turning": "winter-solstice",
+    "event": "sunrise"
   },
   {
     "id": "chichen-itza",
@@ -41,7 +62,9 @@
     "constructed": 600,
     "alignment": "spring-equinox-afternoon",
     "alignmentDescription": "On the spring and autumn equinoxes, the late-afternoon sun casts a serpent-shaped shadow down the northern staircase. The shadow connects to the carved stone serpent's head at the base — the descent of the feathered serpent Kukulkan.",
-    "sourceNote": "Aveni, Skywatchers (2001)."
+    "sourceNote": "Aveni, Skywatchers (2001).",
+    "turning": "spring-equinox",
+    "event": "other"
   },
   {
     "id": "machu-picchu",
@@ -52,7 +75,9 @@
     "constructed": 1450,
     "alignment": "winter-solstice-noon",
     "alignmentDescription": "The Intihuatana stone — 'hitching post of the sun' — was carved so that on June 21, the southern winter solstice, the sun stands directly over its central pillar at noon. A Quechua practice of binding the sun against further descent.",
-    "sourceNote": "Reinhard, Machu Picchu: Exploring an Ancient Sacred Center (2007)."
+    "sourceNote": "Reinhard, Machu Picchu: Exploring an Ancient Sacred Center (2007).",
+    "turning": "winter-solstice",
+    "event": "other"
   },
   {
     "id": "cahokia",
@@ -63,7 +88,9 @@
     "constructed": 1100,
     "alignment": "all-four-turnings",
     "alignmentDescription": "A circle of cedar posts on the Mississippi floodplain. Specific posts mark sunrise on each of the four turnings: spring equinox, summer solstice, autumn equinox, winter solstice. The largest pre-Columbian city north of Mexico made the wheel of the year visible at ground level.",
-    "sourceNote": "Iseminger, Cahokia Mounds: America's First City (2010)."
+    "sourceNote": "Iseminger, Cahokia Mounds: America's First City (2010).",
+    "turning": "summer-solstice",
+    "event": "other"
   },
   {
     "id": "goseck",
@@ -74,6 +101,8 @@
     "constructed": -4900,
     "alignment": "winter-solstice-sunrise-sunset",
     "alignmentDescription": "Two narrow gates in this Neolithic circular ditch frame the sunrise and sunset of the winter solstice. Built nearly five thousand years before Stonehenge, by farming peoples of the Linear Pottery culture. Possibly the oldest intentional astronomical structure yet found.",
-    "sourceNote": "Schlosser, Astronomical Implications of Goseck (2003)."
+    "sourceNote": "Schlosser, Astronomical Implications of Goseck (2003).",
+    "turning": "winter-solstice",
+    "event": "sunrise"
   }
 ]
