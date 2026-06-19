@@ -1582,7 +1582,15 @@ body.constellation .sunpath-polar-circle {
   cursor: pointer;
   font-style: italic;
   letter-spacing: 0.02em;
+  list-style: none;
 }
+.sunpath-method summary::-webkit-details-marker { display: none; }
+.sunpath-method summary::before {
+  content: '› ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.sunpath-method[open] summary::before { transform: rotate(90deg); }
 .sunpath-method p { margin-top: 0.75rem; line-height: 1.6; }
 
 /* Subpage → live-hub link, sits under the frozen-moment globe */
