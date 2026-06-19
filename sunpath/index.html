@@ -135,6 +135,7 @@
       <h2 class="sunpath-section-heading">Walk through time</h2>
       <p>The four turnings drift. Earth's tilt creeps by a fraction of a degree each millennium, so the spot where the solstice sun breaks the horizon slides along it. Pick a monument and walk the years — watch the sun pull away from where its builders aimed. (At the equinox, every one of them agrees: due east, due west, everywhere.)</p>
       <div id="sunpath-time-machine"></div>
+      <noscript><p class="sunpath-tm-readout"><em>The live horizon needs JavaScript. In short: Stonehenge's midsummer sunrise and Ōmori-Katsuyama's midwinter sunset have each crept a fraction of a degree along their horizons since they were built.</em></p></noscript>
     </section>
 
     <!-- Festivals -->
@@ -261,7 +262,7 @@
     <!-- provenance: keep byte-identical with scripts/sunpath/permalink-template.mjs -->
     <details class="sunpath-method">
       <summary>How this is computed</summary>
-      <p><em>The sun's position uses the NOAA Solar Calculator (Spencer 1971 truncated series) — declination accurate to about 0.05°, the equation of time to about half a minute. The moon and the deep-time scrubber use Meeus, <cite>Astronomical Algorithms</cite> (2nd ed.). Ancient solar and lunar alignments are pinned from archaeological literature (Ruggles, <cite>Astronomy in Prehistoric Britain and Ireland</cite>), not derived from the model. Good for contemplation, not for navigation.</em></p>
+      <p><em>The sun's position uses the NOAA Solar Calculator (Spencer 1971 truncated series) — declination accurate to about 0.05°, the equation of time to about half a minute. The moon and the deep-time scrubber use Meeus, <cite>Astronomical Algorithms</cite> (2nd ed.). Ancient solar and lunar alignments are pinned from archaeological literature (Ruggles, <cite>Astronomy in Prehistoric Britain and Ireland</cite>), not derived from the model. Good for contemplation, not for navigation. The deep-time horizon uses each year's obliquity (valid roughly 3000 BC–3000 AD) for the sunrise/sunset azimuth, against a fixed alignment bearing: Stonehenge's solstitial axis (Lockyer &amp; Penrose 1901; Ruggles 1997) and the great-circle bearing from Ōmori-Katsuyama to Mt. Iwaki's summit, whose winter-solstice sunset is documented by Kaner (World Archaeology 115, 2022) and the UNESCO Jōmon listing. Azimuths assume a flat sea-level horizon and ignore atmospheric refraction (~0.5°) and disc radius, so they mark the geometric event, not the first gleam.</em></p>
     </details>
 
   </main>
