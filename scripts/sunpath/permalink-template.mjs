@@ -149,6 +149,9 @@ export function renderPermalink(data, archive) {
 
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
+      <p class="sunpath-see-live">
+        <a href="/sunpath/">See the sun move through the whole year on the live Sun Path →</a>
+      </p>
     </section>
 
     <section class="sunpath-section sunpath-archive" aria-label="Other turnings of ${data.year}">
@@ -159,6 +162,12 @@ export function renderPermalink(data, archive) {
 ${archiveItems}
       </ul>
     </section>
+
+    <!-- provenance: keep byte-identical with sunpath/index.html -->
+    <details class="sunpath-method">
+      <summary>How this is computed</summary>
+      <p><em>The sun's position uses the NOAA Solar Calculator (Spencer 1971 truncated series) — declination accurate to about 0.05°, the equation of time to about half a minute. The moon and the deep-time scrubber use Meeus, <cite>Astronomical Algorithms</cite> (2nd ed.). Ancient solar and lunar alignments are pinned from archaeological literature (Ruggles, <cite>Astronomy in Prehistoric Britain and Ireland</cite>), not derived from the model. Good for contemplation, not for navigation.</em></p>
+    </details>
 
   </main>
 

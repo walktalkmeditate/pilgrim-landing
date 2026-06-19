@@ -1569,3 +1569,35 @@ body.constellation .sunpath-polar-circle {
   .sunpath-timelapse-btn { display: none; }
 }
 
+/* Provenance / method note — mirrors moonpath's scrubber-accuracy footnote */
+.sunpath-method {
+  max-width: 38rem;
+  margin: 2.5rem auto 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink);
+  opacity: 0.72;
+}
+.sunpath-method summary {
+  cursor: pointer;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  list-style: none;
+}
+.sunpath-method summary::-webkit-details-marker { display: none; }
+.sunpath-method summary::before {
+  content: '› ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.sunpath-method[open] summary::before { transform: rotate(90deg); }
+.sunpath-method p { margin-top: 0.75rem; line-height: 1.6; }
+
+/* Subpage → live-hub link, sits under the frozen-moment globe */
+.sunpath-see-live {
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  font-style: italic;
+  opacity: 0.8;
+}
+
