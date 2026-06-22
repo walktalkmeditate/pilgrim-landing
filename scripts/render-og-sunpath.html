@@ -5,8 +5,9 @@
   Run from repo root:
     bash scripts/build-og-sunpath.sh
 
-  Keep this file in sync with the page's brand (Cormorant + Lato,
-  warm-paper background, gold subsolar dot).
+  Dark-space hero treatment: deep-space background, glowing dark globe with
+  warm gold atmosphere rim, sun-bloom near the lit limb, faint lavender
+  graticule, and gold monument dots. All content at y<=560.
 -->
 <html lang="en">
 <head>
@@ -17,40 +18,88 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Lato:wght@300&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 1200px; height: 630px; overflow: hidden; background: #F6F1E6; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #0a0a12; }
     svg { display: block; width: 1200px; height: 630px; }
   </style>
 </head>
 <body>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
     <defs>
-      <radialGradient id="sun" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#F4C36A" stop-opacity="0.95"/>
-        <stop offset="55%" stop-color="#E0A754" stop-opacity="0.40"/>
-        <stop offset="100%" stop-color="#E0A754" stop-opacity="0"/>
+      <!-- Deep-space background -->
+      <radialGradient id="spacebg" cx="50%" cy="50%" r="70%">
+        <stop offset="0%"  stop-color="#0d0d18"/>
+        <stop offset="100%" stop-color="#08080f"/>
       </radialGradient>
-      <radialGradient id="globe" cx="35%" cy="35%" r="70%">
-        <stop offset="0%"  stop-color="#F2EAD8"/>
-        <stop offset="60%" stop-color="#E6DCC4"/>
-        <stop offset="100%" stop-color="#C9BB9B"/>
+
+      <!-- Dark globe surface: deep blue-black with subtle limb brightening -->
+      <radialGradient id="globe" cx="38%" cy="32%" r="68%">
+        <stop offset="0%"  stop-color="#1a1a2e"/>
+        <stop offset="55%" stop-color="#0f0f1a"/>
+        <stop offset="100%" stop-color="#080810"/>
       </radialGradient>
-      <linearGradient id="terminator" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%"  stop-color="#3C2E24" stop-opacity="0.0"/>
-        <stop offset="50%" stop-color="#3C2E24" stop-opacity="0.18"/>
-        <stop offset="100%" stop-color="#3C2E24" stop-opacity="0.30"/>
-      </linearGradient>
+
+      <!-- Warm gold atmosphere rim (painted as a radial halo just outside the sphere) -->
+      <radialGradient id="atmosRim" cx="50%" cy="50%" r="50%">
+        <stop offset="72%" stop-color="#D4A87A" stop-opacity="0"/>
+        <stop offset="84%" stop-color="#D4A87A" stop-opacity="0.45"/>
+        <stop offset="92%" stop-color="#C8943E" stop-opacity="0.65"/>
+        <stop offset="100%" stop-color="#C8943E" stop-opacity="0"/>
+      </radialGradient>
+
+      <!-- Warm sun-bloom on the lit limb (top-left) -->
+      <radialGradient id="sunbloom" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#F4C36A" stop-opacity="0.80"/>
+        <stop offset="45%" stop-color="#D4913A" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#D4913A" stop-opacity="0"/>
+      </radialGradient>
+
+      <!-- Night-side overlay to deepen the dark hemisphere -->
+      <radialGradient id="nightside" cx="80%" cy="70%" r="65%">
+        <stop offset="0%"  stop-color="#04040a" stop-opacity="0.70"/>
+        <stop offset="100%" stop-color="#04040a" stop-opacity="0"/>
+      </radialGradient>
+
+      <!-- Soft gold glow behind globe -->
+      <radialGradient id="globeGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#C8943E" stop-opacity="0"/>
+        <stop offset="60%" stop-color="#C8943E" stop-opacity="0"/>
+        <stop offset="80%" stop-color="#C8943E" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#C8943E" stop-opacity="0"/>
+      </radialGradient>
     </defs>
 
-    <rect width="1200" height="630" fill="#F6F1E6"/>
+    <!-- Full-bleed dark-space background -->
+    <rect width="1200" height="630" fill="url(#spacebg)"/>
 
-    <!-- Faint horizon line, like a colophon rule -->
-    <line x1="120" y1="92" x2="1080" y2="92" stroke="#A89B8A" stroke-width="0.6" stroke-opacity="0.45"/>
+    <!-- A few subtle star points scattered in the field -->
+    <g fill="#F0EBE1" fill-opacity="0.55">
+      <circle cx="80"  cy="55"  r="0.8"/>
+      <circle cx="162" cy="130" r="0.6"/>
+      <circle cx="47"  cy="200" r="0.9"/>
+      <circle cx="490" cy="38"  r="0.7"/>
+      <circle cx="520" cy="510" r="0.8"/>
+      <circle cx="200" cy="480" r="0.6"/>
+      <circle cx="110" cy="390" r="0.7"/>
+      <circle cx="1140" cy="80"  r="0.8"/>
+      <circle cx="1100" cy="200" r="0.6"/>
+      <circle cx="1160" cy="350" r="0.9"/>
+      <circle cx="1050" cy="450" r="0.7"/>
+      <circle cx="960"  cy="560" r="0.6"/>
+    </g>
 
-    <!-- Globe — left third -->
+    <!-- Globe group — left third, centred at (310, 315) -->
     <g transform="translate(310 315)">
-      <circle r="186" fill="url(#globe)" stroke="#A89B8A" stroke-width="1.1" stroke-opacity="0.55"/>
-      <!-- Simple latitude/longitude graticule for elegance -->
-      <g stroke="#A89B8A" stroke-opacity="0.30" fill="none" stroke-width="0.6">
+      <!-- Outer glow halo -->
+      <circle r="230" fill="url(#globeGlow)"/>
+
+      <!-- Atmosphere rim ring (slightly larger than sphere) -->
+      <circle r="196" fill="url(#atmosRim)"/>
+
+      <!-- Globe sphere -->
+      <circle r="186" fill="url(#globe)"/>
+
+      <!-- Faint lavender graticule -->
+      <g stroke="#9090C0" stroke-opacity="0.20" fill="none" stroke-width="0.7">
         <ellipse rx="186" ry="48"/>
         <ellipse rx="186" ry="96"/>
         <ellipse rx="186" ry="144"/>
@@ -58,24 +107,41 @@
         <ellipse rx="96"  ry="186"/>
         <ellipse rx="144" ry="186"/>
       </g>
-      <!-- Day/night terminator arc -->
-      <path d="M 0,-186 A 130,186 0 0 1 0,186 A 186,186 0 0 0 0,-186 Z"
-            fill="url(#terminator)"/>
-      <!-- Subsolar warm halo + dot -->
-      <circle cx="-58" cy="-30" r="58" fill="url(#sun)"/>
-      <circle cx="-58" cy="-30" r="6"  fill="#E89B3C"/>
-      <circle cx="-58" cy="-30" r="2"  fill="#FFF6E0"/>
+
+      <!-- Night-side deepening -->
+      <circle r="186" fill="url(#nightside)"/>
+
+      <!-- Warm sun-bloom near the lit limb (upper-left) -->
+      <circle cx="-76" cy="-72" r="90" fill="url(#sunbloom)"/>
+
+      <!-- Gold monument dots — a few prominent ancient sites -->
+      <!-- Giza plateau -->
+      <circle cx="-10" cy="-42" r="3.5" fill="#D4A87A" fill-opacity="0.90"/>
+      <!-- Stonehenge -->
+      <circle cx="-52" cy="-62" r="3"   fill="#D4A87A" fill-opacity="0.85"/>
+      <!-- Chichen Itza -->
+      <circle cx="-80" cy="-8"  r="3"   fill="#D4A87A" fill-opacity="0.85"/>
+      <!-- Angkor Wat -->
+      <circle cx="42"  cy="-18" r="3"   fill="#D4A87A" fill-opacity="0.80"/>
+      <!-- Machu Picchu -->
+      <circle cx="-100" cy="28" r="2.8" fill="#D4A87A" fill-opacity="0.80"/>
+
+      <!-- Thin gold rim stroke on the sphere edge -->
+      <circle r="186" fill="none" stroke="#C8943E" stroke-width="1.2" stroke-opacity="0.60"/>
     </g>
+
+    <!-- Faint horizontal rule, like a colophon line -->
+    <line x1="560" y1="92" x2="1080" y2="92" stroke="#D4A87A" stroke-width="0.5" stroke-opacity="0.30"/>
 
     <!-- Title block — right two-thirds -->
     <g>
-      <!-- Tiny eyebrow -->
+      <!-- Eyebrow label -->
       <text x="585" y="232"
             font-family="'Lato', -apple-system, sans-serif"
             font-size="14"
             font-weight="300"
             letter-spacing="0.34em"
-            fill="#A89B8A">PILGRIMAPP.ORG · SUN PATH</text>
+            fill="#8A7A66">PILGRIMAPP.ORG · SUN PATH</text>
 
       <!-- Display title -->
       <text x="585" y="338"
@@ -83,7 +149,7 @@
             font-size="120"
             font-weight="400"
             font-style="italic"
-            fill="#3C2E24">Sun Path</text>
+            fill="#F0EBE1">Sun Path</text>
 
       <!-- Tagline -->
       <text x="585" y="396"
@@ -91,14 +157,14 @@
             font-size="34"
             font-weight="400"
             font-style="italic"
-            fill="#6E5B47">where light meets land, right now</text>
+            fill="#D4A87A">where light meets land, right now</text>
 
       <!-- Quiet specifics -->
       <text x="585" y="448"
             font-family="'Lato', -apple-system, sans-serif"
             font-size="15"
             font-weight="300"
-            fill="#8A7A66">a real-time map of the sun · ancient monuments · the four turnings</text>
+            fill="#7A6A58">a real-time map of the sun · ancient monuments · the four turnings</text>
     </g>
 
   </svg>

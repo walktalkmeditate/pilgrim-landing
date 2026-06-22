@@ -29,6 +29,21 @@ export function renderPermalink(data, archive) {
         </li>`)
     .join('\n');
 
+  // Deep-time drift hook — only the solstices drift (the equinox sunrise is due
+  // east in every era). Each solstice features its sourced monument.
+  const DEEP_MONUMENT = { 'summer-solstice': 'stonehenge', 'winter-solstice': 'omori-katsuyama' };
+  const deepTimeBlock = DEEP_MONUMENT[data.key] ? `
+      <!-- Deep-time drift — the headline hook -->
+      <div class="sunpath-deeptime" id="sunpath-deeptime" data-monument="${DEEP_MONUMENT[data.key]}">
+        <button type="button" class="sunpath-deeptime-toggle" id="sunpath-deeptime-toggle" aria-expanded="false" aria-controls="sunpath-deeptime-panel">
+          <span aria-hidden="true">◷</span> where the solstice sun has drifted
+        </button>
+        <div class="sunpath-deeptime-panel" id="sunpath-deeptime-panel" hidden>
+          <p class="sunpath-deeptime-caption" id="sunpath-deeptime-caption" aria-live="polite"></p>
+          <a class="sunpath-deeptime-more" href="/sunpath/#sunpath-time-machine">watch it drift across the years ↓</a>
+        </div>
+      </div>` : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,12 +160,15 @@ export function renderPermalink(data, archive) {
         </div>
       </noscript>
 
-      <div class="sunpath-globe-wrap" id="sunpath-globe">
-        <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+      <div class="sunpath-globe-stage">
+        <div class="sunpath-globe-wrap" id="sunpath-globe">
+          <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+        </div>
       </div>
 
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
+${deepTimeBlock}
       <p class="sunpath-see-live">
         <a href="/sunpath/">See the sun move through the whole year on the live Sun Path →</a>
       </p>
@@ -194,9 +212,12 @@ ${archiveItems}
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/sunpath-math.js"></script>
+  <script src="/js/sunpath-globe-math.js"></script>
+  <script src="/js/sunpath-capability.js"></script>
   <script src="/js/vendor/d3-array.min.js"></script>
   <script src="/js/vendor/d3-geo.min.js"></script>
   <script src="/js/vendor/topojson-client.min.js"></script>
+  <script src="/js/sunpath-globe-svg.js"></script>
   <script src="/js/sunpath.js"></script>
   <script src="/js/sunpath-turnings.js"></script>
   <script src="/js/sunpath-temporal.js"></script>

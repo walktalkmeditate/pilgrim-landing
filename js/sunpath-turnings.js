@@ -175,6 +175,7 @@
     var pills = htmlEl('div', 'sunpath-app-pills');
     [
       { label: 'iOS',         cls: 'sunpath-pill--ios' },
+      { label: 'Android',     cls: 'sunpath-pill--android' },
       { label: 'free',        cls: 'sunpath-pill--free' },
       { label: 'open source', cls: 'sunpath-pill--oss' }
     ].forEach(function (p) {

@@ -78,6 +78,19 @@
   var state = { monuments: [], current: null, year: TODAY, slider: null,
                 canvas: null, label: null, readout: null };
 
+  function emitDrift() {
+    if (!window.__sunpathSetDrift) return;
+    var m = state.current;
+    if (!m) { window.__sunpathSetDrift({ year: null }); return; }
+    window.__sunpathSetDrift({
+      monumentId: m.id,
+      year: state.year,
+      turning: turningOf(m),
+      event: eventOf(m),
+      markerAzimuth: markerAz(m)
+    });
+  }
+
   function draw() {
     var m = state.current, year = state.year;
     if (!m || !state.canvas) return;
@@ -139,6 +152,7 @@
       txt = 'At this latitude the sun does not ' + verb + ' on this turning.';
     }
     if (state.readout) state.readout.textContent = txt;
+    emitDrift();
   }
 
   function selectMonument(m) {

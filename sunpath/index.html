@@ -114,12 +114,32 @@
         </div>
       </noscript>
 
-      <div class="sunpath-globe-wrap" id="sunpath-globe">
-        <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+      <div class="sunpath-globe-stage">
+        <div class="sunpath-globe-wrap" id="sunpath-globe">
+          <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+        </div>
       </div>
 
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
+
+      <!-- Your sky — opt-in geolocation, never stored or sent -->
+      <div class="sunpath-yoursky">
+        <button type="button" class="sunpath-yoursky-btn" id="sunpath-yoursky-btn">where’s the sun from where you are? →</button>
+        <p class="sunpath-yoursky-readout" id="sunpath-yoursky-readout" aria-live="polite" hidden></p>
+      </div>
+
       <p class="sunpath-globe-hint">drag to rotate · tap a gold pin to read its alignment</p>
+
+      <!-- Deep-time drift — the headline hook -->
+      <div class="sunpath-deeptime" id="sunpath-deeptime" data-monument="stonehenge">
+        <button type="button" class="sunpath-deeptime-toggle" id="sunpath-deeptime-toggle" aria-expanded="false" aria-controls="sunpath-deeptime-panel">
+          <span aria-hidden="true">◷</span> where the solstice sunrise has drifted
+        </button>
+        <div class="sunpath-deeptime-panel" id="sunpath-deeptime-panel" hidden>
+          <p class="sunpath-deeptime-caption" id="sunpath-deeptime-caption" aria-live="polite"></p>
+          <a class="sunpath-deeptime-more" href="#sunpath-time-machine">watch it drift across the years ↓</a>
+        </div>
+      </div>
 
       <button type="button" class="sunpath-timelapse-btn" id="sunpath-timelapse" aria-label="Play 24-hour time-lapse">
         <span class="sunpath-timelapse-icon" aria-hidden="true">▶</span>
@@ -299,9 +319,12 @@
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/sunpath-math.js"></script>
+  <script src="/js/sunpath-globe-math.js"></script>
+  <script src="/js/sunpath-capability.js"></script>
   <script src="/js/vendor/d3-array.min.js"></script>
   <script src="/js/vendor/d3-geo.min.js"></script>
   <script src="/js/vendor/topojson-client.min.js"></script>
+  <script src="/js/sunpath-globe-svg.js"></script>
   <script src="/js/sunpath.js"></script>
   <script src="/js/sunpath-tools.js"></script>
   <script src="/js/sunpath-time-machine.js"></script>

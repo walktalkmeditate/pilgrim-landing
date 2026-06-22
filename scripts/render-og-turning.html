@@ -10,8 +10,10 @@
 
   Driver: bash scripts/build-og-sunpath.sh
 
-  All bottom content sits at y<=560 — Chrome headless clips ~40-50px
-  below the page's rendered baseline, even with a 670px window.
+  Dark-space treatment: deep-space background, glowing dark globe with warm
+  gold atmosphere rim, per-turning accent colour. All bottom content sits at
+  y<=560 — Chrome headless clips ~40-50px below the page's rendered baseline,
+  even with a 670px window.
 -->
 <html lang="en">
 <head>
@@ -22,8 +24,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Noto+Serif+JP:wght@400;500&family=Lato:wght@300&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 1200px; height: 630px; overflow: hidden; background: #F6F1E6; }
-    svg { display: block; width: 1200px; height: 630px; background: #F6F1E6; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #0a0a12; }
+    svg { display: block; width: 1200px; height: 630px; background: #0a0a12; }
   </style>
 </head>
 <body>
@@ -50,7 +52,7 @@
       'autumn-equinox': {
         kanji: '秋分',
         name: 'Autumn Equinox',
-        accent: '#8B4455',
+        accent: '#C47A55',
         tagline: 'where night begins to lengthen',
         date: '23 September, 00:06 UTC',
         motif: 'equator'
@@ -58,7 +60,7 @@
       'winter-solstice': {
         kanji: '冬至',
         name: 'Winter Solstice',
-        accent: '#2378A4',
+        accent: '#6A9FC0',
         tagline: 'the longest night',
         date: '21 December, 20:51 UTC',
         motif: 'lowArc'
@@ -93,38 +95,134 @@
 
     var defs = el('defs');
 
+    // Deep-space background
+    var spaceBg = el('radialGradient', { id: 'spacebg', cx: '50%', cy: '50%', r: '70%' });
+    spaceBg.appendChild(el('stop', { offset: '0%',   'stop-color': '#0d0d18' }));
+    spaceBg.appendChild(el('stop', { offset: '100%', 'stop-color': '#08080f' }));
+    defs.appendChild(spaceBg);
+
+    // Per-turning accent glow in the background (very faint)
     var bgGrad = el('radialGradient', { id: 'bg', cx: '50%', cy: '78%', r: '78%' });
-    bgGrad.appendChild(el('stop', { offset: '0%',  'stop-color': t.accent, 'stop-opacity': '0.18' }));
-    bgGrad.appendChild(el('stop', { offset: '55%', 'stop-color': t.accent, 'stop-opacity': '0.05' }));
-    bgGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#F6F1E6', 'stop-opacity': '0' }));
+    bgGrad.appendChild(el('stop', { offset: '0%',   'stop-color': t.accent, 'stop-opacity': '0.10' }));
+    bgGrad.appendChild(el('stop', { offset: '55%',  'stop-color': t.accent, 'stop-opacity': '0.03' }));
+    bgGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#08080f', 'stop-opacity': '0' }));
     defs.appendChild(bgGrad);
 
-    var sunGrad = el('radialGradient', { id: 'sun', cx: '50%', cy: '50%', r: '50%' });
-    sunGrad.appendChild(el('stop', { offset: '0%',  'stop-color': t.accent, 'stop-opacity': '0.55' }));
-    sunGrad.appendChild(el('stop', { offset: '55%', 'stop-color': t.accent, 'stop-opacity': '0.18' }));
+    // Globe surface: dark with slight limb brightening
+    var globeGrad = el('radialGradient', { id: 'globe', cx: '38%', cy: '32%', r: '68%' });
+    globeGrad.appendChild(el('stop', { offset: '0%',   'stop-color': '#1a1a2e' }));
+    globeGrad.appendChild(el('stop', { offset: '55%',  'stop-color': '#0f0f1a' }));
+    globeGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#080810' }));
+    defs.appendChild(globeGrad);
+
+    // Warm gold atmosphere rim
+    var atmosRim = el('radialGradient', { id: 'atmos', cx: '50%', cy: '50%', r: '50%' });
+    atmosRim.appendChild(el('stop', { offset: '72%',  'stop-color': '#D4A87A', 'stop-opacity': '0' }));
+    atmosRim.appendChild(el('stop', { offset: '84%',  'stop-color': '#D4A87A', 'stop-opacity': '0.40' }));
+    atmosRim.appendChild(el('stop', { offset: '92%',  'stop-color': '#C8943E', 'stop-opacity': '0.60' }));
+    atmosRim.appendChild(el('stop', { offset: '100%', 'stop-color': '#C8943E', 'stop-opacity': '0' }));
+    defs.appendChild(atmosRim);
+
+    // Sun-bloom on lit limb using per-turning accent
+    var sunGrad = el('radialGradient', { id: 'sunbloom', cx: '50%', cy: '50%', r: '50%' });
+    sunGrad.appendChild(el('stop', { offset: '0%',   'stop-color': t.accent, 'stop-opacity': '0.75' }));
+    sunGrad.appendChild(el('stop', { offset: '50%',  'stop-color': t.accent, 'stop-opacity': '0.28' }));
     sunGrad.appendChild(el('stop', { offset: '100%', 'stop-color': t.accent, 'stop-opacity': '0' }));
     defs.appendChild(sunGrad);
 
+    // Night-side overlay
+    var nightGrad = el('radialGradient', { id: 'nightside', cx: '80%', cy: '70%', r: '65%' });
+    nightGrad.appendChild(el('stop', { offset: '0%',   'stop-color': '#04040a', 'stop-opacity': '0.70' }));
+    nightGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#04040a', 'stop-opacity': '0' }));
+    defs.appendChild(nightGrad);
+
+    // Motif sun-glyph glow
+    var motifGrad = el('radialGradient', { id: 'motifglow', cx: '50%', cy: '50%', r: '50%' });
+    motifGrad.appendChild(el('stop', { offset: '0%',   'stop-color': t.accent, 'stop-opacity': '0.55' }));
+    motifGrad.appendChild(el('stop', { offset: '55%',  'stop-color': t.accent, 'stop-opacity': '0.18' }));
+    motifGrad.appendChild(el('stop', { offset: '100%', 'stop-color': t.accent, 'stop-opacity': '0' }));
+    defs.appendChild(motifGrad);
+
     svg.appendChild(defs);
 
-    svg.appendChild(el('rect', { width: 1200, height: 630, fill: '#F6F1E6' }));
+    // Full-bleed deep-space background
+    svg.appendChild(el('rect', { width: 1200, height: 630, fill: 'url(#spacebg)' }));
+    // Per-turning accent wash
     svg.appendChild(el('rect', { width: 1200, height: 630, fill: 'url(#bg)' }));
 
-    // --- horizon rules (book-colophon style) ---
+    // A few subtle star points
+    var stars = [
+      [80, 55, 0.8], [162, 130, 0.6], [47, 200, 0.9],
+      [490, 38, 0.7], [520, 510, 0.8], [200, 480, 0.6],
+      [110, 390, 0.7], [1140, 80, 0.8], [1100, 200, 0.6],
+      [1160, 350, 0.9], [1050, 450, 0.7], [960, 560, 0.6]
+    ];
+    stars.forEach(function(s) {
+      svg.appendChild(el('circle', { cx: s[0], cy: s[1], r: s[2], fill: '#F0EBE1', 'fill-opacity': 0.45 }));
+    });
+
+    // --- Globe — upper left corner, centred at (220, 200) ---
+    var gx = 220, gy = 200, gr = 148;
+
+    // Outer glow halo
+    svg.appendChild(el('circle', { cx: gx, cy: gy, r: gr + 48, fill: 'none',
+      stroke: '#C8943E', 'stroke-width': 36, 'stroke-opacity': 0.06 }));
+
+    // Atmosphere rim
+    svg.appendChild(el('circle', { cx: gx, cy: gy, r: gr + 10, fill: 'url(#atmos)' }));
+
+    // Globe sphere
+    svg.appendChild(el('circle', { cx: gx, cy: gy, r: gr, fill: 'url(#globe)' }));
+
+    // Faint lavender graticule
+    var g = el('g', {
+      transform: 'translate(' + gx + ',' + gy + ')',
+      stroke: '#9090C0', 'stroke-opacity': 0.20, fill: 'none', 'stroke-width': 0.7
+    });
+    [[gr, gr/3.875], [gr, gr*2/3.875], [gr, gr*3/3.875],
+     [gr/3.875, gr], [gr*2/3.875, gr], [gr*3/3.875, gr]].forEach(function(r) {
+      g.appendChild(el('ellipse', { rx: r[0], ry: r[1] }));
+    });
+    svg.appendChild(g);
+
+    // Night-side deepening
+    svg.appendChild(el('circle', { cx: gx, cy: gy, r: gr, fill: 'url(#nightside)' }));
+
+    // Sun-bloom on lit limb (upper-left quadrant of globe)
+    svg.appendChild(el('circle', { cx: gx - 56, cy: gy - 54, r: 72, fill: 'url(#sunbloom)' }));
+
+    // Gold monument dots on globe
+    var dots = [
+      [gx - 8,  gy - 34, 2.8],
+      [gx - 40, gy - 48, 2.5],
+      [gx - 62, gy - 6,  2.5],
+      [gx + 32, gy - 14, 2.5],
+      [gx - 78, gy + 22, 2.3]
+    ];
+    dots.forEach(function(d) {
+      svg.appendChild(el('circle', { cx: d[0], cy: d[1], r: d[2],
+        fill: '#D4A87A', 'fill-opacity': 0.88 }));
+    });
+
+    // Thin gold rim stroke
+    svg.appendChild(el('circle', { cx: gx, cy: gy, r: gr, fill: 'none',
+      stroke: '#C8943E', 'stroke-width': 1.2, 'stroke-opacity': 0.60 }));
+
+    // --- Thin horizontal rule below eyebrow ---
     svg.appendChild(el('line', {
       x1: 120, y1: 80, x2: 1080, y2: 80,
-      stroke: '#A89B8A', 'stroke-width': 0.6, 'stroke-opacity': 0.45
+      stroke: '#D4A87A', 'stroke-width': 0.5, 'stroke-opacity': 0.25
     }));
 
-    // --- title stack: eyebrow + kanji + name + year ---
+    // --- Title stack: eyebrow + kanji + name + year ---
     svg.appendChild(text(600, 116, 'PILGRIMAPP.ORG · SUN PATH', {
       'text-anchor': 'middle',
       'font-family': "'Lato', -apple-system, sans-serif",
       'font-size': 14, 'font-weight': 300, 'letter-spacing': '0.34em',
-      fill: '#A89B8A'
+      fill: '#7A6A58'
     }));
 
-    svg.appendChild(text(600, 250, t.kanji, {
+    svg.appendChild(text(600, 255, t.kanji, {
       'text-anchor': 'middle',
       'font-family': "'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif",
       'font-size': 130, 'font-weight': 500,
@@ -132,38 +230,38 @@
       'fill-opacity': 0.92
     }));
 
-    svg.appendChild(text(600, 330, t.name, {
+    svg.appendChild(text(600, 335, t.name, {
       'text-anchor': 'middle',
       'font-family': "'Cormorant Garamond', Georgia, serif",
       'font-size': 70, 'font-weight': 400, 'font-style': 'italic',
-      fill: '#3C2E24'
+      fill: '#F0EBE1'
     }));
 
-    svg.appendChild(text(600, 372, year, {
+    svg.appendChild(text(600, 377, year, {
       'text-anchor': 'middle',
       'font-family': "'Cormorant Garamond', Georgia, serif",
       'font-size': 28, 'font-weight': 400, 'font-style': 'italic',
-      fill: '#6E5B47',
+      fill: '#D4A87A',
       'letter-spacing': '0.18em'
     }));
 
-    // --- motif: a quiet sun arc/line with a single sun glyph ---
+    // --- Motif: sun arc/line with single sun glyph ---
     var arcAttrs = {
       fill: 'none',
       stroke: t.accent,
-      'stroke-opacity': 0.55,
+      'stroke-opacity': 0.50,
       'stroke-width': 1.4,
       'stroke-linecap': 'round'
     };
     // Anchor motif at y=470 with apex variation by turning.
-    var motifBase = 475;
+    var motifBase = 470;
     if (t.motif === 'highArc') {
       svg.appendChild(el('path', Object.assign({}, arcAttrs, {
-        d: 'M 280,' + motifBase + ' Q 600,415 920,' + motifBase
+        d: 'M 280,' + motifBase + ' Q 600,410 920,' + motifBase
       })));
     } else if (t.motif === 'lowArc') {
       svg.appendChild(el('path', Object.assign({}, arcAttrs, {
-        d: 'M 320,' + motifBase + ' Q 600,495 880,' + motifBase
+        d: 'M 320,' + motifBase + ' Q 600,490 880,' + motifBase
       })));
     } else {
       svg.appendChild(el('line', Object.assign({}, arcAttrs, {
@@ -171,28 +269,27 @@
       })));
     }
 
-    // Sun glyph at apex of motif — equinox sits on the line.
+    // Sun glyph at apex of motif
     var sunCy = motifBase;
-    if (t.motif === 'highArc') sunCy = 415;
-    else if (t.motif === 'lowArc') sunCy = 495;
+    if (t.motif === 'highArc') sunCy = 410;
+    else if (t.motif === 'lowArc') sunCy = 490;
 
-    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 32, fill: 'url(#sun)' }));
+    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 32, fill: 'url(#motifglow)' }));
     svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 5, fill: t.accent }));
-    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 1.8, fill: '#FFF6E0' }));
+    svg.appendChild(el('circle', { cx: 600, cy: sunCy, r: 1.8, fill: '#F0EBE1' }));
 
-    // --- bottom band: tagline + date ---
-    // Chrome headless caps SVG rendering near y=580; keep both above that.
-    svg.appendChild(text(600, 535, t.tagline, {
+    // --- Bottom band: tagline + date — both at y<=560 ---
+    svg.appendChild(text(600, 530, t.tagline, {
       'text-anchor': 'middle',
       'font-family': "'Cormorant Garamond', Georgia, serif",
       'font-size': 26, 'font-weight': 400, 'font-style': 'italic',
-      fill: '#6E5B47'
+      fill: '#D4A87A'
     }));
-    svg.appendChild(text(600, 565, (dateOverride || t.date), {
+    svg.appendChild(text(600, 558, (dateOverride || t.date), {
       'text-anchor': 'middle',
       'font-family': "'Lato', -apple-system, sans-serif",
       'font-size': 13, 'font-weight': 300, 'letter-spacing': '0.30em',
-      fill: '#A89B8A'
+      fill: '#7A6A58'
     }));
   </script>
 </body>
