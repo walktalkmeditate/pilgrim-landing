@@ -259,7 +259,8 @@
       resize: resize,
       destroy: destroy,
       redrawStatic: redrawStatic,
-      getSvg: function () { return svg; }
+      getSvg: function () { return svg; },
+      setIdle: function () {}
     };
   }
 

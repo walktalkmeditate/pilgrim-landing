@@ -2,13 +2,10 @@
    Sun Path — controller
 
    Manages app state and user interaction. Drawing is delegated to
-   window.createSvgGlobe (js/sunpath-globe-svg.js) behind the
-   GlobeRenderer interface.
-
-   Stage A: globe + terminator + subsolar + year-scrub +
-            axial-tilt inset + monument pins.
+   the active renderer (SVG or GL) behind the GlobeRenderer interface.
 
    Depends on: js/sunpath-math.js, js/sunpath-globe-svg.js,
+               js/sunpath-globe-gl.js (lazy),
                js/vendor/d3-geo.min.js,
                js/vendor/topojson-client.min.js
    ============================================= */
@@ -203,6 +200,7 @@
       dom.popover.appendChild(htmlEl('p', 'sunpath-detail-source', '— ' + m.sourceNote));
     }
 
+    if (renderer && renderer.setIdle) renderer.setIdle(false);
     positionPopover(m);
     dom.popover.hidden = false;
   }
@@ -210,6 +208,7 @@
   function hideMonumentPopover() {
     if (!dom.popover) return;
     dom.popover.hidden = true;
+    if (renderer && renderer.setIdle) renderer.setIdle(true);
   }
 
   function positionPopover(m) {
@@ -514,6 +513,7 @@
         gl.render(buildState());
         renderer.destroy();
         renderer = gl;
+        if (gl.resize) gl.resize();
       })
       .catch(function (e) { console.warn('GL globe unavailable, staying on SVG', e); });
   }

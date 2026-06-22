@@ -88,7 +88,7 @@
     // Graticule (every 30°) as line segments slightly above the surface.
     earth.add(buildGraticule(THREE, 1.001));
 
-    // ---- Monument beacons (Task 6) ----
+    // ---- Monument beacons ----
     // Built once; updated per frame for pulse + flare. Never torn down per render().
     var beaconGroup = null;
     var beaconTexture = null;
@@ -160,7 +160,7 @@
       });
     }
 
-    // ---- City-lights (Task 6) ----
+    // ---- City-lights ----
     // Sampled from coastline land rings; built once after geojson loads.
     var cityLightsPoints = null;   // THREE.Points
     var cityLightsMat = null;
@@ -225,7 +225,7 @@
       cityLightsMat.opacity = G.clamp01(nightFrac * 2.5) * 0.55;
     }
 
-    // ---- Polar aurora ribbons (Task 6) ----
+    // ---- Polar aurora ribbons ----
     var auroraGroup = null;
     var auroraNorthMat = null;
     var auroraSouthMat = null;
@@ -278,7 +278,7 @@
       auroraSouthMat.opacity = G.clamp01(-decl / 23.45) * 0.45;
     }
 
-    // ---- Drift beam (Task 7) ----
+    // ---- Drift beam ----
     // Gold beam along the scrubbed-year azimuth; faint dashed ghost at today's marker azimuth.
     // Both lines live in earth-group model space so they rotate with the surface.
     var driftBeam = null;       // THREE.Line — gold solid
@@ -429,11 +429,14 @@
       earth.quaternion.copy(qLat.multiply(qLon));
     }
 
-    // ---- Continuous animation loop with battery-safe pausing (Task 6) ----
+    // ---- Continuous animation loop with battery-safe pausing ----
     // `running` = tab visible AND globe intersecting viewport.
     // `dragging` = user is actively dragging (pauses idle spin, not the loop).
+    // `idleEnabled` = false while a monument popover is open, so the globe
+    //                 doesn't drift out from under the popover.
     var running = true;
     var dragging = false;
+    var idleEnabled = true;
     var needsRender = true;
     var raf = null;
     var animClock = 0;      // elapsed seconds for pulse/effects
@@ -460,8 +463,8 @@
       lastTimestamp = timestamp;
       animClock += dt;
 
-      // Idle auto-rotation — only when not dragging.
-      if (!dragging) {
+      // Idle auto-rotation — only when not dragging and not paused for a popover.
+      if (!dragging && idleEnabled) {
         rotLon += 0.12;   // ~0.12°/frame @60fps ≈ 7°/s — slow contemplative spin
         if (rotLon > 180) rotLon -= 360;
         applyRotation();
@@ -533,12 +536,12 @@
     function projectPoint(lonLat) {
       var v = G.lonLatToVec3(lonLat[0], lonLat[1], 1.0);
       var world = new THREE.Vector3(v.x, v.y, v.z).applyQuaternion(earth.quaternion);
-      var camSpace = world.clone().applyMatrix4(camera.matrixWorldInverse);
-      var visible = camSpace.z < 0;
+      var toCam = new THREE.Vector3().subVectors(camera.position, world);
+      var visible = world.dot(toCam) > 0;
       var ndc = world.clone().project(camera);
       return {
-        x: (ndc.x * 0.5 + 0.5) * size,
-        y: (-ndc.y * 0.5 + 0.5) * size,
+        x: (ndc.x * 0.5 + 0.5) * 480,
+        y: (-ndc.y * 0.5 + 0.5) * 480,
         visible: visible
       };
     }
@@ -550,6 +553,10 @@
       glRenderer.setSize(w, w, false);
       size = w;
       requestRender();
+    }
+
+    function setIdle(on) {
+      idleEnabled = !!on;
     }
 
     function destroy() {
@@ -617,7 +624,7 @@
     canvas.addEventListener('pointercancel', onDragEnd);
     canvas.addEventListener('pointerleave',  onDragEnd);
 
-    // Monument click via raycaster (unchanged from Task 4/5).
+    // Monument click via raycaster.
     if (opts && opts.onMonumentClick) {
       canvas.addEventListener('click', function (e) {
         if (!beaconGroup || !beaconGroup.children.length) return;
@@ -639,8 +646,14 @@
         });
         var hits = raycaster.intersectObjects(proxies);
         proxies.forEach(function (p) { p.geometry.dispose(); p.material.dispose(); });
-        if (hits.length > 0 && hits[0].object._monument) {
-          opts.onMonumentClick(hits[0].object._monument);
+        // Cull back-side hits so beacons behind the globe aren't clickable through it.
+        var frontHits = hits.filter(function (h) {
+          var pinWorld = h.object.position.clone().applyQuaternion(earth.quaternion);
+          var toCam = new THREE.Vector3().subVectors(camera.position, pinWorld);
+          return pinWorld.dot(toCam) > 0;
+        });
+        if (frontHits.length > 0 && frontHits[0].object._monument) {
+          opts.onMonumentClick(frontHits[0].object._monument);
         }
       });
     }
@@ -654,6 +667,7 @@
       getSvg: getSvg,
       projectPoint: projectPoint,
       resize: resize,
+      setIdle: setIdle,
       destroy: destroy
     };
   }
