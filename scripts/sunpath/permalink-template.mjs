@@ -145,8 +145,10 @@ export function renderPermalink(data, archive) {
         </div>
       </noscript>
 
-      <div class="sunpath-globe-wrap" id="sunpath-globe">
-        <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+      <div class="sunpath-globe-stage">
+        <div class="sunpath-globe-wrap" id="sunpath-globe">
+          <div class="sunpath-popover" id="sunpath-monument-popover" hidden role="dialog" aria-live="polite"></div>
+        </div>
       </div>
 
       <p class="sunpath-subsolar-caption" id="sunpath-subsolar" aria-live="polite">listening for the sun…</p>
@@ -194,9 +196,12 @@ ${archiveItems}
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/sunpath-math.js"></script>
+  <script src="/js/sunpath-globe-math.js"></script>
+  <script src="/js/sunpath-capability.js"></script>
   <script src="/js/vendor/d3-array.min.js"></script>
   <script src="/js/vendor/d3-geo.min.js"></script>
   <script src="/js/vendor/topojson-client.min.js"></script>
+  <script src="/js/sunpath-globe-svg.js"></script>
   <script src="/js/sunpath.js"></script>
   <script src="/js/sunpath-turnings.js"></script>
   <script src="/js/sunpath-temporal.js"></script>
