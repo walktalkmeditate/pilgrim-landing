@@ -8,7 +8,7 @@
     var size = (opts && opts.size) || 480;
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    camera.position.set(0, 0, 3.2);
+    camera.position.set(0, 0, 3.7);
     var glRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     glRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     glRenderer.setSize(size, size, false);

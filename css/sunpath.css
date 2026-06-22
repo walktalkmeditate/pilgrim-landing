@@ -104,7 +104,11 @@ body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --
   margin: 1.5rem auto;
   max-width: 520px;
   aspect-ratio: 1 / 1;
-  background: radial-gradient(circle at 50% 49%, #0d0d18 0%, #0b0b14 46%, rgba(11, 11, 20, 0) 67%);
+  /* No dark backdrop — the globe is self-contained, so it blends into the page in
+     any mode (a dark panel looked muddy on the parchment/light theme). The mask
+     fades the sun's glow before it can reach the square canvas edge. */
+  -webkit-mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 72%);
+          mask: radial-gradient(circle at 50% 50%, #000 60%, transparent 72%);
 }
 
 .sunpath-globe-stage .sunpath-globe-canvas,

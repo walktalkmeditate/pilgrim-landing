@@ -477,7 +477,7 @@
   // Bump when the lazy globe renderer changes — it's injected after load, so a
   // normal reload's cache bypass doesn't cover it, and returning visitors would
   // otherwise keep an old copy.
-  var GLOBE_ASSET_VERSION = '20260622-1';
+  var GLOBE_ASSET_VERSION = '20260622-2';
 
   window.__loadThree = function () {
     if (window.THREE) return Promise.resolve(window.THREE);
