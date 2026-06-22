@@ -50,6 +50,8 @@
     dom.deeptimePanel = document.getElementById('sunpath-deeptime-panel');
     dom.deeptimeSlider = document.getElementById('sunpath-deeptime-slider');
     dom.deeptimeCaption = document.getElementById('sunpath-deeptime-caption');
+    dom.yourskyBtn = document.getElementById('sunpath-yoursky-btn');
+    dom.yourskyReadout = document.getElementById('sunpath-yoursky-readout');
 
     if (!dom.globeContainer) return;
 
@@ -77,6 +79,7 @@
     setupYearScrub();
     setupTimelapse();
     setupDeepTime();
+    setupYourSky();
     renderTilt(activeDate());
 
     // Esc dismisses popover.
@@ -265,6 +268,64 @@
     var ref = (m.marker && (m.marker.label || m.marker.landmark)) || 'the axis its builders aimed at';
     return 'In ' + yearLabel(year) + ', ' + m.name + '’s ' + whenWord +
       ' sun ' + verb + ' ' + delta.toFixed(1) + '° from ' + ref + '.';
+  }
+
+  // --- Your sky — opt-in geolocation (requested only on tap; never stored or sent) ---
+
+  function setupYourSky() {
+    if (!dom.yourskyBtn) return;
+    dom.yourskyBtn.addEventListener('click', requestYourSky);
+  }
+
+  function requestYourSky() {
+    if (!navigator.geolocation) {
+      showYourSky(null, 'Your browser can’t share a location.');
+      return;
+    }
+    dom.yourskyReadout.hidden = false;
+    dom.yourskyReadout.textContent = 'locating…';
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { showYourSky({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
+      function () { showYourSky(null, 'Couldn’t read your location — no worries.'); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+    );
+  }
+
+  function showYourSky(loc, errMsg) {
+    if (!dom.yourskyReadout) return;
+    dom.yourskyReadout.hidden = false;
+    if (!loc) { dom.yourskyReadout.textContent = errMsg || 'No location.'; return; }
+    var date = activeDate();
+    var sub = M.subsolarPoint(date);
+    var distKm = M.greatCircleKm(loc.lat, loc.lon, sub.lat, sub.lon);
+    var altDeg = 90 - (distKm / M.EARTH_R_KM) * 180 / Math.PI;
+    var sunriseAz = M.sunriseAzimuth(loc.lat, date);
+    // Re-centre the globe on the viewer and hold it there.
+    rotation = [-loc.lon, -loc.lat];
+    if (renderer) {
+      renderer.setRotation(rotation);
+      if (renderer.setIdle) renderer.setIdle(false);
+      renderer.render(buildState());
+    }
+    dom.yourskyReadout.textContent = yourSkyText(altDeg, distKm, sunriseAz);
+  }
+
+  function yourSkyText(altDeg, distKm, sunriseAz) {
+    var parts = [];
+    parts.push(altDeg > 0
+      ? 'The sun is ' + Math.round(altDeg) + '° above your horizon'
+      : 'The sun is below your horizon — it’s night where you are');
+    parts.push('directly overhead ' + Math.round(distKm).toLocaleString() + ' km away');
+    parts.push(sunriseAz == null
+      ? 'and today it never quite rises or sets for you'
+      : 'and here it rises in the ' + compassPoint(sunriseAz) + ' (≈' + Math.round(sunriseAz) + '°)');
+    return parts.join(', ') + '.';
+  }
+
+  function compassPoint(az) {
+    var dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    return dirs[Math.round((((az % 360) + 360) % 360) / 22.5) % 16];
   }
 
   // --- Subsolar caption ---

@@ -129,6 +129,18 @@ body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --
   accent-color: var(--sun, #c8893a); cursor: pointer;
 }
 
+/* "Your sky" — opt-in geolocation */
+.sunpath-yoursky { margin: 0.5rem auto 0; max-width: 32rem; text-align: center; }
+.sunpath-yoursky-btn {
+  background: none; border: none; cursor: pointer; padding: 0.25rem;
+  font-family: inherit; font-style: italic; font-size: 0.95rem;
+  color: var(--moss, #7A8B6F); border-bottom: 1px dotted currentColor;
+}
+.sunpath-yoursky-btn:hover, .sunpath-yoursky-btn:focus-visible { opacity: 0.8; }
+.sunpath-yoursky-readout {
+  font-style: italic; opacity: 0.9; line-height: 1.55; margin: 0.55rem 0 0;
+}
+
 .sunpath-globe-stage .sunpath-globe-canvas,
 .sunpath-globe-stage .sunpath-globe-svg { width: 100%; height: 100%; display: block; }
 
