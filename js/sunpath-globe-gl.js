@@ -1,0 +1,217 @@
+/* Sun Path — Three.js globe renderer. Lazy-loaded enhancement. */
+(function (root) {
+  'use strict';
+  var G = root.SunPathGlobeMath;
+
+  function createGlGlobe(container, opts) {
+    var THREE = root.THREE;
+    var size = (opts && opts.size) || 480;
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    camera.position.set(0, 0, 3.2);
+    var glRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    glRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    glRenderer.setSize(size, size, false);
+    glRenderer.domElement.className = 'sunpath-globe-canvas';
+    container.appendChild(glRenderer.domElement);
+
+    var earth = new THREE.Group();
+    scene.add(earth);
+
+    // Base dark sphere (shader added in Task 5; flat dark fill for now).
+    var sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 64, 48),
+      new THREE.MeshBasicMaterial({ color: 0x0a0d18 })
+    );
+    earth.add(sphere);
+
+    // Graticule (every 30°) as line segments slightly above the surface.
+    earth.add(buildGraticule(THREE, 1.001));
+
+    var monuments = [];
+    var monumentPins = null;
+
+    // Coastlines from topojson — async, same asset the SVG uses.
+    fetch('/assets/sunpath/land-110m.json').then(function (r) { return r.json(); }).then(function (topo) {
+      var geo = root.topojson.feature(topo, topo.objects.land);
+      earth.add(buildCoastlines(THREE, geo, 1.002));
+      requestRender();
+    }).catch(function (err) { console.warn('GL coastlines failed', err); });
+
+    var rotLon = 0, rotLat = -10;
+    applyRotation();
+
+    function applyRotation() {
+      earth.quaternion.setFromEuler(new THREE.Euler(
+        -rotLat * Math.PI / 180, -rotLon * Math.PI / 180, 0, 'YXZ'));
+    }
+
+    var needsRender = true, raf = null;
+    function requestRender() { needsRender = true; ensureLoop(); }
+    function ensureLoop() { if (!raf) raf = requestAnimationFrame(tick); }
+    function tick() {
+      raf = null;
+      if (needsRender) { needsRender = false; glRenderer.render(scene, camera); }
+    }
+
+    function render(state) {
+      monuments = state.monuments || [];
+      ensureMonumentPins(monuments);
+      requestRender();
+    }
+
+    function setRotation(rot) {
+      rotLon = rot[0];
+      rotLat = rot[1];
+      applyRotation();
+      requestRender();
+    }
+
+    function redrawStatic() {
+      // No-op for GL: render() already redraws the full scene each frame.
+    }
+
+    function getSvg() {
+      // Return the canvas for pointer capture (matches SVG renderer contract).
+      return glRenderer.domElement;
+    }
+
+    function projectPoint(lonLat) {
+      var v = G.lonLatToVec3(lonLat[0], lonLat[1], 1.0);
+      var world = new THREE.Vector3(v.x, v.y, v.z).applyQuaternion(earth.quaternion);
+      var toCamera = new THREE.Vector3().subVectors(camera.position, world).normalize();
+      var visible = world.clone().normalize().dot(toCamera) > 0;
+      var ndc = world.clone().project(camera);
+      return {
+        x: (ndc.x * 0.5 + 0.5) * size,
+        y: (-ndc.y * 0.5 + 0.5) * size,
+        visible: visible
+      };
+    }
+
+    function resize() {
+      // Re-fit to container (detailed sizing deferred to Task 8).
+    }
+
+    function destroy() {
+      if (raf) cancelAnimationFrame(raf);
+      glRenderer.dispose();
+      if (glRenderer.domElement.parentNode) {
+        glRenderer.domElement.parentNode.removeChild(glRenderer.domElement);
+      }
+    }
+
+    function ensureMonumentPins(mons) {
+      // Remove old pin group if present.
+      if (monumentPins) {
+        earth.remove(monumentPins);
+        monumentPins.children.forEach(function (c) {
+          if (c.geometry) c.geometry.dispose();
+          if (c.material) c.material.dispose();
+        });
+        monumentPins = null;
+      }
+      if (!mons || !mons.length) return;
+      monumentPins = new THREE.Group();
+      var pinMat = new THREE.MeshBasicMaterial({ color: 0xd4a87a });
+      mons.forEach(function (m) {
+        var v = G.lonLatToVec3(m.lon, m.lat, 1.018);
+        var pin = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), pinMat);
+        pin.position.set(v.x, v.y, v.z);
+        pin._monument = m;
+        monumentPins.add(pin);
+      });
+      earth.add(monumentPins);
+    }
+
+    // Wire pointer events exactly as SVG renderer does, so controller drag/click logic works.
+    var canvas = glRenderer.domElement;
+    if (opts && opts.onDragStart)  canvas.addEventListener('pointerdown',   opts.onDragStart);
+    if (opts && opts.onDragMove)   canvas.addEventListener('pointermove',   opts.onDragMove);
+    if (opts && opts.onDragEnd)    canvas.addEventListener('pointerup',     opts.onDragEnd);
+    if (opts && opts.onDragEnd)    canvas.addEventListener('pointercancel', opts.onDragEnd);
+    if (opts && opts.onDragEnd)    canvas.addEventListener('pointerleave',  opts.onDragEnd);
+
+    // Monument click via raycaster.
+    if (opts && opts.onMonumentClick) {
+      canvas.addEventListener('click', function (e) {
+        if (!monumentPins || !monumentPins.children.length) return;
+        var rect = canvas.getBoundingClientRect();
+        var ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        var ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        var raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+        var hits = raycaster.intersectObjects(monumentPins.children);
+        if (hits.length > 0 && hits[0].object._monument) {
+          opts.onMonumentClick(hits[0].object._monument);
+        }
+      });
+    }
+
+    requestRender();
+
+    return {
+      render: render,
+      setRotation: setRotation,
+      redrawStatic: redrawStatic,
+      getSvg: getSvg,
+      projectPoint: projectPoint,
+      resize: resize,
+      destroy: destroy
+    };
+  }
+
+  function buildGraticule(THREE, r) {
+    var pts = [], lat, lon;
+    for (lon = -180; lon < 180; lon += 30) {
+      for (lat = -80; lat < 80; lat += 4) {
+        pushSeg(pts, lon, lat, lon, lat + 4, r);
+      }
+    }
+    for (lat = -60; lat <= 60; lat += 30) {
+      for (lon = -180; lon < 180; lon += 4) {
+        pushSeg(pts, lon, lat, lon + 4, lat, r);
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+      color: 0xb4beeb,
+      transparent: true,
+      opacity: 0.22
+    }));
+  }
+
+  function buildCoastlines(THREE, geo, r) {
+    var pts = [];
+    geo.features.forEach(function (f) {
+      eachRing(f.geometry, function (ring) {
+        for (var i = 0; i < ring.length - 1; i++) {
+          pushSeg(pts, ring[i][0], ring[i][1], ring[i + 1][0], ring[i + 1][1], r);
+        }
+      });
+    });
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return new THREE.LineSegments(g, new THREE.LineBasicMaterial({
+      color: 0xd4a87a,
+      transparent: true,
+      opacity: 0.7
+    }));
+  }
+
+  function pushSeg(arr, lo1, la1, lo2, la2, r) {
+    var a = G.lonLatToVec3(lo1, la1, r), b = G.lonLatToVec3(lo2, la2, r);
+    arr.push(a.x, a.y, a.z, b.x, b.y, b.z);
+  }
+
+  function eachRing(geom, cb) {
+    if (geom.type === 'Polygon') geom.coordinates.forEach(cb);
+    else if (geom.type === 'MultiPolygon') {
+      geom.coordinates.forEach(function (poly) { poly.forEach(cb); });
+    }
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { createGlGlobe: createGlGlobe };
+  else root.createGlGlobe = createGlGlobe;
+})(typeof window !== 'undefined' ? window : globalThis);

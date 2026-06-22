@@ -90,6 +90,9 @@
         idleTick();
       }
     });
+
+    if ('requestIdleCallback' in window) requestIdleCallback(maybeUpgradeToGl);
+    else setTimeout(maybeUpgradeToGl, 200);
   }
 
   function loadMonuments() {
@@ -454,6 +457,51 @@
     }));
     dom.tiltInset.appendChild(s);
     dom.tiltInset.appendChild(htmlEl('p', 'sunpath-tilt-caption', 'declination: ' + decl.toFixed(1) + '°'));
+  }
+
+  // --- Progressive enhancement: lazy GL upgrade ---
+
+  window.__loadThree = function () {
+    if (window.THREE) return Promise.resolve(window.THREE);
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = '/js/vendor/three.min.js';
+      s.onload = function () { resolve(window.THREE); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  };
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  function maybeUpgradeToGl() {
+    if (!window.SunPathCapability) return;
+    var env = window.SunPathCapability.detectEnv();
+    if (window.SunPathCapability.selectRenderer(env) !== 'gl') return;
+    window.__loadThree()
+      .then(function () { return loadScript('/js/sunpath-globe-gl.js'); })
+      .then(function () {
+        var gl = window.createGlGlobe(dom.globeContainer, {
+          size: GLOBE_SIZE,
+          onDragStart: onDragStart,
+          onDragMove: onDragMove,
+          onDragEnd: onDragEnd,
+          onMonumentClick: showMonumentPopover
+        });
+        gl.setRotation(rotation);
+        gl.render(buildState());
+        renderer.destroy();
+        renderer = gl;
+      })
+      .catch(function (e) { console.warn('GL globe unavailable, staying on SVG', e); });
   }
 
   function idleTick() {
