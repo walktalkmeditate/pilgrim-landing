@@ -18,12 +18,72 @@
     var earth = new THREE.Group();
     scene.add(earth);
 
-    // Base dark sphere (shader added in Task 5; flat dark fill for now).
-    var sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 64, 48),
-      new THREE.MeshBasicMaterial({ color: 0x0a0d18 })
-    );
+    // Day/night terminator shader (model space).
+    var sunDir = new THREE.Vector3(1, 0, 0);
+    var dayNight = new THREE.ShaderMaterial({
+      uniforms: { uSunDir: { value: sunDir } },
+      vertexShader:
+        'varying vec3 vN; void main(){ vN = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader:
+        'uniform vec3 uSunDir; varying vec3 vN;' +
+        'void main(){' +
+        '  float d = dot(normalize(vN), normalize(uSunDir));' +
+        '  float day = smoothstep(-0.08, 0.10, d);' +
+        '  vec3 night = vec3(0.020, 0.022, 0.050);' +
+        '  vec3 dayc  = vec3(0.085, 0.110, 0.190);' +
+        '  vec3 twi   = vec3(0.62, 0.34, 0.16);' +
+        '  vec3 col = mix(night, dayc, day);' +
+        '  float band = 1.0 - smoothstep(0.0, 0.16, abs(d));' +
+        '  col = mix(col, twi, band * 0.55);' +
+        '  gl_FragColor = vec4(col, 1.0);' +
+        '}'
+    });
+    var sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), dayNight);
     earth.add(sphere);
+
+    // Sun-bloom sprite — additive, in earth group (rotates with surface).
+    function radialSprite(color, inner) {
+      var cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      var ctx = cv.getContext('2d');
+      var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,244,220,' + inner + ')');
+      g.addColorStop(0.25, 'rgba(255,208,137,0.55)');
+      g.addColorStop(1, 'rgba(255,180,90,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+      var tex = new THREE.CanvasTexture(cv);
+      return new THREE.Sprite(new THREE.SpriteMaterial({
+        map: tex, color: color, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+    }
+    var sunBloom = radialSprite(0xffffff, 1.0);
+    sunBloom.scale.set(1.1, 1.1, 1);
+    earth.add(sunBloom);
+
+    // Atmosphere rim — back-side Fresnel sphere in world space, additive gold.
+    var atmo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.14, 64, 48),
+      new THREE.ShaderMaterial({
+        uniforms: { uSunDir: { value: sunDir } },
+        transparent: true, side: THREE.BackSide,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+        vertexShader:
+          'varying vec3 vN; varying vec3 vView;' +
+          'void main(){' +
+          '  vN = normalize(normalMatrix * normal);' +
+          '  vec4 mv = modelViewMatrix * vec4(position, 1.0);' +
+          '  vView = normalize(-mv.xyz);' +
+          '  gl_Position = projectionMatrix * mv;' +
+          '}',
+        fragmentShader:
+          'varying vec3 vN; varying vec3 vView;' +
+          'void main(){' +
+          '  float f = pow(1.0 - max(dot(vN, vView), 0.0), 2.2);' +
+          '  gl_FragColor = vec4(vec3(1.0, 0.72, 0.42) * f, f);' +
+          '}'
+      })
+    );
+    scene.add(atmo);
 
     // Graticule (every 30°) as line segments slightly above the surface.
     earth.add(buildGraticule(THREE, 1.001));
@@ -59,6 +119,20 @@
     function render(state) {
       monuments = state.monuments || [];
       ensureMonumentPins(monuments);
+
+      if (state.subsolar) {
+        // uSunDir in model (earth-local) space — no quaternion multiplication.
+        // The shader runs in model space so the terminator stays fixed to the
+        // surface while the user drags and only moves when the date changes.
+        var s = G.subsolarToSunDir(state.subsolar);
+        sunDir.set(s.x, s.y, s.z);
+        dayNight.uniforms.uSunDir.value = sunDir;
+
+        // Sun-bloom at the subsolar surface point, model space.
+        var bv = G.lonLatToVec3(state.subsolar.lon, state.subsolar.lat, 1.02);
+        sunBloom.position.set(bv.x, bv.y, bv.z);
+      }
+
       requestRender();
     }
 
