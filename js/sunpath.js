@@ -45,6 +45,11 @@
     dom.tiltInset = document.getElementById('sunpath-tilt');
     dom.monumentList = document.getElementById('sunpath-monuments');
     dom.popover = document.getElementById('sunpath-monument-popover');
+    dom.deeptime = document.getElementById('sunpath-deeptime');
+    dom.deeptimeToggle = document.getElementById('sunpath-deeptime-toggle');
+    dom.deeptimePanel = document.getElementById('sunpath-deeptime-panel');
+    dom.deeptimeSlider = document.getElementById('sunpath-deeptime-slider');
+    dom.deeptimeCaption = document.getElementById('sunpath-deeptime-caption');
 
     if (!dom.globeContainer) return;
 
@@ -71,6 +76,7 @@
 
     setupYearScrub();
     setupTimelapse();
+    setupDeepTime();
     renderTilt(activeDate());
 
     // Esc dismisses popover.
@@ -161,6 +167,92 @@
     renderer.redrawStatic();
     renderer.render(buildState());
     updateSubsolarCaption(M.subsolarPoint(activeDate()), activeDate());
+  }
+
+  // --- Deep-time drift hook ---
+  // A "watch a solstice sunrise drift" scrubber that orients the globe to a
+  // sourced monument and draws the drift beam. The monument id comes from the
+  // container's data-monument (Stonehenge on the hub, per-turning on subpages).
+
+  function setupDeepTime() {
+    if (!dom.deeptimeToggle || !dom.deeptimeSlider) return;
+    dom.deeptimeToggle.addEventListener('click', function () {
+      if (dom.deeptimePanel.hidden) openDeepTime();
+      else closeDeepTime();
+    });
+    dom.deeptimeSlider.addEventListener('input', function () {
+      applyDrift(parseInt(dom.deeptimeSlider.value, 10));
+    });
+  }
+
+  function deepTimeMonument() {
+    var id = dom.deeptime && dom.deeptime.getAttribute('data-monument');
+    if (!id) return null;
+    for (var i = 0; i < monuments.length; i++) {
+      if (monuments[i].id === id) return monuments[i];
+    }
+    return null;
+  }
+
+  function openDeepTime() {
+    var m = deepTimeMonument();
+    if (!m) return;
+    dom.deeptimePanel.hidden = false;
+    dom.deeptimeToggle.setAttribute('aria-expanded', 'true');
+    rotation = [-m.lon, -m.lat];
+    if (renderer) {
+      renderer.setRotation(rotation);
+      if (renderer.setIdle) renderer.setIdle(false);
+    }
+    // Open on "today" — the relatable "~1° off now" — so scrubbing back reveals
+    // the alignment in the builders' own era rather than opening on a flat 0.0°.
+    var startYear = new Date().getUTCFullYear();
+    dom.deeptimeSlider.value = String(startYear);
+    applyDrift(startYear);
+  }
+
+  function closeDeepTime() {
+    dom.deeptimePanel.hidden = true;
+    dom.deeptimeToggle.setAttribute('aria-expanded', 'false');
+    driftState = { year: null };
+    if (renderer) {
+      if (renderer.setIdle) renderer.setIdle(true);
+      renderer.render(buildState());
+    }
+  }
+
+  function applyDrift(year) {
+    var m = deepTimeMonument();
+    if (!m) return;
+    var turning = m.turning || 'summer-solstice';
+    var ev = m.event || 'sunrise';
+    var markerAz = (m.marker && typeof m.marker.azimuth === 'number') ? m.marker.azimuth : null;
+    driftState = { monumentId: m.id, year: year, turning: turning, event: ev, markerAzimuth: markerAz };
+    if (renderer) renderer.render(buildState());
+    if (dom.deeptimeCaption) {
+      dom.deeptimeCaption.textContent = driftCaption(m, year, turning, ev, markerAz);
+    }
+  }
+
+  function driftCaption(m, year, turning, ev, markerAz) {
+    var az = (ev === 'sunset')
+      ? M.sunsetAzimuthForYear(m.lat, year, turning)
+      : M.sunriseAzimuthForYear(m.lat, year, turning);
+    var whenWord = turning.indexOf('summer') === 0 ? 'midsummer'
+      : turning.indexOf('winter') === 0 ? 'midwinter'
+      : turning.split('-')[0];
+    var verb = (ev === 'sunset') ? 'set' : 'rose';
+    if (az == null || !isFinite(az)) {
+      return 'In ' + yearLabel(year) + ', the ' + whenWord + ' sun never ' +
+        (ev === 'sunset' ? 'set' : 'rose') + ' here.';
+    }
+    if (markerAz == null) {
+      return 'In ' + yearLabel(year) + ', ' + m.name + '’s ' + whenWord +
+        ' sun ' + verb + ' at ' + az.toFixed(1) + '°.';
+    }
+    var delta = M.angularDistance(az, markerAz);
+    return 'In ' + yearLabel(year) + ', ' + m.name + '’s ' + whenWord +
+      ' sun ' + verb + ' ' + delta.toFixed(1) + '° from the axis its builders aimed at.';
   }
 
   // --- Subsolar caption ---
