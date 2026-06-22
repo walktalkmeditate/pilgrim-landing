@@ -91,7 +91,6 @@
     // ---- Monument beacons (Task 6) ----
     // Built once; updated per frame for pulse + flare. Never torn down per render().
     var beaconGroup = null;
-    var beaconMat = null;
     var beaconTexture = null;
     var beaconEntries = []; // [{sprite, baseBrightness, monument}]
     var lastMonumentsRef = null;  // identity check — only rebuild when array changes
@@ -113,6 +112,7 @@
 
       if (beaconGroup) {
         earth.remove(beaconGroup);
+        beaconEntries.forEach(function (e) { if (e.mat) e.mat.dispose(); });
         beaconEntries = [];
         beaconGroup = null;
       }
