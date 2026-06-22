@@ -42,8 +42,10 @@
     applyRotation();
 
     function applyRotation() {
-      earth.quaternion.setFromEuler(new THREE.Euler(
-        -rotLat * Math.PI / 180, -rotLon * Math.PI / 180, 0, 'YXZ'));
+      var DEG = Math.PI / 180;
+      var qLon = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (rotLon - 90) * DEG);
+      var qLat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), (-rotLat) * DEG);
+      earth.quaternion.copy(qLat.multiply(qLon));
     }
 
     var needsRender = true, raf = null;
@@ -79,8 +81,8 @@
     function projectPoint(lonLat) {
       var v = G.lonLatToVec3(lonLat[0], lonLat[1], 1.0);
       var world = new THREE.Vector3(v.x, v.y, v.z).applyQuaternion(earth.quaternion);
-      var toCamera = new THREE.Vector3().subVectors(camera.position, world).normalize();
-      var visible = world.clone().normalize().dot(toCamera) > 0;
+      var camSpace = world.clone().applyMatrix4(camera.matrixWorldInverse);
+      var visible = camSpace.z < 0;
       var ndc = world.clone().project(camera);
       return {
         x: (ndc.x * 0.5 + 0.5) * size,
@@ -95,11 +97,14 @@
 
     function destroy() {
       if (raf) cancelAnimationFrame(raf);
+      if (pinMat) { pinMat.dispose(); pinMat = null; }
       glRenderer.dispose();
       if (glRenderer.domElement.parentNode) {
         glRenderer.domElement.parentNode.removeChild(glRenderer.domElement);
       }
     }
+
+    var pinMat = null;
 
     function ensureMonumentPins(mons) {
       // Remove old pin group if present.
@@ -107,13 +112,12 @@
         earth.remove(monumentPins);
         monumentPins.children.forEach(function (c) {
           if (c.geometry) c.geometry.dispose();
-          if (c.material) c.material.dispose();
         });
         monumentPins = null;
       }
       if (!mons || !mons.length) return;
+      if (!pinMat) pinMat = new THREE.MeshBasicMaterial({ color: 0xd4a87a });
       monumentPins = new THREE.Group();
-      var pinMat = new THREE.MeshBasicMaterial({ color: 0xd4a87a });
       mons.forEach(function (m) {
         var v = G.lonLatToVec3(m.lon, m.lat, 1.018);
         var pin = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), pinMat);
