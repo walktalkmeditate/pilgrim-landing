@@ -221,12 +221,23 @@
     }
   }
 
+  // A monument's alignment azimuth — either a sourced number, or the bearing to
+  // a sourced landmark (e.g. Ōmori-Katsuyama → Mt. Iwaki's summit).
+  function markerAzimuthOf(m) {
+    if (!m.marker) return null;
+    if (typeof m.marker.azimuth === 'number') return m.marker.azimuth;
+    if (typeof m.marker.lat === 'number' && typeof m.marker.lon === 'number') {
+      return M.initialBearing(m.lat, m.lon, m.marker.lat, m.marker.lon);
+    }
+    return null;
+  }
+
   function applyDrift(year) {
     var m = deepTimeMonument();
     if (!m) return;
     var turning = m.turning || 'summer-solstice';
     var ev = m.event || 'sunrise';
-    var markerAz = (m.marker && typeof m.marker.azimuth === 'number') ? m.marker.azimuth : null;
+    var markerAz = markerAzimuthOf(m);
     driftState = { monumentId: m.id, year: year, turning: turning, event: ev, markerAzimuth: markerAz };
     if (renderer) renderer.render(buildState());
     if (dom.deeptimeCaption) {
@@ -251,8 +262,9 @@
         ' sun ' + verb + ' at ' + az.toFixed(1) + '°.';
     }
     var delta = M.angularDistance(az, markerAz);
+    var ref = (m.marker && (m.marker.label || m.marker.landmark)) || 'the axis its builders aimed at';
     return 'In ' + yearLabel(year) + ', ' + m.name + '’s ' + whenWord +
-      ' sun ' + verb + ' ' + delta.toFixed(1) + '° from the axis its builders aimed at.';
+      ' sun ' + verb + ' ' + delta.toFixed(1) + '° from ' + ref + '.';
   }
 
   // --- Subsolar caption ---
