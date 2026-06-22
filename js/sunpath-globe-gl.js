@@ -53,16 +53,22 @@
       var tex = new THREE.CanvasTexture(cv);
       return new THREE.Sprite(new THREE.SpriteMaterial({
         map: tex, color: color, transparent: true,
-        blending: THREE.AdditiveBlending, depthWrite: false
+        blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
       }));
     }
-    var sunBloom = radialSprite(0xffffff, 1.0);
-    sunBloom.scale.set(1.1, 1.1, 1);
-    earth.add(sunBloom);
+    // Sun corona: a tight bright core + a wide soft warm halo, layered for depth.
+    var sunHalo = radialSprite(0xffd49a, 0.65);
+    sunHalo.scale.set(1.15, 1.15, 1);
+    var sunCore = radialSprite(0xfff3d6, 1.0);
+    sunCore.scale.set(0.42, 0.42, 1);
+    var sunGroup = new THREE.Group();
+    sunGroup.add(sunHalo);
+    sunGroup.add(sunCore);
+    earth.add(sunGroup);
 
     // Atmosphere rim — back-side Fresnel sphere in world space, additive gold.
     var atmo = new THREE.Mesh(
-      new THREE.SphereGeometry(1.04, 64, 48),
+      new THREE.SphereGeometry(1.022, 64, 48),
       new THREE.ShaderMaterial({
         uniforms: { uSunDir: { value: sunDir } },
         transparent: true, side: THREE.BackSide,
@@ -78,8 +84,8 @@
         fragmentShader:
           'varying vec3 vN; varying vec3 vView;' +
           'void main(){' +
-          '  float f = pow(1.0 - max(dot(vN, vView), 0.0), 3.0);' +
-          '  gl_FragColor = vec4(vec3(1.0, 0.72, 0.42) * f * 0.85, f * 0.85);' +
+          '  float f = pow(1.0 - max(dot(vN, vView), 0.0), 4.0);' +
+          '  gl_FragColor = vec4(vec3(1.0, 0.72, 0.42) * f * 0.5, f * 0.5);' +
           '}'
       })
     );
@@ -158,6 +164,20 @@
         var s = baseScale * pulse;
         entry.sprite.scale.set(s, s, 1);
       });
+    }
+
+    function updateSun() {
+      if (!currentState.subsolar) return;
+      // Depth-test is off on the corona sprites (so the sphere never clips them
+      // into a disc); fade out as the subsolar point swings to the far side so
+      // the sun doesn't shine through the globe.
+      var sw = sunGroup.position.clone().applyQuaternion(earth.quaternion);
+      var front = G.clamp01((sw.z + 0.12) / 0.4);
+      // Gentle "breathing" so the sun feels alive, not a static decal.
+      var breathe = 1 + 0.04 * Math.sin(animClock * 0.9);
+      sunGroup.scale.setScalar(breathe);
+      sunCore.material.opacity = front;
+      sunHalo.material.opacity = front * (0.62 + 0.12 * Math.sin(animClock * 0.9));
     }
 
     // ---- City-lights ----
@@ -474,6 +494,7 @@
       if (needsRender) {
         needsRender = false;
         updateBeacons(currentState, animClock);
+        updateSun();
         updateCityLights(currentState);
         updateAurora(currentState);
         updateDriftBeam(currentState);
@@ -512,7 +533,7 @@
         dayNight.uniforms.uSunDir.value = sunDir;
 
         var bv = G.lonLatToVec3(state.subsolar.lon, state.subsolar.lat, 1.02);
-        sunBloom.position.set(bv.x, bv.y, bv.z);
+        sunGroup.position.set(bv.x, bv.y, bv.z);
       }
 
       requestRender();
@@ -566,8 +587,10 @@
 
       sphere.geometry.dispose();
       dayNight.dispose();
-      if (sunBloom.material.map) sunBloom.material.map.dispose();
-      sunBloom.material.dispose();
+      if (sunHalo.material.map) sunHalo.material.map.dispose();
+      sunHalo.material.dispose();
+      if (sunCore.material.map) sunCore.material.map.dispose();
+      sunCore.material.dispose();
       atmo.geometry.dispose();
       atmo.material.dispose();
 
@@ -637,10 +660,13 @@
         // Build ephemeral hit proxies from beaconEntries positions.
         var proxies = beaconEntries.map(function (entry) {
           var m = new THREE.Mesh(
-            new THREE.SphereGeometry(0.025, 6, 4),
+            new THREE.SphereGeometry(0.03, 8, 6),
             new THREE.MeshBasicMaterial()
           );
-          m.position.copy(entry.sprite.position);
+          // The globe (and its beacons) are rotated, so place the hit-proxy at the
+          // beacon's WORLD position and refresh its matrix before raycasting.
+          m.position.copy(entry.sprite.position).applyQuaternion(earth.quaternion);
+          m.updateMatrixWorld();
           m._monument = entry.monument;
           return m;
         });
@@ -648,7 +674,7 @@
         proxies.forEach(function (p) { p.geometry.dispose(); p.material.dispose(); });
         // Cull back-side hits so beacons behind the globe aren't clickable through it.
         var frontHits = hits.filter(function (h) {
-          var pinWorld = h.object.position.clone().applyQuaternion(earth.quaternion);
+          var pinWorld = h.object.position;
           var toCam = new THREE.Vector3().subVectors(camera.position, pinWorld);
           return pinWorld.dot(toCam) > 0;
         });

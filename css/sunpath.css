@@ -104,9 +104,7 @@ body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --
   margin: 1.5rem auto;
   max-width: 520px;
   aspect-ratio: 1 / 1;
-  border-radius: 18px;
-  background: radial-gradient(circle at 42% 40%, #0d0d18 0%, #08080f 60%, #040407 100%);
-  overflow: hidden;
+  background: radial-gradient(circle at 50% 49%, #0d0d18 0%, #0b0b14 46%, rgba(11, 11, 20, 0) 67%);
 }
 
 .sunpath-globe-stage .sunpath-globe-canvas,

@@ -474,6 +474,11 @@
 
   // --- Progressive enhancement: lazy GL upgrade ---
 
+  // Bump when the lazy globe renderer changes — it's injected after load, so a
+  // normal reload's cache bypass doesn't cover it, and returning visitors would
+  // otherwise keep an old copy.
+  var GLOBE_ASSET_VERSION = '20260622-1';
+
   window.__loadThree = function () {
     if (window.THREE) return Promise.resolve(window.THREE);
     return new Promise(function (resolve, reject) {
@@ -500,7 +505,7 @@
     var env = window.SunPathCapability.detectEnv();
     if (window.SunPathCapability.selectRenderer(env) !== 'gl') return;
     window.__loadThree()
-      .then(function () { return loadScript('/js/sunpath-globe-gl.js'); })
+      .then(function () { return loadScript('/js/sunpath-globe-gl.js?v=' + GLOBE_ASSET_VERSION); })
       .then(function () {
         var gl = window.createGlGlobe(dom.globeContainer, {
           size: GLOBE_SIZE,
