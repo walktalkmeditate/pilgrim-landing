@@ -641,7 +641,7 @@ body.constellation .sunpath-monument-detail {
   padding: 0.2rem 0.7rem; color: var(--ink); opacity: 0.55; cursor: pointer;
 }
 .sunpath-tm-pick:hover, .sunpath-tm-pick:focus-visible { opacity: 0.85; }
-.sunpath-tm-pick.is-active { opacity: 1; background: var(--ink); color: var(--bg, #faf8f2); }
+.sunpath-tm-pick.is-active { opacity: 1; background: var(--ink); color: var(--parchment); }
 .sunpath-tm-label { text-align: center; font-style: italic; opacity: 0.8; margin: 0.25rem 0; }
 #sunpath-tm-slider {
   display: block; width: 100%; max-width: 28rem; margin: 0.5rem auto 1rem;
@@ -1272,6 +1272,15 @@ body.constellation .sunpath-pill--free {
 [data-theme="dark"] .sunpath-pill--oss,
 body.constellation .sunpath-pill--oss {
   color: #D2A471;
+}
+
+/* Android — muted teal (paired with iOS, distinct from the green "free") */
+.sunpath-pill--android {
+  color: #4F8A86;
+}
+[data-theme="dark"] .sunpath-pill--android,
+body.constellation .sunpath-pill--android {
+  color: #82B6B1;
 }
 
 .sunpath-flourish-pilgrimage-tradition {
