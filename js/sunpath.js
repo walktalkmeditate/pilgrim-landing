@@ -1,23 +1,20 @@
 /* =============================================
-   Sun Path — controller + globe renderer
+   Sun Path — controller
 
-   Renders an orthographic globe with day/night terminator and
-   subsolar point at the current UTC instant. Year-scrub slider
-   lets visitor walk through the year. Monument pins reveal
-   their alignments. Time machine slider moves through obliquity
-   over millennia.
+   Manages app state and user interaction. Drawing is delegated to
+   window.createSvgGlobe (js/sunpath-globe-svg.js) behind the
+   GlobeRenderer interface.
 
    Stage A: globe + terminator + subsolar + year-scrub +
             axial-tilt inset + monument pins.
 
-   Depends on: js/sunpath-math.js, js/vendor/d3-geo.min.js,
+   Depends on: js/sunpath-math.js, js/sunpath-globe-svg.js,
+               js/vendor/d3-geo.min.js,
                js/vendor/topojson-client.min.js
    ============================================= */
 
 (function () {
   'use strict';
-
-  var SVG_NS = 'http://www.w3.org/2000/svg';
 
   var M = window.SunPathMath;
   if (!M) {
@@ -25,18 +22,16 @@
     return;
   }
 
-  // --- Globe state ---
+  var SVG_NS = 'http://www.w3.org/2000/svg';
 
-  var GLOBE_SIZE = 480;
-  var globeSvg = null;
-  var projection = null;
-  var pathGen = null;
-  var landFeatures = null;
+  // --- App state ---
+
   var monuments = [];
   var rotation = [0, -10];
   var scrubDate = null;
   var idleTimerId = null;
   var dragState = null;
+  var renderer = null;
 
   var dom = {};
 
@@ -59,7 +54,21 @@
       scrubDate = new Date(window.__sunpathForce.date);
     }
 
-    setupGlobe();
+    if (typeof d3 === 'undefined') {
+      console.error('d3-geo not loaded');
+    } else if (typeof window.createSvgGlobe === 'function') {
+      renderer = window.createSvgGlobe(dom.globeContainer, {
+        size: 480,
+        onDragStart: onDragStart,
+        onDragMove: onDragMove,
+        onDragEnd: onDragEnd,
+        onMonumentClick: showMonumentPopover
+      });
+      renderer.setRotation(rotation);
+      loadMonuments();
+      redrawAll();
+    }
+
     setupYearScrub();
     setupTimelapse();
     renderTilt(activeDate());
@@ -79,6 +88,17 @@
         idleTick();
       }
     });
+  }
+
+  function loadMonuments() {
+    fetch('/assets/sunpath/monuments.json')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        monuments = data;
+        redrawAll();
+        renderMonumentList();
+      })
+      .catch(function (err) { console.warn('monuments json failed', err); });
   }
 
   // --- DOM helpers ---
@@ -102,217 +122,32 @@
     while (node && node.firstChild) node.removeChild(node.firstChild);
   }
 
-  // --- Globe setup ---
-
-  function setupGlobe() {
-    if (typeof d3 === 'undefined') {
-      console.error('d3-geo not loaded');
-      return;
-    }
-
-    projection = d3.geoOrthographic()
-      .scale(GLOBE_SIZE / 2 - 4)
-      .translate([GLOBE_SIZE / 2, GLOBE_SIZE / 2])
-      .rotate(rotation)
-      .clipAngle(90);
-    pathGen = d3.geoPath(projection);
-
-    globeSvg = svgEl('svg', {
-      'class': 'sunpath-globe-svg',
-      'viewBox': '0 0 ' + GLOBE_SIZE + ' ' + GLOBE_SIZE,
-      'width': GLOBE_SIZE,
-      'height': GLOBE_SIZE,
-      'role': 'img',
-      'aria-label': 'Globe showing day and night with the sun directly overhead at one point.'
-    });
-    dom.globeContainer.appendChild(globeSvg);
-
-    // Defs: clip path matching the sphere so halos / pins never bleed past
-    // the globe edge.
-    var defs = svgEl('defs');
-    var clip = svgEl('clipPath', { id: 'sunpath-globe-clip' });
-    clip.appendChild(svgEl('circle', {
-      cx: GLOBE_SIZE / 2,
-      cy: GLOBE_SIZE / 2,
-      r: GLOBE_SIZE / 2 - 4
-    }));
-    defs.appendChild(clip);
-    globeSvg.appendChild(defs);
-
-    // Sphere fill (one solid background circle).
-    var sphereLayer = svgEl('g', { id: 'sunpath-sphere-layer' });
-    sphereLayer.appendChild(svgEl('circle', {
-      'class': 'sunpath-sphere',
-      cx: GLOBE_SIZE / 2,
-      cy: GLOBE_SIZE / 2,
-      r: GLOBE_SIZE / 2 - 4
-    }));
-    globeSvg.appendChild(sphereLayer);
-
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-graticule' }));
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-land' }));
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-night' }));
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-polar', 'clip-path': 'url(#sunpath-globe-clip)' }));
-    // Subsolar layer clipped so halo never bleeds past sphere edge.
-    globeSvg.appendChild(svgEl('g', {
-      id: 'sunpath-subsolar-layer',
-      'clip-path': 'url(#sunpath-globe-clip)'
-    }));
-    globeSvg.appendChild(svgEl('g', { id: 'sunpath-monuments-layer' }));
-
-    drawGraticule();
-
-    globeSvg.addEventListener('pointerdown', onDragStart);
-    globeSvg.addEventListener('pointermove', onDragMove);
-    globeSvg.addEventListener('pointerup', onDragEnd);
-    globeSvg.addEventListener('pointercancel', onDragEnd);
-    globeSvg.addEventListener('pointerleave', onDragEnd);
-
-    // Land geometry — async.
-    fetch('/assets/sunpath/land-110m.json')
-      .then(function (r) { return r.json(); })
-      .then(function (topology) {
-        if (!topology || !topology.objects || !topology.objects.land) return;
-        if (typeof topojson === 'undefined') return;
-        landFeatures = topojson.feature(topology, topology.objects.land);
-        renderLand();
-      })
-      .catch(function (err) { console.warn('land geojson failed', err); });
-
-    // Monuments — async.
-    fetch('/assets/sunpath/monuments.json')
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        monuments = data;
-        renderMonuments();
-        renderMonumentList();
-      })
-      .catch(function (err) { console.warn('monuments json failed', err); });
-
-    renderTerminatorAndSubsolar();
-  }
-
-  function drawGraticule() {
-    var layer = document.getElementById('sunpath-graticule');
-    if (!layer) return;
-    clearChildren(layer);
-    var graticule = d3.geoGraticule().step([30, 30])();
-    var p = svgEl('path', {
-      'class': 'sunpath-graticule-path',
-      d: pathGen(graticule) || ''
-    });
-    layer.appendChild(p);
-  }
-
-  function renderLand() {
-    if (!landFeatures) return;
-    var layer = document.getElementById('sunpath-land');
-    if (!layer) return;
-    clearChildren(layer);
-    var p = svgEl('path', {
-      'class': 'sunpath-land-path',
-      d: pathGen(landFeatures) || ''
-    });
-    layer.appendChild(p);
-  }
+  // --- State helpers ---
 
   function activeDate() {
     return scrubDate || new Date();
   }
 
-  function renderTerminatorAndSubsolar() {
-    // Guard: if globe failed to initialize (d3 missing), only update caption.
+  function buildState() {
     var date = activeDate();
-    var sub = M.subsolarPoint(date);
-    updateSubsolarCaption(sub, date);
-    if (!projection || typeof d3 === 'undefined') return;
-
-    var nightCenter = [sub.lon + 180, -sub.lat];
-
-    // Twilight bands as nested geo-circles centered at the antipode of the
-    // subsolar point. Stacked outer-to-inner so each adds darkness:
-    //   90° = civil twilight edge (sun at horizon — terminator)
-    //   84° = end of civil    (sun 6° below)
-    //   78° = end of nautical (sun 12° below)
-    //   72° = end of astronomical (sun 18° below — true night)
-    var nightLayer = document.getElementById('sunpath-night');
-    if (nightLayer) {
-      clearChildren(nightLayer);
-      [
-        { radius: 90, cls: 'sunpath-twilight-civil' },
-        { radius: 84, cls: 'sunpath-twilight-nautical' },
-        { radius: 78, cls: 'sunpath-twilight-astronomical' },
-        { radius: 72, cls: 'sunpath-twilight-night' }
-      ].forEach(function (band) {
-        var circle = d3.geoCircle().center(nightCenter).radius(band.radius)();
-        var d = pathGen(circle);
-        if (!d) return;
-        nightLayer.appendChild(svgEl('path', {
-          'class': 'sunpath-night-path ' + band.cls,
-          d: d
-        }));
-      });
-    }
-
-    var subLayer = document.getElementById('sunpath-subsolar-layer');
-    if (subLayer) {
-      clearChildren(subLayer);
-      var coords = projection([sub.lon, sub.lat]);
-      if (coords && isPointVisible([sub.lon, sub.lat])) {
-        subLayer.appendChild(svgEl('circle', {
-          'class': 'sunpath-subsolar-halo',
-          cx: coords[0], cy: coords[1], r: 18
-        }));
-        subLayer.appendChild(svgEl('circle', {
-          'class': 'sunpath-subsolar-dot',
-          cx: coords[0], cy: coords[1], r: 4
-        }));
-      }
-    }
-
-    renderPolarCircles(date);
-    renderMonuments();
+    return {
+      date: date,
+      subsolar: M.subsolarPoint(date),
+      declination: M.declination(date),
+      monuments: monuments,
+      drift: { year: null, turning: null }
+    };
   }
 
-  // Arctic + Antarctic circles. Stroke glows toward the pole that's tilted
-  // toward the sun: arctic stronger as declination → +23.45°, antarctic
-  // stronger as declination → -23.45°.
-  function renderPolarCircles(date) {
-    var layer = document.getElementById('sunpath-polar');
-    if (!layer) return;
-    clearChildren(layer);
-    var arctic    = d3.geoCircle().center([0,  90]).radius(23.5)();
-    var antarctic = d3.geoCircle().center([0, -90]).radius(23.5)();
-    var dec = M.declination(date);
-    var arcticGlow    = Math.max(0,  dec / 23.45);
-    var antarcticGlow = Math.max(0, -dec / 23.45);
-
-    var aPath = pathGen(arctic);
-    if (aPath) {
-      layer.appendChild(svgEl('path', {
-        'class': 'sunpath-polar-circle',
-        d: aPath,
-        style: 'stroke-opacity:' + (0.18 + arcticGlow * 0.55).toFixed(2)
-      }));
-    }
-    var bPath = pathGen(antarctic);
-    if (bPath) {
-      layer.appendChild(svgEl('path', {
-        'class': 'sunpath-polar-circle',
-        d: bPath,
-        style: 'stroke-opacity:' + (0.18 + antarcticGlow * 0.55).toFixed(2)
-      }));
-    }
+  function redrawAll() {
+    if (!renderer) return;
+    renderer.setRotation(rotation);
+    renderer.redrawStatic();
+    renderer.render(buildState());
+    updateSubsolarCaption(M.subsolarPoint(activeDate()), activeDate());
   }
 
-  function isPointVisible(lonLat) {
-    var rot = projection.rotate();
-    var center = [-rot[0], -rot[1]];
-    var DEG = Math.PI / 180;
-    var c1 = center[0] * DEG, c2 = center[1] * DEG;
-    var p1 = lonLat[0] * DEG, p2 = lonLat[1] * DEG;
-    return Math.sin(c2) * Math.sin(p2) + Math.cos(c2) * Math.cos(p2) * Math.cos(p1 - c1) > 0;
-  }
+  // --- Subsolar caption ---
 
   function updateSubsolarCaption(sub, date) {
     if (!dom.subsolarCaption) return;
@@ -322,57 +157,7 @@
     dom.subsolarCaption.textContent = 'the sun is overhead at ' + latStr + ' · ' + lonStr + ' (' + dateStr + ')';
   }
 
-  function renderMonuments() {
-    var layer = document.getElementById('sunpath-monuments-layer');
-    if (!layer || !monuments.length) return;
-    clearChildren(layer);
-
-    monuments.forEach(function (m) {
-      if (!isPointVisible([m.lon, m.lat])) return;
-      var coords = projection([m.lon, m.lat]);
-      if (!coords) return;
-
-      var g = svgEl('g', {
-        'class': 'sunpath-monument-pin',
-        'data-monument-id': m.id,
-        tabindex: '0',
-        role: 'button',
-        'aria-label': m.name + ', ' + m.country + '. ' + (m.alignment || '')
-      });
-      g.appendChild(svgEl('circle', { 'class': 'sunpath-monument-ring', cx: coords[0], cy: coords[1], r: 7 }));
-      g.appendChild(svgEl('circle', { 'class': 'sunpath-monument-dot', cx: coords[0], cy: coords[1], r: 2.5 }));
-      g.addEventListener('click', function () { showMonumentPopover(m); });
-      g.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          showMonumentPopover(m);
-        }
-      });
-      layer.appendChild(g);
-    });
-  }
-
-  function renderMonumentList() {
-    if (!dom.monumentList || !monuments.length) return;
-    clearChildren(dom.monumentList);
-    monuments.forEach(function (m) {
-      var li = htmlEl('li', 'sunpath-monument-item');
-      var btn = htmlEl('button', 'sunpath-monument-button');
-      btn.type = 'button';
-      btn.appendChild(htmlEl('span', 'sunpath-monument-name', m.name));
-      btn.appendChild(htmlEl('span', 'sunpath-monument-meta', m.country + ' · ' + yearLabel(m.constructed)));
-      btn.addEventListener('click', function () {
-        rotateToMonument(m);
-        // After rotation, scroll globe into view then show popover at pin.
-        if (dom.globeContainer) {
-          dom.globeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        showMonumentPopover(m);
-      });
-      li.appendChild(btn);
-      dom.monumentList.appendChild(li);
-    });
-  }
+  // --- Monument popover ---
 
   function showMonumentPopover(m) {
     if (!dom.popover) return;
@@ -409,13 +194,15 @@
   }
 
   function positionPopover(m) {
-    if (!dom.popover || !projection) return;
-    var coords = projection([m.lon, m.lat]);
-    if (!coords) return;
+    if (!dom.popover || !renderer) return;
+    var pt = renderer.projectPoint([m.lon, m.lat]);
+    if (!pt.visible) return;
+    var coords = [pt.x, pt.y];
     // Coords are in SVG user-space (0..GLOBE_SIZE). Globe wrap renders the
     // SVG at width:100% so we scale to wrap pixel coords.
     var wrap = dom.globeContainer;
     var wrapRect = wrap.getBoundingClientRect();
+    var GLOBE_SIZE = (renderer && renderer._size) || 480;
     var scale = wrapRect.width / GLOBE_SIZE;
     var pinX = coords[0] * scale;
     var pinY = coords[1] * scale;
@@ -440,9 +227,29 @@
     dom.popover.style.top = top + 'px';
   }
 
+  function renderMonumentList() {
+    if (!dom.monumentList || !monuments.length) return;
+    clearChildren(dom.monumentList);
+    monuments.forEach(function (m) {
+      var li = htmlEl('li', 'sunpath-monument-item');
+      var btn = htmlEl('button', 'sunpath-monument-button');
+      btn.type = 'button';
+      btn.appendChild(htmlEl('span', 'sunpath-monument-name', m.name));
+      btn.appendChild(htmlEl('span', 'sunpath-monument-meta', m.country + ' · ' + yearLabel(m.constructed)));
+      btn.addEventListener('click', function () {
+        rotateToMonument(m);
+        if (dom.globeContainer) {
+          dom.globeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showMonumentPopover(m);
+      });
+      li.appendChild(btn);
+      dom.monumentList.appendChild(li);
+    });
+  }
+
   function rotateToMonument(m) {
     rotation = [-m.lon, -m.lat];
-    projection.rotate(rotation);
     redrawAll();
   }
 
@@ -473,8 +280,9 @@
     var dy = e.clientY - dragState.y;
     if (!dragState.captured) {
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
-      if (globeSvg.setPointerCapture) {
-        try { globeSvg.setPointerCapture(dragState.pointerId); } catch (err) {}
+      var svgEl2 = renderer && renderer.getSvg && renderer.getSvg();
+      if (svgEl2 && svgEl2.setPointerCapture) {
+        try { svgEl2.setPointerCapture(dragState.pointerId); } catch (err) {}
       }
       dragState.captured = true;
       hideMonumentPopover();
@@ -484,18 +292,13 @@
       dragState.rotation[0] + dx * sensitivity,
       Math.max(-89, Math.min(89, dragState.rotation[1] - dy * sensitivity))
     ];
-    projection.rotate(rotation);
-    redrawAll();
+    renderer.setRotation(rotation);
+    renderer.render(buildState());
+    updateSubsolarCaption(M.subsolarPoint(activeDate()), activeDate());
   }
 
   function onDragEnd() {
     dragState = null;
-  }
-
-  function redrawAll() {
-    drawGraticule();
-    renderLand();
-    renderTerminatorAndSubsolar();
   }
 
   // --- Year scrub slider ---
@@ -516,7 +319,8 @@
       d.setUTCDate(dayN);
       scrubDate = d;
       updateScrubLabel(d);
-      renderTerminatorAndSubsolar();
+      renderer.render(buildState());
+      updateSubsolarCaption(M.subsolarPoint(d), d);
       renderTilt(d);
     });
     if (dom.scrubLabel) {
@@ -524,7 +328,7 @@
         scrubDate = null;
         dom.yearScrub.value = M.dayOfYear(new Date());
         updateScrubLabel(null);
-        renderTerminatorAndSubsolar();
+        redrawAll();
         renderTilt(activeDate());
       });
     }
@@ -566,7 +370,7 @@
   }
 
   function startTimelapse() {
-    if (!projection) return;
+    if (!renderer) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     timelapseBtn.classList.add('is-playing');
     var label = timelapseBtn.querySelector('.sunpath-timelapse-label');
@@ -584,7 +388,7 @@
       if (elapsed >= DURATION_MS) {
         // Loop back to start of sweep — keeps the meditative quality.
         scrubDate = new Date(startDate);
-        renderTerminatorAndSubsolar();
+        renderer.render(buildState());
         renderTilt(activeDate());
         startReal = now;
         timelapseRaf = requestAnimationFrame(frame);
@@ -592,7 +396,7 @@
       }
       var t = elapsed / DURATION_MS;
       scrubDate = new Date(startDate + t * SPAN_MS);
-      renderTerminatorAndSubsolar();
+      renderer.render(buildState());
       timelapseRaf = requestAnimationFrame(frame);
     }
     timelapseRaf = requestAnimationFrame(frame);
@@ -611,7 +415,7 @@
     // Restore the pre-play scrub state so the globe doesn't strand mid-sweep.
     scrubDate = timelapsePrevScrub;
     timelapsePrevScrub = null;
-    renderTerminatorAndSubsolar();
+    redrawAll();
     renderTilt(activeDate());
   }
 
@@ -652,7 +456,7 @@
 
   function idleTick() {
     if (scrubDate) return;
-    renderTerminatorAndSubsolar();
+    redrawAll();
     renderTilt(new Date());
   }
 })();
