@@ -26,6 +26,8 @@
 
   // --- App state ---
 
+  var GLOBE_SIZE = 480;
+
   var monuments = [];
   var rotation = [0, -10];
   var scrubDate = null;
@@ -58,7 +60,7 @@
       console.error('d3-geo not loaded');
     } else if (typeof window.createSvgGlobe === 'function') {
       renderer = window.createSvgGlobe(dom.globeContainer, {
-        size: 480,
+        size: GLOBE_SIZE,
         onDragStart: onDragStart,
         onDragMove: onDragMove,
         onDragEnd: onDragEnd,
@@ -202,7 +204,6 @@
     // SVG at width:100% so we scale to wrap pixel coords.
     var wrap = dom.globeContainer;
     var wrapRect = wrap.getBoundingClientRect();
-    var GLOBE_SIZE = (renderer && renderer._size) || 480;
     var scale = wrapRect.width / GLOBE_SIZE;
     var pinX = coords[0] * scale;
     var pinY = coords[1] * scale;
@@ -293,6 +294,7 @@
       Math.max(-89, Math.min(89, dragState.rotation[1] - dy * sensitivity))
     ];
     renderer.setRotation(rotation);
+    renderer.redrawStatic();
     renderer.render(buildState());
     updateSubsolarCaption(M.subsolarPoint(activeDate()), activeDate());
   }
