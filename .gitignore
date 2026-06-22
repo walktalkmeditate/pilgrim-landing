@@ -28,3 +28,6 @@ node_modules/
 .env
 .env.local
 .env.*.local
+
+# Visual brainstorming companion (superpowers)
+.superpowers/
