@@ -278,6 +278,136 @@
       auroraSouthMat.opacity = G.clamp01(-decl / 23.45) * 0.45;
     }
 
+    // ---- Drift beam (Task 7) ----
+    // Gold beam along the scrubbed-year azimuth; faint dashed ghost at today's marker azimuth.
+    // Both lines live in earth-group model space so they rotate with the surface.
+    var driftBeam = null;       // THREE.Line — gold solid
+    var driftBeamMat = null;
+    var driftBeamGeo = null;
+    var ghostBeam = null;       // THREE.Line — faint dashed
+    var ghostBeamMat = null;
+    var ghostBeamGeo = null;
+
+    var BEAM_LENGTH = 0.35;     // fraction of globe radius
+    var BEAM_LIFT   = 1.012;    // slightly above surface to avoid z-fighting
+
+    function beamDir(lon, lat, azDeg) {
+      var DEG = Math.PI / 180;
+      var la = lat * DEG;
+      var lo = lon * DEG;
+      var cosLa = Math.cos(la), sinLa = Math.sin(la);
+      var cosLo = Math.cos(lo), sinLo = Math.sin(lo);
+      // East tangent: ∂/∂lon of lonLatToVec3 (normalized).
+      var Ex = -sinLo, Ey = 0, Ez = -cosLo;
+      // North tangent: ∂/∂lat of lonLatToVec3 (normalized).
+      var Nx = -sinLa * cosLo, Ny = cosLa, Nz = sinLa * sinLo;
+      var az = azDeg * DEG;
+      var cosAz = Math.cos(az), sinAz = Math.sin(az);
+      // Bearing = cos(az)*N + sin(az)*E
+      var dx = cosAz * Nx + sinAz * Ex;
+      var dy = cosAz * Ny + sinAz * Ey;
+      var dz = cosAz * Nz + sinAz * Ez;
+      // Normalize (already unit length due to orthonormal basis, but guard).
+      var len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 1e-9) return null;
+      return { x: dx / len, y: dy / len, z: dz / len };
+    }
+
+    function makeLine(color, opacity, dashed) {
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 0,0,0], 3));
+      var mat = dashed
+        ? new THREE.LineDashedMaterial({ color: color, transparent: true, opacity: opacity,
+            dashSize: 0.025, gapSize: 0.018, depthWrite: false,
+            blending: THREE.AdditiveBlending })
+        : new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity,
+            depthWrite: false, blending: THREE.AdditiveBlending });
+      var line = new THREE.Line(geo, mat);
+      return { line: line, geo: geo, mat: mat };
+    }
+
+    function updateDriftBeam(state) {
+      if (!state.drift || state.drift.year == null) {
+        if (driftBeam) { driftBeam.visible = false; }
+        if (ghostBeam) { ghostBeam.visible = false; }
+        return;
+      }
+
+      var d = state.drift;
+      var mons = state.monuments || [];
+      var m = null;
+      for (var i = 0; i < mons.length; i++) {
+        if (mons[i].id === d.monumentId) { m = mons[i]; break; }
+      }
+      if (!m) {
+        if (driftBeam) driftBeam.visible = false;
+        if (ghostBeam) ghostBeam.visible = false;
+        return;
+      }
+
+      var az;
+      var SM = root.SunPathMath;
+      if (d.event === 'sunset') {
+        az = SM.sunsetAzimuthForYear(m.lat, d.year, d.turning);
+      } else {
+        az = SM.sunriseAzimuthForYear(m.lat, d.year, d.turning);
+      }
+
+      if (az == null || !isFinite(az)) {
+        if (driftBeam) driftBeam.visible = false;
+        if (ghostBeam) ghostBeam.visible = false;
+        return;
+      }
+
+      var P = G.lonLatToVec3(m.lon, m.lat, BEAM_LIFT);
+      var dir = beamDir(m.lon, m.lat, az);
+      if (!dir) {
+        if (driftBeam) driftBeam.visible = false;
+        if (ghostBeam) ghostBeam.visible = false;
+        return;
+      }
+      var Qx = P.x + dir.x * BEAM_LENGTH;
+      var Qy = P.y + dir.y * BEAM_LENGTH;
+      var Qz = P.z + dir.z * BEAM_LENGTH;
+
+      if (!driftBeam) {
+        var b = makeLine(0xffd79b, 0.92, false);
+        driftBeamGeo = b.geo; driftBeamMat = b.mat; driftBeam = b.line;
+        earth.add(driftBeam);
+      }
+      var pos = driftBeamGeo.attributes.position.array;
+      pos[0] = P.x; pos[1] = P.y; pos[2] = P.z;
+      pos[3] = Qx;  pos[4] = Qy;  pos[5] = Qz;
+      driftBeamGeo.attributes.position.needsUpdate = true;
+      driftBeam.visible = true;
+
+      var mAz = d.markerAzimuth;
+      if (mAz != null && isFinite(mAz)) {
+        var gDir = beamDir(m.lon, m.lat, mAz);
+        if (gDir) {
+          var GQx = P.x + gDir.x * BEAM_LENGTH;
+          var GQy = P.y + gDir.y * BEAM_LENGTH;
+          var GQz = P.z + gDir.z * BEAM_LENGTH;
+
+          if (!ghostBeam) {
+            var g = makeLine(0xffd79b, 0.28, true);
+            ghostBeamGeo = g.geo; ghostBeamMat = g.mat; ghostBeam = g.line;
+            earth.add(ghostBeam);
+          }
+          var gpos = ghostBeamGeo.attributes.position.array;
+          gpos[0] = P.x; gpos[1] = P.y; gpos[2] = P.z;
+          gpos[3] = GQx; gpos[4] = GQy; gpos[5] = GQz;
+          ghostBeamGeo.attributes.position.needsUpdate = true;
+          ghostBeam.computeLineDistances();
+          ghostBeam.visible = true;
+        } else {
+          if (ghostBeam) ghostBeam.visible = false;
+        }
+      } else {
+        if (ghostBeam) ghostBeam.visible = false;
+      }
+    }
+
     // Coastlines + city-lights share the same geojson fetch.
     fetch('/assets/sunpath/land-110m.json').then(function (r) { return r.json(); }).then(function (topo) {
       var geo = root.topojson.feature(topo, topo.objects.land);
@@ -343,6 +473,7 @@
         updateBeacons(currentState, animClock);
         updateCityLights(currentState);
         updateAurora(currentState);
+        updateDriftBeam(currentState);
         glRenderer.render(scene, camera);
       }
 
@@ -448,6 +579,13 @@
       }
       if (auroraNorthMat) { auroraNorthMat.dispose(); auroraNorthMat = null; }
       if (auroraSouthMat) { auroraSouthMat.dispose(); auroraSouthMat = null; }
+
+      if (driftBeamGeo) { driftBeamGeo.dispose(); driftBeamGeo = null; }
+      if (driftBeamMat) { driftBeamMat.dispose(); driftBeamMat = null; }
+      driftBeam = null;
+      if (ghostBeamGeo) { ghostBeamGeo.dispose(); ghostBeamGeo = null; }
+      if (ghostBeamMat) { ghostBeamMat.dispose(); ghostBeamMat = null; }
+      ghostBeam = null;
 
       glRenderer.dispose();
       if (glRenderer.domElement.parentNode) {

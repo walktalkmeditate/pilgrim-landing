@@ -34,6 +34,7 @@
   var idleTimerId = null;
   var dragState = null;
   var renderer = null;
+  var driftState = { year: null };
 
   var dom = {};
 
@@ -140,9 +141,14 @@
       subsolar: M.subsolarPoint(date),
       declination: M.declination(date),
       monuments: monuments,
-      drift: { year: null, turning: null }
+      drift: driftState
     };
   }
+
+  window.__sunpathSetDrift = function (d) {
+    driftState = d || { year: null };
+    if (renderer) renderer.render(buildState());
+  };
 
   function redrawAll() {
     if (!renderer) return;
