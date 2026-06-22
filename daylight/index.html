@@ -24,6 +24,7 @@
   <meta property="og:description" content="Choose a pilgrimage route and a starting time. See at a glance whether your walk fits inside the day's light.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://pilgrimapp.org/daylight">
+  <meta property="og:site_name" content="Pilgrim">
   <meta property="og:image" content="https://pilgrimapp.org/assets/og-sunpath.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -52,6 +53,18 @@
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "WebSite",
+        "@id": "https://pilgrimapp.org#website",
+        "url": "https://pilgrimapp.org",
+        "name": "Pilgrim"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://pilgrimapp.org#org",
+        "name": "Walk Talk Meditate",
+        "url": "https://walktalkmeditate.org"
+      },
+      {
         "@type": "WebPage",
         "url": "https://pilgrimapp.org/daylight",
         "name": "Daylight Walk Budget — will the light hold?",
@@ -59,10 +72,11 @@
         "isPartOf": { "@id": "https://pilgrimapp.org#website" }
       },
       {
-        "@type": "Organization",
-        "@id": "https://pilgrimapp.org#org",
-        "name": "Pilgrim",
-        "url": "https://pilgrimapp.org"
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Pilgrim", "item": "https://pilgrimapp.org" },
+          { "@type": "ListItem", "position": 2, "name": "Daylight Walk Budget" }
+        ]
       }
     ]
   }

@@ -54,6 +54,7 @@ export function renderPermalink(data, archive) {
   <meta property="og:description" content="${htmlAttr(data.ogDescription)}">
   <meta property="og:type" content="website">
   <meta property="og:url" content="${canonical}">
+  <meta property="og:site_name" content="Pilgrim">
   <meta property="og:image" content="${ogImage}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -87,11 +88,12 @@ export function renderPermalink(data, archive) {
         "dateModified": ${jsonStr(data.dateModified)},
         "image": ${jsonStr(ogImage)},
         "mainEntityOfPage": ${jsonStr(canonical)},
-        "author": { "@type": "Organization", "name": "Pilgrim", "url": "https://pilgrimapp.org" },
+        "author": { "@id": "https://pilgrimapp.org#org" },
         "publisher": {
           "@type": "Organization",
-          "name": "Pilgrim",
-          "url": "https://pilgrimapp.org",
+          "@id": "https://pilgrimapp.org#org",
+          "name": "Walk Talk Meditate",
+          "url": "https://walktalkmeditate.org",
           "logo": { "@type": "ImageObject", "url": "https://pilgrimapp.org/assets/pilgrim-logo.png" }
         },
         "about": {

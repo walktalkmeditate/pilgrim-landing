@@ -21,8 +21,16 @@
   <meta property="og:description" content="A privacy-first iOS app for intentional walking as creative practice.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://pilgrimapp.org">
+  <meta property="og:site_name" content="Pilgrim">
   <meta property="og:image" content="https://pilgrimapp.org/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <link rel="canonical" href="https://pilgrimapp.org">
+
+  <!-- Identity -->
+  <link rel="me" href="https://mastodon.social/@pilgrimage">
+  <link rel="me" href="https://bsky.app/profile/pilgrima.ge">
+  <link rel="me" href="https://www.threads.com/@pilgrima.ge">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
@@ -92,22 +100,45 @@
       "Open source (GPLv3)"
     ],
     "screenshot": "https://pilgrimapp.org/assets/og-image.png",
-    "author": {
-      "@type": "Organization",
-      "name": "Walk Talk Meditate",
-      "url": "https://walktalkmeditate.org"
-    },
-    "sourceOrganization": {
-      "@type": "Organization",
-      "name": "Walk Talk Meditate",
-      "url": "https://github.com/walktalkmeditate"
-    },
+    "author": { "@id": "https://pilgrimapp.org#org" },
+    "publisher": { "@id": "https://pilgrimapp.org#org" },
     "codeRepository": [
       "https://github.com/walktalkmeditate/pilgrim-ios",
       "https://github.com/walktalkmeditate/pilgrim-android"
     ],
     "programmingLanguage": ["Swift", "Kotlin"],
     "keywords": ["walking meditation", "mindful walking", "privacy fitness app", "on-device transcription", "goshuin", "pilgrimage app", "open source meditation", "walking practice", "voice journaling", "no account fitness app", "photo pinning", "geotagged photos", "walk photo journal"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://pilgrimapp.org#website",
+        "url": "https://pilgrimapp.org",
+        "name": "Pilgrim",
+        "description": "A privacy-first walking and meditation companion. Walk, talk, meditate.",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://pilgrimapp.org#org" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://pilgrimapp.org#org",
+        "name": "Walk Talk Meditate",
+        "url": "https://walktalkmeditate.org",
+        "logo": "https://pilgrimapp.org/assets/pilgrim-logo.png",
+        "sameAs": [
+          "https://github.com/walktalkmeditate",
+          "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
+          "https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim",
+          "https://mastodon.social/@pilgrimage",
+          "https://bsky.app/profile/pilgrima.ge",
+          "https://www.threads.com/@pilgrima.ge"
+        ]
+      }
+    ]
   }
   </script>
   <script type="application/ld+json">

@@ -21,7 +21,10 @@
   <meta property="og:description" content="A simple guide to walking as practice. Walk, talk, meditate.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://pilgrimapp.org/guide">
+  <meta property="og:site_name" content="Pilgrim">
   <meta property="og:image" content="https://pilgrimapp.org/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <link rel="canonical" href="https://pilgrimapp.org/guide">
 
   <!-- Twitter Card -->
@@ -43,29 +46,42 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": "A Walking Practice",
-    "description": "A guide to walking with intention. Walk, talk, meditate. Learn the practice of mindful walking with voice recording, meditation, and digital goshuin seals.",
-    "author": {
-      "@type": "Organization",
-      "name": "Walk Talk Meditate",
-      "url": "https://walktalkmeditate.org"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Walk Talk Meditate",
-      "url": "https://walktalkmeditate.org"
-    },
-    "url": "https://pilgrimapp.org/guide",
-    "mainEntityOfPage": "https://pilgrimapp.org/guide",
-    "about": [
-      { "@type": "Thing", "name": "Walking meditation" },
-      { "@type": "Thing", "name": "Mindful walking" },
-      { "@type": "Thing", "name": "Voice journaling" },
-      { "@type": "Thing", "name": "Goshuin" },
-      { "@type": "Thing", "name": "Contemplative practice" }
-    ],
-    "keywords": ["walking meditation guide", "mindful walking practice", "walking as practice", "voice journaling while walking", "goshuin tradition", "walking meditation for beginners"]
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://pilgrimapp.org#org",
+        "name": "Walk Talk Meditate",
+        "url": "https://walktalkmeditate.org",
+        "logo": { "@type": "ImageObject", "url": "https://pilgrimapp.org/assets/pilgrim-logo.png" }
+      },
+      {
+        "@type": "Article",
+        "headline": "A Walking Practice",
+        "description": "A guide to walking with intention. Walk, talk, meditate. Learn the practice of mindful walking with voice recording, meditation, and digital goshuin seals.",
+        "datePublished": "2026-04-01",
+        "dateModified": "2026-06-21",
+        "image": "https://pilgrimapp.org/assets/og-image.png",
+        "author": { "@id": "https://pilgrimapp.org#org" },
+        "publisher": { "@id": "https://pilgrimapp.org#org" },
+        "url": "https://pilgrimapp.org/guide",
+        "mainEntityOfPage": "https://pilgrimapp.org/guide",
+        "about": [
+          { "@type": "Thing", "name": "Walking meditation" },
+          { "@type": "Thing", "name": "Mindful walking" },
+          { "@type": "Thing", "name": "Voice journaling" },
+          { "@type": "Thing", "name": "Goshuin" },
+          { "@type": "Thing", "name": "Contemplative practice" }
+        ],
+        "keywords": ["walking meditation guide", "mindful walking practice", "walking as practice", "voice journaling while walking", "goshuin tradition", "walking meditation for beginners"]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Pilgrim", "item": "https://pilgrimapp.org" },
+          { "@type": "ListItem", "position": 2, "name": "A Walking Practice" }
+        ]
+      }
+    ]
   }
   </script>
 
