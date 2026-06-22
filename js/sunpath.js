@@ -94,6 +94,14 @@
 
     if ('requestIdleCallback' in window) requestIdleCallback(maybeUpgradeToGl);
     else setTimeout(maybeUpgradeToGl, 200);
+
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (renderer && renderer.resize) renderer.resize();
+      }, 150);
+    });
   }
 
   function loadMonuments() {

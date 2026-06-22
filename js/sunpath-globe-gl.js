@@ -544,7 +544,12 @@
     }
 
     function resize() {
-      // Re-fit to container (detailed sizing deferred to Task 8).
+      var w = container.clientWidth;
+      if (!w) return;
+      glRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      glRenderer.setSize(w, w, false);
+      size = w;
+      requestRender();
     }
 
     function destroy() {
