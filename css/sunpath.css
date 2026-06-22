@@ -124,10 +124,12 @@ body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --
   font-style: italic; opacity: 0.85; line-height: 1.5;
   margin: 0 0 0.55rem; min-height: 3em;
 }
-.sunpath-deeptime-slider {
-  width: 100%; max-width: 24rem;
-  accent-color: var(--sun, #c8893a); cursor: pointer;
+.sunpath-deeptime-more {
+  display: inline-block; margin-top: 0.15rem;
+  font-family: inherit; font-style: italic; font-size: 0.9rem;
+  color: var(--sun, #c8893a); opacity: 0.85;
 }
+.sunpath-deeptime-more:hover, .sunpath-deeptime-more:focus-visible { opacity: 1; }
 
 /* "Your sky" — opt-in geolocation */
 .sunpath-yoursky { margin: 0.5rem auto 0; max-width: 32rem; text-align: center; }

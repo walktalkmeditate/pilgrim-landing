@@ -48,9 +48,10 @@
     dom.deeptime = document.getElementById('sunpath-deeptime');
     dom.deeptimeToggle = document.getElementById('sunpath-deeptime-toggle');
     dom.deeptimePanel = document.getElementById('sunpath-deeptime-panel');
-    dom.deeptimeSlider = document.getElementById('sunpath-deeptime-slider');
     dom.deeptimeCaption = document.getElementById('sunpath-deeptime-caption');
     dom.yourskyBtn = document.getElementById('sunpath-yoursky-btn');
+    // (deep-time scrubber dropped — the zoomed "Walk through time" widget below
+    //  carries the interactive drift; the hero shows the beam + the fact.)
     dom.yourskyReadout = document.getElementById('sunpath-yoursky-readout');
 
     if (!dom.globeContainer) return;
@@ -178,13 +179,10 @@
   // container's data-monument (Stonehenge on the hub, per-turning on subpages).
 
   function setupDeepTime() {
-    if (!dom.deeptimeToggle || !dom.deeptimeSlider) return;
+    if (!dom.deeptimeToggle) return;
     dom.deeptimeToggle.addEventListener('click', function () {
       if (dom.deeptimePanel.hidden) openDeepTime();
       else closeDeepTime();
-    });
-    dom.deeptimeSlider.addEventListener('input', function () {
-      applyDrift(parseInt(dom.deeptimeSlider.value, 10));
     });
   }
 
@@ -207,11 +205,8 @@
       renderer.setRotation(rotation);
       if (renderer.setIdle) renderer.setIdle(false);
     }
-    // Open on "today" — the relatable "~1° off now" — so scrubbing back reveals
-    // the alignment in the builders' own era rather than opening on a flat 0.0°.
-    var startYear = new Date().getUTCFullYear();
-    dom.deeptimeSlider.value = String(startYear);
-    applyDrift(startYear);
+    // No scrubber — draw the present-day alignment beam + state the drift fact.
+    applyDrift(new Date().getUTCFullYear());
   }
 
   function closeDeepTime() {
