@@ -30,7 +30,7 @@
         '  float d = dot(normalize(vN), normalize(uSunDir));' +
         '  float day = smoothstep(-0.08, 0.10, d);' +
         '  vec3 night = vec3(0.020, 0.022, 0.050);' +
-        '  vec3 dayc  = vec3(0.085, 0.110, 0.190);' +
+        '  vec3 dayc  = vec3(0.10, 0.105, 0.15);' +
         '  vec3 twi   = vec3(0.62, 0.34, 0.16);' +
         '  vec3 col = mix(night, dayc, day);' +
         '  float band = 1.0 - smoothstep(0.0, 0.16, abs(d));' +
@@ -62,7 +62,7 @@
 
     // Atmosphere rim — back-side Fresnel sphere in world space, additive gold.
     var atmo = new THREE.Mesh(
-      new THREE.SphereGeometry(1.14, 64, 48),
+      new THREE.SphereGeometry(1.04, 64, 48),
       new THREE.ShaderMaterial({
         uniforms: { uSunDir: { value: sunDir } },
         transparent: true, side: THREE.BackSide,
@@ -78,8 +78,8 @@
         fragmentShader:
           'varying vec3 vN; varying vec3 vView;' +
           'void main(){' +
-          '  float f = pow(1.0 - max(dot(vN, vView), 0.0), 2.2);' +
-          '  gl_FragColor = vec4(vec3(1.0, 0.72, 0.42) * f, f);' +
+          '  float f = pow(1.0 - max(dot(vN, vView), 0.0), 3.0);' +
+          '  gl_FragColor = vec4(vec3(1.0, 0.72, 0.42) * f * 0.85, f * 0.85);' +
           '}'
       })
     );
@@ -171,6 +171,12 @@
 
     function destroy() {
       if (raf) cancelAnimationFrame(raf);
+      sphere.geometry.dispose();
+      dayNight.dispose();
+      if (sunBloom.material.map) sunBloom.material.map.dispose();
+      sunBloom.material.dispose();
+      atmo.geometry.dispose();
+      atmo.material.dispose();
       if (pinMat) { pinMat.dispose(); pinMat = null; }
       glRenderer.dispose();
       if (glRenderer.domElement.parentNode) {
