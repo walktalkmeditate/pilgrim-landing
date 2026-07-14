@@ -438,6 +438,15 @@ html.revealed .clearing-card {
   margin: 0 0 28px;
 }
 
+.clearing-seed {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--ink-fog);
+  max-width: 44ch;
+  margin: 0 auto 18px;
+}
+
 .clearing-practice {
   font-size: 17px;
   font-style: italic;
