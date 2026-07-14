@@ -142,6 +142,23 @@ html.revealed .crescent { opacity: 0; }
   .crescent svg { animation: none; }
 }
 
+.crescent-hint {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 42vw;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-fog);
+  margin: 0;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+html.seeking .crescent-hint.showing { opacity: 0.9; }
+
 /* ========== Stillness prompt ========== */
 
 .stillness {
@@ -341,6 +358,9 @@ main { position: relative; z-index: 1; }
 }
 
 .waymark.seen { opacity: 0.85; }
+
+/* Once the clearing opens, the waymarks bow out with the fog. */
+html.revealed .waymark { opacity: 0; }
 
 /* ========== The clearing ========== */
 

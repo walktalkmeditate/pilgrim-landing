@@ -210,7 +210,9 @@
     var minuteStamp = seeking.startedAt.toISOString().slice(0, 16);
     seeking.rng = makeRng(fnv1a(seeking.word + '|' + minuteStamp));
 
-    seeking.clearingFraction = 0.58 + seeking.rng() * 0.27;
+    // Never earlier than 0.60: the stillness zone (±0.07) must stay clear
+    // of the last waymark at 0.50, or its line bleeds through the card.
+    seeking.clearingFraction = 0.60 + seeking.rng() * 0.25;
     seeking.lineIndex = Math.floor(seeking.rng() * REVEAL_LINES.length);
     seeking.begun = true;
     seeking.revealed = false;
@@ -231,7 +233,18 @@
 
     if (audio.enabled) { schedulePing(); }
 
+    showCrescentHintOnce();
     path.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+  }
+
+  var crescentHintShown = false;
+
+  function showCrescentHintOnce() {
+    if (crescentHintShown) { return; }
+    crescentHintShown = true;
+    var hint = document.getElementById('crescent-hint');
+    hint.classList.add('showing');
+    setTimeout(function () { hint.classList.remove('showing'); }, 6000);
   }
 
   form.addEventListener('submit', function (e) {
