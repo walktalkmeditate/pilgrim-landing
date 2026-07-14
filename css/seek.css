@@ -45,6 +45,10 @@ html[data-hour="night"] {
 html {
   background: var(--paper);
   scroll-behavior: smooth;
+  /* The clearing's halo is wider than a phone; never let it widen the
+     page — asymmetric gutters and misplaced taps on iOS follow. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -60,6 +64,8 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
   transition: background 1.2s ease, color 1.2s ease;
 }
 
@@ -472,11 +478,18 @@ html.revealed .waymark { opacity: 0; }
 .clearing {
   position: absolute;
   left: 50%;
+  /* A default depth so the un-begun clearing never floats up over the
+     arrival — its invisible box was eating the intention input's taps
+     on iOS. begin() overrides this with the seeded depth. */
+  top: 72%;
   transform: translate(-50%, -50%);
   z-index: 3;
   width: min(560px, 88vw);
   text-align: center;
+  pointer-events: none;
 }
+
+html.revealed .clearing-card { pointer-events: auto; }
 
 .clearing-halo {
   position: absolute;
