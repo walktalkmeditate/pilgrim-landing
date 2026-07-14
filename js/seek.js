@@ -136,9 +136,7 @@
       audio.ctx = new Ctx();
       fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-ping.aac')
         .then(function (buf) { audio.ping = buf; });
-      // Echo Chime — the app's walk-start bell. The seek-bowl stays the
-      // in-app reveal; on the web the chime rings clearer on phone speakers.
-      fetchBuffer('https://cdn.pilgrimapp.org/audio/bell/echo-chime.aac')
+      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-bowl.aac')
         .then(function (buf) { audio.bowl = buf; });
     }
     if (audio.ctx.state === 'suspended') { audio.ctx.resume(); }

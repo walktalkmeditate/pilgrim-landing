@@ -435,7 +435,15 @@ html.revealed .clearing-card {
   font-weight: 300;
   font-size: 13px;
   color: var(--ink-fog);
-  margin: 0 0 34px;
+  margin: 0 0 28px;
+}
+
+.clearing-practice {
+  font-size: 17px;
+  font-style: italic;
+  color: var(--ink-fog);
+  max-width: 40ch;
+  margin: 0 auto 30px;
 }
 
 .clearing-actions {
