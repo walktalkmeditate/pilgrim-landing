@@ -1,0 +1,518 @@
+/* /seek — the page is a small seeking. Self-contained.
+   The hour's light is set on <html data-hour="day|golden|night"> before
+   first paint; every color rides these tokens. */
+
+:root {
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans:  "Lato", -apple-system, system-ui, sans-serif;
+
+  --measure: 620px;
+  --gutter:  clamp(24px, 5vw, 48px);
+
+  /* day */
+  --paper:      #F6F1E6;
+  --paper-deep: #EDE5D3;
+  --ink:        #2B241F;
+  --ink-soft:   #3C2E24;
+  --ink-fog:    #756A60;
+  --halo:       #C7A14F;
+  --halo-soft:  rgba(199, 161, 79, 0.35);
+  --fog-tint:   rgba(214, 205, 188, 0.85);
+}
+
+html[data-hour="golden"] {
+  --paper:      #F5E7CF;
+  --paper-deep: #EDD9B8;
+  --ink:        #35281C;
+  --ink-soft:   #4A3722;
+  --ink-fog:    #8A7457;
+  --halo:       #D9A662;
+  --halo-soft:  rgba(217, 166, 98, 0.42);
+  --fog-tint:   rgba(226, 205, 170, 0.85);
+}
+
+html[data-hour="night"] {
+  --paper:      #10131F;
+  --paper-deep: #141228;
+  --ink:        #E8E0FF;
+  --ink-soft:   #D8CCEF;
+  --ink-fog:    #8A84A8;
+  --halo:       #C8C0FF;
+  --halo-soft:  rgba(200, 192, 255, 0.30);
+  --fog-tint:   rgba(26, 24, 52, 0.88);
+}
+
+html {
+  background: var(--paper);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+  transition: background 1.2s ease, color 1.2s ease;
+}
+
+/* ========== Fog ========== */
+
+.fog {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: var(--fog-opacity, 0.9);
+  transition: opacity 2.8s ease;
+}
+
+.fog-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  background: radial-gradient(circle, var(--fog-tint) 0%, transparent 70%);
+}
+
+.fog-blob--1 {
+  width: 90vw; height: 70vh;
+  top: -10vh; left: -20vw;
+  animation: fog-drift-1 26s ease-in-out infinite alternate;
+}
+
+.fog-blob--2 {
+  width: 80vw; height: 80vh;
+  bottom: -20vh; right: -25vw;
+  animation: fog-drift-2 34s ease-in-out infinite alternate;
+}
+
+.fog-blob--3 {
+  width: 60vw; height: 50vh;
+  top: 30vh; left: 20vw;
+  animation: fog-drift-3 30s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift-1 { from { transform: translate(0, 0); } to { transform: translate(8vw, 4vh); } }
+@keyframes fog-drift-2 { from { transform: translate(0, 0); } to { transform: translate(-7vw, -5vh); } }
+@keyframes fog-drift-3 { from { transform: translate(0, 0); } to { transform: translate(-5vw, 6vh); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fog-blob { animation: none; }
+}
+
+html.revealed .fog { opacity: 0.12; }
+
+/* ========== Crescent ========== */
+
+.crescent {
+  position: fixed;
+  right: clamp(12px, 4vw, 40px);
+  top: 50%;
+  z-index: 3;
+  color: var(--halo);
+  opacity: 0;
+  filter: drop-shadow(0 0 6px var(--halo-soft));
+  transform: translateY(-50%);
+  transition: opacity 1.4s ease;
+  pointer-events: none;
+}
+
+html.seeking .crescent { opacity: var(--crescent-glow, 0.5); }
+html.revealed .crescent { opacity: 0; }
+
+.crescent svg {
+  transform: rotate(var(--crescent-angle, 90deg));
+  transition: transform 0.9s ease;
+  animation: crescent-breathe 4.2s ease-in-out infinite;
+}
+
+@keyframes crescent-breathe {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.07; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crescent svg { animation: none; }
+}
+
+/* ========== Stillness prompt ========== */
+
+.stillness {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(48px, 12vh, 120px);
+  transform: translateX(-50%);
+  z-index: 4;
+  text-align: center;
+  color: var(--ink-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+html.in-zone:not(.revealed) .stillness { opacity: 1; }
+
+.stillness-ring { color: var(--halo); }
+
+#stillness-fill { transition: none; }
+
+.stillness-text {
+  font-style: italic;
+  font-size: 20px;
+  margin: 10px 0 0;
+  letter-spacing: 0.02em;
+}
+
+.stillness-fallback {
+  pointer-events: auto;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--ink-fog);
+  color: var(--ink-fog);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  margin-top: 14px;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+/* ========== Arrival ========== */
+
+main { position: relative; z-index: 1; }
+
+.arrival {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(48px, 8vh, 96px) var(--gutter);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 3; /* above the fog: the door stands clear before the walk */
+}
+
+.hour-line { margin: 0 0 clamp(24px, 4vh, 48px); }
+
+.hour-cycle {
+  background: none;
+  border: none;
+  color: var(--ink-fog);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.hour-cycle:hover { color: var(--halo); }
+
+.arrival h1 {
+  font-size: clamp(44px, 9vw, 84px);
+  line-height: 1.08;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 clamp(28px, 5vh, 56px);
+  letter-spacing: -0.01em;
+}
+
+.arrival-lede {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+  margin: 0 0 1em;
+}
+
+.arrival-lede--second { color: var(--ink-fog); }
+
+.intention {
+  margin-top: clamp(28px, 5vh, 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.intention label {
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+}
+
+.intention input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--ink-fog);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px;
+  text-align: center;
+  padding: 6px 12px;
+  width: min(320px, 80vw);
+  outline: none;
+}
+
+.intention input:focus { border-bottom-color: var(--halo); }
+
+.intention input::placeholder { color: var(--ink-fog); opacity: 0.7; }
+
+.arrival-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.begin {
+  background: none;
+  border: 1px solid var(--halo);
+  border-radius: 999px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 19px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.begin:hover {
+  background: var(--halo-soft);
+  box-shadow: 0 0 24px var(--halo-soft);
+}
+
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--ink-fog);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.sound-toggle[aria-pressed="true"] { color: var(--halo); }
+
+.noscript-note {
+  margin-top: 32px;
+  color: var(--ink-fog);
+  font-size: 16px;
+}
+
+.noscript-note a { color: var(--ink-soft); }
+
+/* ========== The path ========== */
+
+.path {
+  position: relative;
+  height: 520svh;
+}
+
+.waymark {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(480px, 78vw);
+  text-align: center;
+  font-style: italic;
+  font-size: clamp(19px, 2.6vw, 24px);
+  color: var(--ink-fog);
+  opacity: 0;
+  transition: opacity 2s ease;
+  margin: 0;
+  z-index: 1;
+}
+
+.waymark.seen { opacity: 0.85; }
+
+/* ========== The clearing ========== */
+
+.clearing {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  width: min(560px, 88vw);
+  text-align: center;
+}
+
+.clearing-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 130vmin;
+  height: 130vmin;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+    var(--halo-soft) 0%,
+    rgba(0, 0, 0, 0) 62%);
+  opacity: 0;
+  transition: opacity 3s ease;
+  pointer-events: none;
+}
+
+html.in-zone .clearing-halo { opacity: 0.45; }
+html.revealed .clearing-halo { opacity: 1; }
+
+.clearing-card {
+  position: relative;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 2.2s ease 0.6s;
+  outline: none;
+}
+
+html.revealed .clearing-card {
+  opacity: 1;
+  visibility: visible;
+}
+
+.clearing-found {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-fog);
+  margin: 0 0 18px;
+}
+
+.clearing-word {
+  font-size: clamp(40px, 8vw, 64px);
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0 0 26px;
+  overflow-wrap: break-word;
+}
+
+.clearing-line {
+  font-size: clamp(20px, 3vw, 25px);
+  color: var(--ink-soft);
+  margin: 0 auto 20px;
+  max-width: 26ch;
+}
+
+.clearing-date {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--ink-fog);
+  margin: 0 0 34px;
+}
+
+.clearing-actions {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.clearing-actions button {
+  background: none;
+  border: 1px solid var(--ink-fog);
+  border-radius: 999px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.clearing-actions button:hover {
+  border-color: var(--halo);
+  background: var(--halo-soft);
+}
+
+#keepsake-btn { border-color: var(--halo); }
+
+/* ========== The story ========== */
+
+.story {
+  position: relative;
+  z-index: 3;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: clamp(80px, 14vh, 160px) var(--gutter) clamp(64px, 10vh, 120px);
+}
+
+.story h2 {
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 1em;
+}
+
+.story p { margin: 0 0 1.4em; color: var(--ink-soft); }
+
+.story-seed { color: var(--ink); }
+
+.story-promise {
+  font-style: italic;
+  color: var(--ink-fog);
+  border-left: 2px solid var(--halo);
+  padding-left: 18px;
+}
+
+.store-badges {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: clamp(40px, 6vh, 64px) 0 0;
+}
+
+.store-link {
+  border: 1px solid var(--ink-fog);
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 15px;
+  padding: 12px 24px;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.store-link:hover {
+  border-color: var(--halo);
+  background: var(--halo-soft);
+}
+
+.seek-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: clamp(64px, 10vh, 120px);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 14px;
+}
+
+.seek-footer a {
+  color: var(--ink-fog);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.seek-footer a:hover {
+  color: var(--ink-soft);
+  border-bottom-color: var(--ink-fog);
+}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function () {
+      var p = location.pathname;
+      if (p.endsWith('.html') && p !== '/404.html') {
+        history.replaceState(null, '',
+          p.replace(/\/index\.html$/, '/').replace(/\.html$/, '')
+          + location.search + location.hash);
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seek — walk toward what you cannot see | Pilgrim</title>
+  <meta name="description" content="Seek is Pilgrim's third way of walking: whisper an intention, follow a pulse through fog toward places you didn't choose, and let stillness reveal them. This page is a small seeking of its own — one clearing is hidden here.">
+  <link rel="canonical" href="https://pilgrimapp.org/seek">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Seek — walk toward what you cannot see">
+  <meta property="og:description" content="Whisper what you're looking for. Follow the pulse through fog. Be still, and the clearing opens. A small seeking is hidden in this page.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pilgrimapp.org/seek">
+  <meta property="og:site_name" content="Pilgrim">
+  <meta property="og:image" content="https://pilgrimapp.org/assets/og-seek.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Seek — walk toward what you cannot see">
+  <meta name="twitter:description" content="Whisper what you're looking for. Follow the pulse through fog. Be still, and the clearing opens.">
+  <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-seek.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Seek — walk toward what you cannot see",
+    "url": "https://pilgrimapp.org/seek",
+    "description": "Seek is Pilgrim's third way of walking: choose a duration, whisper an intention, and follow a quiet pulse through fog toward places you didn't choose. Stillness reveals them.",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Pilgrim",
+      "url": "https://pilgrimapp.org"
+    },
+    "about": {
+      "@type": "SoftwareApplication",
+      "name": "Pilgrim",
+      "operatingSystem": "iOS",
+      "applicationCategory": "HealthApplication",
+      "url": "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056"
+    }
+  }
+  </script>
+
+  <!-- The hour's light, set before first paint so there is no flash.
+       Approximate mid-latitude sunrise/sunset by month; no location asked. -->
+  <script>
+    (function () {
+      var sr = [7.8, 7.3, 6.6, 5.9, 5.3, 5.1, 5.3, 5.8, 6.4, 7.0, 7.3, 7.8];
+      var ss = [17.0, 17.7, 18.3, 19.0, 19.6, 20.0, 19.9, 19.3, 18.4, 17.5, 16.8, 16.5];
+      var now = new Date();
+      var m = now.getMonth();
+      var t = now.getHours() + now.getMinutes() / 60;
+      var hour, label;
+      if (t < sr[m] - 1.25 || t > ss[m] + 1.25) { hour = 'night'; label = 'night'; }
+      else if (Math.abs(t - sr[m]) <= 1.25) { hour = 'golden'; label = 'dawn'; }
+      else if (Math.abs(t - ss[m]) <= 1.25) { hour = 'golden'; label = 'dusk'; }
+      else { hour = 'day'; label = 'day'; }
+      document.documentElement.dataset.hour = hour;
+      document.documentElement.dataset.hourLabel = label;
+    })();
+  </script>
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Lato:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/seek.css">
+
+  <!-- Analytics -->
+  <script defer src="https://analytics.walktalkmeditate.org/script.js" data-website-id="29086588-fb14-43db-84b6-2528fa3f47fa"></script>
+</head>
+<body>
+
+  <!-- Fixed atmosphere: fog that thins as you near the clearing -->
+  <div class="fog" aria-hidden="true">
+    <div class="fog-blob fog-blob--1"></div>
+    <div class="fog-blob fog-blob--2"></div>
+    <div class="fog-blob fog-blob--3"></div>
+  </div>
+
+  <!-- The crescent: leans toward the clearing, breathes with the pulse -->
+  <div class="crescent" id="crescent" aria-hidden="true">
+    <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+      <path id="crescent-arc" d="M 24 6 A 18 18 0 0 1 24 42"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- Stillness prompt: appears in the clearing zone -->
+  <div class="stillness" id="stillness" role="status" aria-live="polite">
+    <svg class="stillness-ring" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor"
+              stroke-opacity="0.15" stroke-width="2"/>
+      <circle id="stillness-fill" cx="32" cy="32" r="28" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-dasharray="175.93" stroke-dashoffset="175.93"
+              transform="rotate(-90 32 32)"/>
+    </svg>
+    <p class="stillness-text">Be still.</p>
+    <button type="button" class="stillness-fallback" id="stillness-fallback" hidden>
+      or simply rest here — open the clearing
+    </button>
+  </div>
+
+  <main>
+
+    <!-- ========== Arrival ========== -->
+    <header class="arrival" id="arrival">
+      <p class="hour-line"><button type="button" id="hour-cycle" class="hour-cycle"
+        aria-label="Preview another hour's light">under the <span id="hour-name">day</span> light</button></p>
+
+      <h1>The unknown<br>now has a door.</h1>
+
+      <p class="arrival-lede">
+        Pilgrim's new way of walking is called <em>Seek</em>: choose how long
+        you have, whisper what you're looking for, and follow a quiet pulse
+        through fog toward places you didn't choose. Stillness reveals them.
+      </p>
+
+      <p class="arrival-lede arrival-lede--second">
+        This page is a small seeking of its own.
+        One clearing is hidden somewhere below.
+      </p>
+
+      <form class="intention" id="intention-form" autocomplete="off">
+        <label for="intention-word">What are you seeking?</label>
+        <input type="text" id="intention-word" name="word" maxlength="32"
+               placeholder="one word is enough" spellcheck="false">
+        <div class="arrival-actions">
+          <button type="submit" class="begin" data-umami-event="seek-begin">Begin walking ↓</button>
+          <button type="button" class="sound-toggle" id="sound-toggle"
+                  aria-pressed="false" data-umami-event="seek-sound-on">
+            <span class="sound-toggle-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                   stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="8" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+                <path d="M12 8.5 Q14.5 12 12 15.5"/>
+                <path d="M15.5 6 Q19.5 12 15.5 18"/>
+              </svg>
+            </span>
+            seek with sound
+          </button>
+        </div>
+      </form>
+
+      <noscript>
+        <p class="noscript-note">
+          The seeking itself needs JavaScript — but the story doesn't.
+          <a href="#story">Read about Seek below</a>.
+        </p>
+      </noscript>
+    </header>
+
+    <!-- ========== The path ========== -->
+    <div class="path" id="path" aria-label="The seeking — scroll onward, then be still when the light opens wide">
+      <p class="waymark" data-depth="0.12">You don't choose where you're going. That's the point.</p>
+      <p class="waymark" data-depth="0.30">The crescent leans toward what waits.</p>
+      <p class="waymark" data-depth="0.48">Listen — the pulse quickens when you're close.</p>
+      <p class="waymark" data-depth="0.64">When the light opens wide: stop.</p>
+
+      <!-- The clearing. Position is seeded; contents arrive on reveal. -->
+      <div class="clearing" id="clearing">
+        <div class="clearing-halo" aria-hidden="true"></div>
+        <div class="clearing-card" id="clearing-card" tabindex="-1">
+          <p class="clearing-found">found under the <span class="clearing-hour">day</span> light</p>
+          <p class="clearing-word" id="clearing-word">the unknown</p>
+          <p class="clearing-line" id="clearing-line"></p>
+          <p class="clearing-date" id="clearing-date"></p>
+          <div class="clearing-actions">
+            <button type="button" id="keepsake-btn" data-umami-event="seek-keepsake">Keep it</button>
+            <button type="button" id="again-btn" data-umami-event="seek-again">Seek again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== The story ========== -->
+    <section class="story" id="story">
+      <h2>Seek, in the app</h2>
+
+      <p>
+        In Pilgrim, a seek is a real walk. You choose a duration and the walk
+        shapes a one-way journey to fit it — no return leg, just the path
+        onward. Clearings are hidden in fog on the map around you. A sonar
+        ping quickens as you near one; a crescent of light leans the way.
+        Arrive, and the walk asks one thing: be still. Hold still long enough
+        and a bowl sounds, the fog lifts, and the way continues.
+      </p>
+
+      <p>
+        What the seeking finds, it keeps. Found places glow on your walk's
+        map as halos in the light of the hour you reached them. The journal
+        marks seek walks with their own footprints, raises small stone
+        cairns for the places they found, and stands a weathered gate at the
+        walk that found your first unknown. New goshuin seals honor the
+        thresholds of a seeking life.
+      </p>
+
+      <p class="story-seed">
+        The clearings aren't random, and they aren't chosen. They're grown
+        from a one-way seed: your intention exactly as you whispered it, the
+        moment you set out, and the ground you stood on. The same intention
+        never walks the same seeking twice — and nothing about you can be
+        read back out of it. It's generated on your phone, and it never
+        leaves.
+      </p>
+
+      <p class="story-promise">
+        This page kept the same promise. Your word never left it.
+      </p>
+
+      <div class="store-badges">
+        <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056"
+           class="store-link" data-umami-event="seek-app-store">Download on the App&nbsp;Store</a>
+        <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim"
+           class="store-link" data-umami-event="seek-google-play">Get it on Google&nbsp;Play</a>
+      </div>
+
+      <footer class="seek-footer">
+        <a href="/">← Pilgrim</a>
+        <a href="/now">now</a>
+      </footer>
+    </section>
+
+  </main>
+
+  <script src="js/seek.js" defer></script>
+</body>
+</html>

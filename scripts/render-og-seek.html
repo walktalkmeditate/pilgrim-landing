@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!--
+  Renders assets/og-seek.png (1200×630) via Chrome headless.
+
+  From repo root:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+      --headless --disable-gpu --hide-scrollbars \
+      --force-device-scale-factor=1 \
+      --window-size=1200,670 \
+      --screenshot=/tmp/og-seek-raw.png \
+      --virtual-time-budget=5000 \
+      "file://$(pwd)/scripts/render-og-seek.html"
+    magick /tmp/og-seek-raw.png -crop 1200x630+0+0 +repage assets/og-seek.png
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Render og-seek</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Lato:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; background: #F5E7CF; }
+    svg { display: block; width: 1200px; height: 630px; }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#F5E7CF"/>
+        <stop offset="1" stop-color="#EDD9B8"/>
+      </linearGradient>
+      <radialGradient id="halo" cx="0.72" cy="0.42" r="0.55">
+        <stop offset="0" stop-color="#D9A662" stop-opacity="0.55"/>
+        <stop offset="0.55" stop-color="#D9A662" stop-opacity="0.18"/>
+        <stop offset="1" stop-color="#D9A662" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="fog1" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#E2CDAA" stop-opacity="0.85"/>
+        <stop offset="1" stop-color="#E2CDAA" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soften" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="18"/>
+      </filter>
+    </defs>
+
+    <rect width="1200" height="630" fill="url(#paper)"/>
+    <rect width="1200" height="630" fill="url(#halo)"/>
+
+    <!-- fog banks -->
+    <ellipse cx="180" cy="120" rx="460" ry="200" fill="url(#fog1)" filter="url(#soften)"/>
+    <ellipse cx="300" cy="560" rx="560" ry="220" fill="url(#fog1)" filter="url(#soften)"/>
+    <ellipse cx="1050" cy="620" rx="420" ry="180" fill="url(#fog1)" filter="url(#soften)" opacity="0.8"/>
+
+    <!-- the crescent, breathing toward the clearing -->
+    <g transform="translate(864, 264) rotate(18)">
+      <path d="M 0 -78 A 78 78 0 0 1 0 78"
+            fill="none" stroke="#D9A662" stroke-width="10" stroke-linecap="round"
+            opacity="0.95"/>
+      <path d="M 0 -78 A 78 78 0 0 1 0 78"
+            fill="none" stroke="#D9A662" stroke-width="26" stroke-linecap="round"
+            opacity="0.22" filter="url(#soften)"/>
+    </g>
+
+    <!-- found place: a small dawn halo -->
+    <circle cx="864" cy="264" r="7" fill="#C7A14F"/>
+    <circle cx="864" cy="264" r="20" fill="none" stroke="#C7A14F" stroke-width="1.6" opacity="0.5"/>
+    <circle cx="864" cy="264" r="36" fill="none" stroke="#C7A14F" stroke-width="1.2" opacity="0.25"/>
+
+    <!-- wordmark -->
+    <text x="96" y="300" font-family="'Cormorant Garamond', serif" font-style="italic"
+          font-size="150" fill="#35281C">Seek</text>
+    <text x="100" y="378" font-family="'Cormorant Garamond', serif" font-style="italic"
+          font-size="44" fill="#4A3722">walk toward what you cannot see</text>
+
+    <text x="100" y="540" font-family="Lato, sans-serif" font-weight="300"
+          font-size="22" letter-spacing="6" fill="#8A7457">PILGRIM · A THIRD WAY OF WALKING</text>
+  </svg>
+</body>
+</html>
