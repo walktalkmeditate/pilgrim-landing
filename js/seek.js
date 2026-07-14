@@ -47,6 +47,18 @@
     'The door was never locked. It was waiting.'
   ];
 
+  // A few words carry their own waiting lines. Undocumented — found only
+  // by whispering them.
+  var SECRET_LINES = {
+    'nothing': 'Nothing was sought. Something was found anyway.',
+    'fog': 'You sought the fog inside the fog. It was here all along.',
+    'home': 'Every clearing is a doorstep. Welcome back.',
+    'the way': 'The way was never lost. Only quiet.',
+    'way': 'The way was never lost. Only quiet.',
+    'pilgrim': 'A pilgrim is anyone who walks like this.',
+    'the unknown': 'It knows you now.'
+  };
+
   // ---------- Elements ----------
 
   var path = document.getElementById('path');
@@ -62,16 +74,19 @@
   var hourName = document.getElementById('hour-name');
 
   var RING_LENGTH = 175.93;
-  var STILLNESS_MS = reducedMotion ? 1800 : 6000;
+  var ARC_LENGTH = 113.1;
+  // Three fog-breaths, three seconds each (see fog-breath in seek.css).
+  var STILLNESS_MS = reducedMotion ? 1800 : 9000;
 
   // ---------- State ----------
 
   var seeking = {
     word: 'the unknown',
     startedAt: null,
+    minuteStamp: '',
     rng: null,
     clearingFraction: 0.72,
-    lineIndex: 0,
+    lineText: '',
     revealed: false,
     begun: false
   };
@@ -207,13 +222,14 @@
     seeking.word = cleaned || 'the unknown';
     seeking.startedAt = new Date();
 
-    var minuteStamp = seeking.startedAt.toISOString().slice(0, 16);
-    seeking.rng = makeRng(fnv1a(seeking.word + '|' + minuteStamp));
+    seeking.minuteStamp = seeking.startedAt.toISOString().slice(0, 16);
+    seeking.rng = makeRng(fnv1a(seeking.word + '|' + seeking.minuteStamp));
 
     // Never earlier than 0.60: the stillness zone (±0.07) must stay clear
     // of the last waymark at 0.50, or its line bleeds through the card.
     seeking.clearingFraction = 0.60 + seeking.rng() * 0.25;
-    seeking.lineIndex = Math.floor(seeking.rng() * REVEAL_LINES.length);
+    var lineIndex = Math.floor(seeking.rng() * REVEAL_LINES.length);
+    seeking.lineText = SECRET_LINES[seeking.word] || REVEAL_LINES[lineIndex];
     seeking.begun = true;
     seeking.revealed = false;
 
@@ -223,7 +239,7 @@
     html.classList.remove('revealed');
 
     document.getElementById('clearing-word').textContent = seeking.word;
-    document.getElementById('clearing-line').textContent = REVEAL_LINES[seeking.lineIndex];
+    document.getElementById('clearing-line').textContent = seeking.lineText;
 
     var dateFmt = new Intl.DateTimeFormat(undefined, {
       day: 'numeric', month: 'long', year: 'numeric',
@@ -294,9 +310,21 @@
     var glow = 0.35 + closeness * 0.65;
     crescent.style.setProperty('--crescent-glow', glow.toFixed(2));
 
-    // The fog thins as the clearing nears — the light steps forward.
+    // The span opens with proximity — a sliver of light far off, a
+    // wide-open crescent at the clearing's edge. The dash is centered
+    // on the circle's start point; the svg rotation aims it.
+    var span = ARC_LENGTH * (0.12 + closeness * 0.55);
+    var arc = document.getElementById('crescent-arc');
+    arc.setAttribute('stroke-dasharray', span.toFixed(1) + ' ' + (ARC_LENGTH - span).toFixed(1));
+    arc.setAttribute('stroke-dashoffset', (span / 2).toFixed(1));
+
+    // The breath follows the pulse: one breath per ping.
+    crescent.style.setProperty('--pulse-period', pingInterval(distance) + 'ms');
+
+    // The fog thins and the world arrives as the clearing nears.
     var fogOpacity = 0.9 - closeness * 0.45;
     document.querySelector('.fog').style.setProperty('--fog-opacity', fogOpacity.toFixed(2));
+    html.style.setProperty('--world-clarity', closeness.toFixed(2));
   }
 
   // ---------- Stillness ----------
@@ -344,6 +372,7 @@
 
   function startFill() {
     stillness.fillStart = performance.now();
+    html.classList.add('filling');
     function tick(now) {
       var t = Math.min((now - stillness.fillStart) / STILLNESS_MS, 1);
       stillnessFill.setAttribute('stroke-dashoffset', (RING_LENGTH * (1 - t)).toFixed(2));
@@ -356,6 +385,7 @@
   function cancelFill() {
     if (stillness.raf) { cancelAnimationFrame(stillness.raf); stillness.raf = null; }
     if (stillness.idleTimer) { clearTimeout(stillness.idleTimer); stillness.idleTimer = null; }
+    html.classList.remove('filling');
     stillnessFill.setAttribute('stroke-dashoffset', RING_LENGTH);
   }
 
@@ -370,6 +400,7 @@
     cancelFill();
     html.classList.add('revealed');
     html.classList.remove('in-zone');
+    html.style.setProperty('--world-clarity', '1');
     playBuffer(audio.bowl, 0.5);
     clearingCard.focus({ preventScroll: true });
     if (window.umami) { window.umami.track('seek-reveal'); }
@@ -443,6 +474,33 @@
     ctx.fillStyle = halo;
     ctx.fillRect(0, 0, W, H);
 
+    // The seeking's own shape: a seeded meander from the card's foot to
+    // the halo — no two keepsakes ever share it.
+    var pathRng = makeRng(fnv1a(seeking.word + '|' + seeking.minuteStamp + '|path'));
+    var x = W * (0.3 + pathRng() * 0.4);
+    var y = H * 0.9;
+    var haloX = W / 2, haloY = H * 0.36;
+    ctx.strokeStyle = pal.inkFog;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    var steps = 6;
+    for (var i = 1; i <= steps; i++) {
+      var t = i / steps;
+      var targetY = y + (haloY - y) * t;
+      var wander = (1 - t) * W * 0.16;
+      var targetX = x + (haloX - x) * t + (pathRng() * 2 - 1) * wander;
+      var controlX = x + (targetX - x) / 2 + (pathRng() * 2 - 1) * wander * 0.8;
+      var controlY = (y + targetY) / 2;
+      ctx.quadraticCurveTo(controlX, controlY, targetX, targetY);
+      x = targetX;
+      y = targetY;
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
     ctx.textAlign = 'center';
 
     ctx.fillStyle = pal.inkFog;
@@ -456,7 +514,7 @@
 
     ctx.fillStyle = pal.inkSoft;
     ctx.font = 'italic 44px "Cormorant Garamond", serif';
-    wrapText(ctx, REVEAL_LINES[seeking.lineIndex], W / 2, H * 0.55, W * 0.72, 60);
+    wrapText(ctx, seeking.lineText, W / 2, H * 0.55, W * 0.72, 60);
 
     var dateFmt = new Intl.DateTimeFormat(undefined, {
       day: 'numeric', month: 'long', year: 'numeric'
@@ -497,6 +555,29 @@
     });
     ctx.fillText(line, x, y);
   }
+
+  // ---------- Night stars ----------
+  // Seeded from a fixed word so the sky is the same for everyone;
+  // shown only under the night palette (see .stars in seek.css).
+
+  (function sowStars() {
+    var starRng = makeRng(fnv1a('the night sky over the seek'));
+    var container = document.getElementById('stars');
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < 48; i++) {
+      var star = document.createElement('span');
+      star.className = 'star';
+      star.style.left = (starRng() * 100).toFixed(1) + '%';
+      star.style.top = (starRng() * 72).toFixed(1) + '%';
+      var size = 1 + starRng() * 1.8;
+      star.style.width = size.toFixed(1) + 'px';
+      star.style.height = size.toFixed(1) + 'px';
+      star.style.setProperty('--twinkle', (2.5 + starRng() * 5).toFixed(1) + 's');
+      star.style.animationDelay = (starRng() * 5).toFixed(1) + 's';
+      fragment.appendChild(star);
+    }
+    container.appendChild(fragment);
+  })();
 
   // ---------- Scroll loop ----------
 

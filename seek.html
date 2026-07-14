@@ -88,6 +88,15 @@
 </head>
 <body>
 
+  <!-- The world beneath the fog: dreamlike from afar, real as you near -->
+  <div class="world" aria-hidden="true">
+    <div class="stars" id="stars"></div>
+    <div class="world-disc"></div>
+    <div class="world-hill world-hill--far"></div>
+    <div class="world-hill world-hill--mid"></div>
+    <div class="world-hill world-hill--near"></div>
+  </div>
+
   <!-- Fixed atmosphere: fog that thins as you near the clearing -->
   <div class="fog" aria-hidden="true">
     <div class="fog-blob fog-blob--1"></div>
@@ -95,11 +104,13 @@
     <div class="fog-blob fog-blob--3"></div>
   </div>
 
-  <!-- The crescent: leans toward the clearing, breathes with the pulse -->
+  <!-- The crescent rides the walker — you, the viewport's center.
+       Its span opens with proximity; its breath follows the pulse. -->
   <div class="crescent" id="crescent" aria-hidden="true">
-    <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
-      <path id="crescent-arc" d="M 24 6 A 18 18 0 0 1 24 42"
-            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    <svg viewBox="0 0 48 48" width="52" height="52" fill="none">
+      <circle id="crescent-arc" cx="24" cy="24" r="18"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+              stroke-dasharray="14 99.1" stroke-dashoffset="7"/>
     </svg>
     <p class="crescent-hint" id="crescent-hint">it leans toward what waits</p>
   </div>
@@ -115,6 +126,7 @@
               transform="rotate(-90 32 32)"/>
     </svg>
     <p class="stillness-text">Be still.</p>
+    <p class="stillness-sub">three breaths</p>
     <button type="button" class="stillness-fallback" id="stillness-fallback" hidden>
       or simply rest here — open the clearing
     </button>

@@ -109,17 +109,107 @@ body {
 
 html.revealed .fog { opacity: 0.12; }
 
+/* While the stillness ring fills, the fog breathes with you —
+   in for a beat, out for a beat, three times to the clearing. */
+html.filling .fog {
+  animation: fog-breath 3s ease-in-out 3;
+}
+
+@keyframes fog-breath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.filling .fog { animation: none; }
+}
+
+/* ========== The world beneath ==========
+   Dreamlike from afar; arrives as you near. --world-clarity runs 0..1. */
+
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: calc(0.06 + var(--world-clarity, 0) * 0.5);
+  filter: blur(calc((1 - var(--world-clarity, 0)) * 26px))
+          saturate(calc(0.55 + var(--world-clarity, 0) * 0.65));
+  transition: opacity 1.6s ease, filter 1.6s ease;
+}
+
+html.revealed .world { opacity: 0.62; filter: blur(2px) saturate(1.15); }
+
+.world-disc {
+  position: absolute;
+  left: 50%;
+  top: 16vh;
+  width: 15vmin;
+  height: 15vmin;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--halo) 0%, var(--halo-soft) 55%, transparent 75%);
+}
+
+.world-hill {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--ink-fog);
+}
+
+.world-hill--far {
+  width: 130vw; height: 42vh;
+  bottom: -26vh; left: -32vw;
+  opacity: 0.28;
+}
+
+.world-hill--mid {
+  width: 120vw; height: 38vh;
+  bottom: -25vh; right: -40vw;
+  opacity: 0.42;
+}
+
+.world-hill--near {
+  width: 150vw; height: 34vh;
+  bottom: -24vh; left: -25vw;
+  opacity: 0.6;
+}
+
+/* Night grows stars — the page's constellation mode. */
+
+.stars { position: absolute; inset: 0; display: none; }
+
+html[data-hour="night"] .stars { display: block; }
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  animation: star-twinkle var(--twinkle, 4s) ease-in-out infinite;
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star { animation: none; opacity: 0.6; }
+}
+
 /* ========== Crescent ========== */
 
 .crescent {
   position: fixed;
-  right: clamp(12px, 4vw, 40px);
-  top: 50%;
+  left: 50%;
+  top: 56%;
   z-index: 3;
   color: var(--halo);
   opacity: 0;
-  filter: drop-shadow(0 0 6px var(--halo-soft));
-  transform: translateY(-50%);
+  filter: drop-shadow(0 0 calc(4px + var(--crescent-glow, 0.5) * 8px) var(--halo-soft));
+  transform: translate(-50%, -50%);
   transition: opacity 1.4s ease;
   pointer-events: none;
 }
@@ -130,12 +220,16 @@ html.revealed .crescent { opacity: 0; }
 .crescent svg {
   transform: rotate(var(--crescent-angle, 90deg));
   transition: transform 0.9s ease;
-  animation: crescent-breathe 4.2s ease-in-out infinite;
+  animation: crescent-breathe var(--pulse-period, 3s) ease-in-out infinite;
+}
+
+#crescent-arc {
+  transition: stroke-dasharray 0.9s ease, stroke-dashoffset 0.9s ease;
 }
 
 @keyframes crescent-breathe {
   0%, 100% { scale: 1; }
-  50%      { scale: 1.07; }
+  50%      { scale: 1.09; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -144,11 +238,12 @@ html.revealed .crescent { opacity: 0; }
 
 .crescent-hint {
   position: absolute;
-  right: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%);
   width: max-content;
-  max-width: 42vw;
+  max-width: 80vw;
+  text-align: center;
   font-style: italic;
   font-size: 15px;
   color: var(--ink-fog);
@@ -185,6 +280,16 @@ html.in-zone:not(.revealed) .stillness { opacity: 1; }
   font-size: 20px;
   margin: 10px 0 0;
   letter-spacing: 0.02em;
+}
+
+.stillness-sub {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-fog);
+  margin: 6px 0 0;
 }
 
 .stillness-fallback {
