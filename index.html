@@ -779,6 +779,18 @@
       opacity: 1;
     }
 
+    .trail-credit {
+      font-family: var(--font-ui);
+      font-size: 0.6875rem;
+      color: var(--fog);
+      opacity: 0.45;
+      margin-top: var(--padding-sm);
+    }
+
+    .trail-credit a {
+      color: inherit;
+    }
+
     .trail-flame {
       display: inline-block;
       vertical-align: middle;
@@ -1655,6 +1667,7 @@
         <p class="trail-stats" id="trail-stats"></p>
         <p class="trail-streak" id="trail-streak"></p>
         <p class="trail-walking" id="trail-walking"></p>
+        <p class="trail-credit"><em>route data: <a href="https://github.com/walktalkmeditate/open-pilgrimages" target="_blank" rel="noopener noreferrer">open-pilgrimages</a> &middot; ODbL</em></p>
       </div>
     </section>
 
@@ -1775,6 +1788,7 @@
   <script src="js/seal.js"></script>
   <script src="js/reliquary.js" defer></script>
   <script src="js/home-sunpath-teaser.js" defer></script>
+  <script src="js/collective-routes.js"></script>
   <script>
     (function() {
       var svg = document.getElementById('trail-svg');
@@ -1789,27 +1803,12 @@
       var cachedStats = null;
       var NS = 'http://www.w3.org/2000/svg';
 
-      var routes = [
-        { name: 'Kumano Kodo', km: 40 },
-        { name: 'Via Francigena', km: 100 },
-        { name: 'Camino de Santiago', km: 800 },
-        { name: 'Shikoku 88 Temples', km: 1200 },
-        { name: 'Te Araroa', km: 3000 },
-        { name: 'Appalachian Trail', km: 3500 },
-        { name: 'the Moon', km: 384400 },
-      ];
+      var COLLECTIVE = null; // { pilgrimages, horizons }, fetched once
+      var assetSettled = false;
 
-      function pilgrimageMessage(km) {
-        if (km < 10) return 'The path is beginning.';
-        if (km < 40) return 'The first steps, taken together.';
-        for (var i = routes.length - 1; i >= 0; i--) {
-          if (km >= routes[i].km) {
-            var times = km / routes[i].km;
-            if (times >= 2) return 'Together, the ' + routes[i].name + ' walked ' + Math.floor(times) + ' times.';
-            return 'Together, one ' + routes[i].name + ' complete.';
-          }
-        }
-        return 'The first steps, taken together.';
+      function milestoneText(km) {
+        if (!COLLECTIVE) return 'The path is beginning.';
+        return CollectiveRoutes.select(km, new Date(), COLLECTIVE).label;
       }
 
       function pointOnPath(pathEl, frac) {
@@ -1847,7 +1846,7 @@
 
         var totalLen = pathEl.getTotalLength();
 
-        routes.forEach(function(route) {
+        (COLLECTIVE ? COLLECTIVE.pilgrimages : []).forEach(function(route) {
           if (route.km > km || route.km > maxKm) return;
           var frac = (route.km / maxKm) * progress / progress;
           frac = Math.min(route.km / maxKm, progress) / progress;
@@ -1863,7 +1862,7 @@
           label.setAttribute('y', pt.y - 10);
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('class', 'trail-marker-label');
-          label.textContent = route.name;
+          label.textContent = route.nameEn;
           svg.appendChild(label);
         });
 
@@ -1901,7 +1900,7 @@
       function renderStats(data) {
         cachedStats = data;
         var km = data.total_distance_km || 0;
-        milestoneEl.textContent = pilgrimageMessage(km);
+        milestoneEl.textContent = milestoneText(km);
 
         var dist = imperial ? km * 0.621371 : km;
         var unit = imperial ? 'mi' : 'km';
@@ -1989,9 +1988,29 @@
         if (cachedStats) renderStats(cachedStats);
       });
 
+      function maybeRenderStats() {
+        if (cachedStats && assetSettled) renderStats(cachedStats);
+      }
+
+      fetch('/assets/collective-routes.json')
+        .then(function(r) { return r.json(); })
+        .then(function(asset) {
+          COLLECTIVE = asset;
+          assetSettled = true;
+          maybeRenderStats();
+        })
+        .catch(function() {
+          // asset failed — COLLECTIVE stays null; milestoneText()/drawTrail() fall back gracefully
+          assetSettled = true;
+          maybeRenderStats();
+        });
+
       fetch('https://walk.pilgrimapp.org/api/now')
         .then(function(r) { return r.json(); })
-        .then(renderStats)
+        .then(function(data) {
+          cachedStats = data;
+          maybeRenderStats();
+        })
         .catch(function() {
           milestoneEl.textContent = 'The path is beginning.';
           if (infoEl) infoEl.classList.add('visible');
