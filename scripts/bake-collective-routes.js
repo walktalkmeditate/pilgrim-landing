@@ -44,6 +44,8 @@ function bakePilgrimage(routeId, routesDir){
   assertField(meta.name.en, 'name.en', metaPath);
   assertField(meta.overview, 'overview', metaPath);
   assertField(meta.overview.distanceKm, 'overview.distanceKm', metaPath);
+  var km = meta.overview.distanceKm;
+  if (typeof km !== 'number' || !isFinite(km) || km <= 0) die('missing or invalid ' + metaPath + ' — overview.distanceKm must be a positive finite number, got ' + JSON.stringify(km));
 
   var reflections = [];
   var stagesPath = path.join(dir, 'stages.json');
@@ -73,7 +75,7 @@ function bakePilgrimage(routeId, routesDir){
   return {
     id: meta.id,
     nameEn: meta.name.en,
-    km: meta.overview.distanceKm,
+    km: km,
     bestMonths: meta.overview.bestMonths || [],
     peakMonths: meta.overview.peakMonths || [],
     reflections: reflections,
