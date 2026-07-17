@@ -746,6 +746,18 @@
       margin-bottom: var(--padding-sm);
     }
 
+    .trail-milestone a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+      transition: border-color 0.25s ease;
+    }
+
+    .trail-milestone a:hover,
+    .trail-milestone a:focus-visible {
+      border-bottom-color: currentColor;
+    }
+
     .trail-stats {
       font-family: var(--font-ui);
       font-size: 0.8125rem;
@@ -1808,9 +1820,22 @@
       var trailObserver = null;
       var trailRevealed = false;
 
-      function milestoneText(km) {
-        if (!COLLECTIVE) return 'The path is beginning.';
-        return CollectiveRoutes.select(km, new Date(), COLLECTIVE).label;
+      function renderMilestone(km) {
+        milestoneEl.replaceChildren();
+        if (!COLLECTIVE) { milestoneEl.textContent = 'The path is beginning.'; return; }
+        var m = CollectiveRoutes.select(km, new Date(), COLLECTIVE);
+        var name = m.entry && m.entry.nameEn;
+        // Link only the day's real route to its daylight page; cosmic horizons
+        // and the cold-start line carry no href, so they stay plain text.
+        var idx = (m.daylightHref && name) ? m.label.indexOf(name) : -1;
+        if (idx === -1) { milestoneEl.textContent = m.label; return; }
+        milestoneEl.appendChild(document.createTextNode(m.label.slice(0, idx)));
+        var a = document.createElement('a');
+        a.href = m.daylightHref;
+        a.textContent = name;
+        a.setAttribute('data-umami-event', 'click-trail-daylight');
+        milestoneEl.appendChild(a);
+        milestoneEl.appendChild(document.createTextNode(m.label.slice(idx + name.length)));
       }
 
       function pointOnPath(pathEl, frac) {
@@ -1850,24 +1875,46 @@
 
         var totalLen = pathEl.getTotalLength();
 
+        // Real route lengths cluster (Camino Portugués 260km, Primitivo 263km),
+        // so labels centered on near-identical positions overlap. Collect the
+        // reached routes first, then stack any labels that would collide into
+        // rows above the trail instead of letting them pile up.
+        var reached = [];
         (COLLECTIVE ? COLLECTIVE.pilgrimages : []).forEach(function(route) {
           if (route.km > km || route.km > maxKm) return;
-          var frac = (route.km / maxKm) * progress / progress;
-          frac = Math.min(route.km / maxKm, progress) / progress;
+          var frac = Math.min(route.km / maxKm, progress) / progress;
           var pt = pointOnPath(pathEl, frac);
+          reached.push({ x: pt.x, y: pt.y, name: route.nameEn });
+        });
+        reached.sort(function(a, b) { return a.x - b.x; });
+
+        reached.forEach(function(m) {
           var marker = document.createElementNS(NS, 'circle');
-          marker.setAttribute('cx', pt.x);
-          marker.setAttribute('cy', pt.y);
+          marker.setAttribute('cx', m.x);
+          marker.setAttribute('cy', m.y);
           marker.setAttribute('r', '3');
           marker.setAttribute('class', 'trail-marker');
           svg.appendChild(marker);
+        });
+
+        var placedLabels = [];
+        reached.forEach(function(m) {
           var label = document.createElementNS(NS, 'text');
-          label.setAttribute('x', pt.x);
-          label.setAttribute('y', pt.y - 10);
+          label.setAttribute('x', m.x);
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('class', 'trail-marker-label');
-          label.textContent = route.nameEn;
+          label.textContent = m.name;
           svg.appendChild(label);
+          var halfW;
+          try { halfW = label.getBBox().width / 2; } catch (e) { halfW = m.name.length * 2.4; }
+          var row = 0;
+          while (placedLabels.some(function(p) {
+            return p.row === row && Math.abs(p.x - m.x) < (p.halfW + halfW + 6);
+          })) row++;
+          var ly = m.y - 9 - row * 11;
+          if (ly < 8) ly = m.y + 15 + row * 11;
+          label.setAttribute('y', ly);
+          placedLabels.push({ x: m.x, halfW: halfW, row: row });
         });
 
         var last = pts[pts.length - 1];
@@ -1909,7 +1956,7 @@
 
       function renderStats(stats) {
         var km = stats.total_distance_km || 0;
-        milestoneEl.textContent = milestoneText(km);
+        renderMilestone(km);
 
         var dist = imperial ? km * 0.621371 : km;
         var unit = imperial ? 'mi' : 'km';
