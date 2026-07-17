@@ -5,7 +5,6 @@ var path = require('path');
 
 var REPO_ROOT    = path.resolve(__dirname, '..');
 var SIBLING_ROOT = path.resolve(REPO_ROOT, '..', 'open-pilgrimages');
-var ROUTES_DIR   = path.join(SIBLING_ROOT, 'routes');
 var OUT_PATH     = path.join(REPO_ROOT, 'assets', 'collective-routes.json');
 var REQUIRED_SCHEMA_VERSION = '1.0.0';
 
@@ -23,8 +22,11 @@ var HORIZONS = [
 function die(reason){ process.stderr.write('bake-collective-routes: ' + reason + '\n'); process.exit(1); }
 function readJson(fp, label){
   if (!fs.existsSync(fp)) die('missing or invalid ' + fp + ' — ' + label + ' not found');
-  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); }
-  catch (e) { die('missing or invalid ' + fp + ' — ' + e.message); }
+  var raw;
+  try { raw = fs.readFileSync(fp, 'utf8'); }
+  catch (e) { die('missing or invalid ' + fp + ' — could not read: ' + e.message); }
+  try { return JSON.parse(raw); }
+  catch (e) { die('missing or invalid ' + fp + ' — invalid JSON: ' + e.message); }
 }
 function assertSchemaVersion(d, fp){
   if (d.schemaVersion !== REQUIRED_SCHEMA_VERSION)
@@ -32,8 +34,8 @@ function assertSchemaVersion(d, fp){
 }
 function assertField(v, name, fp){ if (v === undefined || v === null) die('missing or invalid ' + fp + ' — required field "' + name + '" is absent'); }
 
-function bakePilgrimage(routeId){
-  var dir = path.join(ROUTES_DIR, routeId);
+function bakePilgrimage(routeId, routesDir){
+  var dir = path.join(routesDir, routeId);
   var metaPath = path.join(dir, 'metadata.json');
   var meta = readJson(metaPath, 'metadata.json for ' + routeId);
   assertSchemaVersion(meta, metaPath);
@@ -46,6 +48,8 @@ function bakePilgrimage(routeId){
   var reflections = [];
   var stagesPath = path.join(dir, 'stages.json');
   var stagesData = readJson(stagesPath, 'stages.json for ' + routeId);
+  assertSchemaVersion(stagesData, stagesPath);
+  assertField(stagesData.stages, 'stages', stagesPath);
   (stagesData.stages || []).forEach(function(s){
     if (s.interior && s.interior.reflection && s.interior.reflection.en) reflections.push(s.interior.reflection.en);
   });
@@ -77,10 +81,15 @@ function bakePilgrimage(routeId){
   };
 }
 
-function buildAsset(){
-  if (!fs.existsSync(SIBLING_ROOT)) die('missing or invalid ' + SIBLING_ROOT + ' — sibling repo not found');
-  if (!fs.existsSync(ROUTES_DIR)) die('missing or invalid ' + ROUTES_DIR + ' — routes directory not found');
-  return { pilgrimages: ROUTE_IDS.map(bakePilgrimage), horizons: HORIZONS };
+function buildAsset(siblingRoot){
+  siblingRoot = siblingRoot || SIBLING_ROOT;
+  var routesDir = path.join(siblingRoot, 'routes');
+  if (!fs.existsSync(siblingRoot)) die('missing or invalid ' + siblingRoot + ' — sibling repo not found');
+  if (!fs.existsSync(routesDir)) die('missing or invalid ' + routesDir + ' — routes directory not found');
+  return {
+    pilgrimages: ROUTE_IDS.map(function(routeId){ return bakePilgrimage(routeId, routesDir); }),
+    horizons: HORIZONS
+  };
 }
 
 function main(){
