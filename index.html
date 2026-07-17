@@ -1805,6 +1805,8 @@
 
       var COLLECTIVE = null; // { pilgrimages, horizons }, fetched once
       var assetSettled = false;
+      var trailObserver = null;
+      var trailRevealed = false;
 
       function milestoneText(km) {
         if (!COLLECTIVE) return 'The path is beginning.';
@@ -1818,6 +1820,8 @@
       }
 
       function drawTrail(km, isWalkingNow) {
+        if (trailObserver) { trailObserver.disconnect(); trailObserver = null; }
+
         var maxKm = Math.max(km * 1.5, 200);
         var w = 1000, h = 180, pad = 40;
         var progress = Math.min(km / maxKm, 0.92);
@@ -1884,34 +1888,39 @@
         }
 
         pathEl.style.strokeDasharray = totalLen;
-        pathEl.style.strokeDashoffset = totalLen;
 
-        var obs = new IntersectionObserver(function(entries) {
-          if (entries[0].isIntersecting) {
-            pathEl.style.transition = 'stroke-dashoffset 3s ease';
-            pathEl.style.strokeDashoffset = '0';
-            if (infoEl) infoEl.classList.add('visible');
-            obs.disconnect();
-          }
-        }, { threshold: 0.2 });
-        obs.observe(svg);
+        if (trailRevealed) {
+          pathEl.style.strokeDashoffset = '0';
+          if (infoEl) infoEl.classList.add('visible');
+        } else {
+          pathEl.style.strokeDashoffset = totalLen;
+          trailObserver = new IntersectionObserver(function(entries) {
+            if (entries[0].isIntersecting) {
+              pathEl.style.transition = 'stroke-dashoffset 3s ease';
+              pathEl.style.strokeDashoffset = '0';
+              if (infoEl) infoEl.classList.add('visible');
+              trailRevealed = true;
+              trailObserver.disconnect();
+            }
+          }, { threshold: 0.2 });
+          trailObserver.observe(svg);
+        }
       }
 
-      function renderStats(data) {
-        cachedStats = data;
-        var km = data.total_distance_km || 0;
+      function renderStats(stats) {
+        var km = stats.total_distance_km || 0;
         milestoneEl.textContent = milestoneText(km);
 
         var dist = imperial ? km * 0.621371 : km;
         var unit = imperial ? 'mi' : 'km';
-        var walks = (data.total_walks || 0).toLocaleString();
+        var walks = (stats.total_walks || 0).toLocaleString();
         var distStr = Math.floor(dist).toLocaleString();
-        var hours = Math.floor((data.total_meditation_min || 0) / 60);
+        var hours = Math.floor((stats.total_meditation_min || 0) / 60);
         var parts = [walks + ' walks', distStr + ' ' + unit];
         if (hours > 0) parts.push(hours + ' hrs stillness');
         statsEl.textContent = parts.join(' \u00B7 ');
 
-        var streak = data.streak_days || 0;
+        var streak = stats.streak_days || 0;
         if (streakEl && streak > 1) {
           streakEl.textContent = '';
           var flame = document.createElement('span');
@@ -1955,8 +1964,8 @@
         }
 
         var isWalkingNow = false;
-        if (data.last_walk_at) {
-          var lastWalk = new Date(data.last_walk_at);
+        if (stats.last_walk_at) {
+          var lastWalk = new Date(stats.last_walk_at);
           var diffMs = Date.now() - lastWalk.getTime();
           if (diffMs < 3600000) {
             isWalkingNow = true;
@@ -1969,7 +1978,7 @@
 
         if (walkingEl) {
           walkingEl.replaceChildren();
-          var active = data.estimated_active || 0;
+          var active = stats.estimated_active || 0;
           if (active > 0 || isWalkingNow) {
             var nowLink = document.createElement('a');
             nowLink.href = '/now';
@@ -1985,7 +1994,7 @@
 
       statsEl.addEventListener('click', function() {
         imperial = !imperial;
-        if (cachedStats) renderStats(cachedStats);
+        maybeRenderStats();
       });
 
       function maybeRenderStats() {

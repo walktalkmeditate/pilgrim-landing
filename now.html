@@ -81,10 +81,18 @@
   <script>
     (function () {
       var COLLECTIVE = null;
+      var assetSettled = false;
+      var pendingData = null;
+      var lastKey = null;
+
       fetch('/assets/collective-routes.json')
         .then(function (r) { return r.json(); })
         .then(function (a) { COLLECTIVE = a; })
-        .catch(function () { /* asset unavailable — milestone stays hidden until a later poll */ });
+        .catch(function () { /* asset unavailable — COLLECTIVE stays null, static fallback renders */ })
+        .then(function () {
+          assetSettled = true;
+          if (pendingData) render(pendingData);
+        });
 
       function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
 
@@ -137,6 +145,27 @@
           return;
         }
 
+        var m = null;
+        var crossed = [];
+
+        if (COLLECTIVE && isFinite(distanceKm)) {
+          m = CollectiveRoutes.select(distanceKm, new Date(), COLLECTIVE);
+
+          if (distanceKm > 0) {
+            try {
+              var KEY = 'pilgrim.collective.lastSeenKm';
+              var prev = parseFloat(localStorage.getItem(KEY));
+              crossed = CollectiveRoutes.crossingsSince(prev, distanceKm, COLLECTIVE);
+              if (!(prev >= 0) || distanceKm >= prev) localStorage.setItem(KEY, String(distanceKm));
+            } catch (e) { /* localStorage unavailable — skip crossings */ }
+          }
+        }
+
+        var key = fmt(walks) + '|' + (m ? m.label : '') + '|' + (m && m.seasonLine || '') + '|' +
+          (m && m.reflection || '') + '|' + (m && m.annualLine || '') + '|' + crossed.join(',');
+        if (key === lastKey) return;
+        lastKey = key;
+
         line.replaceChildren(
           document.createTextNode('Since launch, '),
           el('strong', fmt(walks)),
@@ -144,8 +173,7 @@
         );
 
         var nodes = [];
-        if (COLLECTIVE && distanceKm > 0 && isFinite(distanceKm)) {
-          var m = CollectiveRoutes.select(distanceKm, new Date(), COLLECTIVE);
+        if (m) {
           nodes.push(document.createTextNode(m.label));
           if (m.seasonLine) { nodes.push(el('br')); nodes.push(document.createTextNode(m.seasonLine)); }
           if (m.reflection) { nodes.push(el('br')); nodes.push(el('em', m.reflection)); }
@@ -155,16 +183,12 @@
             var a = document.createElement('a'); a.href = m.daylightHref; a.textContent = 'find its light →';
             nodes.push(a);
           }
-          try {
-            var KEY = 'pilgrim.collective.lastSeenKm';
-            var prev = parseFloat(localStorage.getItem(KEY));
-            var crossed = CollectiveRoutes.crossingsSince(prev, distanceKm, COLLECTIVE);
-            crossed.forEach(function (nameEn) {
-              nodes.push(el('br'));
-              nodes.push(document.createTextNode('Since you were last here, together we completed the ' + nameEn + '.'));
-            });
-            localStorage.setItem(KEY, String(distanceKm));
-          } catch (e) { /* localStorage unavailable — skip crossings */ }
+          crossed.forEach(function (nameEn) {
+            nodes.push(el('br'));
+            nodes.push(document.createTextNode('Since you were last here, together we completed the ' + nameEn + '.'));
+          });
+        } else {
+          nodes.push(document.createTextNode('The path is beginning.'));
         }
         milestone.replaceChildren.apply(milestone, nodes);
 
@@ -180,7 +204,10 @@
       function fetchNow() {
         fetch('https://walk.pilgrimapp.org/api/now', { cache: 'no-store' })
           .then(function (r) { return r.json(); })
-          .then(render)
+          .then(function (d) {
+            if (!assetSettled) { pendingData = d; return; }
+            render(d);
+          })
           .catch(function () { /* keep last render */ });
       }
 
