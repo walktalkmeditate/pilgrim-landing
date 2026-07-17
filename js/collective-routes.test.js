@@ -56,5 +56,12 @@ eq(C.daylightHrefFor(EARTH), null, 'cosmic no daylight href');
 eq(C.annualLineFor(K), '44,540 Foreign overnight visitors in Hongu area (2024)', 'kumano annual line');
 eq(C.annualLineFor(F), null, 'camino no annual line');
 
+console.log('\n=== crossings ===\n');
+var crossed = C.crossingsSince(30, 800, ASSET);
+ok(crossed.indexOf('Kumano Kodo') !== -1 && crossed.indexOf('Camino Francés') !== -1, 'kumano(39)+frances(764) cross in (30,800]');
+eq(C.crossingsSince(50, 100, ASSET).length, 0, 'nothing crosses in (50,100]');
+eq(C.crossingsSince(30, 0, ASSET).length, 0, 'failed/zero fetch → no crossings');
+eq(C.crossingsSince(NaN, 800, ASSET).length, 0, 'no baseline → no crossings');
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed) { failures.forEach(function(f){console.log('  - '+f);}); process.exit(1); }
