@@ -2,7 +2,7 @@
   "pilgrimages": [
     {
       "id": "camino-frances",
-      "nameEn": "Camino de Santiago (Frances)",
+      "nameEn": "Camino de Santiago",
       "km": 764,
       "bestMonths": [
         5,
@@ -57,7 +57,7 @@
     },
     {
       "id": "camino-ingles",
-      "nameEn": "Camino Inglés (English Way)",
+      "nameEn": "Camino Inglés",
       "km": 112,
       "bestMonths": [
         4,
@@ -87,7 +87,7 @@
     },
     {
       "id": "camino-norte",
-      "nameEn": "Camino del Norte (Northern Way)",
+      "nameEn": "Camino del Norte",
       "km": 784,
       "bestMonths": [
         5,
@@ -143,7 +143,7 @@
     },
     {
       "id": "camino-portugues",
-      "nameEn": "Camino Portugués (Central)",
+      "nameEn": "Camino Portugués",
       "km": 243,
       "bestMonths": [
         4,
@@ -178,7 +178,7 @@
     },
     {
       "id": "camino-primitivo",
-      "nameEn": "Camino Primitivo (Original Way)",
+      "nameEn": "Camino Primitivo",
       "km": 263,
       "bestMonths": [
         5,

@@ -74,7 +74,7 @@ function bakePilgrimage(routeId, routesDir){
 
   return {
     id: meta.id,
-    nameEn: meta.name.en,
+    nameEn: meta.name.en.replace(/\s*\([^)]*\)\s*$/, ''),
     km: km,
     bestMonths: meta.overview.bestMonths || [],
     peakMonths: meta.overview.peakMonths || [],

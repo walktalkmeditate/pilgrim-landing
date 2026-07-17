@@ -128,6 +128,23 @@ section:last-of-type {
   line-height: 1.5;
 }
 
+/* The "find its light" daylight link is injected into .milestone-line, which
+   sits outside the site-wide stylesheet — so without this it renders as the
+   raw browser-blue default. Keep it quiet: a touch brighter than the muted
+   stack, with a hairline underline that warms on hover. */
+.milestone-line a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.milestone-line a:hover,
+.milestone-line a:focus-visible {
+  color: var(--ink);
+  border-color: var(--ink-fog);
+}
+
 /* Footer */
 
 footer {
