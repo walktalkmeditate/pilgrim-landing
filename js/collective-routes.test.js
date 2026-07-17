@@ -33,5 +33,28 @@ for (var day = 1; day <= 30; day++) {
 }
 ok(inSeason >= 18, 'October in-season majority (' + inSeason + '/30 ≥ 18)');
 
+console.log('\n=== phrasing ===\n');
+var K = ASSET.pilgrimages[0], F = ASSET.pilgrimages[1];
+var EARTH = ASSET.horizons[0], MOON = ASSET.horizons[1], SUN = ASSET.horizons[2];
+eq(C.phraseFor(K, 694.5).label, "Together, we've walked the Kumano Kodo 17 times.", 'kumano 17 times');
+eq(C.phraseFor({nameEn:'Test Route', km:500}, 694.5).label, 'Together, one Test Route complete.', 'floor==1 → one complete');
+eq(C.phraseFor(F, 694.5).label, 'We are 91% of the way to one Camino Francés.', 'camino 91% toward');
+eq(C.phraseFor(EARTH, 694.5).label, 'We are 1.7% of the way around the Earth.', 'earth 1.7% one-decimal');
+eq(C.phraseFor(MOON, 694.5).label, '383,706 km to the Moon.', 'moon km-to-go');
+eq(C.phraseFor(SUN, 694.5).label, '149,599,306 km to the Sun.', 'sun km-to-go');
+eq(C.phraseFor(K, 0).label, 'The path is beginning.', 'cold start');
+
+console.log('\n=== lines ===\n');
+// AC #5 distance-independence: the route is the same regardless of total distance.
+eq(C.select(1, d('2026-10-07'), ASSET).entry.id, C.select(999999, d('2026-10-07'), ASSET).entry.id, 'route is distance-independent');
+eq(C.select(1, d('2026-10-07'), ASSET).entry.id, 'kumano-kodo', "select picks the day's route (2026-10-07 → kumano-kodo)");
+// seasonLine / reflection / href / annual tested via direct helpers for the two known routes:
+eq(C.seasonLineFor(K, 10), 'Its season is autumn — and it is autumn now.', 'kumano autumn clause');
+eq(C.seasonLineFor(K, 7), null, 'kumano off-season → null');
+eq(C.daylightHrefFor(K), '/daylight/?route=kumano-kodo', 'daylight href');
+eq(C.daylightHrefFor(EARTH), null, 'cosmic no daylight href');
+eq(C.annualLineFor(K), '44,540 Foreign overnight visitors in Hongu area (2024)', 'kumano annual line');
+eq(C.annualLineFor(F), null, 'camino no annual line');
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 if (failed) { failures.forEach(function(f){console.log('  - '+f);}); process.exit(1); }
