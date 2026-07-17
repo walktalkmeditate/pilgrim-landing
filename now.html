@@ -65,7 +65,7 @@
       <p class="streak-line" id="streak-line"></p>
     </section>
 
-    <section class="cumulative" id="cumulative-section" hidden>
+    <section class="cumulative" id="cumulative-section" aria-live="polite" hidden>
       <p class="cumulative-line" id="cumulative-line"></p>
       <p class="milestone-line" id="milestone-line"></p>
     </section>
@@ -74,30 +74,27 @@
 
   <footer>
     <p>pilgrim · a walking companion · pilgrimapp.org</p>
+    <p class="now-credit"><em>route data: <a href="https://github.com/walktalkmeditate/open-pilgrimages" target="_blank" rel="noopener noreferrer">open-pilgrimages</a> &middot; ODbL</em></p>
   </footer>
 
+  <script src="js/collective-routes.js"></script>
   <script>
     (function () {
-      var PILGRIMAGES = [
-        { name: 'Kumano Kodo',         km: 70   },
-        { name: 'St. Olav Way',        km: 643  },
-        { name: 'Camino de Santiago',  km: 800  },
-        { name: 'Shikoku Henro',       km: 1200 },
-        { name: 'Via Francigena',      km: 1900 },
-        { name: 'Appalachian Trail',   km: 3525 },
-        { name: 'Pacific Crest Trail', km: 4265 }
-      ];
+      var COLLECTIVE = null;
+      var assetSettled = false;
+      var pendingData = null;
+      var lastKey = null;
+
+      fetch('/assets/collective-routes.json')
+        .then(function (r) { return r.json(); })
+        .then(function (a) { COLLECTIVE = a; })
+        .catch(function () { /* asset unavailable — COLLECTIVE stays null, static fallback renders */ })
+        .then(function () {
+          assetSettled = true;
+          if (pendingData) render(pendingData);
+        });
 
       function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
-
-      function findMilestone(totalKm) {
-        var walked = null, next = null;
-        for (var i = 0; i < PILGRIMAGES.length; i++) {
-          if (totalKm >= PILGRIMAGES[i].km) walked = PILGRIMAGES[i];
-          else { next = PILGRIMAGES[i]; break; }
-        }
-        return { walked: walked, next: next };
-      }
 
       function el(tag, text) {
         var e = document.createElement(tag);
@@ -148,25 +145,50 @@
           return;
         }
 
+        var m = null;
+        var crossed = [];
+
+        if (COLLECTIVE && isFinite(distanceKm)) {
+          m = CollectiveRoutes.select(distanceKm, new Date(), COLLECTIVE);
+
+          if (distanceKm > 0) {
+            try {
+              var KEY = 'pilgrim.collective.lastSeenKm';
+              var prev = parseFloat(localStorage.getItem(KEY));
+              crossed = CollectiveRoutes.crossingsSince(prev, distanceKm, COLLECTIVE);
+              if (!(prev >= 0) || distanceKm >= prev) localStorage.setItem(KEY, String(distanceKm));
+            } catch (e) { /* localStorage unavailable — skip crossings */ }
+          }
+        }
+
+        var key = fmt(walks) + '|' + (m ? m.label : '') + '|' + (m && m.seasonLine || '') + '|' +
+          (m && m.reflection || '') + '|' + (m && m.annualLine || '') + '|' + crossed.join(',');
+        if (key === lastKey) return;
+        lastKey = key;
+
         line.replaceChildren(
           document.createTextNode('Since launch, '),
           el('strong', fmt(walks)),
           document.createTextNode(' walks have been taken with the collective.')
         );
 
-        var ms = findMilestone(distanceKm || 0);
         var nodes = [];
-        if (ms.walked) {
-          var times = (distanceKm / ms.walked.km).toFixed(1);
-          nodes.push(document.createTextNode('Together, we have walked the ' + ms.walked.name + ' ' + times + ' times.'));
-          if (ms.next) {
-            var togo = ms.next.km - distanceKm;
+        if (m) {
+          nodes.push(document.createTextNode(m.label));
+          if (m.seasonLine) { nodes.push(el('br')); nodes.push(document.createTextNode(m.seasonLine)); }
+          if (m.reflection) { nodes.push(el('br')); nodes.push(el('em', m.reflection)); }
+          if (m.annualLine) { nodes.push(el('br')); nodes.push(document.createTextNode(m.annualLine)); }
+          if (m.daylightHref) {
             nodes.push(el('br'));
-            nodes.push(document.createTextNode('Next: the ' + ms.next.name + ' (' + fmt(togo) + ' km to go).'));
+            var a = document.createElement('a'); a.href = m.daylightHref; a.textContent = 'find its light →';
+            nodes.push(a);
           }
-        } else if (ms.next) {
-          var firstTogo = ms.next.km - (distanceKm || 0);
-          nodes.push(document.createTextNode('Walking toward the first milestone: the ' + ms.next.name + ' (' + fmt(firstTogo) + ' km to go).'));
+          crossed.forEach(function (nameEn) {
+            nodes.push(el('br'));
+            nodes.push(document.createTextNode('Since you were last here, together we completed the ' + nameEn + '.'));
+          });
+        } else {
+          nodes.push(document.createTextNode('The path is beginning.'));
         }
         milestone.replaceChildren.apply(milestone, nodes);
 
@@ -182,7 +204,10 @@
       function fetchNow() {
         fetch('https://walk.pilgrimapp.org/api/now', { cache: 'no-store' })
           .then(function (r) { return r.json(); })
-          .then(render)
+          .then(function (d) {
+            if (!assetSettled) { pendingData = d; return; }
+            render(d);
+          })
           .catch(function () { /* keep last render */ });
       }
 

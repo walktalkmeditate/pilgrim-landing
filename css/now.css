@@ -105,6 +105,10 @@ section:last-of-type {
 
 /* Streak + cumulative */
 
+.cumulative {
+  min-height: 8rem;
+}
+
 .streak-line,
 .cumulative-line {
   font-size: clamp(17px, 1.8vw, 19px);
@@ -143,6 +147,16 @@ footer p {
   color: var(--ink-fog);
   text-transform: lowercase;
   margin: 0;
+}
+
+footer .now-credit {
+  margin-top: 0.75em;
+  text-transform: none;
+  opacity: 0.7;
+}
+
+footer .now-credit a {
+  color: inherit;
 }
 
 /* Breath — slow, almost imperceptible */
