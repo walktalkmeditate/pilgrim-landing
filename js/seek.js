@@ -305,13 +305,20 @@
     begin(wordInput.value);
   });
 
-  // A visitor who simply scrolls past the door begins with the default word.
+  // "Shown intent" = the visitor typed an actual character (or submitted).
+  // A reader who only scrolls toward the story is never drafted into a seek.
+  var userIntent = false;
+  wordInput.addEventListener('input', function () {
+    if (wordInput.value.trim()) { userIntent = true; }
+  });
+
+  // A visitor who has shown intent and then scrolls past the door begins with
+  // whatever they typed; a pure reader passes through untouched.
   var autoBeginObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting && !seeking.begun) {
-        begin(wordInput.value);
-      }
-      if (entry.isIntersecting) { autoBeginObserver.disconnect(); }
+      if (!entry.isIntersecting) { return; }
+      if (userIntent && !seeking.begun) { begin(wordInput.value); }
+      autoBeginObserver.disconnect();
     });
   }, { rootMargin: '0px 0px -60% 0px' });
   autoBeginObserver.observe(path);
@@ -386,31 +393,46 @@
 
   // ---------- Stillness ----------
 
-  var ZONE_FRACTION = 0.07; // of path height, either side of the clearing
+  var ZONE_FRACTION = 0.07;      // of path height, either side of the clearing
+  var STILL_TOLERANCE_PX = 16;   // scroll jitter below this doesn't reset the fill
 
   var stillness = {
     inZone: false,
     fillStart: null,
     raf: null,
     idleTimer: null,
-    zoneEnteredAt: null
+    fallbackTimer: null,
+    zoneEnteredAt: null,
+    anchorY: 0
   };
+
+  var stillnessSub = document.querySelector('.stillness-sub');
+  function setStillnessSub(text) {
+    if (stillnessSub) { stillnessSub.textContent = text; }
+  }
+  // Reassures that stillness — not an error — is what the ring waits for. The
+  // .stillness region is aria-live, so a screen reader hears the change once.
+  function showStillnessDiagnosis() {
+    setStillnessSub('the ring fills only in stillness');
+  }
 
   function enterZone() {
     if (stillness.inZone || seeking.revealed) { return; }
     stillness.inZone = true;
     stillness.zoneEnteredAt = Date.now();
+    stillness.anchorY = window.scrollY;
     html.classList.add('in-zone');
     if (reducedMotion) {
       stillness.idleTimer = setTimeout(reveal, STILLNESS_MS);
       return;
     }
     armStillness();
-    setTimeout(function () {
+    // Offer the escape well before the 9s it bypasses, not after 25s.
+    stillness.fallbackTimer = setTimeout(function () {
       if (stillness.inZone && !seeking.revealed) {
         stillnessFallback.hidden = false;
       }
-    }, 25000);
+    }, 8000);
   }
 
   function leaveZone() {
@@ -419,11 +441,13 @@
     html.classList.remove('in-zone');
     cancelFill();
     if (stillness.idleTimer) { clearTimeout(stillness.idleTimer); stillness.idleTimer = null; }
+    if (stillness.fallbackTimer) { clearTimeout(stillness.fallbackTimer); stillness.fallbackTimer = null; }
     stillnessFallback.hidden = true;
   }
 
   function armStillness() {
     cancelFill();
+    stillness.anchorY = window.scrollY;
     stillness.idleTimer = setTimeout(startFill, 400);
   }
 
@@ -651,8 +675,14 @@
         var rect = pathRect();
         var inZone = Math.abs(clearingAbsY() - viewportCenterAbsY()) < rect.height * ZONE_FRACTION;
         if (inZone) {
-          if (!stillness.inZone) { enterZone(); }
-          else if (!reducedMotion) { armStillness(); }
+          if (!stillness.inZone) {
+            enterZone();
+          } else if (!reducedMotion &&
+                     Math.abs(window.scrollY - stillness.anchorY) > STILL_TOLERANCE_PX) {
+            // A genuine scroll (not jitter or inertia) resets the fill.
+            showStillnessDiagnosis();
+            armStillness();
+          }
         } else {
           leaveZone();
         }
@@ -662,4 +692,12 @@
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
+
+  // A backgrounded tab pauses rAF; without this, the elapsed wall-clock on
+  // return would jump the fill straight to a full, unearned reveal. Cancel on
+  // hide; re-evaluate on return so stillness begins again from zero.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { leaveZone(); }
+    else { onScroll(); }
+  });
 })();
