@@ -217,8 +217,8 @@
 
   // ---------- Begin ----------
 
-  function begin(word) {
-    var cleaned = (word || '').trim().toLowerCase();
+  function begin(word, opts) {
+    var cleaned = window.SeekWord ? window.SeekWord.sanitizeWord(word) : (word || '').trim().toLowerCase();
     seeking.word = cleaned || 'the unknown';
     seeking.startedAt = new Date();
 
@@ -250,7 +250,9 @@
     if (audio.enabled) { schedulePing(); }
 
     showCrescentHintOnce();
-    path.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    if (!opts || !opts.skipScroll) {
+      path.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
   }
 
   var crescentHintShown = false;
@@ -278,6 +280,26 @@
     });
   }, { rootMargin: '0px 0px -60% 0px' });
   autoBeginObserver.observe(path);
+
+  // A shared or crafted /seek?word= link drops the visitor straight into the
+  // walk, pre-seeded. The word is re-sanitized here (the page is the authority),
+  // rendered only via textContent by begin(), and then wiped from the URL — it
+  // never travels into analytics or a shareable address, keeping the page's
+  // promise that the word never leaves it.
+  (function bootSeeded() {
+    var raw;
+    try { raw = new URLSearchParams(location.search).get('word'); }
+    catch (e) { raw = null; }
+    if (raw === null) { return; }
+    var seeded = window.SeekWord ? window.SeekWord.sanitizeWord(raw) : raw;
+    if (seeded) {
+      html.classList.add('seeded');
+      begin(seeded, { skipScroll: true });
+    } else {
+      html.classList.remove('seeded');
+    }
+    history.replaceState(null, '', location.pathname + location.hash);
+  })();
 
   // ---------- Waymarks ----------
 
@@ -410,6 +432,7 @@
 
   document.getElementById('again-btn').addEventListener('click', function () {
     html.classList.remove('revealed');
+    html.classList.remove('seeded');
     seeking.begun = false;
     seeking.revealed = false;
     leaveZone();

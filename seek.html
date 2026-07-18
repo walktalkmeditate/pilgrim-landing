@@ -74,6 +74,17 @@
     })();
   </script>
 
+  <!-- A ?word= link drops straight into the walk: hide the arrival before
+       first paint so there's no flash. seek.js confirms and seeds it. -->
+  <script>
+    (function () {
+      try {
+        var w = new URLSearchParams(location.search).get('word');
+        if (w && w.trim()) { document.documentElement.classList.add('seeded'); }
+      } catch (e) {}
+    })();
+  </script>
+
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="icon" type="image/png" href="assets/favicon.png">
 
@@ -274,6 +285,7 @@
 
   </main>
 
+  <script src="js/seek-word.js" defer></script>
   <script src="js/seek.js" defer></script>
 </body>
 </html>

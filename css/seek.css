@@ -364,6 +364,9 @@ main { position: relative; z-index: 1; }
 
 .arrival-lede--second { color: var(--ink-fog); }
 
+/* A ?word= link drops straight into the walk; the arrival is skipped. */
+html.seeded #arrival { display: none; }
+
 .intention {
   margin-top: clamp(28px, 5vh, 56px);
   display: flex;
