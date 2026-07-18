@@ -20,6 +20,13 @@
   --rust: #A0634B;
   --dawn: #C4956A;
   --fog: #B8AFA2;
+  /* --fog is decoration — the walker, the cairn, an icon — and is far too
+     faint to read (1.62:1 against parchment at its seasonal worst). Muted
+     TEXT uses --ink-fog instead: 5.17:1 at worst. js/seasonal.js only shifts
+     tokens it names in BASE_COLORS, so leaving --ink-fog out of that table
+     keeps it static and beyond the reach of seasonal drift.
+     js/muted-contrast.test.js holds the line. */
+  --ink-fog: #5E5953;
 
   --transition-colors: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 
@@ -50,6 +57,7 @@
   --rust: #C47E63;
   --dawn: #D4A87A;
   --fog: #6B6359;
+  --ink-fog: #908A83; /* 5.13:1 at worst — see the light-mode note above */
 }
 
 /* --- Base --- */
@@ -287,7 +295,7 @@ body.constellation .hero-quote[data-category="presence"] {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  color: var(--fog);
+  color: var(--ink-fog);
 }
 
 .scroll-hint-text {
@@ -295,7 +303,6 @@ body.constellation .hero-quote[data-category="presence"] {
   font-size: 0.5625rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  opacity: 0.6;
 }
 
 .scroll-hint-chevron {
@@ -933,7 +940,7 @@ body.constellation .hero-quote[data-category="presence"] {
   font-size: 0.78rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--fog);
+  color: var(--ink-fog);
 }
 .reliquary-lightbox-close {
   position: absolute;
@@ -1256,7 +1263,7 @@ body.constellation .hero-quote[data-category="presence"] {
 }
 
 .horizon-links a {
-  color: var(--fog);
+  color: var(--ink-fog);
   font-family: var(--font-ui);
   font-size: 0.8125rem;
   text-decoration: none;
@@ -1267,14 +1274,17 @@ body.constellation .hero-quote[data-category="presence"] {
   color: var(--stone);
 }
 
+/* The one muted-text rule that keeps its opacity: these are the middots
+   between the footer links, decoration rather than content, and marked
+   aria-hidden in the markup so nothing announces them. */
 .horizon-sep {
-  color: var(--fog);
+  color: var(--ink-fog);
   opacity: 0.3;
   font-size: 0.75rem;
 }
 
 .horizon-icon-link {
-  color: var(--fog);
+  color: var(--ink-fog);
   transition: color 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -1284,12 +1294,13 @@ body.constellation .hero-quote[data-category="presence"] {
   color: var(--stone);
 }
 
+/* No per-element opacity on muted text: --ink-fog already carries the muting,
+   and stacking opacity on top of it was what put this text at 2.05:1. */
 .horizon-signoff {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 0.875rem;
-  color: var(--fog);
-  opacity: 0.5;
+  color: var(--ink-fog);
 }
 
 .github-link {
@@ -1300,7 +1311,7 @@ body.constellation .hero-quote[data-category="presence"] {
   border: 1px solid var(--parchment-tertiary);
   border-radius: var(--radius-sm);
   padding: 0.4rem 0.6rem;
-  color: var(--fog);
+  color: var(--ink-fog);
   font-family: var(--font-ui);
   font-size: 0.875rem;
   text-decoration: none;
@@ -1321,7 +1332,7 @@ body.constellation .hero-quote[data-category="presence"] {
   right: var(--padding-lg);
   font-family: var(--font-ui);
   font-size: 0.6875rem;
-  color: var(--fog);
+  color: var(--ink-fog);
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
@@ -1329,7 +1340,7 @@ body.constellation .hero-quote[data-category="presence"] {
 }
 
 .scroll-tracker.visible {
-  opacity: 0.6;
+  opacity: 1;
 }
 
 /* =============================================
@@ -1646,9 +1657,8 @@ body.constellation .hero-quote[data-category="presence"] {
   font-style: italic;
   font-weight: 300;
   font-size: 0.78rem;
-  color: var(--fog);
+  color: var(--ink-fog);
   margin: var(--padding-xs) 0 0 0;
-  opacity: 0.65;
   letter-spacing: 0.02em;
 }
 

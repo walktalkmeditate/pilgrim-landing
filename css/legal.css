@@ -63,7 +63,7 @@
 }
 
 .legal-updated {
-  color: var(--fog);
+  color: var(--ink-fog);
   margin-top: var(--padding-sm);
 }
 
@@ -147,7 +147,7 @@
 }
 
 .legal-footer-links a {
-  color: var(--fog);
+  color: var(--ink-fog);
   font-family: var(--font-ui);
   font-size: 0.875rem;
 }
