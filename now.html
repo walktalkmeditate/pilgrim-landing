@@ -96,10 +96,24 @@
       var pendingData = null;
       var lastKey = null;
 
-      fetch('/assets/collective-routes.json')
-        .then(function (r) { return r.json(); })
+      // Same two-source read as the homepage: the CDN copy is what
+      // `scripts/publish-collective-routes` updates, the committed copy is the
+      // fallback that keeps this page rendering when the CDN is unreachable or
+      // sends no CORS header for this origin.
+      var ROUTES_CDN = 'https://cdn.pilgrimapp.org/collective/routes.json';
+      var ROUTES_LOCAL = '/assets/collective-routes.json';
+
+      function fetchRoutes(url) {
+        return fetch(url).then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        });
+      }
+
+      fetchRoutes(ROUTES_CDN)
+        .catch(function () { return fetchRoutes(ROUTES_LOCAL); })
         .then(function (a) { COLLECTIVE = a; })
-        .catch(function () { /* asset unavailable — COLLECTIVE stays null, static fallback renders */ })
+        .catch(function () { /* both copies unavailable — COLLECTIVE stays null, static fallback renders */ })
         .then(function () {
           assetSettled = true;
           if (pendingData) render(pendingData);

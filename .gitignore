@@ -34,3 +34,6 @@ node_modules/
 
 # Design companion (impeccable) — local hook cache, config, critique snapshots
 .impeccable/
+
+# Wrangler local state (created by scripts/publish-collective-routes)
+.wrangler/

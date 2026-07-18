@@ -2129,15 +2129,28 @@
         if (cachedStats && assetSettled) renderStats(cachedStats);
       }
 
-      fetch('/assets/collective-routes.json')
-        .then(function(r) { return r.json(); })
-        .then(function(asset) {
-          COLLECTIVE = asset;
-          assetSettled = true;
-          maybeRenderStats();
-        })
+      // The CDN copy is what `scripts/publish-collective-routes` updates, so a
+      // route edit reaches this page the moment it reaches the apps — no deploy
+      // in between. The committed copy is the fallback: when the CDN is
+      // unreachable, or sends no CORS header for this origin (which is every
+      // origin but pilgrimapp.org), the trail still draws from real routes.
+      var ROUTES_CDN = 'https://cdn.pilgrimapp.org/collective/routes.json';
+      var ROUTES_LOCAL = '/assets/collective-routes.json';
+
+      function fetchRoutes(url) {
+        return fetch(url).then(function(r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        });
+      }
+
+      fetchRoutes(ROUTES_CDN)
+        .catch(function() { return fetchRoutes(ROUTES_LOCAL); })
+        .then(function(asset) { COLLECTIVE = asset; })
         .catch(function() {
-          // asset failed — COLLECTIVE stays null; milestoneText()/drawTrail() fall back gracefully
+          // both copies failed — COLLECTIVE stays null; renderMilestone()/drawTrail() fall back gracefully
+        })
+        .then(function() {
           assetSettled = true;
           maybeRenderStats();
         });

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Publish the baked collective route artifact to the CDN.
+#
+# Uploads:
+#   assets/collective-routes.json  →  https://cdn.pilgrimapp.org/collective/routes.json
+#
+# Run from anywhere:
+#   ./scripts/publish-collective-routes             # verify, upload, confirm
+#   ./scripts/publish-collective-routes --dry-run   # print what would run, upload nothing
+#
+# One publish updates every surface. pilgrimapp.org, /now, and the apps all read
+# this one object, so a route edit no longer needs a web deploy to reach readers
+# and an app release to reach walkers. The committed copy under assets/ stays as
+# the site's same-origin fallback and still belongs in a commit — it is just no
+# longer what carries the change.
+#
+# Requires: wrangler, authenticated for the Cloudflare account that owns the
+# `pilgrimapp` R2 bucket; node; and a sibling ../open-pilgrimages checkout,
+# because the artifact is re-baked from source to prove it is current.
+
+set -euo pipefail
+
+BUCKET="pilgrimapp"
+OBJECT="collective/routes.json"
+PUBLIC_URL="https://cdn.pilgrimapp.org/collective/routes.json"
+ORIGIN="https://pilgrimapp.org"
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ARTIFACT="$ROOT/assets/collective-routes.json"
+BAKE_MODULE="$ROOT/scripts/bake-collective-routes.js"
+
+die() { echo "publish-collective-routes: $*" >&2; exit 1; }
+
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    *) die "unknown argument: $arg (accepts --dry-run)" ;;
+  esac
+done
+
+[ -f "$ARTIFACT" ] || die "missing $ARTIFACT — run ./scripts/bake-collective-routes first"
+[ -f "$BAKE_MODULE" ] || die "missing $BAKE_MODULE — cannot verify the artifact is reproducible"
+command -v node >/dev/null 2>&1 || die "node not found — the freshness check re-bakes the artifact from source"
+command -v wrangler >/dev/null 2>&1 || die "wrangler not found (npm i -g wrangler); it must be authenticated for the account that owns the $BUCKET bucket"
+command -v curl >/dev/null 2>&1 || die "curl not found — the post-upload verification needs it"
+
+# Re-bake from ../open-pilgrimages and compare byte-for-byte against the working
+# copy. Publishing an artifact no source can reproduce would put bytes on the CDN
+# that no later bake could recreate: every surface would carry them and nothing in
+# git would explain them. `buildAsset()` plus this serialization is the same seam
+# the bake's own test uses to assert the committed artifact is current.
+freshness=0
+node -e '
+  var fs = require("fs");
+  var fresh = JSON.stringify(require(process.argv[1]).buildAsset(), null, 2) + "\n";
+  if (fresh !== fs.readFileSync(process.argv[2], "utf8")) process.exit(3);
+' "$BAKE_MODULE" "$ARTIFACT" || freshness=$?
+
+case "$freshness" in
+  0) ;;
+  3) die "assets/collective-routes.json differs from a fresh bake — run ./scripts/bake-collective-routes, review the diff, and commit it before publishing" ;;
+  *) die "could not re-bake the artifact from ../open-pilgrimages (see the error above) — publishing is blocked until a fresh bake succeeds" ;;
+esac
+
+VERSION="$(node -e 'process.stdout.write(String(require(process.argv[1]).version || ""))' "$ARTIFACT")"
+[ -n "$VERSION" ] || die "$ARTIFACT carries no version field — re-bake before publishing"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  echo "  would publish $VERSION → $BUCKET/$OBJECT"
+  echo "  wrangler r2 object put $BUCKET/$OBJECT --file=$ARTIFACT --content-type=application/json --remote"
+  echo "  dry run — nothing uploaded"
+  exit 0
+fi
+
+echo "  publishing $VERSION → $BUCKET/$OBJECT"
+
+# --remote is load-bearing. Without it wrangler writes to the local emulator,
+# prints the same success line, and nothing reaches the CDN.
+wrangler r2 object put "$BUCKET/$OBJECT" \
+  --file="$ARTIFACT" \
+  --content-type=application/json \
+  --remote
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "  verifying $PUBLIC_URL"
+curl -fsS -H "Origin: $ORIGIN" -D "$WORK/headers" -o "$WORK/published" "$PUBLIC_URL" \
+  || die "uploaded, but $PUBLIC_URL did not return successfully — check the bucket before assuming this published"
+
+cmp -s "$WORK/published" "$ARTIFACT" \
+  || die "uploaded, but $PUBLIC_URL returns bytes that differ from $ARTIFACT"
+
+# The apps do not enforce CORS, so a missing header here breaks only the two web
+# pages — and they fall back to their committed copy rather than failing. Worth
+# saying out loud, since the symptom is a silently stale site, not an error.
+grep -qi '^access-control-allow-origin:' "$WORK/headers" \
+  || echo "publish-collective-routes: warning — no access-control-allow-origin for $ORIGIN; the apps will read this fine, but both web pages will fall back to their committed copy" >&2
+
+echo "  published $VERSION — cache status is DYNAMIC, so this is already live."
