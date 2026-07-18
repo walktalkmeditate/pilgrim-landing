@@ -372,6 +372,36 @@ html.seeded #arrival { display: none; }
 .sound-toggle.sound-pending { opacity: 0.6; }
 .sound-toggle.sound-unavailable { opacity: 0.5; cursor: default; }
 
+/* Reveal bridge — the fog-idiom crest carries its own quiet store links, since
+   the story's download sits ~520svh below the clearing. */
+.clearing-bridge {
+  margin: 1.6rem 0 0.4rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.clearing-bridge-links {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+  color: var(--ink-fog);
+}
+
+.clearing-bridge-links a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink-fog);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.clearing-bridge-links a:hover,
+.clearing-bridge-links a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.clearing-bridge-sep { margin: 0 0.4rem; opacity: 0.6; }
+
 .intention {
   margin-top: clamp(28px, 5vh, 56px);
   display: flex;
