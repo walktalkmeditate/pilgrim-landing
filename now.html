@@ -48,6 +48,9 @@
 </head>
 <body>
 
+  <div class="breathe-wash" id="breathe-wash" aria-hidden="true"></div>
+  <div class="breathe-moon" id="breathe-moon" aria-hidden="true"></div>
+
   <main>
 
     <h1>Now.</h1>
@@ -74,9 +77,17 @@
 
   <footer>
     <p>pilgrim · a walking companion · pilgrimapp.org</p>
+    <p class="almanac-index">
+      <a href="/sunpath" data-umami-event="footer-instrument-sunpath">Sun Path</a> ·
+      <a href="/moonpath" data-umami-event="footer-instrument-moonpath">Moon Path</a> ·
+      <a href="/daylight" data-umami-event="footer-instrument-daylight">Daylight</a>
+    </p>
     <p class="now-credit"><em>route data: <a href="https://github.com/walktalkmeditate/open-pilgrimages" target="_blank" rel="noopener noreferrer">open-pilgrimages</a> &middot; ODbL</em></p>
   </footer>
 
+  <script src="js/moon.js"></script>
+  <script src="js/breathe-tint.js"></script>
+  <script src="js/breathe.js"></script>
   <script src="js/collective-routes.js"></script>
   <script>
     (function () {

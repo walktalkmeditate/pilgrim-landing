@@ -1740,12 +1740,31 @@
     </section>
 
     <!-- ==========================================
-         10b. Sun Path teaser — mini real-time globe + next-turning kanji
+         10b. The almanac — the live Sun Path globe, then all three
+              instruments as a quiet index. The walk's last stop.
          ========================================== -->
-    <aside class="home-sunpath" aria-label="Sun Path teaser">
-      <a href="/sunpath" class="home-sunpath-link" aria-label="Sun Path — where light meets land, right now" data-umami-event="click-sunpath-teaser">
-        <span class="home-sunpath-globe" id="home-sunpath-globe" aria-hidden="true"></span>
-      </a>
+    <aside class="home-almanac" aria-label="The almanac">
+      <div class="home-sunpath">
+        <a href="/sunpath" class="home-sunpath-link" aria-label="Sun Path — where light meets land, right now" data-umami-event="click-sunpath-teaser">
+          <span class="home-sunpath-globe" id="home-sunpath-globe" aria-hidden="true"></span>
+        </a>
+      </div>
+      <p class="home-almanac-lede">The almanac: quiet instruments for the sky you walk under.</p>
+      <ul class="home-almanac-index">
+        <li>
+          <a href="/sunpath" data-umami-event="click-sunpath-index">Sun Path</a>
+          <span class="home-almanac-note">where light meets land, right now</span>
+        </li>
+        <li>
+          <a href="/moonpath" data-umami-event="click-moonpath-index">Moon Path</a>
+          <span class="home-almanac-note">the moon's phase, and the tide it pulls</span>
+        </li>
+        <li>
+          <a href="/daylight" data-umami-event="click-daylight-index">Daylight</a>
+          <span class="home-almanac-note">how much light today holds for walking</span>
+        </li>
+      </ul>
+      <p class="home-almanac-throughline">Each reads the sky you're standing under. The app carries the same reading onto real ground, every walk you take.</p>
     </aside>
 
   <!-- ==========================================
@@ -1780,6 +1799,12 @@
         </span>
       </a>
     </div>
+
+    <p class="almanac-index">
+      <a href="/sunpath" data-umami-event="footer-instrument-sunpath">Sun Path</a> ·
+      <a href="/moonpath" data-umami-event="footer-instrument-moonpath">Moon Path</a> ·
+      <a href="/daylight" data-umami-event="footer-instrument-daylight">Daylight</a>
+    </p>
 
     <div class="horizon-links">
       <a href="/privacy">Privacy</a>

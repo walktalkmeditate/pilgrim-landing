@@ -1925,6 +1925,113 @@ body.constellation #moon-toggle canvas {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* The almanac — the walk's last stop before the horizon: the live Sun Path
+   globe, then all three instruments as a quiet, subordinate index (never
+   cards). Copy anchors on --ink: the seasonal engine shifts --stone at full
+   intensity, so only --ink holds WCAG AA across every season and both modes. */
+.home-almanac {
+  padding: 1.5rem 1.25rem 3rem;
+  text-align: center;
+}
+
+.home-almanac .home-sunpath {
+  padding: 0 0 1.25rem;
+}
+
+.home-almanac-lede {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 0 0 var(--padding-md);
+}
+
+.home-almanac-index {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.home-almanac-index a {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--stone);
+  padding-bottom: 1px;
+  transition: var(--transition-colors);
+}
+
+.home-almanac-index a:hover,
+.home-almanac-index a:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+.home-almanac-note {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--ink);
+  opacity: 0.78;
+  margin-top: 0.15rem;
+}
+
+/* The throughline: the almanac closes on the same promise the /seek reveal
+   makes ("every walk you take"), so both entry points resolve to one
+   invitation rather than two separate hand-offs. */
+.home-almanac-throughline {
+  max-width: 36ch;
+  margin: var(--padding-lg) auto 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--ink);
+  opacity: 0.85;
+  text-wrap: balance;
+}
+
+/* Almanac index — the instruments, reachable from every footer. Quiet text,
+   never a CTA. Anchors on --ink (the seasonal engine shifts it at only 0.1
+   intensity), so it holds AA across every season and both modes. */
+.almanac-index {
+  margin: 0 0 var(--padding-md);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.almanac-index a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--fog);
+  padding-bottom: 1px;
+  transition: var(--transition-colors);
+}
+
+.almanac-index a:hover,
+.almanac-index a:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+/* guide/compare have no footer of their own; this is a minimal quiet one,
+   kept clear of those pages' closing app-store CTA. */
+.almanac-footer {
+  margin-top: 3rem;
+  padding: 2rem 1.25rem 2.5rem;
+  border-top: 1px solid var(--fog);
+  text-align: center;
+}
+
+.almanac-footer .almanac-index {
+  margin: 0;
+}
+
 .home-sunpath-link {
   display: inline-flex;
   text-decoration: none;

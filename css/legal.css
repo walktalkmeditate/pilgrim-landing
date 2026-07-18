@@ -2,6 +2,41 @@
    Legal Pages (Privacy Policy, Terms of Use)
    ============================================= */
 
+/* The living signal: the hour's wash and the real moon (see js/breathe.js).
+   The wash is a fixed layer behind the content at <= 0.08 alpha, so it tints
+   the page without touching its palette or its contrast. Stacking is scoped to
+   the legal surfaces rather than a global main/footer rule, which would
+   disturb the homepage's own layering. */
+.breathe-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0; /* set by js/breathe.js */
+  transition: opacity 1.2s ease, background-color 1.2s ease;
+}
+
+.legal-header,
+.legal-content,
+.legal-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.breathe-moon {
+  position: fixed;
+  top: clamp(16px, 3vh, 28px);
+  right: clamp(16px, 3vw, 32px);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.5;
+  line-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe-wash { transition: none; }
+}
+
 .legal-header {
   padding-top: 3rem;
   padding-bottom: 2rem;

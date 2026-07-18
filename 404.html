@@ -32,6 +32,9 @@
 </head>
 <body>
 
+  <div class="breathe-wash" id="breathe-wash" aria-hidden="true"></div>
+  <div class="breathe-moon" id="breathe-moon" aria-hidden="true"></div>
+
   <main>
 
     <h1>404.</h1>
@@ -49,7 +52,15 @@
 
   <footer>
     <p>pilgrim · a walking companion · pilgrimapp.org</p>
+    <p class="almanac-index">
+      <a href="/sunpath" data-umami-event="footer-instrument-sunpath">Sun Path</a> ·
+      <a href="/moonpath" data-umami-event="footer-instrument-moonpath">Moon Path</a> ·
+      <a href="/daylight" data-umami-event="footer-instrument-daylight">Daylight</a>
+    </p>
   </footer>
 
+  <script src="/js/moon.js" defer></script>
+  <script src="/js/breathe-tint.js" defer></script>
+  <script src="/js/breathe.js" defer></script>
 </body>
 </html>
