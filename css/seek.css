@@ -25,7 +25,7 @@ html[data-hour="golden"] {
   --paper-deep: #EDD9B8;
   --ink:        #35281C;
   --ink-soft:   #4A3722;
-  --ink-fog:    #8A7457;
+  --ink-fog:    #77613F;
   --halo:       #D9A662;
   --halo-soft:  rgba(217, 166, 98, 0.42);
   --fog-tint:   rgba(226, 205, 170, 0.85);
@@ -85,6 +85,10 @@ body {
   border-radius: 50%;
   filter: blur(60px);
   background: radial-gradient(circle, var(--fog-tint) 0%, transparent 70%);
+  /* will-change caches each blurred blob as its own GPU texture, so the heavy
+     blur rasterizes once and scrolling composites the cached layer instead of
+     re-blurring every frame — the fix for fixed-blur scroll jank on retina. */
+  will-change: transform;
 }
 
 .fog-blob--1 {
@@ -115,6 +119,15 @@ body {
 
 html.revealed .fog { opacity: 0.12; }
 
+/* Once found, the seeking is over: freeze the fixed blurred atmosphere so it
+   stops re-rasterizing on every scroll. A blur(60px) fog on a fixed layer is
+   costly to re-composite on high-DPI screens while it animates; paused, it
+   caches as a static texture and the long scroll to the story stays smooth. */
+html.revealed .fog-blob,
+html.revealed .crescent {
+  animation-play-state: paused;
+}
+
 /* While the stillness ring fills, the fog breathes with you —
    in for a beat, out for a beat, three times to the clearing. */
 html.filling .fog {
@@ -142,6 +155,7 @@ html.filling .fog {
   filter: blur(calc((1 - var(--world-clarity, 0)) * 26px))
           saturate(calc(0.55 + var(--world-clarity, 0) * 0.65));
   transition: opacity 1.6s ease, filter 1.6s ease;
+  will-change: transform;
 }
 
 html.revealed .world { opacity: 0.62; filter: blur(2px) saturate(1.15); }
@@ -363,6 +377,44 @@ main { position: relative; z-index: 1; }
 }
 
 .arrival-lede--second { color: var(--ink-fog); }
+
+/* A ?word= link drops straight into the walk; the arrival is skipped. */
+html.seeded #arrival { display: none; }
+
+/* Sound toggle honesty: pending while the buffers load, dimmed if the
+   AudioContext or the audio fetch is unavailable. */
+.sound-toggle.sound-pending { opacity: 0.6; }
+.sound-toggle.sound-unavailable { opacity: 0.5; cursor: default; }
+
+/* Reveal bridge — the fog-idiom crest carries its own quiet store links, since
+   the story's download sits ~520svh below the clearing. */
+.clearing-bridge {
+  margin: 1.6rem 0 0.4rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.clearing-bridge-links {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+  color: var(--ink-fog);
+}
+
+.clearing-bridge-links a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink-fog);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+}
+
+.clearing-bridge-links a:hover,
+.clearing-bridge-links a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.clearing-bridge-sep { margin: 0 0.4rem; opacity: 0.6; }
 
 .intention {
   margin-top: clamp(28px, 5vh, 56px);

@@ -571,6 +571,16 @@ body.constellation .sunpath-popover-close:hover { color: rgba(232, 224, 255, 0.9
   border-bottom-color: var(--ink);
 }
 
+.sunpath-close-whisper {
+  margin-bottom: 1.6rem;
+  font-size: 1.08rem;
+}
+
+.sunpath-close-whisper a {
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .sunpath-footer-links {
   display: flex;
   flex-wrap: wrap;

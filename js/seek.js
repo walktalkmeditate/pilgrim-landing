@@ -136,26 +136,61 @@
       .then(function (b) { return audio.ctx.decodeAudioData(b); });
   }
 
+  var soundBusy = false; // guards against re-entrant clicks during async enable
+
+  function setSoundState(on) {
+    audio.enabled = on;
+    soundToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function trackSound(event) {
+    if (window.umami) { window.umami.track(event); }
+  }
+
+  // aria-pressed only turns "on" once the audio is genuinely ready — never a
+  // toggle that reads on while silent. Any failure falls back to off.
   function enableSound() {
+    if (soundBusy) { return; }
+
     if (audio.enabled) {
-      audio.enabled = false;
-      soundToggle.setAttribute('aria-pressed', 'false');
+      setSoundState(false);
       stopPingLoop();
+      trackSound('seek-sound-off');
       return;
     }
-    audio.enabled = true;
-    soundToggle.setAttribute('aria-pressed', 'true');
-    if (!audio.ctx) {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) { audio.enabled = false; return; }
-      audio.ctx = new Ctx();
-      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-ping.aac')
-        .then(function (buf) { audio.ping = buf; });
-      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-bowl.aac')
-        .then(function (buf) { audio.bowl = buf; });
+
+    // Already initialized once — resume without re-fetching.
+    if (audio.ctx && audio.ping && audio.bowl) {
+      if (audio.ctx.state === 'suspended') { audio.ctx.resume(); }
+      setSoundState(true);
+      trackSound('seek-sound-on');
+      if (seeking.begun && !seeking.revealed) { schedulePing(); }
+      return;
     }
+
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) { soundToggle.classList.add('sound-unavailable'); return; }
+
+    soundBusy = true;
+    soundToggle.classList.add('sound-pending');
+    if (!audio.ctx) { audio.ctx = new Ctx(); }
     if (audio.ctx.state === 'suspended') { audio.ctx.resume(); }
-    if (seeking.begun && !seeking.revealed) { schedulePing(); }
+
+    Promise.all([
+      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-ping.aac').then(function (b) { audio.ping = b; }),
+      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-bowl.aac').then(function (b) { audio.bowl = b; })
+    ]).then(function () {
+      soundBusy = false;
+      soundToggle.classList.remove('sound-pending');
+      setSoundState(true);
+      trackSound('seek-sound-on');
+      if (seeking.begun && !seeking.revealed) { schedulePing(); }
+    }).catch(function () {
+      soundBusy = false;
+      soundToggle.classList.remove('sound-pending');
+      soundToggle.classList.add('sound-unavailable');
+      setSoundState(false);
+    });
   }
 
   function playBuffer(buffer, gainValue) {
@@ -217,8 +252,8 @@
 
   // ---------- Begin ----------
 
-  function begin(word) {
-    var cleaned = (word || '').trim().toLowerCase();
+  function begin(word, opts) {
+    var cleaned = window.SeekWord ? window.SeekWord.sanitizeWord(word) : (word || '').trim().toLowerCase();
     seeking.word = cleaned || 'the unknown';
     seeking.startedAt = new Date();
 
@@ -250,7 +285,9 @@
     if (audio.enabled) { schedulePing(); }
 
     showCrescentHintOnce();
-    path.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    if (!opts || !opts.skipScroll) {
+      path.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
   }
 
   var crescentHintShown = false;
@@ -268,16 +305,43 @@
     begin(wordInput.value);
   });
 
-  // A visitor who simply scrolls past the door begins with the default word.
+  // "Shown intent" = the visitor typed an actual character (or submitted).
+  // A reader who only scrolls toward the story is never drafted into a seek.
+  var userIntent = false;
+  wordInput.addEventListener('input', function () {
+    if (wordInput.value.trim()) { userIntent = true; }
+  });
+
+  // A visitor who has shown intent and then scrolls past the door begins with
+  // whatever they typed; a pure reader passes through untouched.
   var autoBeginObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting && !seeking.begun) {
-        begin(wordInput.value);
-      }
-      if (entry.isIntersecting) { autoBeginObserver.disconnect(); }
+      if (!entry.isIntersecting) { return; }
+      if (userIntent && !seeking.begun) { begin(wordInput.value); }
+      autoBeginObserver.disconnect();
     });
   }, { rootMargin: '0px 0px -60% 0px' });
   autoBeginObserver.observe(path);
+
+  // A shared or crafted /seek?word= link drops the visitor straight into the
+  // walk, pre-seeded. The word is re-sanitized here (the page is the authority),
+  // rendered only via textContent by begin(), and then wiped from the URL — it
+  // never travels into analytics or a shareable address, keeping the page's
+  // promise that the word never leaves it.
+  (function bootSeeded() {
+    var raw;
+    try { raw = new URLSearchParams(location.search).get('word'); }
+    catch (e) { raw = null; }
+    if (raw === null) { return; }
+    var seeded = window.SeekWord ? window.SeekWord.sanitizeWord(raw) : raw;
+    if (seeded) {
+      html.classList.add('seeded');
+      begin(seeded, { skipScroll: true });
+    } else {
+      html.classList.remove('seeded');
+    }
+    history.replaceState(null, '', location.pathname + location.hash);
+  })();
 
   // ---------- Waymarks ----------
 
@@ -329,31 +393,46 @@
 
   // ---------- Stillness ----------
 
-  var ZONE_FRACTION = 0.07; // of path height, either side of the clearing
+  var ZONE_FRACTION = 0.07;      // of path height, either side of the clearing
+  var STILL_TOLERANCE_PX = 16;   // scroll jitter below this doesn't reset the fill
 
   var stillness = {
     inZone: false,
     fillStart: null,
     raf: null,
     idleTimer: null,
-    zoneEnteredAt: null
+    fallbackTimer: null,
+    zoneEnteredAt: null,
+    anchorY: 0
   };
+
+  var stillnessSub = document.querySelector('.stillness-sub');
+  function setStillnessSub(text) {
+    if (stillnessSub) { stillnessSub.textContent = text; }
+  }
+  // Reassures that stillness — not an error — is what the ring waits for. The
+  // .stillness region is aria-live, so a screen reader hears the change once.
+  function showStillnessDiagnosis() {
+    setStillnessSub('the ring fills only in stillness');
+  }
 
   function enterZone() {
     if (stillness.inZone || seeking.revealed) { return; }
     stillness.inZone = true;
     stillness.zoneEnteredAt = Date.now();
+    stillness.anchorY = window.scrollY;
     html.classList.add('in-zone');
     if (reducedMotion) {
       stillness.idleTimer = setTimeout(reveal, STILLNESS_MS);
       return;
     }
     armStillness();
-    setTimeout(function () {
+    // Offer the escape well before the 9s it bypasses, not after 25s.
+    stillness.fallbackTimer = setTimeout(function () {
       if (stillness.inZone && !seeking.revealed) {
         stillnessFallback.hidden = false;
       }
-    }, 25000);
+    }, 8000);
   }
 
   function leaveZone() {
@@ -362,11 +441,13 @@
     html.classList.remove('in-zone');
     cancelFill();
     if (stillness.idleTimer) { clearTimeout(stillness.idleTimer); stillness.idleTimer = null; }
+    if (stillness.fallbackTimer) { clearTimeout(stillness.fallbackTimer); stillness.fallbackTimer = null; }
     stillnessFallback.hidden = true;
   }
 
   function armStillness() {
     cancelFill();
+    stillness.anchorY = window.scrollY;
     stillness.idleTimer = setTimeout(startFill, 400);
   }
 
@@ -410,6 +491,7 @@
 
   document.getElementById('again-btn').addEventListener('click', function () {
     html.classList.remove('revealed');
+    html.classList.remove('seeded');
     seeking.begun = false;
     seeking.revealed = false;
     leaveZone();
@@ -593,8 +675,14 @@
         var rect = pathRect();
         var inZone = Math.abs(clearingAbsY() - viewportCenterAbsY()) < rect.height * ZONE_FRACTION;
         if (inZone) {
-          if (!stillness.inZone) { enterZone(); }
-          else if (!reducedMotion) { armStillness(); }
+          if (!stillness.inZone) {
+            enterZone();
+          } else if (!reducedMotion &&
+                     Math.abs(window.scrollY - stillness.anchorY) > STILL_TOLERANCE_PX) {
+            // A genuine scroll (not jitter or inertia) resets the fill.
+            showStillnessDiagnosis();
+            armStillness();
+          }
         } else {
           leaveZone();
         }
@@ -604,4 +692,12 @@
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
+
+  // A backgrounded tab pauses rAF; without this, the elapsed wall-clock on
+  // return would jump the fill straight to a full, unearned reveal. Cancel on
+  // hide; re-evaluate on return so stillness begins again from zero.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { leaveZone(); }
+    else { onScroll(); }
+  });
 })();

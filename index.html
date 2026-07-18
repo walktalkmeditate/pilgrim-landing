@@ -904,14 +904,17 @@
       bottom: -18%; right: -15vw;
     }
 
-    .seek-door-kicker {
-      font-family: var(--font-ui);
-      font-size: 0.75rem;
-      font-weight: 300;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--stone);
-      margin-bottom: var(--padding-md);
+    .seek-door-crescent {
+      color: var(--dawn);
+      width: 46px;
+      height: 46px;
+      margin: 0 auto var(--padding-md);
+      animation: seek-door-breath 5.5s ease-in-out infinite;
+    }
+
+    @keyframes seek-door-breath {
+      0%, 100% { opacity: 0.5; transform: scale(0.96); }
+      50%      { opacity: 1;   transform: scale(1.03); }
     }
 
     .seek-door h2 {
@@ -925,20 +928,61 @@
       margin: 0 auto var(--padding-lg);
     }
 
-    .seek-door-link {
-      display: inline-block;
-      font-family: var(--font-body);
-      font-size: 1.2rem;
-      color: var(--dawn);
-      text-decoration: none;
-      border-bottom: 1px solid var(--dawn);
-      padding-bottom: 2px;
+    .seek-door-label {
+      display: block;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.15rem;
+      color: var(--ink);
+      margin-bottom: var(--padding-sm);
+    }
+
+    .seek-door-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .seek-door-field input {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 1.35rem;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--stone);
+      padding: 0.2rem 0.5rem;
+      min-width: 13rem;
+      text-align: center;
+    }
+
+    .seek-door-field input::placeholder { color: var(--stone); opacity: 0.75; }
+    .seek-door-field input:focus { outline: none; border-bottom-color: var(--ink); }
+
+    .seek-door-submit {
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--stone);
+      border-radius: 999px;
+      padding: 0.45rem 1.5rem;
+      cursor: pointer;
       transition: var(--transition-colors);
     }
 
-    .seek-door-link:hover {
-      color: var(--rust);
-      border-bottom-color: var(--rust);
+    .seek-door-submit:hover,
+    .seek-door-submit:focus-visible {
+      background: var(--ink);
+      color: var(--parchment);
+      border-color: var(--ink);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .seek-door-crescent { animation: none; opacity: 0.85; }
     }
   </style>
 </head>
@@ -1362,13 +1406,25 @@
          ========================================== -->
     <section class="seek-door section" aria-label="Seek">
       <div class="section-inner">
-        <p class="seek-door-kicker reveal">New — a third way of walking</p>
+        <div class="seek-door-crescent reveal" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
+            <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-dasharray="34 80" stroke-dashoffset="17"/>
+          </svg>
+        </div>
         <h2 class="display-large reveal">You don't choose where you're going</h2>
         <p class="body-text reveal">
           Whisper what you're looking for, and walk toward places hidden in
           fog — revealed only by stillness.
         </p>
-        <a href="/seek" class="seek-door-link reveal" data-umami-event="enter-seek">Enter the seek →</a>
+        <form class="seek-door-form" method="get" action="/seek" autocomplete="off">
+          <label class="seek-door-label" for="seek-door-word">What are you seeking?</label>
+          <div class="seek-door-field">
+            <input type="text" id="seek-door-word" name="word" maxlength="32"
+                   placeholder="one word is enough" spellcheck="false">
+            <button type="submit" class="seek-door-submit" data-umami-event="enter-seek">Seek</button>
+          </div>
+        </form>
       </div>
     </section>
 

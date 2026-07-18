@@ -31,3 +31,6 @@ node_modules/
 
 # Visual brainstorming companion (superpowers)
 .superpowers/
+
+# Design companion (impeccable) — local hook cache, config, critique snapshots
+.impeccable/

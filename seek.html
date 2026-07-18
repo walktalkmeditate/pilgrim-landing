@@ -74,6 +74,17 @@
     })();
   </script>
 
+  <!-- A ?word= link drops straight into the walk: hide the arrival before
+       first paint so there's no flash. seek.js confirms and seeds it. -->
+  <script>
+    (function () {
+      try {
+        var w = new URLSearchParams(location.search).get('word');
+        if (w && w.trim()) { document.documentElement.classList.add('seeded'); }
+      } catch (e) {}
+    })();
+  </script>
+
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="icon" type="image/png" href="assets/favicon.png">
 
@@ -159,7 +170,7 @@
         <div class="arrival-actions">
           <button type="submit" class="begin" data-umami-event="seek-begin">Begin walking ↓</button>
           <button type="button" class="sound-toggle" id="sound-toggle"
-                  aria-pressed="false" data-umami-event="seek-sound-on">
+                  aria-pressed="false">
             <span class="sound-toggle-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -204,6 +215,16 @@
             In the app, a clearing is a real place. When the fog lifts,
             look around — what grows there, what's left behind, who passes.
             The world answers intentions sideways, through what you notice.
+          </p>
+          <p class="clearing-bridge">
+            You were still, and the fog gave way. It does the same on real
+            ground, every walk you take.
+          </p>
+          <p class="clearing-bridge-links">
+            Carry the seeking with you:
+            <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" data-umami-event="seek-bridge-app-store">App&nbsp;Store</a>
+            <span class="clearing-bridge-sep" aria-hidden="true">·</span>
+            <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim" data-umami-event="seek-bridge-google-play">Google&nbsp;Play</a>
           </p>
           <div class="clearing-actions">
             <button type="button" id="keepsake-btn" data-umami-event="seek-keepsake">Keep it</button>
@@ -274,6 +295,7 @@
 
   </main>
 
+  <script src="js/seek-word.js" defer></script>
   <script src="js/seek.js" defer></script>
 </body>
 </html>

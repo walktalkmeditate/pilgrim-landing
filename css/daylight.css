@@ -649,6 +649,16 @@ body.constellation .dl-tick-legend-waypoints {
   border-bottom-color: var(--ink);
 }
 
+.daylight-close-whisper {
+  margin-bottom: 1.6rem;
+  font-size: 1.08rem;
+}
+
+.daylight-close-whisper a {
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .daylight-footer-links {
   display: flex;
   flex-wrap: wrap;
