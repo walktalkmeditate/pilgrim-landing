@@ -136,26 +136,61 @@
       .then(function (b) { return audio.ctx.decodeAudioData(b); });
   }
 
+  var soundBusy = false; // guards against re-entrant clicks during async enable
+
+  function setSoundState(on) {
+    audio.enabled = on;
+    soundToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function trackSound(event) {
+    if (window.umami) { window.umami.track(event); }
+  }
+
+  // aria-pressed only turns "on" once the audio is genuinely ready — never a
+  // toggle that reads on while silent. Any failure falls back to off.
   function enableSound() {
+    if (soundBusy) { return; }
+
     if (audio.enabled) {
-      audio.enabled = false;
-      soundToggle.setAttribute('aria-pressed', 'false');
+      setSoundState(false);
       stopPingLoop();
+      trackSound('seek-sound-off');
       return;
     }
-    audio.enabled = true;
-    soundToggle.setAttribute('aria-pressed', 'true');
-    if (!audio.ctx) {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) { audio.enabled = false; return; }
-      audio.ctx = new Ctx();
-      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-ping.aac')
-        .then(function (buf) { audio.ping = buf; });
-      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-bowl.aac')
-        .then(function (buf) { audio.bowl = buf; });
+
+    // Already initialized once — resume without re-fetching.
+    if (audio.ctx && audio.ping && audio.bowl) {
+      if (audio.ctx.state === 'suspended') { audio.ctx.resume(); }
+      setSoundState(true);
+      trackSound('seek-sound-on');
+      if (seeking.begun && !seeking.revealed) { schedulePing(); }
+      return;
     }
+
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) { soundToggle.classList.add('sound-unavailable'); return; }
+
+    soundBusy = true;
+    soundToggle.classList.add('sound-pending');
+    if (!audio.ctx) { audio.ctx = new Ctx(); }
     if (audio.ctx.state === 'suspended') { audio.ctx.resume(); }
-    if (seeking.begun && !seeking.revealed) { schedulePing(); }
+
+    Promise.all([
+      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-ping.aac').then(function (b) { audio.ping = b; }),
+      fetchBuffer('https://cdn.pilgrimapp.org/audio/seek/seek-bowl.aac').then(function (b) { audio.bowl = b; })
+    ]).then(function () {
+      soundBusy = false;
+      soundToggle.classList.remove('sound-pending');
+      setSoundState(true);
+      trackSound('seek-sound-on');
+      if (seeking.begun && !seeking.revealed) { schedulePing(); }
+    }).catch(function () {
+      soundBusy = false;
+      soundToggle.classList.remove('sound-pending');
+      soundToggle.classList.add('sound-unavailable');
+      setSoundState(false);
+    });
   }
 
   function playBuffer(buffer, gainValue) {

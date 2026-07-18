@@ -367,6 +367,11 @@ main { position: relative; z-index: 1; }
 /* A ?word= link drops straight into the walk; the arrival is skipped. */
 html.seeded #arrival { display: none; }
 
+/* Sound toggle honesty: pending while the buffers load, dimmed if the
+   AudioContext or the audio fetch is unavailable. */
+.sound-toggle.sound-pending { opacity: 0.6; }
+.sound-toggle.sound-unavailable { opacity: 0.5; cursor: default; }
+
 .intention {
   margin-top: clamp(28px, 5vh, 56px);
   display: flex;
