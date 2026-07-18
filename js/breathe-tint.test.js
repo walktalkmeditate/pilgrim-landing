@@ -9,6 +9,7 @@ function test(name, fn) { fn(); count++; }
 function at(hour) { return hourTint(new Date(2026, 0, 15, hour, 0, 0)); }
 
 test('night hours return the night tint', function () {
+  assert.strictEqual(at(21).name, 'night');
   assert.strictEqual(at(23).name, 'night');
   assert.strictEqual(at(2).name, 'night');
   assert.strictEqual(at(4).name, 'night');
@@ -42,9 +43,11 @@ test('every tint is a valid hex colour', function () {
   }
 });
 
-// The wash sits behind a page's text; a heavy alpha would quietly cost that
-// page its WCAG AA contrast. This is the guard that keeps the wash a wash.
-test('alpha stays low enough to preserve text contrast', function () {
+// A ceiling, not a contrast proof: a low alpha does not by itself preserve AA
+// (dusk and night once cleared 0.08 and still broke /now's --ink-fog). The real
+// guard composites each tint over the actual stylesheet tokens — see
+// js/breathe-contrast.test.js. This only keeps the wash from becoming a layer.
+test('alpha stays within the wash ceiling', function () {
   for (var h = 0; h < 24; h++) {
     var t = at(h);
     assert.ok(t.alpha > 0 && t.alpha <= 0.08,

@@ -6,8 +6,16 @@
    which is exactly what this must not do. A page keeps its own colours; this
    only supplies a thin wash laid behind them.
 
-   Alphas stay <= 0.08 so the wash can never cost a page its WCAG AA text
-   contrast (js/breathe-tint.test.js enforces that ceiling). */
+   The real invariant: composited over any washed page's background, every text
+   token that clears WCAG AA unwashed must still clear it — at every hour, in
+   both light and dark mode. js/breathe-contrast.test.js proves that against the
+   actual stylesheet tokens; a low alpha alone does not.
+
+   The binding case is /now + /404's light --ink-fog, since a tint that darkens
+   light paper spends contrast the muted text can least afford. Rather than
+   flatten night into a pale wash to fit, that token was darkened to #695F56
+   (5.50:1 unwashed, from 4.68:1) — the same move css/seek.css made in Phase 1.
+   The headroom bought there is what lets night stay deep here. */
 
 (function (root) {
   'use strict';

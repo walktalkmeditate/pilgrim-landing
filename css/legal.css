@@ -28,6 +28,7 @@
   top: clamp(16px, 3vh, 28px);
   right: clamp(16px, 3vw, 32px);
   z-index: 2;
+  pointer-events: none;
   opacity: 0.5;
   line-height: 0;
 }

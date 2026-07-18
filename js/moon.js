@@ -20,7 +20,11 @@ function getMoonPhaseName(phase) {
   return 'New Moon';
 }
 
-function renderMoon(container, phaseValue) {
+// `options.isDark` is for pages that carry no [data-theme] — /now and /404 do
+// dark mode through prefers-color-scheme, so reading the attribute there always
+// says "light" and paints the shadow brighter than the lit face. Omit it and
+// the attribute stays the source of truth, as it is for the homepage toggle.
+function renderMoon(container, phaseValue, options) {
   const phase = (phaseValue !== undefined && phaseValue !== null) ? phaseValue : getMoonPhase(new Date());
   const name = getMoonPhaseName(phase);
 
@@ -37,7 +41,9 @@ function renderMoon(container, phaseValue) {
   canvas.style.height = size + 'px';
   const ctx = canvas.getContext('2d');
 
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const isDark = (options && typeof options.isDark === 'boolean')
+    ? options.isDark
+    : document.documentElement.getAttribute('data-theme') === 'dark';
   const lit = isDark ? '#F0EBE1' : '#B8AFA2';
   const shadow = isDark ? '#1C1914' : '#F5F0E8';
 

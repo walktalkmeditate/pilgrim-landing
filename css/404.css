@@ -3,7 +3,9 @@
 :root {
   --ink:       #2B241F;
   --ink-soft:  #3C2E24;
-  --ink-fog:   #756A60;
+  /* 5.50:1 on paper — deeper than /found's fog gray because the hour wash
+     (js/breathe.js) composites behind this text and spends some of the margin. */
+  --ink-fog:   #695F56;
 
   --paper:     #F6F1E6;
   --paper-dim: #EFE8D7;
@@ -21,7 +23,7 @@
   :root {
     --ink:       #EDE4CF;
     --ink-soft:  #D8CCAF;
-    --ink-fog:   #958A7A;
+    --ink-fog:   #9A9081; /* 5.55:1 on dark paper — same margin as light mode */
     --paper:     #1E1913;
     --paper-dim: #251F17;
     --rule:      #3A2F22;
@@ -111,6 +113,7 @@ footer {
   top: clamp(16px, 3vh, 28px);
   right: clamp(16px, 3vw, 32px);
   z-index: 2;
+  pointer-events: none;
   opacity: 0.5;
   line-height: 0;
 }

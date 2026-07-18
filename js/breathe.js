@@ -25,8 +25,19 @@
 
     var moon = document.getElementById('breathe-moon');
     if (moon && window.Moon && typeof window.Moon.renderMoon === 'function') {
-      window.Moon.renderMoon(moon);
+      window.Moon.renderMoon(moon, undefined, { isDark: prefersDark() });
+      // Named only once it exists. Shipped aria-hidden, so a page with JS off
+      // or a missing dependency leaves an empty div decorative rather than an
+      // img role with no accessible name. renderMoon sets the label.
+      moon.removeAttribute('aria-hidden');
+      moon.setAttribute('role', 'img');
     }
+  }
+
+  // These pages carry no [data-theme]; their dark mode is the media query.
+  function prefersDark() {
+    return typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
   if (document.readyState === 'loading') {
