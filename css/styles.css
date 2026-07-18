@@ -1925,6 +1925,61 @@ body.constellation #moon-toggle canvas {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* The almanac — the walk's last stop before the horizon: the live Sun Path
+   globe, then all three instruments as a quiet, subordinate index (never
+   cards). Copy anchors on --ink: the seasonal engine shifts --stone at full
+   intensity, so only --ink holds WCAG AA across every season and both modes. */
+.home-almanac {
+  padding: 1.5rem 1.25rem 3rem;
+  text-align: center;
+}
+
+.home-almanac .home-sunpath {
+  padding: 0 0 1.25rem;
+}
+
+.home-almanac-lede {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 0 0 var(--padding-md);
+}
+
+.home-almanac-index {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.home-almanac-index a {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--stone);
+  padding-bottom: 1px;
+  transition: var(--transition-colors);
+}
+
+.home-almanac-index a:hover,
+.home-almanac-index a:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+.home-almanac-note {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--ink);
+  opacity: 0.78;
+  margin-top: 0.15rem;
+}
+
 .home-sunpath-link {
   display: inline-flex;
   text-decoration: none;
