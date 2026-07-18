@@ -1980,6 +1980,21 @@ body.constellation #moon-toggle canvas {
   margin-top: 0.15rem;
 }
 
+/* The throughline: the almanac closes on the same promise the /seek reveal
+   makes ("every walk you take"), so both entry points resolve to one
+   invitation rather than two separate hand-offs. */
+.home-almanac-throughline {
+  max-width: 36ch;
+  margin: var(--padding-lg) auto 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--ink);
+  opacity: 0.85;
+  text-wrap: balance;
+}
+
 /* Almanac index — the instruments, reachable from every footer. Quiet text,
    never a CTA. Anchors on --ink (the seasonal engine shifts it at only 0.1
    intensity), so it holds AA across every season and both modes. */
