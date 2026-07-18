@@ -88,6 +88,37 @@ footer {
   text-align: center;
 }
 
+/* The living signal: the hour's wash and the real moon (see js/breathe.js).
+   The wash sits behind the content at <= 0.08 alpha, tinting the page without
+   touching its palette or its contrast. */
+.breathe-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0; /* set by js/breathe.js */
+  transition: opacity 1.2s ease, background-color 1.2s ease;
+}
+
+main,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+.breathe-moon {
+  position: fixed;
+  top: clamp(16px, 3vh, 28px);
+  right: clamp(16px, 3vw, 32px);
+  z-index: 2;
+  opacity: 0.5;
+  line-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe-wash { transition: none; }
+}
+
 /* Almanac index — the instruments, reachable from this footer too.
    --ink-soft (not --ink-fog) so the small text clears AA comfortably. */
 .almanac-index {
