@@ -891,6 +891,16 @@ body.constellation .moonpath-preset:hover {
   border-bottom-color: var(--ink);
 }
 
+.moonpath-close-whisper {
+  margin-bottom: 1.6rem;
+  font-size: 1.08rem;
+}
+
+.moonpath-close-whisper a {
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .moonpath-footer-links {
   display: flex;
   flex-wrap: wrap;
