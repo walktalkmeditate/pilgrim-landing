@@ -39,6 +39,18 @@ Deployed via GitHub Pages from the `main` branch.
 
 The `assets/daylight/` directory holds pre-baked stage records used by the walk-budget feature. Run `./scripts/bake-daylight-routes` from the repo root whenever the upstream `open-pilgrimages` route data changes. The script reads `stages.json` and `metadata.json` from the sibling `../open-pilgrimages/` repo and writes one JSON array per route plus a `route-meta.json` summary — no dependencies beyond Node's built-ins. Output is deterministic: running the script twice in succession produces byte-identical files, so a clean `git diff assets/daylight/` confirms nothing drifted.
 
+## Collective route data
+
+`assets/collective-routes.json` holds the route catalog behind the collective trail on the homepage and `/now`. Run `./scripts/bake-collective-routes` from the repo root whenever the sibling `../open-pilgrimages` data changes — it reads `metadata.json`, `stages.json`, and `stats.json` for each route and rewrites the artifact. Output is deterministic, so a second run leaves `git diff assets/collective-routes.json` clean.
+
+Baking only updates this repo. The apps read the same artifact from the CDN, so a route change reaches readers when it is published: `./scripts/publish-collective-routes` uploads it to `https://cdn.pilgrimapp.org/collective/routes.json` (the `collective/routes.json` object in the `pilgrimapp` R2 bucket). Pass `--dry-run` to print what would run without uploading. Both web pages read the CDN copy first and fall back to the committed `assets/` copy, so one publish updates every surface — site and apps together.
+
+The script refuses to publish when the working artifact differs from a fresh bake, so what ships is always reproducible from `../open-pilgrimages`. If it stops you: re-bake, review the diff, commit, then publish.
+
+**The `--remote` flag on `wrangler r2 object put` is load-bearing.** Without it wrangler writes to its local emulator, prints the same success line, and nothing reaches the CDN. The script always passes it — if you ever run the upload by hand, pass it too.
+
+Bucket cache status is `DYNAMIC`, so an upload is live immediately and needs no purge. The published object carries `access-control-allow-origin: https://pilgrimapp.org`; from any other origin (a local server, a preview host) the CDN fetch fails and the pages fall back to the committed copy. That is the fallback working, not a bug.
+
 ## Related
 
 - [Pilgrim iOS](https://github.com/walktalkmeditate/pilgrim-ios) — the app
