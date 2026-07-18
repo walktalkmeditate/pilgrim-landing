@@ -85,6 +85,10 @@ body {
   border-radius: 50%;
   filter: blur(60px);
   background: radial-gradient(circle, var(--fog-tint) 0%, transparent 70%);
+  /* will-change caches each blurred blob as its own GPU texture, so the heavy
+     blur rasterizes once and scrolling composites the cached layer instead of
+     re-blurring every frame — the fix for fixed-blur scroll jank on retina. */
+  will-change: transform;
 }
 
 .fog-blob--1 {
@@ -115,6 +119,15 @@ body {
 
 html.revealed .fog { opacity: 0.12; }
 
+/* Once found, the seeking is over: freeze the fixed blurred atmosphere so it
+   stops re-rasterizing on every scroll. A blur(60px) fog on a fixed layer is
+   costly to re-composite on high-DPI screens while it animates; paused, it
+   caches as a static texture and the long scroll to the story stays smooth. */
+html.revealed .fog-blob,
+html.revealed .crescent {
+  animation-play-state: paused;
+}
+
 /* While the stillness ring fills, the fog breathes with you —
    in for a beat, out for a beat, three times to the clearing. */
 html.filling .fog {
@@ -142,6 +155,7 @@ html.filling .fog {
   filter: blur(calc((1 - var(--world-clarity, 0)) * 26px))
           saturate(calc(0.55 + var(--world-clarity, 0) * 0.65));
   transition: opacity 1.6s ease, filter 1.6s ease;
+  will-change: transform;
 }
 
 html.revealed .world { opacity: 0.62; filter: blur(2px) saturate(1.15); }
