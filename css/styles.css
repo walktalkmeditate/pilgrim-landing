@@ -1428,7 +1428,7 @@ body.constellation .hero-quote[data-category="presence"] {
   transform-origin: center 60%;
   cursor: pointer;
   pointer-events: auto;
-  transition: filter 0.6s ease;
+  transition: filter 0.6s ease, color 0.6s ease;
 }
 
 .page-walker-figure:focus {
@@ -1438,17 +1438,20 @@ body.constellation .hero-quote[data-category="presence"] {
 
 /* Walking: the walker bobs only while the reader is actively
    scrolling. JS adds .walking on scroll and swaps it for .meditating
-   after ~1.5s of stillness. Two-beat 560ms cadence, 4px lift plus
-   ±3deg sway — deliberately obvious at 28px. */
+   after ~1.5s of stillness. Two-beat 560ms cadence. Amplitude and lean
+   are velocity-driven: main.js writes --walk-lift / --walk-sway from
+   smoothed scroll speed (gentle nod when slow, real stride when fast)
+   and --walk-lean as a forward bias scrolling down, backward scrolling
+   up. The fallbacks reproduce the original fixed 4px / ±3deg gait. */
 .page-walker.walking .page-walker-figure {
   animation: page-walker-bob 560ms ease-in-out infinite;
 }
 
 @keyframes page-walker-bob {
-  0%, 100% { transform: translateY(0)    rotate(0deg); }
-  25%      { transform: translateY(-4px) rotate(-3deg); }
-  50%      { transform: translateY(0)    rotate(0deg); }
-  75%      { transform: translateY(-4px) rotate(3deg); }
+  0%, 100% { transform: translateY(0) rotate(var(--walk-lean, 0deg)); }
+  25%      { transform: translateY(calc(var(--walk-lift, 4px) * -1)) rotate(calc(var(--walk-lean, 0deg) - var(--walk-sway, 3deg))); }
+  50%      { transform: translateY(0) rotate(var(--walk-lean, 0deg)); }
+  75%      { transform: translateY(calc(var(--walk-lift, 4px) * -1)) rotate(calc(var(--walk-lean, 0deg) + var(--walk-sway, 3deg))); }
 }
 
 /* Meditating: when the reader pauses to read, the walker stops
@@ -1540,9 +1543,26 @@ body.constellation .hero-quote[data-category="presence"] {
   45%, 55% { transform: translateY(-1px);}
 }
 
-/* Whispering: during audio playback of a whisper, the walker has
-   a soft warm glow so the reader knows the click registered. */
+/* Staff-plant: a one-shot settle the moment the walker stops and enters
+   meditation — it dips onto the staff and straightens to rest before the
+   breath ring blooms. main.js adds .planting for ~600ms. Declared after
+   the meditating rule so it wins the equal-specificity tie while active. */
+.page-walker.planting .page-walker-figure {
+  animation: page-walker-plant 600ms ease-out;
+}
+
+@keyframes page-walker-plant {
+  0%   { transform: translateY(-3px) rotate(2deg); }
+  40%  { transform: translateY(1px)  rotate(0deg); }
+  70%  { transform: translateY(-1px) rotate(0deg); }
+  100% { transform: translateY(0)    rotate(0deg); }
+}
+
+/* Whispering: during audio playback of a whisper, the walker warms
+   to dawn and takes a soft glow, so the reader knows the click
+   registered. */
 .page-walker.whispering .page-walker-figure {
+  color: var(--dawn);
   filter: drop-shadow(0 0 6px rgba(196, 165, 116, 0.55));
 }
 
@@ -1595,6 +1615,7 @@ body.constellation .hero-quote[data-category="presence"] {
   .page-walker.meditating .page-walker-breath::before,
   .page-walker.meditating .page-walker-breath::after,
   .page-walker.meditating .page-walker-figure,
+  .page-walker.planting .page-walker-figure,
   .page-walker.bowing .page-walker-figure {
     animation: none;
   }

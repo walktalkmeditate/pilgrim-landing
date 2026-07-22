@@ -633,6 +633,18 @@
     var hasArrived = false;
     var scrollCount = 0;
     var idleTimer = null;
+    var plantTimer = null;
+
+    // Velocity-driven gait. Each scroll event measures px/ms and eases it
+    // (EMA) into --walk-lift / --walk-sway (amplitude) and --walk-lean
+    // (forward bias scrolling down, backward scrolling up). GAIT_VMAX is
+    // the speed mapped to a full stride; above it the gait just saturates.
+    var lastScrollY = window.scrollY || 0;
+    var lastScrollT = performance.now();
+    var gaitPace = 0;
+    var gaitLean = 0;
+    var GAIT_VMAX = 2.0;
+    var GAIT_MAX_LEAN = 6;
 
     if (!isFirstVisit) {
       walker.classList.add('visible');
@@ -648,6 +660,31 @@
     function enterMeditating() {
       walker.classList.remove('walking');
       walker.classList.add('meditating');
+      if (prefersReducedMotion) return;
+      walker.classList.add('planting');
+      if (plantTimer) clearTimeout(plantTimer);
+      plantTimer = setTimeout(function () {
+        walker.classList.remove('planting');
+      }, 600);
+    }
+
+    function updateGait() {
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      var now = performance.now();
+      var dt = Math.max(now - lastScrollT, 1);
+      var dy = y - lastScrollY;
+      lastScrollY = y;
+      lastScrollT = now;
+
+      var pace = Math.min(1, (Math.abs(dy) / dt) / GAIT_VMAX);
+      var dir = dy < 0 ? -1 : 1;
+
+      gaitPace += (pace - gaitPace) * 0.35;
+      gaitLean += (dir * pace * GAIT_MAX_LEAN - gaitLean) * 0.35;
+
+      walker.style.setProperty('--walk-lift', (1 + gaitPace * 4).toFixed(2) + 'px');
+      walker.style.setProperty('--walk-sway', (1 + gaitPace * 3).toFixed(2) + 'deg');
+      walker.style.setProperty('--walk-lean', gaitLean.toFixed(2) + 'deg');
     }
 
     function updateWalkerPosition() {
@@ -678,6 +715,7 @@
       // after ~1.5s of stillness. Scroll again → cancel timer,
       // back to walking.
       enterWalking();
+      if (!prefersReducedMotion) updateGait();
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(enterMeditating, 1500);
 
