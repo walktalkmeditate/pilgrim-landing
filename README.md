@@ -1,6 +1,6 @@
 # Pilgrim — A Walking Practice
 
-Landing page for [Pilgrim](https://github.com/walktalkmeditate/pilgrim-ios), a privacy-first iOS app for intentional walking as creative practice.
+Landing page for [Pilgrim](https://github.com/walktalkmeditate/pilgrim-ios), a privacy-first iPhone, iPad, and Android app for intentional walking as creative practice.
 
 ## About
 
@@ -53,5 +53,6 @@ Bucket cache status is `DYNAMIC`, so an upload is live immediately and needs no 
 
 ## Related
 
-- [Pilgrim iOS](https://github.com/walktalkmeditate/pilgrim-ios) — the app
+- [Pilgrim iOS](https://github.com/walktalkmeditate/pilgrim-ios) — the iOS app
+- [Pilgrim Android](https://github.com/walktalkmeditate/pilgrim-android) — the Android app
 - [walktalkmeditate.org](https://walktalkmeditate.org) — philosophical companion project

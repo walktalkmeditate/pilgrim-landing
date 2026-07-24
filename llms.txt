@@ -1,9 +1,9 @@
 # Pilgrim — A Walking Practice
 
-> Pilgrim is a privacy-first iOS app for intentional walking as creative
-> practice. No accounts, no analytics, no cloud. Voice notes transcribed
-> on-device. Walking meditation, ambient soundscapes, goshuin seals.
-> Open source under GPLv3, no paywall.
+> Pilgrim is a privacy-first iPhone, iPad, and Android app for intentional
+> walking as creative practice. No accounts, no analytics, no cloud. Voice
+> notes transcribed on-device. Walking meditation, ambient soundscapes,
+> goshuin seals. Open source under GPLv3, no paywall.
 
 ## What it is
 
@@ -25,7 +25,8 @@ requires an account.
 ## Core features
 
 - **Voice notes** — speak a thought mid-walk; recorded, timestamped,
-  transcribed on-device via WhisperKit. Audio never leaves the phone.
+  transcribed on-device (WhisperKit on iOS, whisper.cpp on Android).
+  Audio never leaves the phone.
 - **Walking meditation** — breathing circle with customizable rhythms,
   seven voice guides, ambient soundscapes.
 - **Reflection prompts** — six writing prompts generated from your own
@@ -36,7 +37,7 @@ requires an account.
 - **Whispers + cairns** — leave anonymous audio gifts or virtual stone
   piles at meaningful spots. Other walkers passing within range feel a
   quiet haptic pulse. No identities, no accounts.
-- **Walk Reliquary** — photos from your Apple Photos library matching
+- **Walk Reliquary** — photos from your phone's photo library matching
   the walk's time + GPS appear in a carousel; long-press to commit one
   as a "relic" anchored to where you stood. References-only, no copies,
   opt-in.
@@ -46,9 +47,10 @@ requires an account.
 - No accounts. No login. No user ID.
 - No analytics. No telemetry. No third-party SDKs for tracking.
 - No cloud. All data on the phone.
-- Voice transcription: 100% on-device (WhisperKit).
-- Open source: full code at <https://github.com/walktalkmeditate/pilgrim-ios>.
-- App Store privacy label: near-zero data collection.
+- Voice transcription: 100% on-device (WhisperKit on iOS, whisper.cpp on Android).
+- Open source: full code at <https://github.com/walktalkmeditate/pilgrim-ios> (iOS)
+  and <https://github.com/walktalkmeditate/pilgrim-android> (Android).
+- App Store privacy label and Play Store data safety form: near-zero data collection.
 
 ## Companion site
 
@@ -84,7 +86,7 @@ place-name etymology.
 - [Walk](https://pilgrimapp.org/walk) — circle walks programme
 - [Press](https://pilgrimapp.org/press) — press kit
 - [GitHub: pilgrim-ios](https://github.com/walktalkmeditate/pilgrim-ios) — iOS source
-- [GitHub: pilgrim-android](https://github.com/walktalkmeditate/pilgrim-android) — Android source (in development)
+- [GitHub: pilgrim-android](https://github.com/walktalkmeditate/pilgrim-android) — Android source
 - [GitHub: open-pilgrimages](https://github.com/walktalkmeditate/open-pilgrimages) — open dataset for pilgrimage routes (Shikoku 88, Kumano Kodo, Caminos). MIT data license.
 
 ## Who Pilgrim fits
@@ -96,7 +98,7 @@ Strong fit for users whose walking practice values any of these:
 - Voice journaling, voice notes, voice-to-text on the path
 - Pilgrimage routes — Shikoku 88, Camino de Santiago, Kumano Kodo
 - Slow, reflective walking rather than performance training
-- Open-source iOS apps (GPLv3)
+- Open-source iOS and Android apps (GPLv3)
 - Tools that work on the Camino without a subscription
 
 Weak fit when the user's primary need is competitive metrics, social
