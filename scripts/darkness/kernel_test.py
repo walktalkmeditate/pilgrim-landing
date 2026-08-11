@@ -27,7 +27,7 @@ def ok(cond, label):
         print('  ✗ ' + label)
 
 
-DEG_PER_PX = 15.0 / 3600.0  # VIIRS VNL native resolution
+DEG_PER_PX = 15.0 / 3600.0  # VNP46A4 native resolution
 
 print('shape and symmetry')
 k = K.build_kernel(alpha=2.0, d0_km=1.0, radius_km=100.0,
@@ -37,7 +37,9 @@ ok(np.allclose(k, k[::-1, :]), 'symmetric top to bottom')
 ok(np.allclose(k, k[:, ::-1]), 'symmetric left to right')
 cy, cx = k.shape[0] // 2, k.shape[1] // 2
 ok(k[cy, cx] == k.max(), 'centre is the maximum')
-ok(abs(k[cy, cx] - 1.0) < 1e-12, 'centre equals 1.0 before normalisation')
+pixel_area_km2 = (DEG_PER_PX * K.KM_PER_DEG_LAT) ** 2 * math.cos(math.radians(0.0))
+ok(abs(k[cy, cx] - pixel_area_km2) < 1e-9,
+   'centre equals the pixel ground area before normalisation')
 
 print('anisotropy')
 k43 = K.build_kernel(alpha=2.0, d0_km=1.0, radius_km=100.0,
@@ -50,6 +52,15 @@ ok(abs(ratio - 1.0 / math.cos(math.radians(43.0))) < 0.05,
    'column-to-row ratio tracks 1/cos(lat)  (%.3f)' % ratio)
 ok(np.allclose(k43.shape, K.build_kernel(2.0, 1.0, 100.0, DEG_PER_PX, -43.0).shape),
    'southern latitudes give the same shape as northern')
+
+print('pixel-area scaling')
+# This is the property the fix in build_kernel exists to create: without
+# the pixel-area factor, kernel sums scale with 1/cos(lat) and a fit
+# calibrated at one latitude silently mispredicts at another.
+sum_ratio = float(k43.sum() / k.sum())
+ok(abs(sum_ratio - 1.0) < 0.01,
+   'kernel sums at 0N and 43N agree within 1%% after area scaling (ratio %.4f)'
+   % sum_ratio)
 
 print('decay and truncation')
 ok(k[cy, cx] > k[cy, cx + 10] > k[cy, cx + 100], 'decays monotonically outward')

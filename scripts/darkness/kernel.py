@@ -5,7 +5,9 @@ surrounding area and scattered back down. Convolving the radiance raster
 with this kernel once, then point-sampling the result, approximates that
 without a full atmospheric model.
 
-Form:  w(d) = (1 + d/d0) ** -alpha   for d <= radius, else 0.
+Form:  w(d) = (1 + d/d0) ** -alpha   for d <= radius, else 0, scaled by
+the pixel's ground area so that Σ w·L·A_px approximates the area
+integral B(p) = ∫ w(d)·L dA rather than a bare Σ w·L.
 
 The kernel is built in ground-distance space, so it is wider in columns
 than in rows away from the equator. Only alpha is searched during
@@ -48,4 +50,16 @@ def build_kernel(alpha, d0_km, radius_km, deg_per_px, mean_lat_deg):
 
     w = (1.0 + d / d0_km) ** (-float(alpha))
     w[d > radius_km] = 0.0
-    return w
+
+    # B(p) = ∫ w(d)·L dA discretises to Σ w·L·A_px, not the bare
+    # Σ w·L this used to return. Within one region A_px is constant
+    # and an amplitude fit absorbs it without anyone noticing — but A_px
+    # shrinks with cos(latitude), so a kernel built at one latitude does
+    # not carry the same weight as one built at another. Without this
+    # factor, a fit calibrated at one latitude (e.g. Galicia, ~43N) and
+    # applied to a region at a different latitude (e.g. Shikoku, ~34N)
+    # is silently biased by the ratio of their pixel areas. Multiplying
+    # by the pixel's ground area here is what keeps kernel sums
+    # comparable across regions, regardless of latitude.
+    pixel_area_km2 = km_per_px_y * km_per_px_x
+    return w * pixel_area_km2
