@@ -421,13 +421,13 @@ for rid, km in stated.items():
 Expected — these were measured during planning, so they should reproduce closely:
 
 ```
-shikoku-88         kept=  88  covers 0-1080 of 1200 km  ratio 0.76  samples 1081
+shikoku-88         kept=  87  covers 0-1080 of 1200 km  ratio 0.76  samples 1081
 kumano-kodo        kept=  13  covers 0-38 of 39 km      ratio 0.76  samples 39
-camino-frances     kept=1300  covers 0-764 of 764 km    ratio 1.10  samples 765
-camino-ingles      kept= 220  covers 0-112 of 112 km    ratio 1.07  samples 113
+camino-frances     kept=1300  covers 0-764 of 764 km    ratio 1.10  samples 764
+camino-ingles      kept= 220  covers 0-112 of 112 km    ratio 1.08  samples 112
 camino-norte       kept=1418  covers 0-784 of 784 km    ratio 1.07  samples 785
-camino-portugues   kept= 652  covers 0-243 of 243 km    ratio 1.26  samples 244
-camino-primitivo   kept= 270  covers 0-263 of 263 km    ratio 0.90  samples 264
+camino-portugues   kept= 652  covers 0-243 of 243 km    ratio 1.25  samples 244
+camino-primitivo   kept= 270  covers 0-263 of 263 km    ratio 0.90  samples 263
 ```
 
 `validate_polyline` raising on any route means the type filter is wrong for it — do not widen `RATIO_BOUNDS` to get past it. Shikoku covering 1,080 of 1,200 km is expected and recorded; the artifact carries `coveredKm` so it reads as a known limit.

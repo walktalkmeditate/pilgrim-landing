@@ -30,7 +30,7 @@ Discovering that after the ribbon is built is expensive. Discovering it now cost
 | Light-pollution source | **VIIRS VNL** (CC BY 4.0) | Falchi 2016 is CC BY-NC — see exclusion below |
 | Propagation model | **Empirical distance-decay blur**, calibrated against ground-truth SQM sites | Captures the "city 15 km away washes your sky" effect without a full atmospheric model |
 | Coverage | **Seven baked routes only** | A few KB per route as static JSON. `/daylight` custom-route mode and `/moonpath` show no darkness. No global grid payload |
-| Sampling resolution | **1 km along real route geometry** | ~3,405 samples total |
+| Sampling resolution | **1 km along the waypoint polyline** | 3,288 samples total |
 
 ---
 
@@ -41,7 +41,7 @@ Three licenses stack in the finished artifact. All three must be recorded, and t
 | Source | What it provides | License | Verdict |
 |---|---|---|---|
 | **VIIRS VNL annual composites** (NOAA/NASA via Earth Observation Group, Colorado School of Mines) | Upward radiance, nW/cm²/sr, 15 arcsec (~500 m at equator) | CC BY 4.0 | ✅ ship — attribution required |
-| **open-pilgrimages route geometry** (`../open-pilgrimages/routes/*/route.geojson`) | The walked line for all seven routes | ODbL v1.0 | ✅ ship — derived database, see below |
+| **open-pilgrimages waypoints** (`../open-pilgrimages/routes/*/waypoints.geojson`) | Kilometre-indexed points along all seven routes | ODbL v1.0 | ✅ ship — derived database, see below |
 | **Falchi et al. 2016 World Atlas** (GFZ Data Services, DOI `10.5880/GFZ.1.4.2016.001`) | Modeled zenith sky brightness, mcd/m², 30 arcsec | **CC BY-NC 4.0** | ❌ **excluded** |
 
 ### Falchi exclusion — recorded so it is not re-proposed
@@ -83,16 +83,18 @@ The axis comes from `waypoints.geojson` instead, where every point carries a `km
 
 It cleanly separates a working configuration from a broken one. A correct chord path runs about **0.76** of the kilometre axis, because straight lines cut the corners of a meandering trail. A polyline that jumps between branches or across a loop runs **5–6×** it. There is no ambiguous middle.
 
-| Route | Waypoint types | Kept | Coverage | Max gap | Ratio |
+| Route | Types | Kept | Coverage | Ratio | Samples |
 |---|---|---|---|---|---|
-| shikoku-88 | `sacred_site` | 88 | 0–1080 of 1200 km | 80.7 km | 0.76 |
-| camino-norte | all | 1,418 | 0–784 of 784 km | 16.7 km | 1.07 |
-| camino-frances | all | 1,300 | 0–764 of 764 km | 13.0 km | 1.10 |
-| camino-primitivo | all | 270 | 0–263 of 263 km | 12.7 km | 0.90 |
-| camino-portugues | all | 652 | 0–243 of 243 km | 4.7 km | 1.26 |
-| camino-ingles | all | 220 | 0–112 of 112 km | 8.0 km | 1.07 |
-| kumano-kodo | `sacred_site` | 13 | 0–38 of 39 km | 6.7 km | 0.76 |
-| **Total** | | | **~3,290 samples** | | |
+| shikoku-88 | `sacred_site` | 87 | 0–1080 of 1200 km | 0.76 | 1,081 |
+| camino-norte | all | 1,418 | 0–784 of 784 km | 1.07 | 785 |
+| camino-frances | all | 1,300 | 0–764 of 764 km | 1.10 | 764 |
+| camino-primitivo | all | 270 | 0–263 of 263 km | 0.90 | 263 |
+| camino-portugues | all | 652 | 0–243 of 243 km | 1.25 | 244 |
+| camino-ingles | all | 220 | 0–112 of 112 km | 1.08 | 112 |
+| kumano-kodo | `sacred_site` | 13 | 0–38 of 39 km | 0.76 | 39 |
+| **Total** | | | | | **3,288** |
+
+Shikoku keeps 87 of its 88 temples: two share a single `kmFromStart` and collapse into one centroid.
 
 Every coverage gap is far inside the 100 km propagation kernel, so an interpolated position between waypoints cannot move a sample outside the blur that produced it.
 
