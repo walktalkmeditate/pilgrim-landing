@@ -144,7 +144,7 @@ Two fitted parameters (`a`, `b`) plus one searched (`α`).
 
 **Latitude distortion.** At 43°N, 15 arcsec of longitude is ~340 m while 15 arcsec of latitude is ~460 m. A kernel that is circular in pixel space is an ellipse on the ground. Reproject each regional crop to a local equidistant projection before convolving. Skipping this silently biases every Iberian sample.
 
-**Convolution cost.** A 100 km radius at 15 arcsec is a ~900-pixel radius — naive convolution is intractable. Crop to a bounding box around each route plus a 100 km margin (one for Iberia, one for Shikoku/Kii), then FFT-convolve. Both crops are a few thousand pixels per side; this runs in seconds under numpy/scipy.
+**Convolution cost.** A 100 km radius at 15 arcsec is a ~216-pixel radius, so the kernel is ~433 px across. Convolving an Iberia-sized crop (roughly 2,300 × 900 px) against that directly is on the order of 10¹¹ multiply-adds — intractable. Crop to a bounding box around each route plus a 100 km margin (one for Iberia, one for Shikoku/Kii), then FFT-convolve; that runs in seconds under numpy/scipy.
 
 ---
 
