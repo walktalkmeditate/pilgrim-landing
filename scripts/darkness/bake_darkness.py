@@ -206,6 +206,11 @@ def choose_alpha(epoch, cache):
     to the smallest leave-one-out worst residual overall and let main()
     fail the gate — a real failure should surface, not get hidden by
     grid choice.
+
+    Also returns the list of qualifying alphas, so the artifact can
+    record the grid a headline number was chosen from, not just the
+    winner — a smaller residual from a denser grid means something
+    different than one from a coarser search of the same range.
     """
     graded = []
     for alpha in ALPHA_GRID:
@@ -219,7 +224,9 @@ def choose_alpha(epoch, cache):
     qualifying = [g for g in graded if g[3]['monotonic']
                   and g[1]['max_abs_residual'] <= C.TOLERANCE_MAG]
     pool = qualifying if qualifying else graded
-    return min(pool, key=lambda g: g[1]['max_abs_residual'])
+    chosen = min(pool, key=lambda g: g[1]['max_abs_residual'])
+    qualifying_alphas = [g[0] for g in qualifying]
+    return chosen + (qualifying_alphas,)
 
 
 def main():
@@ -236,7 +243,8 @@ def main():
 
     print('searching alpha (LOO amplitude, full-set-fit ordering)')
     cache = {}
-    alpha, loo_report, params, full_report = choose_alpha(args.epoch, cache)
+    alpha, loo_report, params, full_report, qualifying_alphas = choose_alpha(
+        args.epoch, cache)
     A, p = params
     print('chose alpha=%.2f  LOO worst=%.4f  monotonic=%s  full worst=%.4f'
           % (alpha, loo_report['max_abs_residual'], full_report['monotonic'],
@@ -276,6 +284,25 @@ def main():
             print('  %-18s %5d values -> %s'
                   % (route_id, len(values), os.path.relpath(path, REPO)))
 
+    # Which pair the monotonicity verdict actually rests on, so a future
+    # edit that removes it -- deliberately or not -- shows up in the
+    # artifact instead of just changing the alpha the gate happens to
+    # pick. full_report['residuals'] is predicted - measured in
+    # S.REFERENCE_SITES order, so adding measured back in recovers the
+    # full-set predictions without re-fitting.
+    measured_all = [site['mag_arcsec2'] for site in S.REFERENCE_SITES]
+    predicted_all = [resid + measured for resid, measured in
+                     zip(full_report['residuals'], measured_all)]
+    decided = C.deciding_pair(predicted_all, measured_all)
+    deciding_pair_meta = None
+    if decided is not None:
+        site_a, site_b, margin = decided
+        deciding_pair_meta = {
+            'siteA': S.REFERENCE_SITES[site_a]['name'],
+            'siteB': S.REFERENCE_SITES[site_b]['name'],
+            'marginMag': margin,
+        }
+
     meta = {
         'epoch': args.epoch,
         'unit': unit,
@@ -305,6 +332,18 @@ def main():
             'toleranceMag': C.TOLERANCE_MAG,
             'looWorstResidual': loo_report['max_abs_residual'],
             'monotonic': full_report['monotonic'],
+            # Pairs the monotonicity check could actually rule on, and
+            # the one presently deciding its verdict — see
+            # MIN_MEASURED_SEPARATION_MAG in calibrate.py for why a pair
+            # can be ungradeable.
+            'gradedPairs': full_report['gradedPairs'],
+            'ungradedPairs': full_report['ungradedPairs'],
+            'decidingPair': deciding_pair_meta,
+            # The grid alpha was actually searched from, and the subset that
+            # cleared both criteria — a headline residual only means what it
+            # claims to mean next to the search that produced it.
+            'alphaGrid': ALPHA_GRID,
+            'qualifyingAlphas': qualifying_alphas,
             'passed': bool(loo_report['within_tolerance']
                            and full_report['monotonic']),
         },

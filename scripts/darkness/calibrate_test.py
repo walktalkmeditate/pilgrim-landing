@@ -52,9 +52,9 @@ approx(pred[0], measured[0], 1e-6, 'prediction matches the fit')
 
 print('predictions cannot exceed the natural sky floor')
 near_zero = C.predict([1e-12], params)[0]
-ok(near_zero <= C.M_NAT_MAG,
-   'a near-zero raw value still predicts at or below M_NAT_MAG')
-ok(near_zero > C.M_NAT_MAG - 0.5,
+ok(near_zero <= 22.0,
+   'a near-zero raw value still predicts at or below 22.0 mag/arcsec2')
+ok(near_zero > 22.0 - 0.5,
    'a near-zero raw value predicts close to the natural floor, not far below it')
 
 print('magnitude decreases monotonically as raw increases')
@@ -105,14 +105,52 @@ print('validate — ordering')
 inverted = C.validate([20.0, 21.0], [21.0, 20.0])
 ok(not inverted['monotonic'], 'an inversion is detected')
 ok(not inverted['passed'], 'an inversion fails the gate')
+ok(inverted['gradedPairs'] == 1, 'the one pair clears the separation minimum')
+ok(inverted['ungradedPairs'] == 0, 'no pair is dropped')
 
 print('validate — ties in measured data are not inversions')
 tied = C.validate([21.32, 21.28, 20.05], [21.3, 21.3, 20.0])
 ok(tied['monotonic'], 'a tie in measured values is not an inversion')
 ok(tied['passed'], 'a tied-but-consistent case passes the gate')
+ok(tied['gradedPairs'] == 2, 'the two pairs clear of the tie are graded')
+ok(tied['ungradedPairs'] == 1, 'the tied pair is counted, not silently dropped')
+
+print('validate — a sub-minimum gap is ungradeable, not an inversion')
+near_tie = C.validate([21.50, 21.60], [21.60, 21.58])
+ok(near_tie['monotonic'],
+   'a sub-minimum gap cannot fail monotonicity, even if inverted')
+ok(near_tie['gradedPairs'] == 0,
+   'the only pair is narrower than the separation minimum')
+ok(near_tie['ungradedPairs'] == 1,
+   'it is counted as ungradeable, not silently dropped')
+
+print('validate — a gap at the separation minimum is gradeable')
+boundary = C.validate([21.50, 21.60], [21.60, 21.55])
+ok(not boundary['monotonic'],
+   'a gap of exactly 0.05 is gradeable, so the inversion is caught')
+ok(boundary['gradedPairs'] == 1, 'the boundary pair counts as graded')
+ok(boundary['ungradedPairs'] == 0, 'no pair is dropped at the boundary')
+
+print('deciding_pair — the closest gradeable pair by predicted margin')
+decided = C.deciding_pair([10.05, 10.10, 11.80], [10.0, 10.2, 12.0])
+ok(decided is not None, 'a gradeable pair exists to decide the verdict')
+ok(decided[0] == 0 and decided[1] == 1,
+   'the pair with the smallest predicted gap is identified')
+approx(decided[2], 0.05, 1e-9, 'its predicted margin is reported')
+
+print('deciding_pair — no gradeable pairs means no decider')
+ok(C.deciding_pair([1.0, 2.0], [21.60, 21.60]) is None,
+   'an all-tied set has no pair to decide monotonicity')
 
 print('validate — tolerance is not a free parameter')
 ok(C.TOLERANCE_MAG == 0.5, 'the default tolerance is 0.5 mag/arcsec2')
+
+print('the natural floor is not a free parameter')
+ok(C.M_NAT_MAG == 22.0, 'the natural sky floor is 22.0 mag/arcsec2')
+
+print('the monotonicity separation minimum is not a free parameter')
+ok(C.MIN_MEASURED_SEPARATION_MAG == 0.05,
+   'the minimum gradeable measured separation is 0.05 mag/arcsec2')
 
 print('')
 print('%d passed, %d failed' % (passed, failed))
