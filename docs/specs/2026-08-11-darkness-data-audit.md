@@ -27,7 +27,7 @@ Discovering that after the ribbon is built is expensive. Discovering it now cost
 | Decision | Choice | Rationale |
 |---|---|---|
 | Scope | Deepen the existing three instruments; no new page | The route ribbon lands on `/daylight`, which already has route + stage pickers and a per-stage coordinate set |
-| Light-pollution source | **VIIRS VNL** (CC BY 4.0) | Falchi 2016 is CC BY-NC — see exclusion below |
+| Light-pollution source | **NASA Black Marble VNP46A4** (CC0) | Falchi 2016 is CC BY-NC; VIIRS VNL is fine on licence but its host is OAuth-walled — see below |
 | Propagation model | **Empirical distance-decay blur**, calibrated against ground-truth SQM sites | Captures the "city 15 km away washes your sky" effect without a full atmospheric model |
 | Coverage | **Seven baked routes only** | A few KB per route as static JSON. `/daylight` custom-route mode and `/moonpath` show no darkness. No global grid payload |
 | Sampling resolution | **1 km along the waypoint polyline** | 3,288 samples total |
@@ -40,7 +40,8 @@ Three licenses stack in the finished artifact. All three must be recorded, and t
 
 | Source | What it provides | License | Verdict |
 |---|---|---|---|
-| **VIIRS VNL annual composites** (NOAA/NASA via Earth Observation Group, Colorado School of Mines) | Upward radiance, nW/cm²/sr, 15 arcsec (~500 m at equator) | CC BY 4.0 | ✅ ship — attribution required |
+| **NASA Black Marble VNP46A4** annual composites (LAADS DAAC) | Lunar- and atmosphere-corrected upward radiance, nW/cm²/sr, 15 arcsec, 10°×10° HDF5 tiles | **CC0** | ✅ ship — no restriction; citation given anyway |
+| **VIIRS VNL annual composites** (Earth Observation Group, Colorado School of Mines) | The same quantity, uncorrected for moonlight | CC BY 4.0 | ⚠️ not used — see below |
 | **open-pilgrimages waypoints** (`../open-pilgrimages/routes/*/waypoints.geojson`) | Kilometre-indexed points along all seven routes | ODbL v1.0 | ✅ ship — derived database, see below |
 | **Falchi et al. 2016 World Atlas** (GFZ Data Services, DOI `10.5880/GFZ.1.4.2016.001`) | Modeled zenith sky brightness, mcd/m², 30 arcsec | **CC BY-NC 4.0** | ❌ **excluded** |
 
@@ -56,9 +57,29 @@ CC BY-NC forbids commercial use. Pilgrim's site is GPLv3, and GPLv3 does not per
 
 The darkness array is indexed against ODbL geometry, which plausibly makes it a derived database under ODbL §4.4. Resolution: the artifact ships under ODbL with attribution to OpenStreetMap contributors, alongside the CC BY 4.0 attribution for VIIRS. The repo already bakes from this source (`assets/daylight/`, `assets/collective-routes.json`), so this is not a new obligation — but it has not been named explicitly before, and the darkness artifact should name it.
 
+### Why VNP46A4 rather than VIIRS VNL
+
+VNL was the original choice and remains cleanly licensed. It was set aside for two reasons, in this order:
+
+1. **Moonlight.** VNP46A4 is lunar- and atmosphere-corrected; VNL is not. Moonlight is precisely the contamination this project cares about, since the same moon that brightens a satellite's view is the lantern a walker reads the path by. Correcting for it at source is a real improvement, not a workaround.
+2. **Access.** Every data path under `eogdata.mines.edu` redirects to OAuth at `eogauth.mines.edu`. The site is up — landing pages return 200 — but the wall proved impassable in practice.
+
+Alternatives checked and rejected: NASA LAADS and Google Earth Engine are also account-gated (Earth Engine additionally requires a paid Cloud project for commercial use); the World Bank *Light Every Night* mirror on AWS is genuinely open and CC BY 4.0, but publishes only per-orbit **nightly** granules. Compositing those ourselves would mean re-implementing cloud masking, moonlight removal, stray-light correction and swath mosaicking — weeks of work producing an unvalidated composite to feed a gate whose entire purpose is validation.
+
 ### Known acquisition constraint
 
-`eogdata.mines.edu` redirects to OAuth (`eogauth.mines.edu`). Downloading VNL composites requires a free EOG account. The acquisition script therefore needs credentials, which cannot be committed. Document the registration step in the script's header and read credentials from the environment.
+LAADS DAAC requires a free **Earthdata Login** account and an app key (bearer token). The token cannot be committed; the acquisition script reads it from the environment and its header documents the registration step.
+
+### Tiles
+
+Black Marble ships 10°×10° tiles of 2400×2400 pixels. Derived from the actual route extents plus the 100 km kernel margin:
+
+| Region | Extent (lon / lat) | Tiles |
+|---|---|---|
+| Iberia | −9.88 → −0.04 / 39.94 → 44.78 | `h17v04`, `h17v05` |
+| Japan | 131.32 → 136.97 / 31.53 → 35.56 | `h31v05` |
+
+Three tiles, roughly 92 MB each. Iberia straddles the 40° parallel and needs a vertical mosaic of its two tiles; Japan fits in one. This is a large improvement on VNL, which ships a single multi-gigabyte global raster.
 
 ---
 
@@ -224,92 +245,31 @@ This is a weaker claim and still a true one, and it still produces a beautiful r
 
 ---
 
-## 8. Open questions to resolve during execution
+## 8. Resolved questions
 
-| # | Question | Blocks |
+| # | Question | Resolution |
 |---|---|---|
-| Q1 | Which VNL version and year? V2.2 documentation lists 2012–2020; newer releases likely extend further. Requires an EOG account to confirm — the directory listing is behind OAuth. | Everything |
-| Q2 | Masked or unmasked composite? The masked product removes background noise and ephemeral lights (fires, flares). Masked is probably right for a sky-glow proxy; confirm against the calibration sites. | Kernel calibration |
-| Q5 | Which years are available for the 2012→present drift story, and are they inter-comparable? VNL processing versions changed across the series; year-over-year comparison may need the intercalibrated product. | Slice 4 only — do not let it block this gate |
+| Q1 | Which product version and year? | **VNP46A4 v002, `A2025001`.** CMR collection `C3860065683-LAADS`. Years 2012–2025 are all available and all carry processing version 002. |
+| Q2 | Which science dataset? | **`AllAngle_Composite_Snow_Free`**, under `//HDFEOS/GRIDS/VIIRS_Grid_DNB_2d/Data_Fields/`. float32, 2400×2400, fill value `-999.9`, already in nW/cm²/sr with no scale factor to apply. Replaces the VNL-specific masked/unmasked question, which does not arise for this product. |
+| Q3 | Which reference sites? | Eight, resolved in `scripts/darkness/sites.py` — five calibration, three held out, spanning 17.55–21.60 mag/arcsec². Sources: Bará 2016 (*R. Soc. open sci.* 3:160541) for Galicia, the Japan Ministry of the Environment 星空観察 survey for Shikoku and Kii. |
+| Q4 | Is there a published regression to cite? | **Yes, but not usable as-is.** Fernández-Ruiz et al. 2023 (*Remote Sens.* 15, 4189) eq. 3 gives `20.93 − 0.95·log₁₀(L)`, r²=0.96 — but it regresses the bare pixel under the photometer in the TESS band and is validated only over 19.41–21.12, and five of our eight sites fall outside that. Falchi 2016 publishes no directly usable formula. **Decision: fit locally, and report both in the result.** |
+| Q5 | Are years inter-comparable for the drift story? | **Yes.** The entire 2012–2025 series was reprocessed under version 002, so year-over-year comparison is valid. This unblocks Slice 4, which is still out of scope here. |
 
----
+### Georeferencing
 
-## 8a. Resolved during execution
+GDAL reports no geotransform for these HDF5 grids, so it is constructed from the tile ID: a tile `hHHvVV` covers longitude `−180 + 10·HH` east for 10°, and latitude `90 − 10·VV` south for 10°, over 2400×2400 pixels — exactly 15 arcsec.
 
-### Q3 — the eight reference sites — RESOLVED
+### Verified provenance
 
-Eight sites, all with a published reading in mag/arcsec², all inside the geography this gate actually ships: Galicia, where five of the seven routes end, and Shikoku and the Kii peninsula, where the other two run. `scripts/darkness/sites.py` holds them; `scripts/darkness/sites_test.py` guards their shape.
-
-**The split was fixed before any radiance was sampled.** No site has moved between the lists since.
-
-**Calibration — five, used to fit `a`, `b` and select `α`**
-
-| Site | Lat, lon | mag/arcsec² | Measured | Setting | Nearest route | Source |
-|---|---|---|---|---|---|---|
-| Takamatsu, Tahikami-chō (Kagawa, Shikoku) | 34.2881, 134.0547 | 17.55 | 2026-01-14 | 住宅地域 residential | shikoku-88, 1.4 km | [MoE 令和7年度冬期, 別添３](https://www.env.go.jp/press/press_03725.html) |
-| Santiago de Compostela (Galicia) | 42.88663, −8.52122 | 19.1 | 2015 | urban centre, 305 m | camino-frances, 0.1 km | [Bará 2016, table 1](https://doi.org/10.1098/rsos.160541) |
-| Guísamo (A Coruña, Galicia) | 43.30945, −8.28001 | 19.8 | 2015 | periurban, 176 m | camino-ingles, 5.9 km | [Bará 2016, table 1](https://doi.org/10.1098/rsos.160541) |
-| Shimanto Astronomical Observatory (Kōchi, Shikoku) | 33.1739, 132.7931 | 21.07 | 2026-01-14 | 森林山間地 forest/mountain | shikoku-88, 10.7 km | [MoE 令和7年度冬期, 別添３](https://www.env.go.jp/press/press_03725.html) |
-| O Cebreiro (Lugo, Galicia) | 42.70715, −7.04712 | 21.6 | 2015 | mountain, 1310 m | camino-frances, 0.1 km | [Bará 2016, table 1](https://doi.org/10.1098/rsos.160541) |
-
-Span 17.55 → 21.6 = **4.05 mag** on the calibration five alone.
-
-**Validation — three, never seen during fitting. These decide the gate.**
-
-| Site | Lat, lon | mag/arcsec² | Measured | Setting | Nearest route | Source |
-|---|---|---|---|---|---|---|
-| Wakayama City, Nakanoshima (Kii) | 34.2453, 135.1833 | 18.13 | 2026-01-09 | 住宅地域 residential | kumano-kodo, 36.8 km | [MoE 令和7年度冬期, 別添３](https://www.env.go.jp/press/press_03725.html) |
-| Misato Observatory, Kimino (Wakayama, Kii) | 34.1442, 135.4064 | 20.58 | 2022-08-31 | 森林山間地 forest/mountain | kumano-kodo, 17.8 km | [MoE 令和4年度夏期, 別紙３](https://www.env.go.jp/press/press_00796.html) |
-| Labrada (Abadín, Lugo, Galicia) | 43.40550, −7.50210 | 21.5 | 2015 | rural, 662 m | camino-norte, 5.0 km | [Bará 2016, table 1](https://doi.org/10.1098/rsos.160541) |
-
-Distances are to the nearest `waypoints.geojson` point of the seven baked routes, great-circle. Kumano's waypoints only cover 39 km of the Nakahechi, so the two Kii figures are against a short segment and overstate the real separation from the wider trail network. Altitudes are Bará's; 地域区分 classes are the survey's own.
-
-**What the numbers are.** The Galician four are the *significant magnitude* m1/3 from table 1 of Bará, S. (2016), *R. Soc. open sci.* **3**: 160541 — SQM-LR photometers on MeteoGalicia weather stations, calendar year 2015. The paper defines m1/3 as "the average of the highest third of NSB values recorded in conditions of astronomical darkness, with the Sun below −18° altitude … and the Moon below −5° altitude", and says it "provides a reasonable indication of the brightness expected in clear and moonless nights" — which is the quantity a cloud-free VIIRS composite should predict. Table 1 gives positions as UTM zone 29T on the ED-50 datum; the lat/lon above are those transformed EPSG:23029 → EPSG:4326 by PROJ, not read off a map. Xares and Cabeza de Manzaneda are excluded on the paper's own warning that their values are "biased towards larger values due to … thick cloud overcast conditions, and even under snow deposited on the detector".
-
-The Japanese four come from the Ministry of the Environment / 星空公団 星空観察 survey, which photographs the zenith with a digital camera and derives 等級 (mag/□") by comparing the sky background against standard stars in the same frame. Each site's value is the **median of every reading the survey has published at that exact point**, so no single night's weather picks the number. Every one of these points happens to have an odd number of published readings, so the median is itself a published row, quoted above with its own date. Coordinates come from the survey's [環境GIS layer](https://gis.nies.go.jp/arcgis/rest/services/kankyogis/StarWatching_layer/FeatureServer/0), which reproduces each row's value, timestamp and ばらつき exactly as printed in the 結果一覧 PDFs.
-
-**Three things this set is not.**
-
-1. **Not one instrument.** Galicia is SQM band and conditioned on clear moonless skies; Japan is camera band and an all-conditions median. Recomputing an m1/3-equivalent on each Japanese series puts it 0.12 mag darker at Misato, 0.19 at Wakayama City and 0.41 at Shimanto, so those readings likely sit that much brighter than the quantity the Galician four report. The offset applies to half the set, so it lands in the residuals rather than in the fitted intercept. If validation fails by a margin of that order, this is the first suspect — not the kernel.
-2. **Not a certified dark-sky park.** Section 4 asked for one. Three of Japan's certified places do appear in the same survey, and none of them would have improved this set: Bisei Astronomical Observatory (DarkSky Community) reads a median 20.61 and is 47 km off the Shikoku route; Kōzushima (DarkSky Island) reads 21.20 at 296 km; Hateruma, inside the Iriomote-Ishigaki Dark Sky Park, reads 21.61 at 1308 km. The darkest of them matches O Cebreiro's 21.6, which is 0.1 km from a Camino Francés stage. Certification would have bought a label, not a darker anchor or a closer one.
-3. **Not a single epoch.** The Galician statistics are for 2015; the Japanese medians land in 2022 and 2026. Task 9 should not read residuals as drift.
-
-### Q4 — is there a published relation to cite instead? — RESOLVED, PARTLY
-
-**Yes, one exists, and it does not cover our regime. Fit locally, and test the published relation against the fit on the held-out three.**
-
-**The relation.** Fernandez-Ruiz, B. *et al.* (2023), "Calibrating Nighttime Satellite Imagery with Red Photometer Networks", *Remote Sens.* **15**(17), 4189, [doi:10.3390/rs15174189](https://doi.org/10.3390/rs15174189), equation (3):
+Downloaded 2026-08-11:
 
 ```
-NSB [mag/arcsec²] = 20.93 ± 0.07 − (0.95 ± 0.10) · log₁₀(L [nW/(cm² sr)])
+f630b820d1fe171f777c7fe2f52521bbcca9f4efc5984ac2f23298da2a20e423  VNP46A4.A2025001.h17v04.h5
+51be78e8a75b27b8b8d538ab3d89c94efa0d7c091ffca0662b4180eb50b3beb2  VNP46A4.A2025001.h17v05.h5
+6a53be99083e904cd931be6564be224cc7e10b63f55193376fa8d7a2228751a9  VNP46A4.A2025001.h31v05.h5
 ```
 
-r² = 0.96, mean error 0.17 mag/arcsec² in range, maximum 0.39. Fitted on 72 TESS-W and SG-WAS photometers (mostly Spain), ~444,000 photometer readings against ~15,900 satellite readings, year 2022. Four reasons it cannot simply replace the local fit:
-
-- **Its predictor is a bare pixel.** The paper regresses against the yearly median VNP46A2 radiance of the single pixel containing the photometer, with no propagation. Section 3 of this document is an argument that that is wrong for rural stages — and this fit says nothing about the case where the lights are 15 km away, because a photometer sited in a village always has its own lights underneath it.
-- **Its validity range is 19.41 to 21.12 mag/arcsec²**, stated by the authors as the interval −0.2 to 1.6 log(nW/cm²/sr). Five of our eight sites sit outside it, in both directions — including both ends of the span the ribbon has to render. The paper reports the slope steepening from 0.95 to 2.01 above 1.6.
-- **Its magnitudes are the wrong band.** The abstract is explicit: "These photometers have a spectral sensitivity closer to that of VIIRS than to the Sky Quality Meter (SQM)." Our Galician ground truth is SQM band.
-- **Its radiance is the wrong product** — VNP46A2 daily Black Marble, not the VNL annual composite this pipeline reads.
-
-**What Falchi 2016 actually gives us.** Not a formula. Its fitted weights multiply three precomputed Cinzano radiative-transfer maps, not radiance: `B = SN + (WₐA + W_bB + W_cC)(1 + dh)`, best fit S = 1.15, Wₐ = 1.9 × 10⁻³, W_b = 5.2 × 10⁻⁴, W_c = 7.6 × 10⁻⁵, d = −4.5% per hour, σ = 0.15 mag_SQM/arcsec². Three things from it are worth keeping anyway:
-
-- the natural-sky anchor — "We chose 22.0 mag/arcsec², corresponding to 174 μcd/m², as a typical brightness of the night sky background during solar minimum activity";
-- the integration radius — sources out to **195 km**, against our kernel's 100 km truncation;
-- the honest floor — a full radiative-transfer atlas fitted to 20,865 SQM observations lands at σ ≈ 0.15–0.17 mag/arcsec². Our ±0.5 tolerance is about three times that, so it is demanding but not absurd.
-
-**A published kernel does exist, with numbers.** Duriscoe, D. *et al.* (2018), *JQSRT* **214**, 133, equations (9) and (11), restated analytically as equations (12)–(13) of Bará, Falchi, Furgoni & Lima, *JQSRT* **240**, 106658 ([arXiv:1907.02891](https://arxiv.org/abs/1907.02891)) — a paper that is itself about FFT-convolving VIIRS radiance, exactly the technique in section 3:
-
-```
-K(d) = c · d[km]^(−α(d)),   α(d) = 2.3 · (d[km]/350)^0.28,   c = 1/562.72
-```
-
-for a Garstang K = 0.35 atmosphere (65 km visibility), good to 300 km. Note what it says about our kernel: the published exponent is *distance-dependent*, running from about 0.45 at 1 km to 2.2 at 300 km, where ours holds α fixed near 2. Ours is far steeper close in. Its output is also ALR — an all-sky average ratio, not zenith magnitudes — so it does not remove the need for a second step. Worth a grid-search comparison if the fixed-α fit disappoints; not a reason to change `kernel.py` before there is evidence.
-
-**One thing rejected.** The relation `SQM = 20.0 − 1.9 · log(AL)` circulates widely (Yerli *et al.* 2021 and onward) and is attributed to Sánchez de Miguel *et al.* (2020), *Sci. Rep.* **10**: 7829. That paper's text publishes coefficients for DMSP (`SB = (−1.40 ± 0.02)log₁₀(DMSP) + 20.71 ± 0.01`) and for ISS, but not for VIIRS — the VIIRS fit appears only as a line on a figure. Checked directly against both the published and the arXiv versions. Not adopted; the provenance does not hold.
-
-**Consequence for Task 9.** Compute both the local fit and Fernandez-Ruiz eq. (3) on the held-out three, report both, and ship whichever validates — preferring the published relation on a tie. Only Misato at 20.58 falls inside its stated range; Wakayama City and Labrada are outside it. Say so rather than quietly extrapolating.
-
----
+Sanity check on `h31v05`, raw nW/cm²/sr: Takamatsu centre 76.99, Kōchi centre 39.91, Kumano Hongu 0.60, Shikoku mountain interior 0.00, open sea 0.00. Correctly ordered, and the bright end lines up with the Takamatsu reference site at 17.55 mag/arcsec².
 
 ## 9. Deliverables
 
