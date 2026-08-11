@@ -21,7 +21,7 @@
 - **Kernel form is fixed:** `w(d) = (1 + d/d₀)^(−α)` for `d ≤ R`, with `d₀ = 1 km` and `R = 100 km`. Only `α` is searched.
 - **Pass criteria are fixed:** monotonic ordering AND max absolute residual `≤ 0.5` mag/arcsec² on the three held-out sites. **Do not widen the tolerance to make the gate pass** — failure routes to the section 7 fallback.
 - **Determinism:** given identical inputs and recorded parameters, a re-run produces byte-identical artifacts. Same guarantee as `bake-daylight-routes`.
-- **Attribution is mandatory** in `meta.json`: VIIRS VNL (CC BY 4.0) and OpenStreetMap contributors (ODbL).
+- **Citation goes in `meta.json`**: NASA Black Marble VNP46A4 (CC0 — no attribution *required*, but cited anyway) and OpenStreetMap contributors (ODbL — attribution genuinely required).
 - **Falchi 2016 is excluded** (CC BY-NC). Do not reintroduce it, including "just for validation."
 - **Source is NASA Black Marble VNP46A4 v002 (CC0)**, band `AllAngle_Composite_Snow_Free`, fill `-999.9`. Tiles `h17v04`/`h17v05` (Iberia) and `h31v05` (Japan). VIIRS VNL was set aside: its host is OAuth-walled, and Black Marble is lunar-corrected, which suits this project better.
 
