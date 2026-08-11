@@ -72,6 +72,11 @@ nokm = fc([wp(0, 0.0, 0.0), wp(1, 0.0, KM_DEG),
             'geometry': {'type': 'Point', 'coordinates': [0.5, 0.0]}}])
 ok(len(G.route_polyline(nokm, None)) == 2, 'a waypoint without kmFromStart is dropped')
 
+print('route_polyline — missing geometry is skipped')
+nogeom = fc([wp(0, 0.0, 0.0), wp(1, 0.0, KM_DEG),
+             {'type': 'Feature', 'properties': {'kmFromStart': 2, 'type': 'sacred_site'}}])
+ok(len(G.route_polyline(nogeom, None)) == 2, 'a waypoint without geometry is dropped')
+
 print('route_polyline — same-km centroid')
 shared = fc([wp(0, 0.0, 0.0),
              wp(1, 0.0, 0.0), wp(1, 0.0, 2 * KM_DEG),
@@ -156,6 +161,18 @@ approx(pts[5][1], 5 * KM_DEG, 1e-9, 'the midpoint interpolates linearly')
 ragged = [(0, 0.0, 0.0), (2.5, 0.0, 2.5 * KM_DEG)]
 ok(len(G.resample_polyline(ragged, 1.0)) == 3,
    'a fractional span truncates rather than overshooting')
+
+# Three vertices sit under 1 km apart before a distant fourth. Resampling at
+# 1 km forces the while loop to cross more than one vertex within a single
+# step — the multi-vertex skip no other fixture here reaches.
+packed = [(0, 0.0, 0.0),
+          (0.3, 0.0, 0.3 * KM_DEG),
+          (0.6, 0.0, 0.6 * KM_DEG),
+          (5, 0.0, 5 * KM_DEG)]
+pts = G.resample_polyline(packed, 1.0)
+ok(len(pts) == 6, 'a multi-vertex skip still samples km 0 through 5 (got %d)' % len(pts))
+approx(pts[1][1], 1 * KM_DEG, 1e-9, 'the km 1 sample lands on the post-skip segment')
+approx(pts[-1][1], 5 * KM_DEG, 1e-9, 'the final sample reaches the last waypoint')
 
 ok(G.resample_polyline(straight, 1.0) == G.resample_polyline(straight, 1.0),
    'resampling is deterministic')

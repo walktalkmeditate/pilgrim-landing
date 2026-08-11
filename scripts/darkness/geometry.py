@@ -65,7 +65,10 @@ def route_polyline(geojson, types):
             continue
         if types is not None and props.get('type') not in types:
             continue
-        lon, lat = feature['geometry']['coordinates'][:2]
+        coords = (feature.get('geometry') or {}).get('coordinates')
+        if not coords or len(coords) < 2:
+            continue
+        lon, lat = coords[:2]
         buckets.setdefault(float(km), []).append((float(lat), float(lon)))
 
     polyline = []
