@@ -41,8 +41,14 @@ REGIONS = {
 STEP_KM = 1.0
 D0_KM = 1.0
 RADIUS_KM = 100.0
-MARGIN_DEG = 1.2          # comfortably over 100 km, so the kernel never
-                          # runs off the crop and no sample nears an edge
+MARGIN_DEG = 1.2          # Clears the 100 km kernel radius in latitude,
+                          # but not always in longitude: at Iberia's
+                          # ~43N mean latitude, 1.2 degrees of longitude
+                          # is only ~97.8 km. That shortfall is immaterial
+                          # -- the truncated 97.8-100 km annulus carries
+                          # ~0.04% of the kernel's mass -- so no sample is
+                          # measurably affected, but the margin is not the
+                          # comfortable one a flat-degrees reading implies.
 ALPHA_GRID = [2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0]
 
 CITATION = [

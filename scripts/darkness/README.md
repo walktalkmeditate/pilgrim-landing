@@ -16,9 +16,18 @@ Run this rarely: only when NASA publishes a new annual composite.
     python3 -m venv .venv
     .venv/bin/pip install -r scripts/darkness/requirements.txt
 
+Needs Python 3.10+ — the pinned numpy 2.1.3 / scipy 1.14.1 don't ship
+wheels for anything older.
+
 Register free at <https://urs.earthdata.nasa.gov/>, generate a token, then:
 
     export EARTHDATA_TOKEN='eyJ0eXAi...'
+
+`bake_darkness.py` also needs a sibling `../open-pilgrimages` checkout —
+the same convention `bake-daylight-routes` and `bake-collective-routes`
+use at the repo root. It reads route waypoints from there and records
+the checkout's commit SHA as `geometryCommit` in `meta.json`, so the
+artifact always names the exact geometry it was baked from.
 
 ## Run
 
@@ -27,12 +36,13 @@ Register free at <https://urs.earthdata.nasa.gov/>, generate a token, then:
 
 ## Tests
 
-    for t in geometry kernel raster calibrate emit sites; do
+    for t in geometry kernel raster calibrate emit sites tiles; do
         .venv/bin/python scripts/darkness/${t}_test.py || exit 1
     done
 
-The tests need numpy and scipy but not rasterio, and never touch the
-network.
+The tests need numpy and scipy; `tiles_test.py` also needs rasterio,
+since `tiles.py` imports it at module level even though the test itself
+only checks grid arithmetic. None of the seven touch the network.
 
 ## Determinism
 

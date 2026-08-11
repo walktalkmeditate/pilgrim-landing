@@ -63,7 +63,8 @@ def fit_calibration(raw, measured):
     result = least_squares(residuals_fn, x0=[np.log10(1e-9), 1.0])
     log10_a, p = result.x
     params = (float(10.0 ** log10_a), float(p))
-    residuals = (y - _luminance_mag(raw_arr, log10_a, p)).tolist()
+    # predicted - measured, matching validate()'s convention below.
+    residuals = (_luminance_mag(raw_arr, log10_a, p) - y).tolist()
     return params, residuals
 
 

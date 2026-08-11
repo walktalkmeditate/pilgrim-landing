@@ -165,7 +165,7 @@ This replaced an earlier `log₁₀(B_sky) = a · log₁₀(B_raw) + b` form, fi
 
 ### Two implementation traps
 
-**Latitude distortion.** At 43°N, 15 arcsec of longitude is ~340 m while 15 arcsec of latitude is ~460 m. A kernel that is circular in pixel space is an ellipse on the ground. Reproject each regional crop to a local equidistant projection before convolving. Skipping this silently biases every Iberian sample.
+**Latitude distortion.** At 43°N, 15 arcsec of longitude is ~340 m while 15 arcsec of latitude is ~460 m. A kernel that is circular in pixel space is an ellipse on the ground. Rather than reprojecting each regional crop to a local equidistant projection — an extra resampling pass that would interpolate radiance values that don't need touching — the kernel itself is built anisotropically in pixel space, wider in columns than in rows by `1/cos(mean latitude)`, so it is circular in ground-distance terms without moving a single source pixel. This is equivalent to reprojecting and preferable to it: same ground-distance correctness, no resampling error. Skipping it silently biases every Iberian sample.
 
 **Convolution cost.** A 100 km radius at 15 arcsec is a ~216-pixel radius, so the kernel is ~433 px across. Convolving an Iberia-sized crop (roughly 2,300 × 900 px) against that directly is on the order of 10¹¹ multiply-adds — intractable. Crop to a bounding box around each route plus a 100 km margin (one for Iberia, one for Shikoku/Kii), then FFT-convolve; that runs in seconds under numpy/scipy.
 
@@ -221,17 +221,17 @@ Given identical inputs and recorded parameters, a re-run must be byte-identical 
 ```json
 {
   "route": "camino-frances",
-  "epoch": 2024,
+  "epoch": 2025,
   "stepKm": 1,
-  "coveredKm": 764,
+  "coveredKm": 763.7,
   "unit": "mag/arcsec2",
-  "values": [21.4, 21.3, 20.8, "…765 entries…"]
+  "values": [21.4, 21.3, 20.8, "…764 entries…"]
 }
 ```
 
 `coveredKm` is the span the waypoints actually reach, which is not always the route's published length — Shikoku's cover 1,080 of its 1,200 km. Recording it keeps a short ribbon legible as a known limit rather than a mystery.
 
-`assets/darkness/meta.json` carries everything shared: VNL version, checksums, kernel and calibration parameters, the validation table, attributions, and the geometry commit SHA.
+`assets/darkness/meta.json` carries everything shared: product name and version (VNP46A4 v002) plus the epoch year, checksums, kernel and calibration parameters, the validation table, attributions, and the geometry commit SHA.
 
 Values are plain numbers at three significant figures. No clever quantization — 764 numbers is roughly 5 KB, and boring wins.
 
@@ -255,8 +255,8 @@ This is a weaker claim and still a true one, and it still produces a beautiful r
 |---|---|---|
 | Q1 | Which product version and year? | **VNP46A4 v002, `A2025001`.** CMR collection `C3860065683-LAADS`. Years 2012–2025 are all available and all carry processing version 002. |
 | Q2 | Which science dataset? | **`AllAngle_Composite_Snow_Free`**, under `//HDFEOS/GRIDS/VIIRS_Grid_DNB_2d/Data_Fields/`. float32, 2400×2400, fill value `-999.9`, already in nW/cm²/sr with no scale factor to apply. Replaces the VNL-specific masked/unmasked question, which does not arise for this product. |
-| Q3 | Which reference sites? | Eight, resolved in `scripts/darkness/sites.py` — five calibration, three held out, spanning 17.55–21.60 mag/arcsec². Sources: Bará 2016 (*R. Soc. open sci.* 3:160541) for Galicia, the Japan Ministry of the Environment 星空観察 survey for Shikoku and Kii. |
-| Q4 | Is there a published regression to cite? | **Yes, but not usable as-is.** Fernández-Ruiz et al. 2023 (*Remote Sens.* 15, 4189) eq. 3 gives `20.93 − 0.95·log₁₀(L)`, r²=0.96 — but it regresses the bare pixel under the photometer in the TESS band and is validated only over 19.41–21.12, and five of our eight sites fall outside that. Falchi 2016 publishes no directly usable formula. **Decision: fit locally, and report both in the result.** |
+| Q3 | Which reference sites? | **Five**, resolved in `scripts/darkness/sites.py`, all from Bará 2016 (*R. Soc. open sci.* 3:160541) — single-instrument Galician SQM readings spanning **18.60–21.60 mag/arcsec²**. Four more sites (Japan Ministry of the Environment 星空観察 survey, Shikoku and Kii) were tried and moved to `EXCLUDED_SITES` on a scale mismatch — see the Result. There is no three-site held-out slice: §4 replaced a fixed split with leave-one-out once five same-instrument sites turned out too few to spend one on. 17.55, this question's old lower bound, is Takamatsu — an excluded site, not a reference one. |
+| Q4 | Is there a published regression to cite? | **Yes, but not usable as-is.** Fernández-Ruiz et al. 2023 (*Remote Sens.* 15, 4189) eq. 3 gives `20.93 − 0.95·log₁₀(L)`, r²=0.96 — but it regresses the bare pixel under the photometer in the TESS band and is validated only over 19.41–21.12, and four of our five reference sites (all but Guísamo) fall outside that. Falchi 2016 publishes no directly usable formula. **Decision: fit locally, and report both in the result.** |
 | Q5 | Are years inter-comparable for the drift story? | **Yes.** The entire 2012–2025 series was reprocessed under version 002, so year-over-year comparison is valid. This unblocks Slice 4, which is still out of scope here. |
 
 ### Georeferencing
@@ -287,14 +287,14 @@ Sanity check on `h31v05`, raw nW/cm²/sr: Takamatsu centre 76.99, Kōchi centre 
 |---|---|
 | Product | NASA Black Marble VNP46A4 v002, `A2025001`, band `AllAngle_Composite_Snow_Free` |
 | Kernel | `α` = 3.00, `d₀` = 1 km, `R` = 100 km |
-| Calibration | `M_nat` = 22.0, `A` = 3.2182e-10, `p` = 0.7161 |
+| Calibration | `M_nat` = 22.0, `A` = 1.2087e-09, `p` = 0.7161 |
 | Amplitude (leave-one-out) | worst **0.3781** against a 0.5 tolerance |
 | Ordering (full-set fit) | monotonic |
 | Full-set worst residual | 0.2643 |
 
 Per-site leave-one-out residuals: Santiago +0.378, Guísamo −0.276, O Cebreiro −0.057, Labrada +0.042, Vigo −0.163.
 
-The tolerance was never widened, and no site moved between roles after a result was seen.
+The tolerance was never widened. Sites did change role after the first failure: the four Japanese sites moved to excluded, and Vigo rejoined the reference set. Both moves follow directly from what the failure exposed, not from wanting a different answer — the instrument-scale mismatch that ruled out the Japanese sites (below), and the fact that Vigo's exclusion had rested on a ≤18.5 mag threshold that existed only to balance against the Japanese sites' range, a reason that no longer applied once they were gone. The verdict does not rest on any single site: dropping any one of the five reference sites and re-running the full alpha search and gate still passes in every case, worst case a leave-one-out residual of 0.4816 mag/arcsec² with Vigo dropped.
 
 ### The gate failed first, and the failure was the point
 
@@ -321,12 +321,14 @@ Every test passed through both of these. Only reading the actual output caught t
 | camino-primitivo | 263 | 262.9 km | 18.50 – 21.80 |
 | camino-portugues | 244 | 243.0 km | 18.30 – 20.80 |
 | camino-ingles | 112 | 111.6 km | 18.40 – 20.90 |
-| shikoku-88 | 1,081 | 1080.0 km | 19.30 – 21.90 |
+| shikoku-88 | 1,081 | 1080.0 km | 19.20 – 21.90 |
 | kumano-kodo | 39 | 38.0 km | 21.60 – 21.80 |
 
 ### Carried forward — read this before Slice 2
 
 **Japan has no held-out validation.** The conversion is atmospheric physics plus one satellite band and should transfer, but the only Japanese ground truth available disagrees by over a magnitude and we cannot prove the fault lies in those measurements rather than in the model. The 1.56 spread across four Japanese sites points at the readings, since a wrong model would bias consistently — suggestive, not conclusive. **The Camino ribbons rest on validated ground; Shikoku and Kumano rest on an assumption.** If Slice 2 puts a number in front of a reader, that distinction belongs in the copy, or the Japanese routes stay qualitative.
+
+**α is not identified by the five-site reference set.** Leave-one-out worst residual falls monotonically across the whole search grid — 0.641 at α=2.0 to 0.290 at α=5.0 — so without the ordering constraint α would simply run to the grid's edge; there's no interior optimum. What actually pins α=3.00 is the monotonicity check alone, holding by **0.0413 mag** between O Cebreiro (21.60) and Labrada (21.50) — two sites whose published readings differ by 0.10 mag, less than SQM unit-to-unit spread — and it flips at α=3.5. Dropping a single reference site moves the chosen α across the whole grid: without Santiago it lands at 2.00, without O Cebreiro at 4.00, without Labrada at 5.00. Comparing α=2.5 against the shipped α=3.00 — both clear the gate — moves individual route samples by 0.08 mag on average and up to 0.32 mag at the extreme, across all 3,288 samples. **The sky-brightness claim survives this: amplitude passes everywhere from α=2.5 to 5.0.** The per-kilometre numbers do not — read any single value as good to a few tenths of a magnitude, not to the three significant figures it ships with.
 
 **Kumano spans 0.20 mag over its whole length.** It is uniformly dark, which is true and unsurprising for a 39 km mountain trail, but it means its ribbon will be nearly featureless. That is a design problem for Slice 2, not a data problem.
 
@@ -337,11 +339,11 @@ Every test passed through both of these. Only reading the actual output caught t
 
 ## 9. Deliverables
 
-- [ ] This document, updated with resolved Q1–Q4 and the completed validation table
-- [ ] `scripts/darkness/` acquisition script, documented, with the EOG registration step in its header
-- [ ] `assets/darkness/*.json` — seven route files plus `meta.json`
-- [ ] A README section explaining the Python exception to the Node-only bake rule
-- [ ] **A written go/no-go on the sky-brightness claim**
+- [x] This document, updated with resolved Q1–Q4 and the completed validation table
+- [x] `scripts/darkness/` acquisition script, documented, with the EOG registration step in its header
+- [x] `assets/darkness/*.json` — seven route files plus `meta.json`
+- [x] A README section explaining the Python exception to the Node-only bake rule
+- [x] **A written go/no-go on the sky-brightness claim**
 
 ## 10. Definition of done
 
