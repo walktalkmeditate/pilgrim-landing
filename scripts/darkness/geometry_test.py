@@ -113,12 +113,12 @@ approx(G.polyline_ratio(straight), 1.0, 1e-6, 'a straight polyline scores 1.0')
 zigzag = [(0, 0.0, 0.0), (1, 0.0, 10 * KM_DEG), (2, 0.0, 0.0)]
 approx(G.polyline_ratio(zigzag), 10.0, 1e-6, 'a branch-hopping polyline scores 10')
 
-short = [(0, 0.0, 0.0), (10, 0.0, 5 * KM_DEG)]
-approx(G.polyline_ratio(short), 0.5, 1e-6, 'a chord across a meander scores 0.5')
+short = [(0, 0.0, 0.0), (10, 0.0, 6 * KM_DEG)]
+approx(G.polyline_ratio(short), 0.6, 1e-6, 'a chord across a meander scores 0.6')
 
 print('validate_polyline')
 approx(G.validate_polyline(straight), 1.0, 1e-6, 'a sane polyline validates and returns its ratio')
-approx(G.validate_polyline(short), 0.5, 1e-6, 'exactly 0.5 is inside the bounds')
+approx(G.validate_polyline(short), 0.6, 1e-6, 'a chord well inside the bounds validates')
 ok(G.RATIO_BOUNDS == (0.5, 1.5), 'bounds are [0.5, 1.5]')
 
 try:
@@ -126,6 +126,13 @@ try:
     ok(False, 'a branch-hopping polyline is rejected')
 except ValueError:
     ok(True, 'a branch-hopping polyline is rejected')
+
+too_short = [(0, 0.0, 0.0), (10, 0.0, 4 * KM_DEG)]
+try:
+    G.validate_polyline(too_short)
+    ok(False, 'a polyline below the lower bound is rejected')
+except ValueError:
+    ok(True, 'a polyline below the lower bound is rejected')
 
 try:
     G.validate_polyline([(5, 0.0, 0.0), (5, 0.0, KM_DEG)])

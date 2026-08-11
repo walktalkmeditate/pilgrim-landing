@@ -100,13 +100,7 @@ def validate_polyline(polyline):
     """Fail loudly when the waypoint selection produced nonsense."""
     ratio = polyline_ratio(polyline)
     low, high = RATIO_BOUNDS
-    # A degrees-per-km constant rounded to 11 significant figures can still
-    # place a ratio a few parts in a billion outside an exact bound; that is
-    # float noise, not a bad route, so the edges tolerate it. The seven real
-    # routes' ratios run 0.76-1.26, at least 0.25 inside either bound — far
-    # beyond this margin.
-    edge = 1e-6
-    if not (low - edge <= ratio <= high + edge):
+    if not (low <= ratio <= high):
         raise ValueError(
             'polyline runs %.2f x its kilometre span, outside [%.1f, %.1f] — '
             'the waypoint type filter is probably wrong for this route'
