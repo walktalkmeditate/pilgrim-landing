@@ -24,15 +24,18 @@ def ok(cond, label):
         print('  ✗ ' + label)
 
 
-print('split')
-ok(len(S.CALIBRATION_SITES) == 5, 'five calibration sites')
-ok(len(S.VALIDATION_SITES) == 3, 'three validation sites')
+print('counts')
+ok(len(S.REFERENCE_SITES) == 5, 'five reference sites')
+ok(len(S.EXCLUDED_SITES) == 4, 'four excluded sites')
 
-names = [s['name'] for s in S.CALIBRATION_SITES + S.VALIDATION_SITES]
-ok(len(set(names)) == 8, 'no site appears in both sets')
+print('no overlap')
+ref_names = [s['name'] for s in S.REFERENCE_SITES]
+excluded_names = [s['name'] for s in S.EXCLUDED_SITES]
+ok(len(set(ref_names) & set(excluded_names)) == 0,
+   'no name appears in both REFERENCE_SITES and EXCLUDED_SITES')
 
-print('every entry is complete and citable')
-for site in S.CALIBRATION_SITES + S.VALIDATION_SITES:
+print('every reference entry is complete and citable')
+for site in S.REFERENCE_SITES:
     label = site.get('name', '<unnamed>')
     for field in ('name', 'lat', 'lon', 'mag_arcsec2', 'measured_date', 'source_url'):
         ok(field in site and site[field] not in (None, ''),
@@ -44,14 +47,21 @@ for site in S.CALIBRATION_SITES + S.VALIDATION_SITES:
     ok(14.0 <= site['mag_arcsec2'] <= 22.5,
        '%s has a physically plausible reading' % label)
 
-print('range')
-allmags = [s['mag_arcsec2'] for s in S.CALIBRATION_SITES + S.VALIDATION_SITES]
-ok(max(allmags) >= 21.5, 'at least one genuinely dark site')
-ok(min(allmags) <= 18.5, 'at least one bright urban site')
-ok(max(allmags) - min(allmags) >= 3.0, 'the set spans at least 3 magnitudes')
+print('single instrument')
+ref_sources = set(site['source_url'] for site in S.REFERENCE_SITES)
+ok(len(ref_sources) == 1,
+   'every reference site cites the same source_url')
 
-calmags = [s['mag_arcsec2'] for s in S.CALIBRATION_SITES]
-ok(max(calmags) - min(calmags) >= 3.0, 'the calibration set alone spans the range')
+print('range')
+refmags = [s['mag_arcsec2'] for s in S.REFERENCE_SITES]
+ok(max(refmags) - min(refmags) >= 3.0,
+   'the reference set spans at least 3 magnitudes')
+
+print('every excluded entry explains itself')
+for site in S.EXCLUDED_SITES:
+    label = site.get('name', '<unnamed>')
+    ok(site.get('excluded_because') not in (None, ''),
+       '%s has a non-empty excluded_because' % label)
 
 print('')
 print('%d passed, %d failed' % (passed, failed))

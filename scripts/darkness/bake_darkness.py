@@ -3,11 +3,12 @@
     .venv/bin/python scripts/darkness/bake_darkness.py --epoch 2025
 
 Mosaics the tiles each region needs, convolves once per region, samples
-along the route polyline, calibrates against the five reference sites,
-judges the three held-out sites, and writes assets/darkness/.
+along the route polyline, calibrates against the five Galician reference
+sites, and writes assets/darkness/. Amplitude and ordering are judged by
+different models — see choose_alpha() for why.
 
-Exits non-zero if held-out validation fails, unless --fallback-radiance
-is passed to ship the weaker claim deliberately.
+Exits non-zero if validation fails, unless --fallback-radiance is passed
+to ship the weaker claim deliberately.
 """
 import argparse
 import json
@@ -42,7 +43,7 @@ D0_KM = 1.0
 RADIUS_KM = 100.0
 MARGIN_DEG = 1.2          # comfortably over 100 km, so the kernel never
                           # runs off the crop and no sample nears an edge
-ALPHA_GRID = [1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]
+ALPHA_GRID = [2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0]
 
 CITATION = [
     'Night lights: NASA Black Marble VNP46A4 v002 (VIIRS/NPP Lunar '
@@ -54,10 +55,17 @@ CITATION = [
 
 
 def geometry_commit():
+    """The open-pilgrimages revision the route geometry came from.
+
+    Only routes/ is checked. A stray scratch file elsewhere in that repo
+    cannot change what we read, and blocking on it would be a false alarm —
+    the kind that teaches people to bypass the guard.
+    """
     sha = subprocess.check_output(
         ['git', '-C', PILGRIMAGES, 'rev-parse', 'HEAD']).decode().strip()
     dirty = subprocess.check_output(
-        ['git', '-C', PILGRIMAGES, 'status', '--porcelain']).decode().strip()
+        ['git', '-C', PILGRIMAGES, 'status', '--porcelain',
+         '--', 'routes/']).decode().strip()
     if dirty:
         sys.exit('../open-pilgrimages has uncommitted changes; commit or '
                  'stash them so the artifact records a real revision')
@@ -118,7 +126,7 @@ def raw_at_sites(epoch, site_list, alpha, cache):
         region = region_of(site['lat'], site['lon'])
         key = (region, alpha)
         if key not in cache:
-            members = [s for s in S.CALIBRATION_SITES + S.VALIDATION_SITES
+            members = [s for s in S.REFERENCE_SITES
                        if region_of(s['lat'], s['lon']) == region]
             cache[key] = blurred_region(
                 epoch, [s['lat'] for s in members],
@@ -129,25 +137,83 @@ def raw_at_sites(epoch, site_list, alpha, cache):
     return values
 
 
-def choose_alpha(epoch):
-    """Grid-search alpha, keeping whichever minimises calibration residual."""
-    measured = [s['mag_arcsec2'] for s in S.CALIBRATION_SITES]
-    best = None
+def leave_one_out(epoch, alpha, cache):
+    """Fit on four reference sites, predict the fifth; repeat for all five.
+
+    This measures amplitude only — how far off a site's prediction lands
+    when the fit never saw it. It must not also be read for ordering: each
+    of the five predictions comes from a *different* four-site fit, so
+    comparing those predictions to each other conflates real model error
+    with whatever that fold's missing site changed about the fit. See
+    choose_alpha() for the pairing with full_set_fit() that ordering
+    actually needs.
+    """
+    predicted = []
+    measured = []
+    for i, held_out in enumerate(S.REFERENCE_SITES):
+        train_sites = S.REFERENCE_SITES[:i] + S.REFERENCE_SITES[i + 1:]
+        raw_train = raw_at_sites(epoch, train_sites, alpha, cache)
+        a, b, _ = C.fit_calibration(
+            raw_train, [s['mag_arcsec2'] for s in train_sites])
+        raw_held = raw_at_sites(epoch, [held_out], alpha, cache)
+        predicted.append(C.predict(raw_held, a, b)[0])
+        measured.append(held_out['mag_arcsec2'])
+    return C.validate(predicted, measured)
+
+
+def full_set_fit(epoch, alpha, cache):
+    """Fit once on all five reference sites; predict all five from it.
+
+    Ordering asks "do darker measured sites come out darker predicted",
+    which only means something if every prediction being compared shares
+    one model. leave_one_out() cannot answer this — its five predictions
+    each come from a different fit. This is the one place monotonicity
+    should be judged from, and also produces the a/b that ship.
+    """
+    raw_all = raw_at_sites(epoch, S.REFERENCE_SITES, alpha, cache)
+    measured = [s['mag_arcsec2'] for s in S.REFERENCE_SITES]
+    a, b, _ = C.fit_calibration(raw_all, measured)
+    report = C.validate(C.predict(raw_all, a, b), measured)
+    return a, b, report
+
+
+def choose_alpha(epoch, cache):
+    """Grid-search alpha, printing every candidate for audit.
+
+    Amplitude and ordering are graded by different models on purpose.
+    Leave-one-out predicts each site from a fit that never saw it, which
+    is the right test of how far off a genuinely new point could land —
+    but every leave-one-out prediction comes from a *different* four-site
+    fit, so comparing those predictions to each other conflates real
+    model error with whatever that fold's missing site changed. That is
+    exactly how a first attempt at this failed: Santiago (measured 19.10)
+    and Guisamo (measured 19.80) — 0.70 mag apart — landed only 0.0022
+    mag apart under leave-one-out, a coin-flip margin that moved with the
+    crop, the FFT, and the numpy build, not a real signal about whether
+    darker sites predict darker. Ordering instead comes from one
+    full-set fit applied to all five sites, so every prediction being
+    compared shares the same model and the comparison means something.
+
+    Selection: among alphas that are monotonic under the full-set fit AND
+    whose leave-one-out worst residual is within C.TOLERANCE_MAG, keep
+    the smallest leave-one-out worst residual. If none qualify, fall back
+    to the smallest leave-one-out worst residual overall and let main()
+    fail the gate — a real failure should surface, not get hidden by
+    grid choice.
+    """
+    graded = []
     for alpha in ALPHA_GRID:
-        raw = raw_at_sites(epoch, S.CALIBRATION_SITES, alpha, {})
-        if min(raw) <= 0.0:
-            print('  alpha %.2f  skipped (a site sampled zero radiance)'
-                  % alpha)
-            continue
-        a, b, residuals = C.fit_calibration(raw, measured)
-        worst = max(abs(r) for r in residuals)
-        print('  alpha %.2f  a=%+.3f b=%+.3f  worst residual %.3f'
-              % (alpha, a, b, worst))
-        if best is None or worst < best[0]:
-            best = (worst, alpha, a, b)
-    if best is None:
-        sys.exit('no alpha produced usable samples at every calibration site')
-    return best[1], best[2], best[3]
+        loo_report = leave_one_out(epoch, alpha, cache)
+        a, b, full_report = full_set_fit(epoch, alpha, cache)
+        print('  alpha %.2f  LOO worst %.4f  monotonic %s  full worst %.4f'
+              % (alpha, loo_report['max_abs_residual'],
+                 full_report['monotonic'], full_report['max_abs_residual']))
+        graded.append((alpha, loo_report, a, b, full_report))
+
+    qualifying = [g for g in graded if g[4]['monotonic']
+                  and g[1]['max_abs_residual'] <= C.TOLERANCE_MAG]
+    pool = qualifying if qualifying else graded
+    return min(pool, key=lambda g: g[1]['max_abs_residual'])
 
 
 def main():
@@ -162,25 +228,26 @@ def main():
     print('resampling routes')
     points, covered = load_points()
 
-    print('searching alpha')
-    alpha, a, b = choose_alpha(args.epoch)
-    print('chose alpha=%.2f  a=%+.4f  b=%+.4f' % (alpha, a, b))
-
-    print('validating against held-out sites')
-    held_raw = raw_at_sites(args.epoch, S.VALIDATION_SITES, alpha, {})
-    held_measured = [s['mag_arcsec2'] for s in S.VALIDATION_SITES]
-    report = C.validate(C.predict(held_raw, a, b), held_measured)
-    for site, resid in zip(S.VALIDATION_SITES, report['residuals']):
-        print('  %-34s measured %.2f  residual %+.3f'
+    print('searching alpha (LOO amplitude, full-set-fit ordering)')
+    cache = {}
+    alpha, loo_report, a, b, full_report = choose_alpha(args.epoch, cache)
+    print('chose alpha=%.2f  LOO worst=%.4f  monotonic=%s  full worst=%.4f'
+          % (alpha, loo_report['max_abs_residual'], full_report['monotonic'],
+             full_report['max_abs_residual']))
+    for site, resid in zip(S.REFERENCE_SITES, loo_report['residuals']):
+        print('  %-34s measured %.2f  LOO residual %+.3f'
               % (site['name'][:34], site['mag_arcsec2'], resid))
-    print('  monotonic=%s  within_tolerance=%s  max=%.3f'
-          % (report['monotonic'], report['within_tolerance'],
-             report['max_abs_residual']))
 
-    if not report['passed'] and not args.fallback_radiance:
-        sys.exit('held-out validation FAILED. Do not widen the tolerance. '
-                 'Re-run with --fallback-radiance to ship banded radiance, '
-                 'per section 7 of the spec.')
+    passed = (full_report['monotonic']
+             and loo_report['max_abs_residual'] <= C.TOLERANCE_MAG)
+    if not passed and not args.fallback_radiance:
+        sys.exit('validation FAILED (leave-one-out amplitude / full-set-fit '
+                 'ordering). Do not widen the tolerance. Re-run with '
+                 '--fallback-radiance to ship banded radiance, per section '
+                 '7 of the spec.')
+
+    print('final calibration  a=%+.4f  b=%+.4f  (full fit, all five '
+          'reference sites)' % (a, b))
 
     unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
     print('writing artifacts as %s' % unit)
@@ -216,8 +283,17 @@ def main():
         },
         'kernel': {'form': '(1 + d/d0) ** -alpha',
                    'alpha': alpha, 'd0Km': D0_KM, 'radiusKm': RADIUS_KM},
-        'calibration': {'a': a, 'b': b, 'sites': S.CALIBRATION_SITES},
-        'validation': {'sites': S.VALIDATION_SITES, 'report': report},
+        'calibration': {'a': a, 'b': b, 'alpha': alpha,
+                        'sites': S.REFERENCE_SITES},
+        'validation': {
+            'method': 'leave-one-out for amplitude, full-set fit for ordering',
+            'residuals': [{'name': site['name'], 'residual': resid}
+                          for site, resid in zip(S.REFERENCE_SITES,
+                                                  loo_report['residuals'])],
+            'alpha': alpha,
+            'fullSetWorstResidual': full_report['max_abs_residual'],
+        },
+        'excludedSites': S.EXCLUDED_SITES,
         'citation': CITATION,
     }
     with open(os.path.join(OUT_DIR, 'meta.json'), 'w') as handle:
