@@ -151,7 +151,9 @@ w(d) = (1 + d/d₀)^(−α)        for d ≤ R
 
 with `d₀ = 1 km` as a core-softening constant and `α` a shape parameter. Start from a prior of α ≈ 2 (roughly inverse-square falloff of scattered contribution) and grid-search a small range.
 
-**Blurred field.** `B_raw(p) = Σ_q w(|p − q|) · L(q)` where `L` is VIIRS radiance.
+**Blurred field.** `B_raw(p) = Σ_q w(|p − q|) · L(q) · A_px` where `L` is radiance and `A_px` is the ground area of one pixel.
+
+The `A_px` term is what makes this a discrete area integral rather than a bare sum, and it is load-bearing across regions. Within one region it is constant and the fitted `A` absorbs it; between Iberia and Japan it is not, because pixel ground area varies with latitude. Omitting it ran Japan's radiance 11.8% low against the scale the calibration was fitted on — about 0.1 mag too dark on every Shikoku and Kumano sample, on exactly the routes that carry no held-out validation. It is folded into the kernel itself, so the convolution stays a plain sum.
 
 **Calibration.** Total sky luminance is natural background plus artificial light, summed in luminance space and converted back to magnitudes:
 
