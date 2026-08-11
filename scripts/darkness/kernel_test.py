@@ -62,6 +62,21 @@ steep = K.build_kernel(alpha=3.0, d0_km=1.0, radius_km=100.0,
                        deg_per_px=DEG_PER_PX, mean_lat_deg=0.0)
 ok(steep[cy, cx + 50] < k[cy, cx + 50], 'a larger alpha decays faster')
 
+print('pole guard')
+for lat, why in [(90.0, 'exactly at the north pole'),
+                 (-90.0, 'exactly at the south pole'),
+                 (89.95, 'inside the guard band, the case the old cosine check missed')]:
+    try:
+        K.build_kernel(2.0, 1.0, 100.0, DEG_PER_PX, lat)
+        ok(False, 'raises when %s (%.2f)' % (why, lat))
+    except ValueError:
+        ok(True, 'raises when %s (%.2f)' % (why, lat))
+
+k89 = K.build_kernel(2.0, 1.0, 100.0, DEG_PER_PX, 89.0)
+ok(k89.shape[0] % 2 == 1 and k89.shape[1] % 2 == 1,
+   'a latitude just outside the guard band (89.0) still builds')
+ok(K.MAX_ABS_LATITUDE_DEG == 89.9, 'the guard band starts at 89.9 degrees')
+
 print('')
 print('%d passed, %d failed' % (passed, failed))
 for f in failures:
