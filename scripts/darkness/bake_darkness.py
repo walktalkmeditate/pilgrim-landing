@@ -79,9 +79,19 @@ def geometry_commit():
 
 
 def load_points():
-    """Resample every route. Returns (points, covered_km) keyed by route."""
+    """Resample every route. Returns (points, covered_km, geometry_stats) keyed by route.
+
+    geometry_stats is geometry.interpolated_fraction()'s output per route
+    plus withinInterpolationLimit -- whether the route cleared
+    G.MAX_INTERPOLATED_FRACTION. That comparison happens here, not inside
+    geometry.py: the module only measures, so a route that fails it still
+    bakes. It ships loudly instead -- printed below, and carried into both
+    meta.json and the route's own artifact -- and the ship/drop/resample
+    call belongs to whoever reads that disclosure.
+    """
     points = {}
     covered = {}
+    geometry_stats = {}
     for region, ids in REGIONS.items():
         for route_id in ids:
             path = os.path.join(PILGRIMAGES, 'routes', route_id,
@@ -92,9 +102,21 @@ def load_points():
             ratio = G.validate_polyline(polyline)
             points[route_id] = G.resample_polyline(polyline, STEP_KM)
             covered[route_id] = polyline[-1][0] - polyline[0][0]
-            print('  %-18s %5d samples  covers %4.0f km  ratio %.2f'
-                  % (route_id, len(points[route_id]), covered[route_id], ratio))
-    return points, covered
+
+            stats = G.interpolated_fraction(polyline, STEP_KM)
+            within = stats['interpolatedFraction'] <= G.MAX_INTERPOLATED_FRACTION
+            geometry_stats[route_id] = dict(stats, withinInterpolationLimit=within)
+
+            flag = ('' if within else
+                   '  *** exceeds MAX_INTERPOLATED_FRACTION=%.2f ***'
+                   % G.MAX_INTERPOLATED_FRACTION)
+            print('  %-18s %5d samples  covers %4.0f km  ratio %.2f  '
+                  'interpolated %4.1f%%  maxGap %5.1f km  p90Gap %5.1f km  '
+                  'meanGap %4.1f km%s'
+                  % (route_id, len(points[route_id]), covered[route_id], ratio,
+                     stats['interpolatedFraction'] * 100.0, stats['maxGapKm'],
+                     stats['p90GapKm'], stats['meanGapKm'], flag))
+    return points, covered, geometry_stats
 
 
 def region_of(lat, lon):
@@ -239,7 +261,7 @@ def main():
     geometry_sha = geometry_commit()
 
     print('resampling routes')
-    points, covered = load_points()
+    points, covered, geometry_stats = load_points()
 
     print('searching alpha (LOO amplitude, full-set-fit ordering)')
     cache = {}
@@ -277,7 +299,8 @@ def main():
                    for la, lo in points[route_id]]
             values = raw if args.fallback_radiance else C.predict(raw, params)
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
-                                        unit, values, covered[route_id])
+                                        unit, values, covered[route_id],
+                                        geometry_stats[route_id])
             path = os.path.join(OUT_DIR, route_id + '.json')
             with open(path, 'w') as handle:
                 handle.write(E.dumps(artifact))
@@ -315,6 +338,12 @@ def main():
                 for t in TILES},
             'geometryCommit': geometry_sha,
         },
+        # Per-route positional trust, keyed by route id -- see
+        # geometry.interpolated_fraction() and geometry.MAX_INTERPOLATED_FRACTION.
+        # A route with withinInterpolationLimit false still ships; this is
+        # where that fact must be visible to anyone reading the artifact,
+        # not just in the console log load_points() printed it to.
+        'geometry': geometry_stats,
         'kernel': {'form': '(1 + d/d0) ** -alpha',
                    'alpha': alpha, 'd0Km': D0_KM, 'radiusKm': RADIUS_KM},
         'calibration': {'mNatMag': C.M_NAT_MAG, 'A': A, 'p': p,

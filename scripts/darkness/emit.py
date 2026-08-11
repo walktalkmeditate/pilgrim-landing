@@ -22,13 +22,22 @@ def round_sig(value, digits=3):
     return round(v, places)
 
 
-def route_artifact(route_id, epoch, step_km, unit, values, covered_km):
+def route_artifact(route_id, epoch, step_km, unit, values, covered_km,
+                   positional_confidence):
     """One route's darkness profile.
 
     covered_km is the kilometre span the waypoints actually reach, which is
     not always the route's published length — Shikoku's waypoints cover 1080
     of its 1200 km. Recording it keeps a short ribbon legible as a known
     limit rather than a mystery.
+
+    positional_confidence is geometry.interpolated_fraction()'s stats for
+    this route (interpolatedFraction, maxGapKm, p90GapKm, meanGapKm) plus
+    whether it cleared geometry.MAX_INTERPOLATED_FRACTION
+    (withinInterpolationLimit). meta.json records the same numbers for
+    every route in one place; carrying a copy here means a consumer
+    holding only this file can judge whether its positions are
+    trustworthy without opening meta.json.
     """
     if unit not in UNITS:
         raise ValueError('unknown unit %r; expected one of %r' % (unit, UNITS))
@@ -41,6 +50,13 @@ def route_artifact(route_id, epoch, step_km, unit, values, covered_km):
         'coveredKm': round_sig(covered_km, 4),
         'unit': unit,
         'values': [round_sig(v) for v in values],
+        'positionalConfidence': {
+            'interpolatedFraction': round_sig(positional_confidence['interpolatedFraction']),
+            'maxGapKm': round_sig(positional_confidence['maxGapKm'], 4),
+            'p90GapKm': round_sig(positional_confidence['p90GapKm'], 4),
+            'meanGapKm': round_sig(positional_confidence['meanGapKm'], 4),
+            'withinInterpolationLimit': bool(positional_confidence['withinInterpolationLimit']),
+        },
     }
 
 

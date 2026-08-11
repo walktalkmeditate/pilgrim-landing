@@ -102,7 +102,9 @@ The axis comes from `waypoints.geojson` instead, where every point carries a `km
 
 ### Why that ratio gate
 
-It cleanly separates a working configuration from a broken one. A correct chord path runs about **0.76** of the kilometre axis, because straight lines cut the corners of a meandering trail. A polyline that jumps between branches or across a loop runs **5–6×** it. There is no ambiguous middle.
+It catches gross misconfiguration and nothing finer than that. A correct chord path runs about **0.76** of the kilometre axis, because straight lines cut the corners of a meandering trail. A polyline that jumps between branches or across a loop runs **5–6×** it. There is no ambiguous middle, so on the question "did we pick the right waypoint types for this route" the gate is decisive.
+
+**It is not a positional-quality measure, and reading it as one is backwards.** The ratio is a single number averaged over an entire route, so dense and sparse stretches cancel inside it: camino-frances runs 1.153× across its densely-waypointed segments and 0.845× across its sparse ones, landing at an overall 1.10 that reveals neither. Worse, sparsity actively *rewards* a lower ratio — fewer vertices means more corner-cutting, which shortens the polyline and pulls the ratio toward the same ~0.76 a dense, faithful route also produces. Shikoku scores 0.76, squarely inside the gate, while resting on waypoints a mean 12.6 km apart. The gate cannot distinguish that 0.76 from camino-frances's, and was never designed to — see "Coverage gaps and the propagation kernel" below for the per-segment measure that can.
 
 | Route | Types | Kept | Coverage | Ratio | Samples |
 |---|---|---|---|---|---|
@@ -117,7 +119,25 @@ It cleanly separates a working configuration from a broken one. A correct chord 
 
 Shikoku keeps 87 of its 88 temples: two share a single `kmFromStart` and collapse into one centroid.
 
-Every coverage gap is far inside the 100 km propagation kernel, so an interpolated position between waypoints cannot move a sample outside the blur that produced it.
+### Coverage gaps and the propagation kernel
+
+An earlier version of this section claimed every coverage gap sits "far inside the 100 km propagation kernel, so an interpolated position between waypoints cannot move a sample outside the blur that produced it." That is measurably false. The kernel is truncated at 100 km, but that radius is where it is cut off, not where its weight lives — it is sharply peaked, with **26.2% of its mass within 1 km, 46.4% within 2 km, 71.2% within 5 km, and 84.5% within 10 km**. Past 5 km, an interpolated position between two real waypoints is standing in for ground the kernel would weight substantially differently from the waypoint it is nearest to.
+
+`interpolated_fraction()` (`scripts/darkness/geometry.py`) measures this per route: the fraction of shipped 1 km samples landing more than `INTERPOLATION_HORIZON_KM` (5 km) along the route from the nearest real waypoint, plus the gap distribution between waypoints. Measured for this bake:
+
+| Route | Waypoints | Mean gap | p90 gap | Max gap | Interpolated fraction | Within 0.25 limit |
+|---|---|---|---|---|---|---|
+| camino-frances | 1,300 | 0.6 km | 1.6 km | 13.0 km | 0.7% | yes |
+| camino-norte | 1,418 | 0.6 km | 1.4 km | 16.7 km | 1.0% | yes |
+| camino-primitivo | 270 | 1.0 km | 2.7 km | 12.7 km | 1.1% | yes |
+| camino-portugues | 652 | 0.4 km | 0.9 km | 4.7 km | 0.0% | yes |
+| camino-ingles | 220 | 0.5 km | 1.2 km | 8.0 km | 0.0% | yes |
+| kumano-kodo | 13 | 3.2 km | 6.0 km | 6.7 km | 0.0% | yes |
+| shikoku-88 | 87 | 12.6 km | 34.4 km | 80.7 km | **49.8%** | **no** |
+
+Six routes clear `MAX_INTERPOLATED_FRACTION = 0.25` comfortably — most of their samples sit within a kilometre or two of a real waypoint. **Shikoku does not.** Its 87 temples average 12.6 km apart (p90 34.4 km, worst gap 80.7 km, on the loop's remote southern coast), so very nearly half of its 1,081 shipped samples are more than 5 km from a real waypoint. A separate, out-of-band check comparing shipped Shikoku values against the value at the nearest real route point found **8% of samples differing by more than the 0.5 mag validation tolerance, 16% by more than 0.30 mag, worst case 1.63 mag** — large enough to change which descriptive band a reader would see for that stretch of trail.
+
+This is disclosed here, not resolved. `assets/darkness/meta.json` records `maxGapKm`, `p90GapKm`, `meanGapKm`, `interpolatedFraction` and `withinInterpolationLimit` per route under a `geometry` block, and every route's own artifact carries the same numbers under `positionalConfidence`, so a consumer holding one route file does not need `meta.json` to know whether its positions are trustworthy. Shikoku ships with `withinInterpolationLimit: false`. Whether to ship it qualified, resample its polyline more densely, or drop it is a decision for whoever reads that disclosure — deliberately not made by this gate.
 
 **Shikoku covers 1,080 km of its stated 1,200.** The artifact records `coveredKm` so this reads as a known limit rather than a mysteriously short ribbon.
 
@@ -329,6 +349,8 @@ Every test passed through both of these. Only reading the actual output caught t
 ### Carried forward — read this before Slice 2
 
 **Japan has no held-out validation.** The conversion is atmospheric physics plus one satellite band and should transfer, but the only Japanese ground truth available disagrees by over a magnitude and we cannot prove the fault lies in those measurements rather than in the model. The 1.56 spread across four Japanese sites points at the readings, since a wrong model would bias consistently — suggestive, not conclusive. **The Camino ribbons rest on validated ground; Shikoku and Kumano rest on an assumption.** If Slice 2 puts a number in front of a reader, that distinction belongs in the copy, or the Japanese routes stay qualitative.
+
+**Shikoku's positions are half-interpolated.** Its 87 temple waypoints average 12.6 km apart (p90 34.4 km, max 80.7 km on the loop's remote southern coast), so 49.8% of its 1,081 shipped samples sit more than 5 km along the route from a real waypoint — outside `MAX_INTERPOLATED_FRACTION = 0.25` (see "Coverage gaps and the propagation kernel" in section 2). This compounds the validation gap above rather than standing apart from it: Shikoku's per-kilometre *positions*, not just its calibration, are the weaker half of this artifact. `assets/darkness/shikoku-88.json` carries `positionalConfidence.withinInterpolationLimit: false` so this travels with the data even for a consumer who never opens `meta.json`. Deciding whether to ship it qualified, resample it more densely, or drop it is not this gate's call.
 
 **α is not identified by the five-site reference set.** Leave-one-out worst residual falls monotonically across the whole search grid — 0.641 at α=2.0 to 0.290 at α=5.0 — so without the ordering constraint α would simply run to the grid's edge; there's no interior optimum. What actually pins α=3.00 is the monotonicity check alone, holding by **0.0413 mag** between O Cebreiro (21.60) and Labrada (21.50) — two sites whose published readings differ by 0.10 mag, less than SQM unit-to-unit spread — and it flips at α=3.5. Dropping a single reference site moves the chosen α across the whole grid: without Santiago it lands at 2.00, without O Cebreiro at 4.00, without Labrada at 5.00. Comparing α=2.5 against the shipped α=3.00 — both clear the gate — moves individual route samples by 0.08 mag on average and up to 0.32 mag at the extreme, across all 3,288 samples. **The sky-brightness claim survives this: amplitude passes everywhere from α=2.5 to 5.0.** The per-kilometre numbers do not — read any single value as good to a few tenths of a magnitude, not to the three significant figures it ships with.
 

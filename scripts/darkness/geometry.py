@@ -42,6 +42,27 @@ MAX_BUCKET_SPREAD_KM = 2.0
 # between branches runs 5-6. Nothing real lands in between.
 RATIO_BOUNDS = (0.5, 1.5)
 
+# The propagation kernel (kernel.py) is truncated at 100 km, but that radius
+# is where it is cut off, not where its weight lives: it is sharply peaked,
+# with 26.2% of its mass within 1 km, 46.4% within 2 km, 71.2% within 5 km,
+# and 84.5% within 10 km. Past 5 km, an interpolated position between two
+# real waypoints is standing in for ground the kernel would weight
+# substantially differently from the waypoint it is nearest to.
+# interpolated_fraction() below measures how much of a route's shipped
+# positions fall past that line. The ratio gate above cannot see this: a
+# sparse, corner-cutting waypoint selection *lowers* the polyline ratio
+# toward the "healthy" 0.76 rather than flagging it — see "Why that ratio
+# gate" in docs/specs/2026-08-11-darkness-data-audit.md.
+INTERPOLATION_HORIZON_KM = 5.0
+
+# Above this fraction, too much of a route rests on interpolated ground to
+# treat its per-kilometre values as read from the route rather than guessed
+# between waypoints on it. Deliberately not enforced here — this module only
+# measures. bake_darkness.py prints and records the verdict per route, in
+# both meta.json and the route's own artifact, and whoever reads that
+# disclosure decides whether to ship, drop or resample.
+MAX_INTERPOLATED_FRACTION = 0.25
+
 
 def haversine_km(lat1, lon1, lat2, lon2):
     p1 = math.radians(lat1)
@@ -129,3 +150,59 @@ def resample_polyline(polyline, step_km):
         f = max(0.0, min(1.0, f))
         out.append((lat0 + (lat1 - lat0) * f, lon0 + (lon1 - lon0) * f))
     return out
+
+
+def _percentile(values, pct):
+    """Nearest-rank percentile: the smallest value whose rank covers pct%.
+
+    values must already be sorted ascending. This is the ceiling
+    convention (numpy's 'higher'), not linear interpolation between two
+    ranks — it names a gap that actually exists in the data rather than a
+    value interpolated between two of them, which matters when the number
+    gets read as "how bad is the worst-but-one gap on this route".
+    """
+    n = len(values)
+    rank = min(n, max(1, math.ceil((pct / 100.0) * n)))
+    return values[rank - 1]
+
+
+def interpolated_fraction(polyline, step_km):
+    """How much of a resampled route sits far from any real waypoint.
+
+    polyline is the (km, lat, lon) list route_polyline() produces — real
+    waypoints, not resampled positions. For every kilometre
+    resample_polyline(polyline, step_km) would sample, this finds the
+    along-route distance to the nearest real waypoint — a difference of
+    kmFromStart, since that axis already *is* the route, not a haversine
+    straight line — and reports the fraction landing more than
+    INTERPOLATION_HORIZON_KM from one.
+
+    Also returns the gap distribution between consecutive real waypoints
+    (max, p90, mean): the same fraction can come from one huge hole or
+    many small ones, and deciding what to do about it needs to know which.
+    """
+    kms = [p[0] for p in polyline]
+    gaps = [b - a for a, b in zip(kms, kms[1:])]
+    if not gaps:
+        raise ValueError('need at least two waypoints to measure gaps')
+
+    # Mirrors resample_polyline's own stepping exactly, so the fraction
+    # below is measured over the same samples the artifact ships, not a
+    # different, denser or coarser grid that would answer a different
+    # question.
+    start, end = kms[0], kms[-1]
+    count = int(math.floor((end - start) / step_km)) + 1
+    far = 0
+    for i in range(count):
+        km = start + i * step_km
+        nearest = min(abs(km - wp_km) for wp_km in kms)
+        if nearest > INTERPOLATION_HORIZON_KM:
+            far += 1
+
+    gaps_sorted = sorted(gaps)
+    return {
+        'interpolatedFraction': far / count,
+        'maxGapKm': gaps_sorted[-1],
+        'p90GapKm': _percentile(gaps_sorted, 90.0),
+        'meanGapKm': sum(gaps) / len(gaps),
+    }

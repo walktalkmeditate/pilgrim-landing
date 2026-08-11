@@ -41,24 +41,45 @@ for bad, label in [(float('nan'), 'NaN'), (float('inf'), '+inf'), (float('-inf')
         ok(True, 'raises on %s' % label)
 
 print('artifact shape')
-art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY, [21.4372, 20.11, 18.0], 764.0)
+pos_conf = {'interpolatedFraction': 0.08123, 'maxGapKm': 34.567,
+           'p90GapKm': 12.345, 'meanGapKm': 5.4321,
+           'withinInterpolationLimit': True}
+art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY,
+                       [21.4372, 20.11, 18.0], 764.0, pos_conf)
 ok(art['route'] == 'camino-frances', 'route id carried')
 ok(art['epoch'] == 2024, 'epoch carried')
 ok(art['stepKm'] == 1, 'step carried')
 ok(art['coveredKm'] == 764.0, 'covered span carried')
 ok(art['unit'] == 'mag/arcsec2', 'unit carried')
 ok(art['values'] == [21.4, 20.1, 18.0], 'values rounded')
-ok(list(art.keys()) == ['route', 'epoch', 'stepKm', 'coveredKm', 'unit', 'values'],
+ok(list(art.keys()) == ['route', 'epoch', 'stepKm', 'coveredKm', 'unit', 'values',
+                        'positionalConfidence'],
    'key order is fixed')
 
+print('positionalConfidence shape')
+conf = art['positionalConfidence']
+ok(conf['interpolatedFraction'] == 0.0812, 'interpolated fraction rounded to three figures')
+ok(conf['maxGapKm'] == 34.57, 'max gap rounded to four figures')
+ok(conf['p90GapKm'] == 12.35, 'p90 gap rounded to four figures')
+ok(conf['meanGapKm'] == 5.432, 'mean gap rounded to four figures')
+ok(conf['withinInterpolationLimit'] is True, 'within-limit flag carried')
+ok(list(conf.keys()) == ['interpolatedFraction', 'maxGapKm', 'p90GapKm',
+                         'meanGapKm', 'withinInterpolationLimit'],
+   'positionalConfidence key order is fixed')
+
+failing_conf = dict(pos_conf, withinInterpolationLimit=False)
+over = E.route_artifact('shikoku-88', 2024, 1, E.UNIT_SKY, [21.0], 1080.0, failing_conf)
+ok(over['positionalConfidence']['withinInterpolationLimit'] is False,
+   'a route over the interpolation limit carries that verdict, not just its number')
+
 print('the fallback unit is reachable')
-fb = E.route_artifact('kumano-kodo', 2024, 1, E.UNIT_RADIANCE, [0.512], 38.0)
+fb = E.route_artifact('kumano-kodo', 2024, 1, E.UNIT_RADIANCE, [0.512], 38.0, pos_conf)
 ok(fb['unit'] == 'nW/cm2/sr', 'radiance unit carried')
 
 print('rejects bad input')
-for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 10.0), 'an unknown unit'),
-                 (('x', 2024, 1, E.UNIT_SKY, [], 10.0), 'an empty value list'),
-                 (('x', 2024, 1, E.UNIT_SKY, [21.4, float('nan'), 18.0], 10.0),
+for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 10.0, pos_conf), 'an unknown unit'),
+                 (('x', 2024, 1, E.UNIT_SKY, [], 10.0, pos_conf), 'an empty value list'),
+                 (('x', 2024, 1, E.UNIT_SKY, [21.4, float('nan'), 18.0], 10.0, pos_conf),
                   'a NaN among the value list')]:
     try:
         E.route_artifact(*bad)
@@ -69,7 +90,7 @@ for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 10.0), 'an unknown unit'),
 print('determinism')
 a = E.dumps(art)
 b = E.dumps(E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY,
-                             [21.4372, 20.11, 18.0], 764.0))
+                             [21.4372, 20.11, 18.0], 764.0, pos_conf))
 ok(a == b, 'two runs serialise identically')
 ok(a.endswith('\n'), 'output ends with a newline')
 ok(json.loads(a) == art, 'output round-trips through json')
