@@ -4,6 +4,7 @@ Run via:  .venv/bin/python scripts/darkness/calibrate_test.py
 """
 import contextlib
 import io
+import math
 import sys
 import os
 import warnings
@@ -33,19 +34,34 @@ def approx(actual, expected, tol, label):
 
 
 print('fit recovers known parameters')
-raw = [0.1, 1.0, 10.0, 100.0, 1000.0]
-truth_a, truth_b = -1.8, 21.9
-measured = [truth_a * (i - 1) + truth_b for i in range(5)]  # log10 of raw is -1..3
-a, b, resid = C.fit_calibration(raw, measured)
-approx(a, truth_a, 1e-9, 'slope recovered')
-approx(b, truth_b, 1e-9, 'intercept recovered')
-ok(max(abs(r) for r in resid) < 1e-9, 'residuals vanish on exact data')
-ok(a < 0, 'more light means a numerically smaller magnitude')
+raw = [0.01, 0.1, 1.0, 10.0, 100.0]
+truth_A, truth_p = 3e-10, 0.7
+natural = 10.0 ** (-0.4 * C.M_NAT_MAG)
+measured = [-2.5 * math.log10(natural + truth_A * (r ** truth_p)) for r in raw]
+params, resid = C.fit_calibration(raw, measured)
+fit_A, fit_p = params
+ok(abs(fit_A - truth_A) <= truth_A * 1e-3,
+   'A recovered  (%.6e vs %.6e)' % (fit_A, truth_A))
+approx(fit_p, truth_p, 1e-4, 'p recovered')
+ok(max(abs(r) for r in resid) < 1e-6, 'residuals vanish on exact data')
 
 print('predict')
-pred = C.predict(raw, a, b)
+pred = C.predict(raw, params)
 ok(len(pred) == len(raw), 'one prediction per input')
-approx(pred[0], measured[0], 1e-9, 'prediction matches the fit')
+approx(pred[0], measured[0], 1e-6, 'prediction matches the fit')
+
+print('predictions cannot exceed the natural sky floor')
+near_zero = C.predict([1e-12], params)[0]
+ok(near_zero <= C.M_NAT_MAG,
+   'a near-zero raw value still predicts at or below M_NAT_MAG')
+ok(near_zero > C.M_NAT_MAG - 0.5,
+   'a near-zero raw value predicts close to the natural floor, not far below it')
+
+print('magnitude decreases monotonically as raw increases')
+swept = [10.0 ** k for k in range(-6, 4)]
+swept_pred = C.predict(swept, params)
+ok(all(swept_pred[i] > swept_pred[i + 1] for i in range(len(swept_pred) - 1)),
+   'more raw radiance always predicts a numerically smaller magnitude')
 
 print('fit_calibration and predict refuse non-positive raw values, quietly')
 with warnings.catch_warnings():
@@ -65,7 +81,7 @@ with warnings.catch_warnings():
             ok(True, 'fit_calibration raises on a negative raw value')
 
         try:
-            C.predict([1.0, 0.0, -5.0], -1.8, 21.9)
+            C.predict([1.0, 0.0, -5.0], params)
             ok(False, 'predict raises on a zero or negative raw value')
         except ValueError:
             ok(True, 'predict raises on a zero or negative raw value')

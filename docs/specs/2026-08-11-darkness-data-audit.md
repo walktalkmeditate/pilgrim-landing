@@ -153,13 +153,15 @@ with `d₀ = 1 km` as a core-softening constant and `α` a shape parameter. Star
 
 **Blurred field.** `B_raw(p) = Σ_q w(|p − q|) · L(q)` where `L` is VIIRS radiance.
 
-**Calibration.** Fit in log space:
+**Calibration.** Total sky luminance is natural background plus artificial light, summed in luminance space and converted back to magnitudes:
 
 ```
-log₁₀(B_sky) = a · log₁₀(B_raw) + b
+B_sky = −2.5 · log₁₀( 10^(−0.4 · M_nat) + A · B_raw^p )
 ```
 
-Two fitted parameters (`a`, `b`) plus one searched (`α`).
+with `M_nat = 22.0` mag/arcsec² fixed — the natural sky floor set by airglow, zodiacal light and integrated starlight, below which no sky reads regardless of artificial light. Two fitted parameters (`A`, `p`) plus one searched (`α`).
+
+This replaced an earlier `log₁₀(B_sky) = a · log₁₀(B_raw) + b` form, fit as a straight line in log space. That form is unbounded as `B_raw → 0`: extrapolated past the darkest calibration site, it predicted skies darker than physically possible — 9.8% of samples in the first real bake landed past the natural floor, up to 23.3 mag/arcsec². Summing luminance rather than fitting log-magnitude directly keeps every prediction at or below `M_nat` by construction, and fits the calibration sites at least as well.
 
 ### Two implementation traps
 

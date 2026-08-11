@@ -153,10 +153,10 @@ def leave_one_out(epoch, alpha, cache):
     for i, held_out in enumerate(S.REFERENCE_SITES):
         train_sites = S.REFERENCE_SITES[:i] + S.REFERENCE_SITES[i + 1:]
         raw_train = raw_at_sites(epoch, train_sites, alpha, cache)
-        a, b, _ = C.fit_calibration(
+        params, _ = C.fit_calibration(
             raw_train, [s['mag_arcsec2'] for s in train_sites])
         raw_held = raw_at_sites(epoch, [held_out], alpha, cache)
-        predicted.append(C.predict(raw_held, a, b)[0])
+        predicted.append(C.predict(raw_held, params)[0])
         measured.append(held_out['mag_arcsec2'])
     return C.validate(predicted, measured)
 
@@ -168,13 +168,13 @@ def full_set_fit(epoch, alpha, cache):
     which only means something if every prediction being compared shares
     one model. leave_one_out() cannot answer this — its five predictions
     each come from a different fit. This is the one place monotonicity
-    should be judged from, and also produces the a/b that ship.
+    should be judged from, and also produces the (A, p) that ship.
     """
     raw_all = raw_at_sites(epoch, S.REFERENCE_SITES, alpha, cache)
     measured = [s['mag_arcsec2'] for s in S.REFERENCE_SITES]
-    a, b, _ = C.fit_calibration(raw_all, measured)
-    report = C.validate(C.predict(raw_all, a, b), measured)
-    return a, b, report
+    params, _ = C.fit_calibration(raw_all, measured)
+    report = C.validate(C.predict(raw_all, params), measured)
+    return params, report
 
 
 def choose_alpha(epoch, cache):
@@ -204,13 +204,13 @@ def choose_alpha(epoch, cache):
     graded = []
     for alpha in ALPHA_GRID:
         loo_report = leave_one_out(epoch, alpha, cache)
-        a, b, full_report = full_set_fit(epoch, alpha, cache)
+        params, full_report = full_set_fit(epoch, alpha, cache)
         print('  alpha %.2f  LOO worst %.4f  monotonic %s  full worst %.4f'
               % (alpha, loo_report['max_abs_residual'],
                  full_report['monotonic'], full_report['max_abs_residual']))
-        graded.append((alpha, loo_report, a, b, full_report))
+        graded.append((alpha, loo_report, params, full_report))
 
-    qualifying = [g for g in graded if g[4]['monotonic']
+    qualifying = [g for g in graded if g[3]['monotonic']
                   and g[1]['max_abs_residual'] <= C.TOLERANCE_MAG]
     pool = qualifying if qualifying else graded
     return min(pool, key=lambda g: g[1]['max_abs_residual'])
@@ -230,7 +230,8 @@ def main():
 
     print('searching alpha (LOO amplitude, full-set-fit ordering)')
     cache = {}
-    alpha, loo_report, a, b, full_report = choose_alpha(args.epoch, cache)
+    alpha, loo_report, params, full_report = choose_alpha(args.epoch, cache)
+    A, p = params
     print('chose alpha=%.2f  LOO worst=%.4f  monotonic=%s  full worst=%.4f'
           % (alpha, loo_report['max_abs_residual'], full_report['monotonic'],
              full_report['max_abs_residual']))
@@ -246,21 +247,21 @@ def main():
                  '--fallback-radiance to ship banded radiance, per section '
                  '7 of the spec.')
 
-    print('final calibration  a=%+.4f  b=%+.4f  (full fit, all five '
-          'reference sites)' % (a, b))
+    print('final calibration  A=%.4e  p=%.4f  mNatMag=%.1f  (full fit, '
+          'all five reference sites)' % (A, p, C.M_NAT_MAG))
 
     unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
     print('writing artifacts as %s' % unit)
     os.makedirs(OUT_DIR, exist_ok=True)
 
     for region, ids in REGIONS.items():
-        lats = [p[0] for rid in ids for p in points[rid]]
-        lons = [p[1] for rid in ids for p in points[rid]]
+        lats = [pt[0] for rid in ids for pt in points[rid]]
+        lons = [pt[1] for rid in ids for pt in points[rid]]
         field, west, north = blurred_region(args.epoch, lats, lons, alpha)
         for route_id in ids:
             raw = [R.sample_bilinear(field, west, north, T.DEG_PER_PX, la, lo)
                    for la, lo in points[route_id]]
-            values = raw if args.fallback_radiance else C.predict(raw, a, b)
+            values = raw if args.fallback_radiance else C.predict(raw, params)
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
                                         unit, values, covered[route_id])
             path = os.path.join(OUT_DIR, route_id + '.json')
@@ -283,8 +284,8 @@ def main():
         },
         'kernel': {'form': '(1 + d/d0) ** -alpha',
                    'alpha': alpha, 'd0Km': D0_KM, 'radiusKm': RADIUS_KM},
-        'calibration': {'a': a, 'b': b, 'alpha': alpha,
-                        'sites': S.REFERENCE_SITES},
+        'calibration': {'mNatMag': C.M_NAT_MAG, 'A': A, 'p': p,
+                        'alpha': alpha, 'sites': S.REFERENCE_SITES},
         'validation': {
             'method': 'leave-one-out for amplitude, full-set fit for ordering',
             'residuals': [{'name': site['name'], 'residual': resid}
