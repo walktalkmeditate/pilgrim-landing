@@ -32,6 +32,14 @@ ok(E.round_sig(1234.5) == 1230.0, 'a large value keeps three figures')
 ok(E.round_sig(0.0) == 0.0, 'zero survives')
 ok(E.round_sig(-3.14159) == -3.14, 'negatives round too')
 
+print('round_sig rejects non-finite values')
+for bad, label in [(float('nan'), 'NaN'), (float('inf'), '+inf'), (float('-inf'), '-inf')]:
+    try:
+        E.round_sig(bad)
+        ok(False, 'raises on %s' % label)
+    except ValueError:
+        ok(True, 'raises on %s' % label)
+
 print('artifact shape')
 art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY, [21.4372, 20.11, 18.0], 764.0)
 ok(art['route'] == 'camino-frances', 'route id carried')
@@ -49,7 +57,9 @@ ok(fb['unit'] == 'nW/cm2/sr', 'radiance unit carried')
 
 print('rejects bad input')
 for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 10.0), 'an unknown unit'),
-                 (('x', 2024, 1, E.UNIT_SKY, [], 10.0), 'an empty value list')]:
+                 (('x', 2024, 1, E.UNIT_SKY, [], 10.0), 'an empty value list'),
+                 (('x', 2024, 1, E.UNIT_SKY, [21.4, float('nan'), 18.0], 10.0),
+                  'a NaN among the value list')]:
     try:
         E.route_artifact(*bad)
         ok(False, 'raises on %s' % why)

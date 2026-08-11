@@ -14,6 +14,8 @@ UNITS = (UNIT_SKY, UNIT_RADIANCE)
 
 def round_sig(value, digits=3):
     v = float(value)
+    if not math.isfinite(v):
+        raise ValueError('cannot round a non-finite value: %r' % v)
     if v == 0.0:
         return 0.0
     places = digits - int(math.floor(math.log10(abs(v)))) - 1
