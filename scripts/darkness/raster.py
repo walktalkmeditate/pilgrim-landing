@@ -1,8 +1,9 @@
 """Convolve a radiance raster and sample it at geographic points.
 
-A 100 km radius at 15 arcsec is a ~900-pixel radius, so direct
-convolution is intractable. FFT convolution over a cropped region runs in
-seconds.
+A 100 km radius at 15 arcsec is a ~216-pixel radius, so the kernel is
+~433 px across. Convolving an Iberia-sized crop against that directly is
+on the order of 1e11 multiply-adds; FFT convolution over the same crop
+runs in seconds.
 """
 import math
 
