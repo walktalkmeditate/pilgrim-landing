@@ -23,6 +23,7 @@
 - **Determinism:** given identical inputs and recorded parameters, a re-run produces byte-identical artifacts. Same guarantee as `bake-daylight-routes`.
 - **Attribution is mandatory** in `meta.json`: VIIRS VNL (CC BY 4.0) and OpenStreetMap contributors (ODbL).
 - **Falchi 2016 is excluded** (CC BY-NC). Do not reintroduce it, including "just for validation."
+- **Source is NASA Black Marble VNP46A4 v002 (CC0)**, band `AllAngle_Composite_Snow_Free`, fill `-999.9`. Tiles `h17v04`/`h17v05` (Iberia) and `h31v05` (Japan). VIIRS VNL was set aside: its host is OAuth-walled, and Black Marble is lunar-corrected, which suits this project better.
 
 ---
 
@@ -1268,89 +1269,78 @@ git commit -m "docs(darkness): eight skies with a number already attached"
 
 ---
 
-### Task 7: VNL acquisition (resolves spec Q1 and Q2)
+### Task 7: Tile acquisition
+
+**Amended.** The original targeted VIIRS VNL from EOG, whose every data path is OAuth-walled. The source is now NASA Black Marble VNP46A4 (CC0), and the acquisition path has already been validated by hand — the three tiles are downloaded and checksummed. This task writes down what was proven to work so a future maintainer can repeat it.
 
 **Files:**
-- Create: `scripts/darkness/fetch_vnl.py`
+- Create: `scripts/darkness/fetch_tiles.py`
 - Create: `scripts/darkness/README.md`
-- Modify: `docs/specs/2026-08-11-darkness-data-audit.md` (fill Q1 and Q2)
-- Modify: `.gitignore`
 
 **Interfaces:**
-- Consumes: nothing
-- Produces: `sha256_file(path) -> str`, and a downloaded raster at a path the orchestrator reads
+- Produces: `sha256_file(path) -> str`, and tiles at `scripts/darkness/data/VNP46A4.A<year>001.<tile>.h5`
 
-No unit tests — this is network and credentials. It is verified by running it.
+No unit tests — this is network and credentials, verified by running it.
 
-- [ ] **Step 1: Create an EOG account and confirm what is available**
+- [ ] **Step 1: Write the fetch script**
 
-`eogdata.mines.edu` redirects to OAuth at `eogauth.mines.edu`; downloads require a free account. Register, then browse the annual composites and record:
-
-- the newest VNL version (V2.2 documentation lists 2012–2020; later releases likely extend further)
-- the newest available year
-- whether to use the **masked** or unmasked product
-
-Masked removes background noise and ephemeral lights such as fires and gas flares, which is almost certainly right for a sky-glow proxy — but confirm it against the calibration sites in Task 8 rather than assuming.
-
-- [ ] **Step 2: Ignore the downloaded rasters**
-
-Add to `.gitignore`:
-
-```
-# VIIRS source rasters — multi-gigabyte, fetched by scripts/darkness/fetch_vnl.py
-scripts/darkness/data/
-```
-
-- [ ] **Step 3: Write the fetch script**
-
-Create `scripts/darkness/fetch_vnl.py`:
+Create `scripts/darkness/fetch_tiles.py`:
 
 ```python
-"""Download a VIIRS VNL annual composite from the Earth Observation Group.
+"""Download NASA Black Marble VNP46A4 annual tiles from LAADS DAAC.
 
-Requires a free EOG account: https://eogdata.mines.edu/products/register/
-Credentials come from the environment, never from the repo:
+Requires a free Earthdata Login account and an app key:
+    https://urs.earthdata.nasa.gov/  ->  Generate Token
 
-    export EOG_USERNAME='you@example.com'
-    export EOG_PASSWORD='...'
+    export EARTHDATA_TOKEN='eyJ0eXAi...'
 
 Usage:
-    .venv/bin/python scripts/darkness/fetch_vnl.py --url <composite-url> --out data/vnl-2024.tif
+    python3 scripts/darkness/fetch_tiles.py --year 2025
 
-The SHA-256 this prints goes into assets/darkness/meta.json, so a later
-reader can tell exactly which raster produced the artifact.
+Granule URLs are discovered through NASA's CMR search, which needs no
+authentication — only the download itself does. That keeps the script
+working when LAADS reorganises its archive paths, which it has done before.
+
+The SHA-256 this prints goes into assets/darkness/meta.json so a later
+reader can tell exactly which rasters produced the artifact.
 """
 import argparse
 import hashlib
+import json
 import os
 import sys
 import urllib.parse
 import urllib.request
 
-TOKEN_URL = ('https://eogauth.mines.edu/auth/realms/master/protocol/'
-             'openid-connect/token')
-CLIENT_ID = 'eogdata_oidc'
+CMR = 'https://cmr.earthdata.nasa.gov/search/granules.json'
+COLLECTION = 'C3860065683-LAADS'
+TILES = ('h17v04', 'h17v05', 'h31v05')
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-def get_token(username, password):
-    body = urllib.parse.urlencode({
-        'username': username,
-        'password': password,
-        'client_id': CLIENT_ID,
-        'grant_type': 'password',
-    }).encode()
-    request = urllib.request.Request(TOKEN_URL, data=body)
-    request.add_header('Content-Type', 'application/x-www-form-urlencoded')
-    with urllib.request.urlopen(request) as response:
-        import json
-        return json.loads(response.read())['access_token']
+def granule_url(year, tile):
+    """Ask CMR for this tile's download URL. No auth needed for search."""
+    query = urllib.parse.urlencode({
+        'collection_concept_id': COLLECTION,
+        'producer_granule_id': 'VNP46A4.A%d001.%s*' % (year, tile),
+        'options[producer_granule_id][pattern]': 'true',
+        'page_size': 10,
+    })
+    with urllib.request.urlopen(CMR + '?' + query, timeout=60) as response:
+        entries = json.loads(response.read())['feed']['entry']
+    for entry in entries:
+        for link in entry.get('links', []):
+            href = link.get('href', '')
+            if href.endswith('.h5') and href.startswith('http'):
+                return href
+    raise SystemExit('no granule found for %d %s' % (year, tile))
 
 
 def download(url, out_path, token):
-    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     request = urllib.request.Request(url)
     request.add_header('Authorization', 'Bearer ' + token)
-    with urllib.request.urlopen(request) as response, open(out_path, 'wb') as handle:
+    with urllib.request.urlopen(request, timeout=900) as response, \
+            open(out_path, 'wb') as handle:
         while True:
             chunk = response.read(1 << 20)
             if not chunk:
@@ -1368,60 +1358,61 @@ def sha256_file(path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--url', required=True)
-    parser.add_argument('--out', required=True)
+    parser.add_argument('--year', type=int, required=True)
     args = parser.parse_args()
 
-    username = os.environ.get('EOG_USERNAME')
-    password = os.environ.get('EOG_PASSWORD')
-    if not username or not password:
-        sys.exit('EOG_USERNAME and EOG_PASSWORD must be set in the environment')
+    token = os.environ.get('EARTHDATA_TOKEN')
+    if not token:
+        sys.exit('EARTHDATA_TOKEN must be set; generate one at '
+                 'https://urs.earthdata.nasa.gov/')
 
-    download(args.url, args.out, get_token(username, password))
-    print('wrote  %s' % args.out)
-    print('sha256 %s' % sha256_file(args.out))
+    os.makedirs(DATA_DIR, exist_ok=True)
+    for tile in TILES:
+        out = os.path.join(DATA_DIR,
+                           'VNP46A4.A%d001.%s.h5' % (args.year, tile))
+        if os.path.exists(out):
+            print('have    %s' % os.path.basename(out))
+        else:
+            download(granule_url(args.year, tile), out, token)
+            print('fetched %s' % os.path.basename(out))
+        print('  sha256 %s' % sha256_file(out))
 
 
 if __name__ == '__main__':
     main()
 ```
 
-- [ ] **Step 4: Write the directory README**
+- [ ] **Step 2: Write the directory README**
 
 Create `scripts/darkness/README.md`:
 
 ```markdown
 # Darkness pipeline
 
-Samples VIIRS night-lights radiance along pilgrimage route geometry and
-writes the per-kilometre artifacts in `assets/darkness/`.
+Samples NASA Black Marble night-lights radiance along pilgrimage route
+geometry and writes the per-kilometre artifacts in `assets/darkness/`.
 
 **This is the only Python in the repo, and the only place with third-party
-dependencies.** Reading a multi-gigabyte compressed GeoTIFF and
-FFT-convolving it is not dependency-free Node work. The property that
-matters is preserved: the browser reads only the committed static JSON —
-no network call, no runtime dependency, no build step.
+dependencies.** Reading a 90 MB HDF5 grid and FFT-convolving it is not
+dependency-free Node work. The property that matters is preserved: the
+browser reads only the committed static JSON — no network call, no runtime
+dependency, no build step.
 
-Run this rarely: only when EOG publishes a new annual composite.
+Run this rarely: only when NASA publishes a new annual composite.
 
 ## Setup
 
     python3 -m venv .venv
     .venv/bin/pip install -r scripts/darkness/requirements.txt
 
-Register for a free EOG account at
-<https://eogdata.mines.edu/products/register/>, then:
+Register free at <https://urs.earthdata.nasa.gov/>, generate a token, then:
 
-    export EOG_USERNAME='you@example.com'
-    export EOG_PASSWORD='...'
+    export EARTHDATA_TOKEN='eyJ0eXAi...'
 
 ## Run
 
-    .venv/bin/python scripts/darkness/fetch_vnl.py \
-        --url <composite-url> --out scripts/darkness/data/vnl-<year>.tif
-
-    .venv/bin/python scripts/darkness/bake_darkness.py \
-        --raster scripts/darkness/data/vnl-<year>.tif --epoch <year>
+    .venv/bin/python scripts/darkness/fetch_tiles.py --year 2025
+    .venv/bin/python scripts/darkness/bake_darkness.py --epoch 2025
 
 ## Tests
 
@@ -1434,37 +1425,29 @@ network.
 
 ## Determinism
 
-Given the same raster and the same recorded parameters, a re-run produces
+Given the same tiles and the same recorded parameters, a re-run produces
 byte-identical artifacts. A clean `git diff assets/darkness/` confirms
 nothing drifted.
+
+## Data
+
+NASA Black Marble VNP46A4 v002, CC0. Three 10-degree tiles cover all seven
+routes: `h17v04` and `h17v05` for Iberia, `h31v05` for Shikoku and Kumano.
+Roughly 90 MB each, gitignored.
 ```
 
-- [ ] **Step 5: Fetch the raster and confirm it reads**
+- [ ] **Step 3: Verify and commit**
 
-Run the fetch, then:
+The three tiles for 2025 are already present and checksummed. Confirm the script is idempotent — re-running must print `have` for each and reproduce these exact digests:
 
-```bash
-.venv/bin/python -c "
-import rasterio
-with rasterio.open('scripts/darkness/data/vnl-<year>.tif') as src:
-    print('size    ', src.width, 'x', src.height)
-    print('crs     ', src.crs)
-    print('bounds  ', src.bounds)
-    print('res     ', src.res)
-"
+```
+f630b820d1fe171f777c7fe2f52521bbcca9f4efc5984ac2f23298da2a20e423  h17v04
+51be78e8a75b27b8b8d538ab3d89c94efa0d7c091ffca0662b4180eb50b3beb2  h17v05
+6a53be99083e904cd931be6564be224cc7e10b63f55193376fa8d7a2228751a9  h31v05
 ```
 
-Expected: EPSG:4326, resolution near `0.0041667` degrees (15 arcsec), bounds spanning roughly 180°W–180°E and 75°N–65°S.
-
-- [ ] **Step 6: Record Q1 and Q2 in the spec**
-
-Move Q1 and Q2 out of the open-questions table into a resolved section, naming the version, year, masked/unmasked choice, source URL, and SHA-256.
-
-- [ ] **Step 7: Commit**
-
 ```bash
-git add scripts/darkness/fetch_vnl.py scripts/darkness/README.md .gitignore \
-        docs/specs/2026-08-11-darkness-data-audit.md
+git add scripts/darkness/fetch_tiles.py scripts/darkness/README.md
 git commit -m "feat(darkness): fetch the satellite's view of our own light"
 ```
 
@@ -1473,23 +1456,194 @@ git commit -m "feat(darkness): fetch the satellite's view of our own light"
 ### Task 8: Orchestrator
 
 **Files:**
+- Create: `scripts/darkness/tiles.py`
+- Create: `scripts/darkness/tiles_test.py`
 - Create: `scripts/darkness/bake_darkness.py`
 
 **Interfaces:**
-- Consumes: `geometry`, `kernel`, `raster`, `calibrate`, `emit`, `sites`, `fetch_vnl.sha256_file`
+- Consumes: `geometry`, `kernel`, `raster`, `calibrate`, `emit`, `sites`, `fetch_tiles.sha256_file`
 - Produces: `assets/darkness/<route-id>.json` ×7 and `assets/darkness/meta.json`
 
-- [ ] **Step 1: Write the orchestrator**
+The tile reader is split into its own module because it is the one piece with testable arithmetic — the georeferencing is constructed by hand, since GDAL reports no geotransform for these HDF5 grids. Getting that wrong would shift every sample silently.
+
+- [ ] **Step 1: Write the failing test for the tile reader**
+
+Create `scripts/darkness/tiles_test.py`:
+
+```python
+"""Black Marble tile georeferencing — test harness.
+
+Run via:  .venv/bin/python scripts/darkness/tiles_test.py
+"""
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tiles as T
+
+passed = 0
+failed = 0
+failures = []
+
+
+def ok(cond, label):
+    global passed, failed
+    if cond:
+        passed += 1
+        print('  ✓ ' + label)
+    else:
+        failed += 1
+        failures.append(label)
+        print('  ✗ ' + label)
+
+
+def approx(actual, expected, tol, label):
+    ok(abs(actual - expected) <= tol,
+       '%s  (%.6f vs %.6f)' % (label, actual, expected))
+
+
+print('grid constants')
+approx(T.DEG_PER_PX, 15.0 / 3600.0, 1e-12, 'pixels are 15 arcsec')
+ok(T.TILE_PX == 2400, 'tiles are 2400 px square')
+approx(T.TILE_PX * T.DEG_PER_PX, 10.0, 1e-9, 'a tile spans ten degrees')
+
+print('tile_id')
+ok(T.tile_id(-9.0, 43.0) == 'h17v04', 'western Iberia is h17v04')
+ok(T.tile_id(-9.0, 39.9) == 'h17v05', 'southern Iberia drops to v05')
+ok(T.tile_id(133.5, 33.7) == 'h31v05', 'Shikoku is h31v05')
+ok(T.tile_id(135.7, 33.8) == 'h31v05', 'Kii shares Shikoku tile')
+ok(T.tile_id(-179.9, 89.9) == 'h00v00', 'north-west corner of the world')
+ok(T.tile_id(0.0, 0.0) == 'h18v09', 'null island')
+
+print('tile_origin — round trip')
+for tid in ('h17v04', 'h17v05', 'h31v05', 'h00v00', 'h18v09'):
+    west, north = T.tile_origin(tid)
+    ok(T.tile_id(west + 0.001, north - 0.001) == tid,
+       '%s origin lands back in its own tile' % tid)
+
+west, north = T.tile_origin('h17v04')
+approx(west, -10.0, 1e-9, 'h17 starts at 10 west')
+approx(north, 50.0, 1e-9, 'v04 starts at 50 north')
+west, north = T.tile_origin('h31v05')
+approx(west, 130.0, 1e-9, 'h31 starts at 130 east')
+approx(north, 40.0, 1e-9, 'v05 starts at 40 north')
+
+print('tiles_for — which tiles a bbox needs')
+ok(T.tiles_for(-9.9, -0.03, 39.9, 44.8) == [['h17v04'], ['h17v05']],
+   'Iberia needs two tiles stacked vertically')
+ok(T.tiles_for(131.3, 137.0, 31.5, 35.6) == [['h31v05']],
+   'Japan needs one tile')
+ok(T.tiles_for(-0.5, 0.5, 43.0, 43.5) == [['h17v04', 'h18v04']],
+   'a bbox crossing the meridian needs two tiles side by side')
+
+print('')
+print('%d passed, %d failed' % (passed, failed))
+for f in failures:
+    print('  FAILED: ' + f)
+sys.exit(1 if failed else 0)
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `.venv/bin/python scripts/darkness/tiles_test.py`
+Expected: FAIL with `ModuleNotFoundError: No module named 'tiles'`
+
+- [ ] **Step 3: Write the tile reader**
+
+Create `scripts/darkness/tiles.py`:
+
+```python
+"""Read and mosaic NASA Black Marble VNP46A4 tiles.
+
+GDAL reports no geotransform for these HDF5 grids, so georeferencing is
+constructed from the tile id: hHHvVV starts at longitude -180 + 10*HH and
+latitude 90 - 10*VV, and covers ten degrees each way in 2400 pixels.
+Getting this wrong would shift every sample without any test noticing.
+"""
+import os
+
+import numpy as np
+import rasterio
+
+TILE_PX = 2400
+TILE_DEG = 10.0
+DEG_PER_PX = TILE_DEG / TILE_PX
+
+SDS = ('HDF5:%s://HDFEOS/GRIDS/VIIRS_Grid_DNB_2d/Data_Fields/'
+       'AllAngle_Composite_Snow_Free')
+
+# VNP46A4's documented fill. Anything at or below it is no-data, not dark.
+FILL_VALUE = -999.9
+
+
+def tile_id(lon, lat):
+    return 'h%02dv%02d' % (int((lon + 180.0) // TILE_DEG),
+                           int((90.0 - lat) // TILE_DEG))
+
+
+def tile_origin(tile):
+    """North-west corner of a tile, as (west, north)."""
+    h = int(tile[1:3])
+    v = int(tile[4:6])
+    return -180.0 + TILE_DEG * h, 90.0 - TILE_DEG * v
+
+
+def tiles_for(west, east, south, north):
+    """Tile ids covering a bbox, as rows of columns — north row first."""
+    hs = list(range(int((west + 180.0) // TILE_DEG),
+                    int((east + 180.0) // TILE_DEG) + 1))
+    vs = list(range(int((90.0 - north) // TILE_DEG),
+                    int((90.0 - south) // TILE_DEG) + 1))
+    return [['h%02dv%02d' % (h, v) for h in hs] for v in vs]
+
+
+def read_mosaic(data_dir, epoch, west, east, south, north):
+    """Mosaic the tiles a bbox needs. Returns (band, west, north).
+
+    The returned origin is the mosaic's north-west corner, not the bbox's —
+    the caller windows into it afterwards.
+    """
+    grid = tiles_for(west, east, south, north)
+    rows = []
+    for row in grid:
+        columns = []
+        for tile in row:
+            path = os.path.join(
+                data_dir, 'VNP46A4.A%d001.%s.h5' % (epoch, tile))
+            if not os.path.exists(path):
+                raise SystemExit(
+                    'missing tile %s — run fetch_tiles.py --year %d'
+                    % (os.path.basename(path), epoch))
+            with rasterio.open(SDS % path) as src:
+                columns.append(src.read(1))
+        rows.append(np.hstack(columns))
+
+    band = np.vstack(rows).astype(float)
+    # Fill and any negative radiance become zero: absence of light, not
+    # negative light. Done before convolution so no-data cannot smear.
+    band[band <= FILL_VALUE] = 0.0
+    band[band < 0.0] = 0.0
+
+    origin_west, origin_north = tile_origin(grid[0][0])
+    return band, origin_west, origin_north
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `.venv/bin/python scripts/darkness/tiles_test.py`
+Expected: PASS — `22 passed, 0 failed`, exit 0
+
+- [ ] **Step 5: Write the orchestrator**
 
 Create `scripts/darkness/bake_darkness.py`:
 
 ```python
 """Bake per-kilometre darkness artifacts for every route.
 
-    .venv/bin/python scripts/darkness/bake_darkness.py --raster <tif> --epoch 2024
+    .venv/bin/python scripts/darkness/bake_darkness.py --epoch 2025
 
-Crops the raster around each region, convolves once per region, samples
-along the route line, calibrates against the five reference sites,
+Mosaics the tiles each region needs, convolves once per region, samples
+along the route polyline, calibrates against the five reference sites,
 judges the three held-out sites, and writes assets/darkness/.
 
 Exits non-zero if held-out validation fails, unless --fallback-radiance
@@ -1498,10 +1652,10 @@ is passed to ship the weaker claim deliberately.
 import argparse
 import json
 import os
+import subprocess
 import sys
 
 import numpy as np
-import rasterio
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import geometry as G
@@ -1510,111 +1664,120 @@ import raster as R
 import calibrate as C
 import emit as E
 import sites as S
-from fetch_vnl import sha256_file
+import tiles as T
+from fetch_tiles import sha256_file, DATA_DIR, TILES
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PILGRIMAGES = os.path.join(REPO, '..', 'open-pilgrimages')
 OUT_DIR = os.path.join(REPO, 'assets', 'darkness')
 
-ROUTE_IDS = ['shikoku-88', 'kumano-kodo', 'camino-frances', 'camino-ingles',
-             'camino-norte', 'camino-portugues', 'camino-primitivo']
+REGIONS = {
+    'iberia': ['camino-frances', 'camino-ingles', 'camino-norte',
+               'camino-portugues', 'camino-primitivo'],
+    'japan': ['shikoku-88', 'kumano-kodo'],
+}
 
 STEP_KM = 1.0
 D0_KM = 1.0
 RADIUS_KM = 100.0
-MARGIN_DEG = 1.2          # slightly over 100 km, so the kernel never runs off the crop
+MARGIN_DEG = 1.2          # comfortably over 100 km, so the kernel never
+                          # runs off the crop and no sample nears an edge
 ALPHA_GRID = [1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]
 
-ATTRIBUTION = [
-    'Light pollution: VIIRS Nighttime Lights (VNL), Earth Observation Group, '
-    'Colorado School of Mines. CC BY 4.0.',
+CITATION = [
+    'Night lights: NASA Black Marble VNP46A4 v002 (VIIRS/NPP Lunar '
+    'BRDF-Adjusted Nighttime Lights Yearly L3 Global 15 arc second), '
+    'NASA LAADS DAAC. Public domain (CC0).',
     'Route geometry: open-pilgrimages, derived from OpenStreetMap '
     'contributors. ODbL v1.0.',
 ]
 
 
-def load_points():
-    """Resample every route.
-
-    Returns ({route_id: [(lat, lon), ...]}, {route_id: covered_km}).
-    validate_polyline raises if a route's waypoint filter produced nonsense.
-    """
-    points = {}
-    covered = {}
-    for route_id in ROUTE_IDS:
-        path = os.path.join(PILGRIMAGES, 'routes', route_id, 'waypoints.geojson')
-        with open(path) as handle:
-            geojson = json.load(handle)
-        polyline = G.route_polyline(geojson, G.WAYPOINT_TYPES[route_id])
-        ratio = G.validate_polyline(polyline)
-        points[route_id] = G.resample_polyline(polyline, STEP_KM)
-        covered[route_id] = polyline[-1][0] - polyline[0][0]
-        print('  %-18s %5d samples  covers %.0f km  ratio %.2f'
-              % (route_id, len(points[route_id]), covered[route_id], ratio))
-    return points, covered
-
-
-def crop_for(src, lats, lons):
-    """Read a window around the given points, plus the kernel margin.
-
-    boundless=True is load-bearing: if a window ever runs past the raster
-    edge, a clipped read would silently disagree with window_transform and
-    shift every sample. Padding with zeros keeps array and transform in
-    lockstep.
-    """
-    west = min(lons) - MARGIN_DEG
-    east = max(lons) + MARGIN_DEG
-    south = min(lats) - MARGIN_DEG
-    north = max(lats) + MARGIN_DEG
-    window = rasterio.windows.from_bounds(west, south, east, north, src.transform)
-    window = window.round_offsets().round_lengths()
-    band = src.read(1, window=window, boundless=True, fill_value=0)
-    band = np.nan_to_num(band, nan=0.0, posinf=0.0, neginf=0.0)
-    band[band < 0.0] = 0.0
-    transform = src.window_transform(window)
-    return band, float(transform.c), float(transform.f)
-
-
 def geometry_commit():
-    """The open-pilgrimages commit the route geometry came from."""
-    import subprocess
     sha = subprocess.check_output(
         ['git', '-C', PILGRIMAGES, 'rev-parse', 'HEAD']).decode().strip()
     dirty = subprocess.check_output(
         ['git', '-C', PILGRIMAGES, 'status', '--porcelain']).decode().strip()
     if dirty:
-        sys.exit('../open-pilgrimages has uncommitted changes; commit or stash '
-                 'them so the artifact records a real geometry revision')
+        sys.exit('../open-pilgrimages has uncommitted changes; commit or '
+                 'stash them so the artifact records a real revision')
     return sha
 
 
-def blurred_field(src, lats, lons, alpha):
-    band, west, north = crop_for(src, lats, lons)
-    deg_per_px = abs(src.transform.a)
-    mean_lat = float(np.mean(lats))
-    kern = K.build_kernel(alpha, D0_KM, RADIUS_KM, deg_per_px, mean_lat)
-    return R.convolve_field(band, kern), west, north, deg_per_px
+def load_points():
+    """Resample every route. Returns (points, covered_km) keyed by route."""
+    points = {}
+    covered = {}
+    for region, ids in REGIONS.items():
+        for route_id in ids:
+            path = os.path.join(PILGRIMAGES, 'routes', route_id,
+                                'waypoints.geojson')
+            with open(path) as handle:
+                geojson = json.load(handle)
+            polyline = G.route_polyline(geojson, G.WAYPOINT_TYPES[route_id])
+            ratio = G.validate_polyline(polyline)
+            points[route_id] = G.resample_polyline(polyline, STEP_KM)
+            covered[route_id] = polyline[-1][0] - polyline[0][0]
+            print('  %-18s %5d samples  covers %4.0f km  ratio %.2f'
+                  % (route_id, len(points[route_id]), covered[route_id], ratio))
+    return points, covered
 
 
-def raw_at_sites(src, site_list, alpha):
-    lats = [s['lat'] for s in site_list]
-    lons = [s['lon'] for s in site_list]
+def region_of(lat, lon):
+    return 'japan' if lon > 60.0 else 'iberia'
+
+
+def blurred_region(epoch, lats, lons, alpha):
+    """Mosaic, window to the bbox plus margin, convolve. Returns field+origin."""
+    west = min(lons) - MARGIN_DEG
+    east = max(lons) + MARGIN_DEG
+    south = min(lats) - MARGIN_DEG
+    north = max(lats) + MARGIN_DEG
+
+    band, mosaic_west, mosaic_north = T.read_mosaic(
+        DATA_DIR, epoch, west, east, south, north)
+
+    x0 = max(0, int((west - mosaic_west) / T.DEG_PER_PX))
+    y0 = max(0, int((mosaic_north - north) / T.DEG_PER_PX))
+    x1 = min(band.shape[1], int((east - mosaic_west) / T.DEG_PER_PX) + 1)
+    y1 = min(band.shape[0], int((mosaic_north - south) / T.DEG_PER_PX) + 1)
+    crop = band[y0:y1, x0:x1]
+
+    crop_west = mosaic_west + x0 * T.DEG_PER_PX
+    crop_north = mosaic_north - y0 * T.DEG_PER_PX
+
+    kern = K.build_kernel(alpha, D0_KM, RADIUS_KM, T.DEG_PER_PX,
+                          float(np.mean(lats)))
+    return R.convolve_field(crop, kern), crop_west, crop_north
+
+
+def raw_at_sites(epoch, site_list, alpha, cache):
+    """Blurred radiance at each site, reusing one field per region."""
     values = []
     for site in site_list:
-        field, west, north, dpp = blurred_field(src, [site['lat']], [site['lon']], alpha)
-        values.append(R.sample_bilinear(field, west, north, dpp,
+        region = region_of(site['lat'], site['lon'])
+        key = (region, alpha)
+        if key not in cache:
+            members = [s for s in S.CALIBRATION_SITES + S.VALIDATION_SITES
+                       if region_of(s['lat'], s['lon']) == region]
+            cache[key] = blurred_region(
+                epoch, [s['lat'] for s in members],
+                [s['lon'] for s in members], alpha)
+        field, west, north = cache[key]
+        values.append(R.sample_bilinear(field, west, north, T.DEG_PER_PX,
                                         site['lat'], site['lon']))
     return values
 
 
-def choose_alpha(src):
+def choose_alpha(epoch):
     """Grid-search alpha, keeping whichever minimises calibration residual."""
     measured = [s['mag_arcsec2'] for s in S.CALIBRATION_SITES]
     best = None
     for alpha in ALPHA_GRID:
-        raw = raw_at_sites(src, S.CALIBRATION_SITES, alpha)
+        raw = raw_at_sites(epoch, S.CALIBRATION_SITES, alpha, {})
         if min(raw) <= 0.0:
-            print('  alpha %.2f  skipped (a site sampled zero radiance)' % alpha)
+            print('  alpha %.2f  skipped (a site sampled zero radiance)'
+                  % alpha)
             continue
         a, b, residuals = C.fit_calibration(raw, measured)
         worst = max(abs(r) for r in residuals)
@@ -1629,51 +1792,47 @@ def choose_alpha(src):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--raster', required=True)
     parser.add_argument('--epoch', type=int, required=True)
     parser.add_argument('--fallback-radiance', action='store_true',
                         help='ship banded radiance instead of sky brightness')
     args = parser.parse_args()
 
-    # Check this first: it exits on a dirty sibling repo, and discovering
-    # that after writing seven route files would leave the tree half-baked.
     geometry_sha = geometry_commit()
 
     print('resampling routes')
     points, covered = load_points()
 
-    with rasterio.open(args.raster) as src:
-        print('searching alpha')
-        alpha, a, b = choose_alpha(src)
-        print('chose alpha=%.2f  a=%+.4f  b=%+.4f' % (alpha, a, b))
+    print('searching alpha')
+    alpha, a, b = choose_alpha(args.epoch)
+    print('chose alpha=%.2f  a=%+.4f  b=%+.4f' % (alpha, a, b))
 
-        print('validating against held-out sites')
-        held_raw = raw_at_sites(src, S.VALIDATION_SITES, alpha)
-        held_measured = [s['mag_arcsec2'] for s in S.VALIDATION_SITES]
-        report = C.validate(C.predict(held_raw, a, b), held_measured)
-        for site, resid in zip(S.VALIDATION_SITES, report['residuals']):
-            print('  %-28s measured %.2f  residual %+.3f'
-                  % (site['name'], site['mag_arcsec2'], resid))
-        print('  monotonic=%s  within_tolerance=%s  max=%.3f'
-              % (report['monotonic'], report['within_tolerance'],
-                 report['max_abs_residual']))
+    print('validating against held-out sites')
+    held_raw = raw_at_sites(args.epoch, S.VALIDATION_SITES, alpha, {})
+    held_measured = [s['mag_arcsec2'] for s in S.VALIDATION_SITES]
+    report = C.validate(C.predict(held_raw, a, b), held_measured)
+    for site, resid in zip(S.VALIDATION_SITES, report['residuals']):
+        print('  %-34s measured %.2f  residual %+.3f'
+              % (site['name'][:34], site['mag_arcsec2'], resid))
+    print('  monotonic=%s  within_tolerance=%s  max=%.3f'
+          % (report['monotonic'], report['within_tolerance'],
+             report['max_abs_residual']))
 
-        if not report['passed'] and not args.fallback_radiance:
-            sys.exit('held-out validation FAILED. Do not widen the tolerance. '
-                     'Re-run with --fallback-radiance to ship banded radiance, '
-                     'per section 7 of the spec.')
+    if not report['passed'] and not args.fallback_radiance:
+        sys.exit('held-out validation FAILED. Do not widen the tolerance. '
+                 'Re-run with --fallback-radiance to ship banded radiance, '
+                 'per section 7 of the spec.')
 
-        unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
-        print('writing artifacts as %s' % unit)
-        os.makedirs(OUT_DIR, exist_ok=True)
+    unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
+    print('writing artifacts as %s' % unit)
+    os.makedirs(OUT_DIR, exist_ok=True)
 
-        for route_id in ROUTE_IDS:
-            pts = points[route_id]
-            lats = [p[0] for p in pts]
-            lons = [p[1] for p in pts]
-            field, west, north, dpp = blurred_field(src, lats, lons, alpha)
-            raw = [R.sample_bilinear(field, west, north, dpp, lat, lon)
-                   for lat, lon in pts]
+    for region, ids in REGIONS.items():
+        lats = [p[0] for rid in ids for p in points[rid]]
+        lons = [p[1] for rid in ids for p in points[rid]]
+        field, west, north = blurred_region(args.epoch, lats, lons, alpha)
+        for route_id in ids:
+            raw = [R.sample_bilinear(field, west, north, T.DEG_PER_PX, la, lo)
+                   for la, lo in points[route_id]]
             values = raw if args.fallback_radiance else C.predict(raw, a, b)
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
                                         unit, values, covered[route_id])
@@ -1688,16 +1847,18 @@ def main():
         'unit': unit,
         'stepKm': int(STEP_KM),
         'source': {
-            'raster': os.path.basename(args.raster),
-            'sha256': sha256_file(args.raster),
+            'product': 'NASA Black Marble VNP46A4 v002',
+            'band': 'AllAngle_Composite_Snow_Free',
+            'tiles': {t: sha256_file(os.path.join(
+                DATA_DIR, 'VNP46A4.A%d001.%s.h5' % (args.epoch, t)))
+                for t in TILES},
             'geometryCommit': geometry_sha,
         },
         'kernel': {'form': '(1 + d/d0) ** -alpha',
                    'alpha': alpha, 'd0Km': D0_KM, 'radiusKm': RADIUS_KM},
-        'calibration': {'a': a, 'b': b,
-                        'sites': S.CALIBRATION_SITES},
+        'calibration': {'a': a, 'b': b, 'sites': S.CALIBRATION_SITES},
         'validation': {'sites': S.VALIDATION_SITES, 'report': report},
-        'attribution': ATTRIBUTION,
+        'citation': CITATION,
     }
     with open(os.path.join(OUT_DIR, 'meta.json'), 'w') as handle:
         handle.write(E.dumps(meta))
@@ -1708,16 +1869,27 @@ if __name__ == '__main__':
     main()
 ```
 
-- [ ] **Step 2: Verify the resampling stage runs against real geometry**
+- [ ] **Step 6: Verify the resampling stage against real data**
 
 Run: `.venv/bin/python -c "import sys; sys.path.insert(0,'scripts/darkness'); import bake_darkness as B; B.load_points()"`
 
-Expected: seven lines, sample counts roughly matching the spec's table (shikoku-88 ~1200, camino-norte ~784, camino-frances ~764, camino-primitivo ~263, camino-portugues ~243, camino-ingles ~112, kumano-kodo ~39).
+Expected — controller-verified, these must not move:
 
-- [ ] **Step 3: Commit**
+```
+  camino-frances       764 samples  covers  764 km  ratio 1.10
+  camino-ingles        112 samples  covers  112 km  ratio 1.08
+  camino-norte         785 samples  covers  784 km  ratio 1.07
+  camino-portugues     244 samples  covers  243 km  ratio 1.25
+  camino-primitivo     263 samples  covers  263 km  ratio 0.90
+  shikoku-88          1081 samples  covers 1080 km  ratio 0.76
+  kumano-kodo           39 samples  covers   38 km  ratio 0.76
+```
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/darkness/bake_darkness.py
+git add scripts/darkness/tiles.py scripts/darkness/tiles_test.py \
+        scripts/darkness/bake_darkness.py
 git commit -m "feat(darkness): one pass over the seven roads"
 ```
 
