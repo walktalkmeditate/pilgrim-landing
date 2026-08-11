@@ -293,6 +293,14 @@ def main():
                                                   loo_report['residuals'])],
             'alpha': alpha,
             'fullSetWorstResidual': full_report['max_abs_residual'],
+            # The verdict travels with the data. A reader holding only this
+            # artifact should not have to find the spec to learn whether the
+            # number in front of them cleared its gate.
+            'toleranceMag': C.TOLERANCE_MAG,
+            'looWorstResidual': loo_report['max_abs_residual'],
+            'monotonic': full_report['monotonic'],
+            'passed': bool(loo_report['within_tolerance']
+                           and full_report['monotonic']),
         },
         'excludedSites': S.EXCLUDED_SITES,
         'citation': CITATION,
