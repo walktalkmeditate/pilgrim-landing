@@ -15,7 +15,8 @@
 - **Runtime is untouched.** The browser reads only committed static JSON. No new network call, no new runtime dependency, no build step, no change to how any page loads.
 - **Python is confined to `scripts/darkness/`.** This breaks the repo's "no dependencies beyond Node's built-ins" bake rule. The repo README must name the exception explicitly (Task 9) rather than leave it silent.
 - **Tests follow the existing idiom.** Hand-rolled harnesses with `passed`/`failed` counters and `✓`/`✗` output, run directly (`.venv/bin/python scripts/darkness/geometry_test.py`). Mirror `js/daylight-math.test.js`. Do not introduce pytest.
-- **Sampling step is exactly 1 km**, along real geometry from `../open-pilgrimages/routes/*/route.geojson`.
+- **Sampling step is exactly 1 km**, along the waypoint polyline from `../open-pilgrimages/routes/*/waypoints.geojson`. `route.geojson` cannot be used — it is raw OSM and sums to far more than the published distance (spec §2).
+- **Per-route waypoint type filter.** Shikoku and Kumano use `sacred_site` only; the five Caminos use every type. A polyline whose length falls outside 0.5-1.5x its kilometre span is rejected — **do not widen the bounds to get past it**.
 - **Seven routes only.** No arbitrary-coordinate support, no global grid.
 - **Kernel form is fixed:** `w(d) = (1 + d/d₀)^(−α)` for `d ≤ R`, with `d₀ = 1 km` and `R = 100 km`. Only `α` is searched.
 - **Pass criteria are fixed:** monotonic ordering AND max absolute residual `≤ 0.5` mag/arcsec² on the three held-out sites. **Do not widen the tolerance to make the gate pass** — failure routes to the section 7 fallback.
@@ -25,23 +26,27 @@
 
 ---
 
-### Task 1: Route geometry → 1 km sample points
+### Task 1: Waypoint polyline → 1 km sample points
 
 Pure geometry. No raster, no network. This is the foundation every later task indexes against.
 
+**Amended after the original Task 1.** The first version read `route.geojson` and was committed as `f9bf06f`; its `MAX_PART_GAP_KM` guard then fired on real data and proved that file cannot supply a kilometre axis (spec §2 records the measurements). `haversine_km` survives unchanged. The loader is replaced.
+
 **Files:**
 - Create: `scripts/darkness/requirements.txt`
-- Create: `scripts/darkness/geometry.py`
-- Create: `scripts/darkness/geometry_test.py`
+- Modify: `scripts/darkness/geometry.py` (replace `route_coords` / `resample_route`; keep `haversine_km`)
+- Modify: `scripts/darkness/geometry_test.py`
 - Modify: `.gitignore`
 
 **Interfaces:**
 - Consumes: nothing
 - Produces:
   - `haversine_km(lat1, lon1, lat2, lon2) -> float`
-  - `route_coords(geojson: dict) -> list[tuple[float, float]]` — returns `(lon, lat)` pairs in file order
-  - `resample_route(coords: list[tuple[float, float]], step_km: float) -> list[tuple[float, float]]` — returns `(lat, lon)` pairs, note the flip
-  - `MAX_PART_GAP_KM = 5.0`
+  - `route_polyline(geojson: dict, types) -> list[tuple[float, float, float]]` — `(km, lat, lon)` ascending by km
+  - `polyline_ratio(polyline) -> float`
+  - `validate_polyline(polyline) -> float` — returns the ratio, raises `ValueError` outside bounds
+  - `resample_polyline(polyline, step_km) -> list[tuple[float, float]]` — `(lat, lon)` pairs
+  - `WAYPOINT_TYPES: dict[str, tuple | None]`, `MAX_BUCKET_SPREAD_KM = 2.0`, `RATIO_BOUNDS = (0.5, 1.5)`
 
 - [ ] **Step 1: Create the virtualenv and pin dependencies**
 
@@ -75,14 +80,13 @@ The repo's `.gitignore` does not cover virtualenvs yet, so add:
 
 - [ ] **Step 2: Write the failing test**
 
-Create `scripts/darkness/geometry_test.py`:
+Replace the whole of `scripts/darkness/geometry_test.py` with:
 
 ```python
-"""Route geometry resampling — test harness.
+"""Waypoint polyline resampling — test harness.
 
 Run via:  .venv/bin/python scripts/darkness/geometry_test.py
 """
-import math
 import sys
 import os
 
@@ -107,62 +111,138 @@ def ok(cond, label):
 
 def approx(actual, expected, tol, label):
     ok(abs(actual - expected) <= tol,
-       '%s  (%.4f vs %.4f)' % (label, actual, expected))
+       '%s  (%.6f vs %.6f)' % (label, actual, expected))
+
+
+# One degree of longitude at the equator is 111.1951 km, so this many degrees
+# is exactly one kilometre. It makes every fixture below hand-checkable.
+KM_DEG = 0.0089932036
+
+
+def wp(km, lat, lon, kind='sacred_site'):
+    return {'type': 'Feature',
+            'properties': {'kmFromStart': km, 'type': kind},
+            'geometry': {'type': 'Point', 'coordinates': [lon, lat]}}
+
+
+def fc(features):
+    return {'type': 'FeatureCollection', 'features': features}
 
 
 print('haversine')
 approx(G.haversine_km(0, 0, 0, 1), 111.195, 0.01, 'one degree of longitude at equator')
 approx(G.haversine_km(0, 0, 1, 0), 111.195, 0.01, 'one degree of latitude')
 approx(G.haversine_km(43, -5, 43, -5), 0.0, 1e-9, 'zero distance')
+approx(G.haversine_km(0, 0, 0, KM_DEG), 1.0, 1e-6, 'KM_DEG is one kilometre')
 
-print('route_coords')
-line = {'type': 'Feature',
-        'geometry': {'type': 'LineString', 'coordinates': [[0, 0], [1, 0]]}}
-ok(G.route_coords(line) == [(0.0, 0.0), (1.0, 0.0)], 'LineString passes through')
+print('route_polyline')
+line = fc([wp(2, 0.0, 2 * KM_DEG), wp(0, 0.0, 0.0), wp(1, 0.0, KM_DEG)])
+pl = G.route_polyline(line, None)
+ok([p[0] for p in pl] == [0, 1, 2], 'sorted ascending by kilometre')
+approx(pl[1][2], KM_DEG, 1e-12, 'longitude carried through')
+approx(pl[1][1], 0.0, 1e-12, 'latitude carried through')
 
-multi = {'type': 'Feature',
-         'geometry': {'type': 'MultiLineString',
-                      'coordinates': [[[0, 0], [0.5, 0]], [[0.5, 0], [1, 0]]]}}
-ok(len(G.route_coords(multi)) == 4, 'MultiLineString parts concatenate in file order')
+print('route_polyline — type filter')
+mixed = fc([wp(0, 0.0, 0.0, 'sacred_site'),
+            wp(1, 0.0, KM_DEG, 'supply'),
+            wp(2, 0.0, 2 * KM_DEG, 'sacred_site')])
+ok([p[0] for p in G.route_polyline(mixed, ('sacred_site',))] == [0, 2],
+   'only the requested types are kept')
+ok([p[0] for p in G.route_polyline(mixed, None)] == [0, 1, 2],
+   'types=None keeps everything')
+
+print('route_polyline — missing kmFromStart is skipped')
+nokm = fc([wp(0, 0.0, 0.0), wp(1, 0.0, KM_DEG),
+           {'type': 'Feature', 'properties': {'type': 'sacred_site'},
+            'geometry': {'type': 'Point', 'coordinates': [0.5, 0.0]}}])
+ok(len(G.route_polyline(nokm, None)) == 2, 'a waypoint without kmFromStart is dropped')
+
+print('route_polyline — same-km centroid')
+shared = fc([wp(0, 0.0, 0.0),
+             wp(1, 0.0, 0.0), wp(1, 0.0, 2 * KM_DEG),
+             wp(2, 0.0, 2 * KM_DEG)])
+pl = G.route_polyline(shared, None)
+ok(len(pl) == 3, 'points sharing a kilometre collapse to one')
+approx(pl[1][2], KM_DEG, 1e-9, 'the collapsed point is their centroid')
+
+print('route_polyline — wide buckets are dropped')
+# Two points 3.8 km apart sit 1.9 km from their centroid — inside the limit.
+# Deliberately not testing exactly 2.0: a float knife-edge would make the
+# test flap rather than tell you anything.
+inside = fc([wp(0, 0.0, 0.0),
+             wp(1, 0.0, -1.9 * KM_DEG), wp(1, 0.0, 1.9 * KM_DEG),
+             wp(2, 0.0, 2 * KM_DEG)])
+ok(len(G.route_polyline(inside, None)) == 3, 'a bucket inside the limit is kept')
+
+too_wide = fc([wp(0, 0.0, 0.0),
+               wp(1, 0.0, -2.1 * KM_DEG), wp(1, 0.0, 2.1 * KM_DEG),
+               wp(2, 0.0, 2 * KM_DEG)])
+ok([p[0] for p in G.route_polyline(too_wide, None)] == [0, 2],
+   'a bucket spread beyond the limit is dropped')
+
+ok(G.MAX_BUCKET_SPREAD_KM == 2.0, 'the spread limit is 2.0 km')
+
+print('route_polyline — refuses unusable input')
+for bad, why in [(fc([]), 'no features'),
+                 (fc([wp(0, 0.0, 0.0)]), 'a single waypoint')]:
+    try:
+        G.route_polyline(bad, None)
+        ok(False, 'raises on %s' % why)
+    except ValueError:
+        ok(True, 'raises on %s' % why)
+
+print('polyline_ratio')
+straight = [(0, 0.0, 0.0), (1, 0.0, KM_DEG), (2, 0.0, 2 * KM_DEG)]
+approx(G.polyline_ratio(straight), 1.0, 1e-6, 'a straight polyline scores 1.0')
+
+zigzag = [(0, 0.0, 0.0), (1, 0.0, 10 * KM_DEG), (2, 0.0, 0.0)]
+approx(G.polyline_ratio(zigzag), 10.0, 1e-6, 'a branch-hopping polyline scores 10')
+
+short = [(0, 0.0, 0.0), (10, 0.0, 5 * KM_DEG)]
+approx(G.polyline_ratio(short), 0.5, 1e-6, 'a chord across a meander scores 0.5')
+
+print('validate_polyline')
+approx(G.validate_polyline(straight), 1.0, 1e-6, 'a sane polyline validates and returns its ratio')
+approx(G.validate_polyline(short), 0.5, 1e-6, 'exactly 0.5 is inside the bounds')
+ok(G.RATIO_BOUNDS == (0.5, 1.5), 'bounds are [0.5, 1.5]')
 
 try:
-    G.route_coords({'type': 'Feature',
-                    'geometry': {'type': 'Point', 'coordinates': [0, 0]}})
-    ok(False, 'unsupported geometry raises')
+    G.validate_polyline(zigzag)
+    ok(False, 'a branch-hopping polyline is rejected')
 except ValueError:
-    ok(True, 'unsupported geometry raises')
+    ok(True, 'a branch-hopping polyline is rejected')
 
-print('resample_route')
-pts = G.resample_route([(0.0, 0.0), (1.0, 0.0)], 1.0)
-ok(len(pts) == 112, 'equator degree at 1 km yields 112 points (got %d)' % len(pts))
-approx(pts[0][0], 0.0, 1e-9, 'first point is the route start (lat)')
-approx(pts[0][1], 0.0, 1e-9, 'first point is the route start (lon)')
-approx(G.haversine_km(pts[0][0], pts[0][1], pts[1][0], pts[1][1]), 1.0, 0.001,
+try:
+    G.validate_polyline([(5, 0.0, 0.0), (5, 0.0, KM_DEG)])
+    ok(False, 'a zero kilometre span is rejected')
+except ValueError:
+    ok(True, 'a zero kilometre span is rejected')
+
+print('resample_polyline')
+pts = G.resample_polyline(straight, 1.0)
+ok(len(pts) == 3, 'a 2 km span at 1 km yields 3 points (got %d)' % len(pts))
+approx(pts[0][1], 0.0, 1e-12, 'starts at the first waypoint')
+approx(pts[2][1], 2 * KM_DEG, 1e-12, 'ends at the last waypoint')
+approx(G.haversine_km(pts[0][0], pts[0][1], pts[1][0], pts[1][1]), 1.0, 1e-6,
        'consecutive samples are 1 km apart')
-approx(G.haversine_km(pts[0][0], pts[0][1], pts[50][0], pts[50][1]), 50.0, 0.01,
-       'fiftieth sample is 50 km along')
 
-ok(G.resample_route([(0.0, 0.0), (1.0, 0.0)], 1.0) ==
-   G.resample_route([(0.0, 0.0), (1.0, 0.0)], 1.0), 'resampling is deterministic')
+sparse = [(0, 0.0, 0.0), (10, 0.0, 10 * KM_DEG)]
+pts = G.resample_polyline(sparse, 1.0)
+ok(len(pts) == 11, 'interpolates across a 10 km waypoint gap (got %d)' % len(pts))
+approx(pts[5][1], 5 * KM_DEG, 1e-9, 'the midpoint interpolates linearly')
 
-dupe = G.resample_route([(0.0, 0.0), (0.0, 0.0), (1.0, 0.0)], 1.0)
-ok(len(dupe) == 112, 'zero-length segments are skipped')
+ragged = [(0, 0.0, 0.0), (2.5, 0.0, 2.5 * KM_DEG)]
+ok(len(G.resample_polyline(ragged, 1.0)) == 3,
+   'a fractional span truncates rather than overshooting')
 
-try:
-    G.resample_route([(0.0, 0.0)], 1.0)
-    ok(False, 'single coordinate raises')
-except ValueError:
-    ok(True, 'single coordinate raises')
+ok(G.resample_polyline(straight, 1.0) == G.resample_polyline(straight, 1.0),
+   'resampling is deterministic')
 
-print('part-gap fail-loud')
-gapped = {'type': 'Feature',
-          'geometry': {'type': 'MultiLineString',
-                       'coordinates': [[[0, 0], [0.1, 0]], [[5, 0], [5.1, 0]]]}}
-try:
-    G.route_coords(gapped)
-    ok(False, 'a gap beyond MAX_PART_GAP_KM raises')
-except ValueError:
-    ok(True, 'a gap beyond MAX_PART_GAP_KM raises')
+print('WAYPOINT_TYPES')
+ok(G.WAYPOINT_TYPES['shikoku-88'] == ('sacred_site',), 'shikoku uses temples')
+ok(G.WAYPOINT_TYPES['kumano-kodo'] == ('sacred_site',), 'kumano uses shrines')
+ok(G.WAYPOINT_TYPES['camino-frances'] is None, 'the caminos use every type')
+ok(len(G.WAYPOINT_TYPES) == 7, 'all seven routes are configured')
 
 print('')
 print('%d passed, %d failed' % (passed, failed))
@@ -174,29 +254,56 @@ sys.exit(1 if failed else 0)
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `.venv/bin/python scripts/darkness/geometry_test.py`
-Expected: FAIL with `ModuleNotFoundError: No module named 'geometry'`
+Expected: FAIL with `AttributeError: module 'geometry' has no attribute 'route_polyline'`
 
 - [ ] **Step 4: Write minimal implementation**
 
-Create `scripts/darkness/geometry.py`:
+Replace the whole of `scripts/darkness/geometry.py` with:
 
 ```python
-"""Resample pilgrimage route geometry to evenly-spaced sample points.
+"""Build a kilometre-indexed polyline for a pilgrimage route.
 
-Geometry comes from ../open-pilgrimages/routes/<id>/route.geojson (ODbL,
-OpenStreetMap contributors). Vertex spacing there is roughly 20-40 m, so
-linear interpolation between vertices is well within tolerance at a 1 km
-step.
+The route line itself cannot be used. `route.geojson` in the sibling
+open-pilgrimages repo is raw OpenStreetMap output — a superset of the walked
+route containing variants, alternates and duplicated ways — so it sums to far
+more than the published distance and no ordering fixes it. Spec section 2
+records the measurements.
+
+`waypoints.geojson` works instead: every waypoint carries a kmFromStart that
+upstream already projected onto the route, which is the axis we need.
 """
 import math
 
 R_EARTH_KM = 6371.0088
 
-# Shikoku's geometry is a MultiLineString. Concatenating its parts assumes
-# they are contiguous; a large jump between one part's end and the next
-# part's start would silently desync the kilometre index from the stage
-# boundaries /daylight already reports. Fail loudly instead.
-MAX_PART_GAP_KM = 5.0
+# Which waypoint types define each route's line.
+#
+# The Caminos use every type: their amenities sit within a few hundred metres
+# of the trail. The two Japanese routes cannot — amenity kilometres are
+# ambiguous around Shikoku's loop and across Kumano's seven branches, and
+# including them produces a polyline five to six times its own kilometre span.
+# Their sacred sites (Shikoku's 88 temples, Kumano's oji shrines) are the
+# route.
+WAYPOINT_TYPES = {
+    'shikoku-88': ('sacred_site',),
+    'kumano-kodo': ('sacred_site',),
+    'camino-frances': None,
+    'camino-ingles': None,
+    'camino-norte': None,
+    'camino-portugues': None,
+    'camino-primitivo': None,
+}
+
+# Several waypoints often share a kilometre. Their centroid stands in for the
+# route there — unless they disagree by more than this, which means the
+# projection is unreliable. Shikoku files 145 waypoints at km 728 spanning
+# 68 km; their centroid lands in the sea.
+MAX_BUCKET_SPREAD_KM = 2.0
+
+# A polyline's length divided by its kilometre span. A correct chord path runs
+# about 0.76, cutting the corners of a meandering trail. A polyline that jumps
+# between branches runs 5-6. Nothing real lands in between.
+RATIO_BOUNDS = (0.5, 1.5)
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -208,88 +315,129 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 2.0 * R_EARTH_KM * math.asin(math.sqrt(a))
 
 
-def route_coords(geojson):
-    """Flatten a route.geojson into a single ordered list of (lon, lat)."""
-    features = geojson.get('features', [geojson])
-    coords = []
-    for feature in features:
-        geom = feature.get('geometry', feature)
-        kind = geom.get('type')
-        if kind == 'LineString':
-            _append_part(coords, geom['coordinates'])
-        elif kind == 'MultiLineString':
-            for part in geom['coordinates']:
-                _append_part(coords, part)
-        else:
-            raise ValueError('unsupported geometry type: %s' % kind)
-    if len(coords) < 2:
-        raise ValueError('route geometry has fewer than two coordinates')
-    return coords
+def route_polyline(geojson, types):
+    """Waypoints as an ascending list of (km, lat, lon).
 
-
-def _append_part(coords, part):
-    if coords:
-        lon_prev, lat_prev = coords[-1]
-        lon_next, lat_next = part[0][0], part[0][1]
-        gap = haversine_km(lat_prev, lon_prev, lat_next, lon_next)
-        if gap > MAX_PART_GAP_KM:
-            raise ValueError(
-                'geometry parts are %.1f km apart, above the %.1f km limit; '
-                'concatenation order is probably wrong' % (gap, MAX_PART_GAP_KM))
-    for c in part:
-        coords.append((float(c[0]), float(c[1])))
-
-
-def resample_route(coords, step_km):
-    """Walk the line, emitting (lat, lon) every step_km of ground distance."""
-    if len(coords) < 2:
-        raise ValueError('need at least two coordinates to resample')
-    out = [(coords[0][1], coords[0][0])]
-    target = step_km
-    walked = 0.0
-    for i in range(len(coords) - 1):
-        lon1, lat1 = coords[i]
-        lon2, lat2 = coords[i + 1]
-        seg = haversine_km(lat1, lon1, lat2, lon2)
-        if seg <= 0.0:
+    types is a tuple of waypoint types to keep, or None to keep all.
+    """
+    buckets = {}
+    for feature in geojson.get('features', []):
+        props = feature.get('properties', {})
+        km = props.get('kmFromStart')
+        if km is None:
             continue
-        while target <= walked + seg:
-            f = (target - walked) / seg
-            out.append((lat1 + (lat2 - lat1) * f, lon1 + (lon2 - lon1) * f))
-            target += step_km
-        walked += seg
+        if types is not None and props.get('type') not in types:
+            continue
+        lon, lat = feature['geometry']['coordinates'][:2]
+        buckets.setdefault(float(km), []).append((float(lat), float(lon)))
+
+    polyline = []
+    for km in sorted(buckets):
+        points = buckets[km]
+        lat = sum(p[0] for p in points) / len(points)
+        lon = sum(p[1] for p in points) / len(points)
+        spread = max(haversine_km(lat, lon, p[0], p[1]) for p in points)
+        if spread > MAX_BUCKET_SPREAD_KM:
+            continue
+        polyline.append((km, lat, lon))
+
+    if len(polyline) < 2:
+        raise ValueError(
+            'only %d usable waypoint(s) after filtering; need at least two'
+            % len(polyline))
+    return polyline
+
+
+def polyline_ratio(polyline):
+    """Polyline length divided by the kilometre span it claims to cover."""
+    span = polyline[-1][0] - polyline[0][0]
+    if span <= 0.0:
+        raise ValueError('waypoint kilometres do not advance')
+    length = sum(haversine_km(polyline[i][1], polyline[i][2],
+                              polyline[i + 1][1], polyline[i + 1][2])
+                 for i in range(len(polyline) - 1))
+    return length / span
+
+
+def validate_polyline(polyline):
+    """Fail loudly when the waypoint selection produced nonsense."""
+    ratio = polyline_ratio(polyline)
+    low, high = RATIO_BOUNDS
+    if not (low <= ratio <= high):
+        raise ValueError(
+            'polyline runs %.2f x its kilometre span, outside [%.1f, %.1f] — '
+            'the waypoint type filter is probably wrong for this route'
+            % (ratio, low, high))
+    return ratio
+
+
+def resample_polyline(polyline, step_km):
+    """Positions every step_km across the polyline's covered span."""
+    start = polyline[0][0]
+    end = polyline[-1][0]
+    count = int(math.floor((end - start) / step_km)) + 1
+
+    out = []
+    seg = 0
+    for i in range(count):
+        km = start + i * step_km
+        while seg + 2 < len(polyline) and polyline[seg + 1][0] < km:
+            seg += 1
+        km0, lat0, lon0 = polyline[seg]
+        km1, lat1, lon1 = polyline[seg + 1]
+        f = 0.0 if km1 == km0 else (km - km0) / (km1 - km0)
+        f = max(0.0, min(1.0, f))
+        out.append((lat0 + (lat1 - lat0) * f, lon0 + (lon1 - lon0) * f))
     return out
 ```
 
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `.venv/bin/python scripts/darkness/geometry_test.py`
-Expected: PASS — `15 passed, 0 failed`, exit 0
+Expected: PASS — `37 passed, 0 failed`, exit 0
 
-- [ ] **Step 6: Verify against real geometry**
+- [ ] **Step 6: Verify against real waypoint data**
 
 Run:
 
 ```bash
-python3 -c "
+.venv/bin/python -c "
 import json, sys
 sys.path.insert(0, 'scripts/darkness')
 import geometry as G
-for rid, km in [('camino-frances',764), ('shikoku-88',1200), ('kumano-kodo',39)]:
-    g = json.load(open('../open-pilgrimages/routes/%s/route.geojson' % rid))
-    pts = G.resample_route(G.route_coords(g), 1.0)
-    print('%-16s %5d samples (route-meta says %d km)' % (rid, len(pts), km))
+stated = {'shikoku-88':1200,'kumano-kodo':39,'camino-frances':764,
+          'camino-ingles':112,'camino-norte':784,'camino-portugues':243,
+          'camino-primitivo':263}
+for rid, km in stated.items():
+    g = json.load(open('../open-pilgrimages/routes/%s/waypoints.geojson' % rid))
+    pl = G.route_polyline(g, G.WAYPOINT_TYPES[rid])
+    ratio = G.validate_polyline(pl)
+    pts = G.resample_polyline(pl, 1.0)
+    print('%-18s kept=%4d  covers %.0f-%.0f of %d km  ratio %.2f  samples %d'
+          % (rid, len(pl), pl[0][0], pl[-1][0], km, ratio, len(pts)))
 "
 ```
 
-Expected: sample counts within roughly 10% of the `route-meta.json` distances. Geometry length and the published stage distances are measured differently, so exact agreement is not expected — but a 2× discrepancy means the concatenation or the walk is wrong. Investigate before continuing.
+Expected — these were measured during planning, so they should reproduce closely:
+
+```
+shikoku-88         kept=  88  covers 0-1080 of 1200 km  ratio 0.76  samples 1081
+kumano-kodo        kept=  13  covers 0-38 of 39 km      ratio 0.76  samples 39
+camino-frances     kept=1300  covers 0-764 of 764 km    ratio 1.10  samples 765
+camino-ingles      kept= 220  covers 0-112 of 112 km    ratio 1.07  samples 113
+camino-norte       kept=1418  covers 0-784 of 784 km    ratio 1.07  samples 785
+camino-portugues   kept= 652  covers 0-243 of 243 km    ratio 1.26  samples 244
+camino-primitivo   kept= 270  covers 0-263 of 263 km    ratio 0.90  samples 264
+```
+
+`validate_polyline` raising on any route means the type filter is wrong for it — do not widen `RATIO_BOUNDS` to get past it. Shikoku covering 1,080 of 1,200 km is expected and recorded; the artifact carries `coveredKm` so it reads as a known limit.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/darkness/requirements.txt .gitignore \
         scripts/darkness/geometry.py scripts/darkness/geometry_test.py
-git commit -m "feat(darkness): walk the route line, a kilometre at a time"
+git commit -m "fix(darkness): take the kilometre axis from the waypoints"
 ```
 
 ---
@@ -807,7 +955,7 @@ git commit -m "feat(darkness): fit the model, then let held-out sky judge it"
 - Consumes: nothing
 - Produces:
   - `round_sig(value: float, digits: int = 3) -> float`
-  - `route_artifact(route_id, epoch, step_km, unit, values) -> dict`
+  - `route_artifact(route_id, epoch, step_km, unit, values, covered_km) -> dict`
   - `dumps(obj) -> str` — the single canonical serialiser, used for every file
   - `UNIT_SKY = 'mag/arcsec2'`, `UNIT_RADIANCE = 'nW/cm2/sr'`
 
@@ -851,22 +999,23 @@ ok(E.round_sig(0.0) == 0.0, 'zero survives')
 ok(E.round_sig(-3.14159) == -3.14, 'negatives round too')
 
 print('artifact shape')
-art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY, [21.4372, 20.11, 18.0])
+art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY, [21.4372, 20.11, 18.0], 764.0)
 ok(art['route'] == 'camino-frances', 'route id carried')
 ok(art['epoch'] == 2024, 'epoch carried')
 ok(art['stepKm'] == 1, 'step carried')
+ok(art['coveredKm'] == 764.0, 'covered span carried')
 ok(art['unit'] == 'mag/arcsec2', 'unit carried')
 ok(art['values'] == [21.4, 20.1, 18.0], 'values rounded')
-ok(list(art.keys()) == ['route', 'epoch', 'stepKm', 'unit', 'values'],
+ok(list(art.keys()) == ['route', 'epoch', 'stepKm', 'coveredKm', 'unit', 'values'],
    'key order is fixed')
 
 print('the fallback unit is reachable')
-fb = E.route_artifact('kumano-kodo', 2024, 1, E.UNIT_RADIANCE, [0.512])
+fb = E.route_artifact('kumano-kodo', 2024, 1, E.UNIT_RADIANCE, [0.512], 38.0)
 ok(fb['unit'] == 'nW/cm2/sr', 'radiance unit carried')
 
 print('rejects bad input')
-for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0]), 'an unknown unit'),
-                 (('x', 2024, 1, E.UNIT_SKY, []), 'an empty value list')]:
+for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 10.0), 'an unknown unit'),
+                 (('x', 2024, 1, E.UNIT_SKY, [], 10.0), 'an empty value list')]:
     try:
         E.route_artifact(*bad)
         ok(False, 'raises on %s' % why)
@@ -876,7 +1025,7 @@ for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0]), 'an unknown unit'),
 print('determinism')
 a = E.dumps(art)
 b = E.dumps(E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY,
-                             [21.4372, 20.11, 18.0]))
+                             [21.4372, 20.11, 18.0], 764.0))
 ok(a == b, 'two runs serialise identically')
 ok(a.endswith('\n'), 'output ends with a newline')
 ok(json.loads(a) == art, 'output round-trips through json')
@@ -920,7 +1069,14 @@ def round_sig(value, digits=3):
     return round(v, places)
 
 
-def route_artifact(route_id, epoch, step_km, unit, values):
+def route_artifact(route_id, epoch, step_km, unit, values, covered_km):
+    """One route's darkness profile.
+
+    covered_km is the kilometre span the waypoints actually reach, which is
+    not always the route's published length — Shikoku's waypoints cover 1080
+    of its 1200 km. Recording it keeps a short ribbon legible as a known
+    limit rather than a mystery.
+    """
     if unit not in UNITS:
         raise ValueError('unknown unit %r; expected one of %r' % (unit, UNITS))
     if not values:
@@ -929,6 +1085,7 @@ def route_artifact(route_id, epoch, step_km, unit, values):
         'route': route_id,
         'epoch': epoch,
         'stepKm': step_km,
+        'coveredKm': round_sig(covered_km, 4),
         'unit': unit,
         'values': [round_sig(v) for v in values],
     }
@@ -942,7 +1099,7 @@ def dumps(obj):
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `.venv/bin/python scripts/darkness/emit_test.py`
-Expected: PASS — `17 passed, 0 failed`, exit 0
+Expected: PASS — `18 passed, 0 failed`, exit 0
 
 - [ ] **Step 5: Commit**
 
@@ -1377,15 +1534,24 @@ ATTRIBUTION = [
 
 
 def load_points():
-    """Resample every route. Returns {route_id: [(lat, lon), ...]}."""
+    """Resample every route.
+
+    Returns ({route_id: [(lat, lon), ...]}, {route_id: covered_km}).
+    validate_polyline raises if a route's waypoint filter produced nonsense.
+    """
     points = {}
+    covered = {}
     for route_id in ROUTE_IDS:
-        path = os.path.join(PILGRIMAGES, 'routes', route_id, 'route.geojson')
+        path = os.path.join(PILGRIMAGES, 'routes', route_id, 'waypoints.geojson')
         with open(path) as handle:
             geojson = json.load(handle)
-        points[route_id] = G.resample_route(G.route_coords(geojson), STEP_KM)
-        print('  %-18s %5d samples' % (route_id, len(points[route_id])))
-    return points
+        polyline = G.route_polyline(geojson, G.WAYPOINT_TYPES[route_id])
+        ratio = G.validate_polyline(polyline)
+        points[route_id] = G.resample_polyline(polyline, STEP_KM)
+        covered[route_id] = polyline[-1][0] - polyline[0][0]
+        print('  %-18s %5d samples  covers %.0f km  ratio %.2f'
+              % (route_id, len(points[route_id]), covered[route_id], ratio))
+    return points, covered
 
 
 def crop_for(src, lats, lons):
@@ -1474,7 +1640,7 @@ def main():
     geometry_sha = geometry_commit()
 
     print('resampling routes')
-    points = load_points()
+    points, covered = load_points()
 
     with rasterio.open(args.raster) as src:
         print('searching alpha')
@@ -1510,7 +1676,7 @@ def main():
                    for lat, lon in pts]
             values = raw if args.fallback_radiance else C.predict(raw, a, b)
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
-                                        unit, values)
+                                        unit, values, covered[route_id])
             path = os.path.join(OUT_DIR, route_id + '.json')
             with open(path, 'w') as handle:
                 handle.write(E.dumps(artifact))

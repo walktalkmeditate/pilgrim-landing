@@ -64,20 +64,43 @@ The darkness array is indexed against ODbL geometry, which plausibly makes it a 
 
 ## 2. Sampling design
 
-Earlier planning assumed stage-start coordinates from `assets/daylight/` — roughly ten points per route. That was wrong in a useful direction: `../open-pilgrimages/routes/*/route.geojson` carries the full walked line.
+**`route.geojson` cannot supply the kilometre axis.** This was assumed during planning and disproved during Task 1, whose `MAX_PART_GAP_KM` guard fired on real data. Measured:
 
-| Route | Geometry | Coords | Distance | Samples @ 1 km |
-|---|---|---|---|---|
-| shikoku-88 | MultiLineString | 49,097 | 1,200 km | 1,200 |
-| camino-norte | LineString | 38,640 | 784 km | 784 |
-| camino-frances | LineString | 33,192 | 764 km | 764 |
-| camino-primitivo | LineString | 13,303 | 263 km | 263 |
-| camino-portugues | LineString | 13,722 | 243 km | 243 |
-| kumano-kodo | LineString | 6,847 | 39 km | 39 |
-| camino-ingles | LineString | 4,823 | 112 km | 112 |
-| **Total** | | **159,624** | **3,405 km** | **~3,405** |
+- **shikoku-88** — a MultiLineString of 77 parts drawn from 89 OSM relations, summing to **2,112 km against 1,200 stated**, before any ordering. Greedy endpoint stitching makes it worse: 2,216 km, requiring a 33 km leap. The geometry is a superset of the route — variants, alternates, duplicated ways — so ordering cannot fix it.
+- **camino-frances** — a single LineString, but **994 km against 764**, with 47 vertex jumps over 1 km totalling 110 km.
+- **kumano-kodo** — seven features that are seven *different trails* (Nakahechi, Kohechi, Ōkumotorigoe, and others) totalling 228 km against 39 stated. Kohechi alone is 96.6 km.
 
-Sample by walking each LineString and emitting a value every 1 km of cumulative great-circle distance. Shikoku is a MultiLineString — concatenate its parts in file order and document that choice, since the resulting kilometre index must match what `/daylight` already reports for stage boundaries.
+The axis comes from `waypoints.geojson` instead, where every point carries a `kmFromStart` that upstream has already projected onto the route.
+
+### Procedure
+
+1. **Select waypoint types per route.** No single rule works. The five Caminos use every type; the two Japanese routes use `sacred_site` only, because amenity `kmFromStart` values are ambiguous around Shikoku's loop and across Kumano's seven branches.
+2. **Group by `kmFromStart` and drop ambiguous buckets.** Where several waypoints share a kilometre, take their centroid — but discard any bucket whose points spread more than **2.0 km** from that centroid. Shikoku has 145 waypoints filed at km 728 spanning 68 km; averaging those lands in the sea.
+3. **Sort by kilometre and interpolate** to uniform 1 km steps across the covered span.
+4. **Validate.** Fail loudly unless the polyline's length divided by its kilometre span falls within **[0.5, 1.5]**.
+
+### Why that ratio gate
+
+It cleanly separates a working configuration from a broken one. A correct chord path runs about **0.76** of the kilometre axis, because straight lines cut the corners of a meandering trail. A polyline that jumps between branches or across a loop runs **5–6×** it. There is no ambiguous middle.
+
+| Route | Waypoint types | Kept | Coverage | Max gap | Ratio |
+|---|---|---|---|---|---|
+| shikoku-88 | `sacred_site` | 88 | 0–1080 of 1200 km | 80.7 km | 0.76 |
+| camino-norte | all | 1,418 | 0–784 of 784 km | 16.7 km | 1.07 |
+| camino-frances | all | 1,300 | 0–764 of 764 km | 13.0 km | 1.10 |
+| camino-primitivo | all | 270 | 0–263 of 263 km | 12.7 km | 0.90 |
+| camino-portugues | all | 652 | 0–243 of 243 km | 4.7 km | 1.26 |
+| camino-ingles | all | 220 | 0–112 of 112 km | 8.0 km | 1.07 |
+| kumano-kodo | `sacred_site` | 13 | 0–38 of 39 km | 6.7 km | 0.76 |
+| **Total** | | | **~3,290 samples** | | |
+
+Every coverage gap is far inside the 100 km propagation kernel, so an interpolated position between waypoints cannot move a sample outside the blur that produced it.
+
+**Shikoku covers 1,080 km of its stated 1,200.** The artifact records `coveredKm` so this reads as a known limit rather than a mysteriously short ribbon.
+
+### Accepted imprecision
+
+Waypoints include off-route amenities, so the interpolated line wanders a few hundred metres off the trail — median centroid spread on the Francés is 0.13 km, 95th percentile 0.44 km. Against a 100 km kernel this is immaterial. The positions are *near* the route, not *on* it, and the spec says so rather than implying a precision the data does not have.
 
 At 1 km the ribbon shows the sky darkening *between towns*, which is the effect worth rendering. Coarser loses it; finer buys nothing at VIIRS's ~500 m native resolution.
 
@@ -173,10 +196,13 @@ Given identical inputs and recorded parameters, a re-run must be byte-identical 
   "route": "camino-frances",
   "epoch": 2024,
   "stepKm": 1,
+  "coveredKm": 764,
   "unit": "mag/arcsec2",
-  "values": [21.4, 21.3, 20.8, "…764 entries…"]
+  "values": [21.4, 21.3, 20.8, "…765 entries…"]
 }
 ```
+
+`coveredKm` is the span the waypoints actually reach, which is not always the route's published length — Shikoku's cover 1,080 of its 1,200 km. Recording it keeps a short ribbon legible as a known limit rather than a mystery.
 
 `assets/darkness/meta.json` carries everything shared: VNL version, checksums, kernel and calibration parameters, the validation table, attributions, and the geometry commit SHA.
 
