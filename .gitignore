@@ -37,3 +37,7 @@ node_modules/
 
 # Wrangler local state (created by scripts/publish-collective-routes)
 .wrangler/
+
+# Python virtualenv for scripts/darkness/
+.venv/
+__pycache__/
