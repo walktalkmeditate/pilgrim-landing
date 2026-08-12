@@ -92,13 +92,142 @@ REFERENCE_SITES = [
     },
 ]
 
-# Xares and Cabeza de Manzaneda (m1/3 = 22.3) remain excluded too, on the
-# source paper's own warning: Bará (2016) table 1 says their values are
-# "biased towards larger values due to the measurements made under thick
-# cloud overcast conditions, and even under snow deposited on the
-# detector". They were never part of this module's data — recorded here
-# only so the omission reads as a decision, not an oversight.
+# Bará 2016 table 1 names fourteen detectors; REFERENCE_SITES above uses
+# five of them. The other nine are recorded below rather than left out,
+# so the table-1 roster is closed -- a lateral swap of one Bará site for
+# another from the same table now shows up as a name outside both lists,
+# not a silent substitution. Two of the nine carry the source paper's own
+# warning: Xares and Cabeza de Manzaneda (m1/3 = 22.3) are flagged in
+# section 3.3 as "biased towards larger values due to the measurements
+# made under thick cloud overcast conditions, and even under snow
+# deposited on the detector". Illa de Sálvora's 2015 record is roughly
+# four months, not a full year -- section 3 notes it "began its data
+# transmissions in the month of September" and separately flags its
+# moonlight modulation factor as "partly an artefact" of that short
+# record. The remaining six carry no caveat in the source paper; they
+# are recorded here only so the table is closed, not because anything is
+# wrong with them.
+#
+# lat/lon are transformed from table 1's UTM zone 29T (ED-50) eastings
+# and northings the same way REFERENCE_SITES' were: EPSG:23029 ->
+# EPSG:4326 via rasterio.warp.transform, not looked up from a map. That
+# pipeline was checked against all five REFERENCE_SITES coordinates
+# before being reused here and reproduced each to within 4e-5 degrees.
+_BARA_URL = 'https://doi.org/10.1098/rsos.160541'
+_BARA_TABLE1_NOT_SELECTED = (
+    'Bara 2016 table 1 site, full 2015 record, no caveat noted in the '
+    'source paper. Not one of the five REFERENCE_SITES this calibration '
+    'fits on; recorded here only so all fourteen table 1 detectors are '
+    'accounted for and a swap to this site would be visible rather than '
+    'silently accepted.'
+)
+
 EXCLUDED_SITES = [
+    {
+        'name': 'Areeiro (periurban, Galicia)',
+        'lat': 42.40441,
+        'lon': -8.67307,
+        'mag_arcsec2': 19.7,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Illas Cíes (transition, Galicia)',
+        'lat': 42.21182,
+        'lon': -8.90850,
+        'mag_arcsec2': 21.3,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Illa de Ons (transition, Galicia)',
+        'lat': 42.38212,
+        'lon': -8.93627,
+        'mag_arcsec2': 21.0,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Illa de Sálvora (transition, Galicia)',
+        'lat': 42.46490,
+        'lon': -9.01373,
+        'mag_arcsec2': 21.5,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': (
+            'Bara 2016 section 3 notes this station began its data '
+            'transmissions in September 2015, so its m1/3 rests on '
+            'roughly four months of data rather than the full year the '
+            'other table 1 sites have, and separately flags its '
+            'moonlight modulation factor as "partly an artefact" of that '
+            'short record. Not one of the five REFERENCE_SITES this '
+            'calibration fits on.'
+        ),
+    },
+    {
+        'name': 'Paramos (transition, Galicia)',
+        'lat': 43.00196,
+        'lon': -8.69928,
+        'mag_arcsec2': 21.1,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Fontaneira (rural/mountain, Galicia)',
+        'lat': 43.03596,
+        'lon': -7.19650,
+        'mag_arcsec2': 21.7,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Lardeira (rural/mountain, Galicia)',
+        'lat': 42.37520,
+        'lon': -6.78349,
+        'mag_arcsec2': 21.8,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': _BARA_TABLE1_NOT_SELECTED,
+    },
+    {
+        'name': 'Xares (rural/mountain, Galicia)',
+        'lat': 42.20784,
+        'lon': -6.89260,
+        'mag_arcsec2': 22.3,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': (
+            'Bara 2016 table 1 flags this site directly: its high value '
+            'is "biased towards larger values due to the measurements '
+            'made under thick cloud overcast conditions, and even under '
+            'snow deposited on the detector" (section 3.3). Not used for '
+            'fitting.'
+        ),
+    },
+    {
+        'name': 'Cabeza de Manzaneda (rural/mountain, Galicia)',
+        'lat': 42.26019,
+        'lon': -7.29836,
+        'mag_arcsec2': 22.3,
+        'measured_date': '2015',
+        'source_url': _BARA_URL,
+        'excluded_because': (
+            'Bara 2016 table 1 flags this site directly: its high value '
+            'is "biased towards larger values due to the measurements '
+            'made under thick cloud overcast conditions, and even under '
+            'snow deposited on the detector" (section 3.3). Not used for '
+            'fitting.'
+        ),
+    },
+    # The four sites below are a different instrument entirely (Japan
+    # Ministry of the Environment camera-band survey, not Bará 2016 SQM)
+    # -- see the module docstring's "single instrument" section for why
+    # they were tried and rejected, not merely unselected.
     {
         'name': 'Takamatsu, Tahikami-chō (Kagawa, Shikoku)',
         'lat': 34.2881,

@@ -26,7 +26,30 @@ def ok(cond, label):
 
 print('counts')
 ok(len(S.REFERENCE_SITES) == 5, 'five reference sites')
-ok(len(S.EXCLUDED_SITES) == 4, 'four excluded sites')
+ok(len(S.EXCLUDED_SITES) == 13, 'thirteen excluded sites')
+
+print('reference site identity is pinned, not just its count')
+# A count alone would let a lateral swap through -- five sites from Bará
+# 2016 table 1 that are not Santiago, Guísamo, O Cebreiro, Labrada and
+# Vigo would still pass every check above. Pinning the names catches
+# that swap even if the replacement site is otherwise well-formed.
+ok([s['name'] for s in S.REFERENCE_SITES] == [
+    'Santiago de Compostela (urban centre, Galicia)',
+    'Guísamo (periurban, A Coruña, Galicia)',
+    'O Cebreiro (mountain, Lugo, Galicia)',
+    'Labrada (rural, Abadín, Lugo, Galicia)',
+    'Vigo (Harbour, Pontevedra, Galicia)',
+], 'REFERENCE_SITES names are exactly these five, in this order')
+
+print('the Bará 2016 table-1 roster is closed')
+bara_url = 'https://doi.org/10.1098/rsos.160541'
+bara_excluded = [s for s in S.EXCLUDED_SITES if s['source_url'] == bara_url]
+ok(len(bara_excluded) == 9,
+   'nine Bará 2016 table-1 sites are recorded as excluded, not just the '
+   'two (Xares, Cabeza de Manzaneda) the source paper itself flags')
+ok(len(S.REFERENCE_SITES) + len(bara_excluded) == 14,
+   'all fourteen Bará 2016 table-1 detectors are accounted for, as '
+   'either a reference or an excluded site -- none silently missing')
 
 print('no overlap')
 ref_names = [s['name'] for s in S.REFERENCE_SITES]
