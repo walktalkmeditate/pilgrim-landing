@@ -995,16 +995,51 @@
     return RIBBON_X1 + frac * RIBBON_W;
   }
 
+  // darknessArtifactShapeIssue(darknessData) — the fields renderRibbon's
+  // own math (mergeDarknessRuns, darknessAggregateWindowKm,
+  // darknessSummarySentence) all assume are present and correctly typed.
+  // Checked up front, alongside the existing `unit` check, so a malformed
+  // artifact fails to hidden with a named reason instead of throwing
+  // partway through a render or a computed sentence — or, worse, silently
+  // drawing something wrong (a missing stepKm used to produce
+  // `<line x1="NaN">` band elements with no error at all). Returns the
+  // offending field name, or null when the shape is sound. `unit` itself
+  // is deliberately not re-checked here — both call sites below already
+  // gate on it themselves, the same duplication the unit check already
+  // had before this.
+  function darknessArtifactShapeIssue(darknessData) {
+    if (typeof darknessData.coveredKm !== 'number' || isNaN(darknessData.coveredKm)) return 'coveredKm';
+    if (typeof darknessData.stepKm !== 'number' || isNaN(darknessData.stepKm)) return 'stepKm';
+    if (!darknessData.positionalConfidence || typeof darknessData.positionalConfidence !== 'object') return 'positionalConfidence';
+    if (!Array.isArray(darknessData.values) || darknessData.values.length === 0) return 'values';
+    return null;
+  }
+
+  // darknessArtifactRouteLabel(darknessData) — every real artifact carries
+  // its own route id (`"route": "shikoku-88"`, etc.), so a shape-issue
+  // warning can name the route without renderRibbon needing a routeId
+  // parameter it doesn't otherwise have a use for. Falls back to a plain
+  // label when even that field is part of what's malformed.
+  function darknessArtifactRouteLabel(darknessData) {
+    return (darknessData && typeof darknessData.route === 'string' && darknessData.route) || '(unknown route)';
+  }
+
   // ribbonSectionHidden(routeId, darknessData) — D12 (custom routes and
   // the unselected state show no ribbon) plus the Gate 0 §7 defensive
   // guard (a route whose artifact doesn't carry the sky-brightness unit
-  // renders nothing, rather than mislabeling a different quantity).
+  // renders nothing, rather than mislabeling a different quantity), plus
+  // the same shape check renderRibbon runs on its own input — so the
+  // wrap's own visibility and renderRibbon's decision to draw never
+  // disagree (a shape failure used to leave the caption and an empty svg
+  // visible, because ribbonSectionHidden didn't know renderRibbon was
+  // about to bail).
   // Pure and DOM-free on purpose: the browser-only route-change wiring
   // that calls this with real state is a later slice's concern; this
   // slice's job is the decision itself, directly testable without it.
   function ribbonSectionHidden(routeId, darknessData) {
     if (!routeId || routeId === 'custom') return true;
     if (!darknessData || darknessData.unit !== 'mag/arcsec2') return true;
+    if (darknessArtifactShapeIssue(darknessData)) return true;
     return false;
   }
 
@@ -1032,6 +1067,14 @@
     clearRibbonDisplay(svgEl, summaryEl);
 
     if (!darknessData || darknessData.unit !== 'mag/arcsec2') return;
+
+    var shapeIssue = darknessArtifactShapeIssue(darknessData);
+    if (shapeIssue) {
+      console.warn('Darkness ribbon: "' + darknessArtifactRouteLabel(darknessData)
+        + '" artifact is missing or malformed at "' + shapeIssue
+        + '" — rendering nothing rather than drawing from data that isn\'t there.');
+      return;
+    }
 
     var coveredKm = darknessData.coveredKm;
     var windowKm  = DaylightMath.darknessAggregateWindowKm(darknessData.positionalConfidence);
@@ -1544,8 +1587,18 @@
       dom.stageWrap.hidden = true;
       clearOutput();
     }
-    updateRibbonForRoute(routeId);
+    // pushURL before updateRibbonForRoute, not after: the two are
+    // independent side effects of a route change (URL/share-link state
+    // vs. the ribbon's own display) and neither reads state the other
+    // writes, so nothing about the URL should depend on the ribbon
+    // succeeding. renderRibbon now validates the artifact's shape before
+    // it draws anything (Finding 2), so it fails to hidden rather than
+    // throwing — but that guard is deliberately scoped to specific known
+    // fields, not a blanket try/catch, so this ordering stays the
+    // defense-in-depth it always should have been rather than the only
+    // thing standing between a bad artifact and a URL that never updates.
     pushURL();
+    updateRibbonForRoute(routeId);
   }
 
   function showCustomPanel(show) {

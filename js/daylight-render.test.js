@@ -893,6 +893,71 @@ Daylight.renderRibbon(wrongUnitFixture, svgWrongUnit, 'km');
 ok(elementsWithClassPrefix(svgWrongUnit, 'dl-ribbon-band-').length === 0,
   'wrong-unit fixture: renderRibbon draws no band runs, rather than mislabeling a radiance figure as a magnitude');
 
+console.log('\n=== renderRibbon — a malformed artifact fails to hidden, not to a throw (Finding 2) ===\n');
+
+// Before this guard: missing positionalConfidence threw
+// "Cannot read properties of undefined (reading 'withinInterpolationLimit')"
+// out of darknessAggregateWindowKm; missing coveredKm threw out of
+// darknessSummarySentence's own fmtDistance call; missing stepKm drew
+// `<line x1="NaN" x2="NaN">` band elements with no error and no console
+// output at all — silent wrongness, not even a crash to notice; and
+// values: [] rendered the section with "0.0 km" labels and a summary
+// that was just a leading space plus the unvalidated clause. All four
+// are checked here the same way AC #10's wrong-unit fixture already is:
+// clone a real, valid artifact and break exactly one field.
+var warnLog = [];
+var realConsoleWarn = console.warn;
+console.warn = function () {
+  warnLog.push(Array.prototype.join.call(arguments, ' '));
+};
+
+function malformedArtifactFixture(mutate) {
+  var fixture = cloneArtifact(francesArtifact);
+  mutate(fixture);
+  return fixture;
+}
+
+var malformedFixtures = [
+  { field: 'positionalConfidence', build: function () { return malformedArtifactFixture(function (f) { delete f.positionalConfidence; }); } },
+  { field: 'coveredKm',            build: function () { return malformedArtifactFixture(function (f) { delete f.coveredKm; }); } },
+  { field: 'stepKm',               build: function () { return malformedArtifactFixture(function (f) { delete f.stepKm; }); } },
+  { field: 'values',               build: function () { return malformedArtifactFixture(function (f) { f.values = []; }); } }
+];
+
+malformedFixtures.forEach(function (spec) {
+  var fixture = spec.build();
+
+  equal(Daylight.ribbonSectionHidden('camino-frances', fixture), true,
+    'missing/malformed "' + spec.field + '": ribbonSectionHidden reports hidden, consistent with renderRibbon\'s own refusal to draw');
+
+  warnLog.length = 0;
+  var svgMalformed = makeNode('svg');
+  var summaryMalformed = makeNode('p');
+  var threw = false;
+  try {
+    Daylight.renderRibbon(fixture, svgMalformed, 'km', 764, summaryMalformed);
+  } catch (e) {
+    threw = true;
+  }
+
+  ok(!threw, 'missing/malformed "' + spec.field + '": renderRibbon does not throw');
+  ok(elementsWithClassPrefix(svgMalformed, 'dl-ribbon-band-').length === 0,
+    'missing/malformed "' + spec.field + '": no band elements are drawn (no NaN geometry, no partial render)');
+  equal(svgMalformed.attrs['aria-label'], '',
+    'missing/malformed "' + spec.field + '": aria-label is cleared, not left describing a route that failed to render');
+  equal(summaryMalformed.textContent, '',
+    'missing/malformed "' + spec.field + '": summary paragraph is cleared, not a bare leading space or a partial sentence');
+  ok(warnLog.length === 1, 'missing/malformed "' + spec.field + '": exactly one console.warn was logged');
+  if (warnLog.length) {
+    ok(warnLog[0].indexOf('camino-frances') !== -1,
+      'missing/malformed "' + spec.field + '": the warning names the route (camino-frances)');
+    ok(warnLog[0].indexOf(spec.field) !== -1,
+      'missing/malformed "' + spec.field + '": the warning names the offending field');
+  }
+});
+
+console.warn = realConsoleWarn;
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
