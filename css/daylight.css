@@ -1,5 +1,5 @@
 /* =============================================
-   Daylight Walk Budget — page styles
+   The Light Budget — page styles
 
    Sibling of sunpath.css. Inherits all tokens
    from css/styles.css. Keep the two pages feeling
@@ -242,26 +242,47 @@
   stroke: rgba(184, 175, 162, 0.22);
   stroke-width: 10;
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
 }
 
 .dl-bar-civil {
   stroke: rgba(184, 175, 162, 0.14);
   stroke-width: 10;
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
 }
 
 .dl-bar-nautical {
   stroke: rgba(184, 175, 162, 0.09);
   stroke-width: 10;
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
 }
 
 .dl-bar-astronomical {
   stroke: rgba(184, 175, 162, 0.05);
   stroke-width: 10;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+/* True dark: the absence beneath the twilight gradient. Same track, a
+   cool nudge away from the warm stone tone above it rather than another
+   step of it — light mode's baseline is warm, so this is where "night"
+   actually starts reading as a different thing. */
+.dl-bar-truedark {
+  stroke: rgba(150, 165, 195, 0.06);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+/* Moon-lantern band — opacity is set per-segment inline (js/daylight.js
+   renderMoonBand), stepped from MoonLux.luxBracketFor. This class only
+   carries the color/geometry identity. */
+.dl-bar-moonlight {
+  stroke: rgba(184, 175, 162, 1);
+  stroke-width: 3;
   fill: none;
   stroke-linecap: round;
 }
@@ -296,6 +317,25 @@
   opacity: 0.7;
 }
 
+.dl-bar-tick-adapt {
+  stroke: var(--stone);
+  stroke-width: 1;
+  stroke-dasharray: 1.5 2;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.dl-bar-label-adapt {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  /* --stone tops out at 3.95:1 on parchment even at full opacity — not
+     an AA small-text color at any opacity. --ink clears it with room. */
+  fill: var(--ink);
+  fill-opacity: 0.80;
+}
+
 .dl-bar-tick-now {
   stroke: #DAA520;
   stroke-width: 1.5;
@@ -326,7 +366,9 @@ body.constellation .dl-bar-waypoint {
   font-weight: 300;
   font-size: 9px;
   letter-spacing: 0.08em;
-  fill: var(--stone);
+  /* --stone tops out at 3.95:1 on parchment even at full opacity — not
+     an AA small-text color at any opacity. --ink clears it with room. */
+  fill: var(--ink);
   fill-opacity: 0.75;
 }
 
@@ -335,8 +377,11 @@ body.constellation .dl-bar-waypoint {
   font-weight: 300;
   font-size: 9px;
   letter-spacing: 0.04em;
-  fill: #DAA520;
-  fill-opacity: 0.9;
+  /* #DAA520 (goldenrod) tops out at 1.97:1 on light parchment even at
+     full opacity — the "now" highlight needs its own darker shade in
+     light mode; the brighter shade returns for dark mode below. */
+  fill: #6B5110;
+  fill-opacity: 1;
 }
 
 .daylight-result {
@@ -801,7 +846,12 @@ html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 body.constellation .dl-bar-label {
+  /* fill-opacity: 0.75 carries over from the light-mode rule above unless
+     restated here — left alone, it multiplies into this alpha and pulls
+     the real composited contrast below AA even though the color alone
+     reads fine. */
   fill: rgba(232, 224, 255, 0.55);
+  fill-opacity: 1;
 }
 
 body.constellation .dl-bar-daylight {
@@ -820,9 +870,38 @@ body.constellation .dl-bar-astronomical {
   stroke: rgba(232, 224, 255, 0.035);
 }
 
+/* Constellation's baseline is already cool (lavender) — true dark just
+   continues the opacity taper rather than needing a further hue nudge. */
+body.constellation .dl-bar-truedark {
+  stroke: rgba(232, 224, 255, 0.02);
+}
+
+body.constellation .dl-bar-moonlight {
+  stroke: rgba(232, 224, 255, 1);
+}
+
 body.constellation .dl-bar-tick-sunrise,
 body.constellation .dl-bar-tick-sunset {
   stroke: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-tick-adapt {
+  stroke: rgba(232, 224, 255, 0.4);
+}
+
+body.constellation .dl-bar-label-adapt {
+  /* fill-opacity: 0.80 carries over from the light-mode rule above unless
+     restated here — left alone, it multiplies into this alpha and pulls
+     the real composited contrast below AA even though the color alone
+     reads fine. */
+  fill: rgba(232, 224, 255, 0.55);
+  fill-opacity: 1;
+}
+
+body.constellation .dl-bar-label-now {
+  /* Light mode needs its own darker gold (above); dark mode's original
+     brighter shade already clears AA against the dark background. */
+  fill: #DAA520;
 }
 
 body.constellation .dl-bar-moon-tick {

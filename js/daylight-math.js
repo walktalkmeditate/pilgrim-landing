@@ -115,7 +115,7 @@
     var lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Pilgrim//Daylight Walk Budget//EN',
+      'PRODID:-//Pilgrim//The Light Budget//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       '',
@@ -163,10 +163,64 @@
     return 60 * distanceKm / velocity;
   }
 
+  // Margin added beyond the earliest/latest twilight bound so the
+  // true-dark segments at each end of the bar have visible extent.
+  // 60 min (not 20, DARK_ADAPT_MIN in daylight.js) so the dark-adaptation
+  // mark — anchored at astronomicalDusk + DARK_ADAPT_MIN — lands a
+  // legible 40 min inside the edge rather than crushed against it.
+  var BAR_DOMAIN_MARGIN_MS = 60 * 60000;
+
+  function firstDate(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i]) return candidates[i];
+    }
+    return null;
+  }
+
+  // barDomainUTC(output) — pure. Widens the daylight bar's time axis
+  // beyond [sunrise, sunset] to cover the full twilight sequence, so the
+  // three twilight bands (civil/nautical/astronomical) render at distinct
+  // widths instead of clamping to the sunrise/sunset span.
+  //
+  // output is a Daylight.recompute() result (or anything exposing the
+  // same field names). Fallback chain per side — "earliest/latest
+  // available" — because above ~48° latitude in summer, astronomical
+  // (and sometimes nautical) twilight never occurs and those fields
+  // are null:
+  //   start: astronomicalDawn → nauticalDawn → civilDawn → sunriseUTC
+  //   end:   astronomicalDusk → nauticalDusk → civilDusk → sunsetUTC
+  //
+  // The margin is only added on a side where astronomicalDawn/Dusk is
+  // itself present. daylight.js gates both the true-dark segment and the
+  // dark-adaptation mark on that same field, so where astronomical
+  // twilight never occurs, neither one draws anything — widening the
+  // domain there would only pad the bar with dead space past whichever
+  // rung we fell back to, not "true dark" (see Finding 10: at latitudes
+  // like Stockholm/Paris/Reykjavik in June, that's exactly what the
+  // unconditional margin used to do).
+  //
+  // Returns null when there is no sunrise/sunset at all (polar day/night
+  // — handled upstream via output.isPolarDay / output.isPolarNight).
+  function barDomainUTC(output) {
+    if (!output || !output.sunriseUTC || !output.sunsetUTC) return null;
+
+    var start = firstDate([output.astronomicalDawn, output.nauticalDawn, output.civilDawn, output.sunriseUTC]);
+    var end   = firstDate([output.astronomicalDusk, output.nauticalDusk, output.civilDusk, output.sunsetUTC]);
+
+    var startMargin = output.astronomicalDawn ? BAR_DOMAIN_MARGIN_MS : 0;
+    var endMargin   = output.astronomicalDusk ? BAR_DOMAIN_MARGIN_MS : 0;
+
+    return {
+      startUTC: new Date(start.getTime() - startMargin),
+      endUTC:   new Date(end.getTime()   + endMargin)
+    };
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
-    buildICS:        buildICS
+    buildICS:        buildICS,
+    barDomainUTC:    barDomainUTC
   };
 
   if (typeof module !== 'undefined' && module.exports) {

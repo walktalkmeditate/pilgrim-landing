@@ -249,40 +249,18 @@
   }
 
   /*
-   * luxBracketFor(lux) — D19 lux bracket lookup.
-   * Brackets are half-open (left-inclusive, right-exclusive).
-   * Returns one of:
-   *   { label: 'bright', prose: '…' }
-   *   { label: 'mid',    prose: '…' }
-   *   { label: 'dim',    prose: '…' }
-   *   { label: 'faint',  prose: '…' }
-   *
-   * Boundary values at 0.005, 0.05, 0.2 fall into the UPPER bracket
-   * per the half-open discipline: [0.2, ∞), [0.05, 0.2), [0.005, 0.05), [0, 0.005).
-   *
-   * Lux approximation reference: simplified from Krisciunas & Schaefer (1991)
-   * "A model of the brightness of moonlight", PASP 103. Formula used here:
-   *   lux ≈ 0.32 × k × sin(altitude_rad)
-   * where k is the illuminated-disk fraction and altitude is moon altitude in radians.
-   * This is a simplified approximation; the full Krisciunas-Schaefer model
-   * also accounts for atmospheric extinction, zodiacal light, and airglow.
+   * luxBracketFor(lux) / moonLuxAt(k, altitudeDeg) — moved to
+   * js/moon-lux.js so /daylight can use them without loading this whole
+   * module. Aliased here so every existing call site in this file (and
+   * the exported api.luxBracketFor) is unchanged.
    */
-  function luxBracketFor(lux) {
-    if (lux >= 0.2)    return { label: 'bright', prose: 'enough to walk a known path' };
-    if (lux >= 0.05)   return { label: 'mid',    prose: 'usable light along an open trail' };
-    if (lux >= 0.005)  return { label: 'dim',    prose: 'barely usable; carry a headlamp' };
-    return               { label: 'faint',  prose: 'effectively dark; headlamp required' };
-  }
+  var MoonLux = (typeof root !== 'undefined' && root.MoonLux)
+    ? root.MoonLux
+    : (typeof require === 'function' ? require('./moon-lux.js') : null);
 
-  /*
-   * moonLuxAt(k, altitudeDeg) — simplified lux approximation.
-   * Returns 0 when the moon is at or below the horizon.
-   * See luxBracketFor for attribution.
-   */
-  function moonLuxAt(k, altitudeDeg) {
-    if (altitudeDeg <= 0) return 0;
-    return 0.32 * k * Math.sin(altitudeDeg * Math.PI / 180);
-  }
+  var luxBracketFor = MoonLux && MoonLux.luxBracketFor;
+  var moonLuxAt      = MoonLux && MoonLux.moonLuxAt;
+  var kFromPhase     = MoonLux && MoonLux.kFromPhase;
 
   /* ==========================================
      Date scrubber math — D24 log scale, base 1.0293
@@ -370,8 +348,7 @@
 
     // --- Phase and illuminated-disk fraction (D13) ---
     var phase = SunPathMath.moonPhaseAtUTC(now);
-    // D13: k = (1 − cos(2π · phase)) / 2.  Inline per plan — not a slice-1 helper.
-    var k = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+    var k = kFromPhase(phase);
 
     // --- Altitude / azimuth ---
     var moonAltAz = SunPathMath.moonAltAzAt(now, lat, lon);

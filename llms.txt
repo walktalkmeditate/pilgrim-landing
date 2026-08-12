@@ -63,12 +63,12 @@ Current almanac entries:
 - [/sunpath/](https://pilgrimapp.org/sunpath/) — sun position, daylight
   hours, solar turnings (solstice/equinox archive). Maps sun behavior
   at any lat/lon through history.
-- [/daylight/](https://pilgrimapp.org/daylight/) — daylight walk-budget
-  calculator. Pick a pilgrimage route (Shikoku 88, Kumano Kodo, 5
-  Camino variants) or a custom stage; get sunrise/sunset times in the
-  stage's local timezone, walking duration via Tobler-inspired pace
-  math, civil/nautical/astronomical twilight bands, moonrise/moonset,
-  ICS calendar export.
+- [/daylight/](https://pilgrimapp.org/daylight/) — the light budget for
+  a walk. Pick a pilgrimage route (Shikoku 88, Kumano Kodo, 5 Camino
+  variants) or a custom stage; get sunrise/sunset times in the stage's
+  local timezone, walking duration via Tobler-inspired pace math,
+  civil/nautical/astronomical twilight bands, moonrise/moonset, ICS
+  calendar export.
 - [/moonpath/](https://pilgrimapp.org/moonpath/) — universal moon and
   tide viewer. Enter any coord; see moon altitude, phase, apparent
   size, earthshine window, lunar-lux bracket, tide curve for the
