@@ -5,9 +5,8 @@
      Inner core   — recompute(state): pure function, no DOM, no async
      Outer shell  — DOM glue, only runs in browser
 
-   Export shape:
-     Browser → window.Daylight = { recompute, renderSVG }
-     Node    → module.exports  = { recompute, renderSVG }
+   Export shape (both browser and Node — see the `api` object below):
+     { recompute, renderSVG, fmtDuration, renderRibbon, ribbonSectionHidden }
 
    The outer shell only wires DOM listeners when
    typeof window !== 'undefined' && typeof document !== 'undefined'.

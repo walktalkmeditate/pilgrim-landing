@@ -310,10 +310,22 @@
   // grid boundary lands there (aggregated path). If that point's band
   // disagrees with the run before it, the naive result is a
   // {startKm: coveredKm, endKm: coveredKm, band: ...} run: a real
-  // classification with zero pixels to draw it. It's absorbed into the
-  // run before it instead of emitted as an invisible sliver — verified to
-  // never trigger on any of the seven shipped routes, only on adversarial
-  // input (js/daylight-math.test.js).
+  // classification with EXACTLY zero width, zero pixels to draw it. It's
+  // absorbed into the run before it instead of emitted as that
+  // zero-width sliver — verified to never trigger on any of the seven
+  // shipped routes, only on adversarial input (js/daylight-math.test.js).
+  //
+  // This guard only catches exactly-zero width (endKm <= startKm) — it
+  // says nothing about a run that's merely short. Shikoku's own final
+  // run is a real, positive-width example: {startKm: 1080, endKm:
+  // 1080.5, band: 4}, 0.5 km wide, which draws at roughly 0.255 CSS px
+  // on desktop (RIBBON_W=552 px / 1080.5 km) and thinner still on a
+  // narrow viewport — well under a pixel either way, all but invisible
+  // in practice, but not the case this guard exists for or claims to
+  // handle. A general minimum-drawable-width policy (merging a run this
+  // short into a neighbour, say) is a real design question of its own —
+  // this comment used to read as if it already answered that question;
+  // it doesn't.
   function mergeDarknessRuns(values, stepKm, coveredKm, aggregateWindowKm) {
     var n = values.length;
     var points;

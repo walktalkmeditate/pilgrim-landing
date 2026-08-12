@@ -865,9 +865,20 @@ ok(betweenOutputAndNoscript.indexOf('id="dl-ribbon-svg"') !== -1,
 console.log('\n=== renderRibbon — AC #9: right-edge label reflects coveredKm, not route-meta\'s stated distanceKm (D3, D10) ===\n');
 
 // fmtDistance's unit suffix (js/daylight.js) carries a non-breaking space
-// (U+00A0) before "km"/"mi" — pre-existing typography (commit ec07f682),
-// not something this slice introduces, so the expected literals below
-// match it exactly rather than a plain space.
+// (U+00A0) before "km"/"mi". Correction: this is NOT pre-existing
+// typography — commit ec07f682 predates this branch entirely and never
+// touched the separator (its own fmtDistance used a plain U+0020 space,
+// same as this branch's own base, bfa59f5). The non-breaking space was
+// introduced on this branch, in bd84ce4, alongside fmtDistanceNumber's
+// thousands-separator fix — and because fmtDistance is shared, not
+// ribbon-only, it silently changed two pieces of pre-existing rendered
+// text this slice never meant to touch: the walk-budget result line
+// ("Walk 24.2 km …") and the ICS DESCRIPTION built from it. Kept here
+// rather than reverted — it stops a number like "1,080.5" wrapping onto
+// its own line away from "km", a real improvement, and the shipped
+// behaviour every other test in this suite already assumes — but the
+// expected literals below match it because it's real, not because it
+// was already there.
 var NBSP = ' ';
 
 var francesLabels = byClass(svgFrancesRibbon, 'dl-ribbon-label');
