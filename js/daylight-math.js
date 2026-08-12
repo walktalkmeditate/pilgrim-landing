@@ -163,10 +163,49 @@
     return 60 * distanceKm / velocity;
   }
 
+  // Margin added beyond the earliest/latest twilight bound so the
+  // true-dark segments at each end of the bar have visible extent.
+  var BAR_DOMAIN_MARGIN_MS = 30 * 60000;
+
+  function firstDate(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      if (candidates[i]) return candidates[i];
+    }
+    return null;
+  }
+
+  // barDomainUTC(output) — pure. Widens the daylight bar's time axis
+  // beyond [sunrise, sunset] to cover the full twilight sequence, so the
+  // three twilight bands (civil/nautical/astronomical) render at distinct
+  // widths instead of clamping to the sunrise/sunset span.
+  //
+  // output is a Daylight.recompute() result (or anything exposing the
+  // same field names). Fallback chain per side — "earliest/latest
+  // available" — because above ~48° latitude in summer, astronomical
+  // (and sometimes nautical) twilight never occurs and those fields
+  // are null:
+  //   start: astronomicalDawn → nauticalDawn → civilDawn → sunriseUTC, − margin
+  //   end:   astronomicalDusk → nauticalDusk → civilDusk → sunsetUTC,  + margin
+  //
+  // Returns null when there is no sunrise/sunset at all (polar day/night
+  // — handled upstream via output.isPolarDay / output.isPolarNight).
+  function barDomainUTC(output) {
+    if (!output || !output.sunriseUTC || !output.sunsetUTC) return null;
+
+    var start = firstDate([output.astronomicalDawn, output.nauticalDawn, output.civilDawn, output.sunriseUTC]);
+    var end   = firstDate([output.astronomicalDusk, output.nauticalDusk, output.civilDusk, output.sunsetUTC]);
+
+    return {
+      startUTC: new Date(start.getTime() - BAR_DOMAIN_MARGIN_MS),
+      endUTC:   new Date(end.getTime()   + BAR_DOMAIN_MARGIN_MS)
+    };
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
-    buildICS:        buildICS
+    buildICS:        buildICS,
+    barDomainUTC:    barDomainUTC
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -43,6 +43,17 @@ function equal(actual, expected, label) {
   }
 }
 
+function ok(condition, label) {
+  if (condition) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': condition was false');
+    console.log('  ✗ ' + label);
+  }
+}
+
 equal(D.PACE_PRESETS.slow,     3, 'slow preset = 3 km/h');
 equal(D.PACE_PRESETS.standard, 4, 'standard preset = 4 km/h');
 equal(D.PACE_PRESETS.brisk,    5, 'brisk preset = 5 km/h');
@@ -257,6 +268,129 @@ var escapedICS = D.buildICS({
 contains(escapedICS, '\\,',  'escaping: comma in descriptionLine → \\,');
 contains(escapedICS, '\\;',  'escaping: semicolon in descriptionLine → \\;');
 contains(escapedICS, '\\n',  'escaping: newline in descriptionLine → \\n (literal)');
+
+console.log('\n=== barDomainUTC — normal case (Burgos, 2026-09-15) ===\n');
+
+var burgosState = {
+  route:          'custom',
+  customLat:      '42.34',
+  customLon:      '-3.70',
+  customDistance: '20',
+  customElevGain: '0',
+  date:           '2026-09-15',
+  paceKey:        'standard',
+  startTimeMin:   9 * 60,
+  mode:           'forward'
+};
+var burgosOut    = Daylight.recompute(burgosState);
+var burgosDomain = D.barDomainUTC(burgosOut);
+
+ok(burgosDomain !== null, 'Burgos: barDomainUTC is not null');
+equal(burgosDomain.startUTC.getTime(), burgosOut.astronomicalDawn.getTime() - 30 * 60000,
+  'Burgos: domain start = astronomicalDawn − 30 min');
+equal(burgosDomain.endUTC.getTime(), burgosOut.astronomicalDusk.getTime() + 30 * 60000,
+  'Burgos: domain end = astronomicalDusk + 30 min');
+ok(
+  burgosDomain.startUTC.getTime()          <  burgosOut.astronomicalDawn.getTime() &&
+  burgosOut.astronomicalDawn.getTime()     <  burgosOut.nauticalDawn.getTime()     &&
+  burgosOut.nauticalDawn.getTime()         <  burgosOut.civilDawn.getTime()        &&
+  burgosOut.civilDawn.getTime()            <  burgosOut.sunriseUTC.getTime()       &&
+  burgosOut.sunriseUTC.getTime()           <  burgosOut.sunsetUTC.getTime()        &&
+  burgosOut.sunsetUTC.getTime()            <  burgosOut.civilDusk.getTime()        &&
+  burgosOut.civilDusk.getTime()            <  burgosOut.nauticalDusk.getTime()     &&
+  burgosOut.nauticalDusk.getTime()         <  burgosOut.astronomicalDusk.getTime() &&
+  burgosOut.astronomicalDusk.getTime()     <  burgosDomain.endUTC.getTime(),
+  'Burgos: domain start < astro < nautical < civil < sunrise < sunset < civil < nautical < astro < domain end (strictly nested, not identical)'
+);
+
+console.log('\n=== barDomainUTC — fallback rungs ===\n');
+
+function twilightFixture(overrides) {
+  var base = {
+    astronomicalDawn: new Date('2026-06-21T02:00:00Z'),
+    nauticalDawn:     new Date('2026-06-21T02:40:00Z'),
+    civilDawn:        new Date('2026-06-21T03:20:00Z'),
+    sunriseUTC:       new Date('2026-06-21T04:00:00Z'),
+    sunsetUTC:        new Date('2026-06-21T20:00:00Z'),
+    civilDusk:        new Date('2026-06-21T20:40:00Z'),
+    nauticalDusk:     new Date('2026-06-21T21:20:00Z'),
+    astronomicalDusk: new Date('2026-06-21T22:00:00Z')
+  };
+  var k;
+  for (k in overrides) { base[k] = overrides[k]; }
+  return base;
+}
+
+equal(
+  D.barDomainUTC(twilightFixture({})).startUTC.getTime(),
+  new Date('2026-06-21T01:30:00Z').getTime(),
+  'dawn rung 0 — astronomicalDawn present: start = astronomicalDawn − 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDawn: null })).startUTC.getTime(),
+  new Date('2026-06-21T02:10:00Z').getTime(),
+  'dawn rung 1 — astronomicalDawn null: start = nauticalDawn − 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null })).startUTC.getTime(),
+  new Date('2026-06-21T02:50:00Z').getTime(),
+  'dawn rung 2 — astronomical + nautical null: start = civilDawn − 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null, civilDawn: null })).startUTC.getTime(),
+  new Date('2026-06-21T03:30:00Z').getTime(),
+  'dawn rung 3 — astronomical + nautical + civil null: start = sunriseUTC − 30 min'
+);
+
+equal(
+  D.barDomainUTC(twilightFixture({})).endUTC.getTime(),
+  new Date('2026-06-21T22:30:00Z').getTime(),
+  'dusk rung 0 — astronomicalDusk present: end = astronomicalDusk + 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDusk: null })).endUTC.getTime(),
+  new Date('2026-06-21T21:50:00Z').getTime(),
+  'dusk rung 1 — astronomicalDusk null: end = nauticalDusk + 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null })).endUTC.getTime(),
+  new Date('2026-06-21T21:10:00Z').getTime(),
+  'dusk rung 2 — astronomical + nautical null: end = civilDusk + 30 min'
+);
+equal(
+  D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null, civilDusk: null })).endUTC.getTime(),
+  new Date('2026-06-21T20:30:00Z').getTime(),
+  'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC + 30 min'
+);
+
+console.log('\n=== barDomainUTC — no sunrise/sunset at all ===\n');
+
+function isNull(actual, label) {
+  equal(actual, null, label);
+}
+
+isNull(D.barDomainUTC({ sunriseUTC: null, sunsetUTC: null }), 'sunrise + sunset both null → null');
+isNull(D.barDomainUTC({ sunriseUTC: new Date('2026-06-21T04:00:00Z'), sunsetUTC: null }), 'sunset null → null');
+isNull(D.barDomainUTC({}), 'empty output → null');
+isNull(D.barDomainUTC(null), 'null output → null');
+
+console.log('\n=== barDomainUTC — polar day / polar night (Tromsø, 69.65°N) ===\n');
+
+var tromsoWinterOut = Daylight.recompute({
+  route: 'custom', customLat: '69.65', customLon: '18.97',
+  customDistance: '10', customElevGain: '0',
+  date: '2026-12-21', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+ok(tromsoWinterOut.isPolarNight === true, 'Tromsø 2026-12-21 fixture sanity: isPolarNight true');
+isNull(D.barDomainUTC(tromsoWinterOut), 'polar night output → barDomainUTC null');
+
+var tromsoSummerOut = Daylight.recompute({
+  route: 'custom', customLat: '69.65', customLon: '18.97',
+  customDistance: '10', customElevGain: '0',
+  date: '2026-06-21', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+ok(tromsoSummerOut.isPolarDay === true, 'Tromsø 2026-06-21 fixture sanity: isPolarDay true');
+isNull(D.barDomainUTC(tromsoSummerOut), 'polar day output → barDomainUTC null');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

@@ -266,6 +266,27 @@
   stroke-linecap: round;
 }
 
+/* True dark: the absence beneath the twilight gradient. Same track, a
+   cool nudge away from the warm stone tone above it rather than another
+   step of it — light mode's baseline is warm, so this is where "night"
+   actually starts reading as a different thing. */
+.dl-bar-truedark {
+  stroke: rgba(150, 165, 195, 0.06);
+  stroke-width: 10;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* Moon-lantern band — opacity is set per-segment inline (js/daylight.js
+   renderMoonBand), stepped from MoonLux.luxBracketFor. This class only
+   carries the color/geometry identity. */
+.dl-bar-moonlight {
+  stroke: rgba(184, 175, 162, 1);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
+
 .dl-bar-walk {
   stroke: #C4956A;
   stroke-width: 4;
@@ -294,6 +315,23 @@
   stroke-width: 1.5;
   stroke-linecap: round;
   opacity: 0.7;
+}
+
+.dl-bar-tick-adapt {
+  stroke: var(--stone);
+  stroke-width: 1;
+  stroke-dasharray: 1.5 2;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.dl-bar-label-adapt {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  fill: var(--stone);
+  fill-opacity: 0.65;
 }
 
 .dl-bar-tick-now {
@@ -820,9 +858,27 @@ body.constellation .dl-bar-astronomical {
   stroke: rgba(232, 224, 255, 0.035);
 }
 
+/* Constellation's baseline is already cool (lavender) — true dark just
+   continues the opacity taper rather than needing a further hue nudge. */
+body.constellation .dl-bar-truedark {
+  stroke: rgba(232, 224, 255, 0.02);
+}
+
+body.constellation .dl-bar-moonlight {
+  stroke: rgba(232, 224, 255, 1);
+}
+
 body.constellation .dl-bar-tick-sunrise,
 body.constellation .dl-bar-tick-sunset {
   stroke: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-bar-tick-adapt {
+  stroke: rgba(232, 224, 255, 0.4);
+}
+
+body.constellation .dl-bar-label-adapt {
+  fill: rgba(232, 224, 255, 0.55);
 }
 
 body.constellation .dl-bar-moon-tick {

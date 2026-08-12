@@ -85,6 +85,10 @@
     ? root.DaylightMath
     : (typeof require === 'function' ? require('./daylight-math.js') : null);
 
+  var MoonLux = (typeof root !== 'undefined' && root.MoonLux)
+    ? root.MoonLux
+    : (typeof require === 'function' ? require('./moon-lux.js') : null);
+
   function recompute(state) {
     if (!SunPathMath || !DaylightMath) {
       return { error: 'math modules not loaded', waypoints: [] };
@@ -181,6 +185,8 @@
       if (isPolarNight) {
         return {
           mode:                'reverse',
+          lat:                 lat,
+          lon:                 lon,
           sunriseUTC:          null,
           sunsetUTC:           null,
           walkMin:             walkMin,
@@ -209,6 +215,8 @@
         // the time fields, let the polar-day annotation tell the user.
         return {
           mode:                'reverse',
+          lat:                 lat,
+          lon:                 lon,
           sunriseUTC:          null,
           sunsetUTC:           null,
           latestDepartUTC:     null,
@@ -246,6 +254,8 @@
         });
         return {
           mode:                'reverse',
+          lat:                 lat,
+          lon:                 lon,
           sunriseUTC:          sunriseDate,
           sunsetUTC:           sunsetDate,
           latestDepartUTC:     null,
@@ -272,6 +282,8 @@
 
       return {
         mode:                'reverse',
+        lat:                 lat,
+        lon:                 lon,
         sunriseUTC:          sunriseDate,
         sunsetUTC:           sunsetDate,
         latestDepartUTC:     latestDepartUTC,
@@ -310,6 +322,8 @@
     if (isPolarNight) {
       return {
         mode:                'forward',
+        lat:                 lat,
+        lon:                 lon,
         sunriseUTC:          null,
         sunsetUTC:           null,
         startUTC:            startUTC,
@@ -337,6 +351,8 @@
     if (isPolarDay) {
       return {
         mode:                'forward',
+        lat:                 lat,
+        lon:                 lon,
         sunriseUTC:          null,
         sunsetUTC:           null,
         startUTC:            startUTC,
@@ -381,6 +397,8 @@
 
     return {
       mode:                'forward',
+      lat:                 lat,
+      lon:                 lon,
       sunriseUTC:          sunriseDate,
       sunsetUTC:           sunsetDate,
       startUTC:            startUTC,
@@ -413,8 +431,16 @@
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var BAR_X1 = 24;
   var BAR_X2 = 576;
-  var BAR_Y  = 32;
+  var BAR_Y  = 52;
   var BAR_W  = BAR_X2 - BAR_X1;
+
+  // Moon-lantern band — a quiet companion row above the main bar (D4).
+  var MOON_BAND_Y      = 14;
+  var MOON_SAMPLE_MS    = 10 * 60000;
+  var MOON_BAND_OPACITY = { bright: 0.16, mid: 0.10, dim: 0.05, faint: 0 };
+
+  // Rod-cell dark adaptation — a walker's number, not the sky's (D5).
+  var DARK_ADAPT_MIN = 20;
 
   function clearSVG(svgEl) {
     while (svgEl.firstChild) {
@@ -444,10 +470,10 @@
     return km.toFixed(1) + ' km';
   }
 
-  function utcToBarX(utcDate, sunriseUTC, sunsetUTC) {
-    var span = sunsetUTC.getTime() - sunriseUTC.getTime();
+  function utcToBarX(utcDate, domain) {
+    var span = domain.endUTC.getTime() - domain.startUTC.getTime();
     if (span <= 0) return BAR_X1;
-    var t = utcDate.getTime() - sunriseUTC.getTime();
+    var t = utcDate.getTime() - domain.startUTC.getTime();
     var frac = Math.max(0, Math.min(1, t / span));
     return BAR_X1 + frac * BAR_W;
   }
@@ -456,6 +482,57 @@
     if (distanceKm <= 0) return walkStartX;
     var t = kmFromStart / distanceKm;
     return walkStartX + t * (walkEndX - walkStartX);
+  }
+
+  // Illuminated-disk fraction from the synodic phase fraction (D13 in
+  // js/moonpath.js — inlined here too rather than exported, per that
+  // file's own note that this one-liner isn't worth a shared helper).
+  function moonKFromPhase(phase) {
+    return (1 - Math.cos(2 * Math.PI * phase)) / 2;
+  }
+
+  // Sample moon altitude across the bar domain at MOON_SAMPLE_MS
+  // intervals, convert to lux, and paint a quiet band above the main bar
+  // whose opacity steps with the lux bracket. Runs of samples sharing a
+  // bracket are merged into one line each, so a still night doesn't cost
+  // ~100 DOM nodes. Zero-opacity (faint / moon down or new) runs are
+  // skipped entirely — that skip *is* "visibly absent".
+  function renderMoonBand(output, domain, svgEl) {
+    if (!SunPathMath || !MoonLux) return;
+    if (output.lat == null || output.lon == null) return;
+
+    var k = moonKFromPhase(output.moonPhase);
+    var startMs = domain.startUTC.getTime();
+    var endMs   = domain.endUTC.getTime();
+
+    var runStartMs = null;
+    var runLabel   = null;
+
+    function flushRun(runEndMs) {
+      if (runStartMs === null) return;
+      var opacity = MOON_BAND_OPACITY[runLabel];
+      if (opacity > 0) {
+        svgEl.appendChild(makeSVGEl('line', {
+          class: 'dl-bar-moonlight',
+          x1: utcToBarX(new Date(runStartMs), domain), y1: MOON_BAND_Y,
+          x2: utcToBarX(new Date(runEndMs),   domain), y2: MOON_BAND_Y,
+          opacity: opacity
+        }));
+      }
+    }
+
+    for (var t = startMs; t <= endMs; t += MOON_SAMPLE_MS) {
+      var altitude = SunPathMath.moonAltAzAt(new Date(t), output.lat, output.lon).altitude;
+      var lux      = MoonLux.moonLuxAt(k, altitude);
+      var label    = MoonLux.luxBracketFor(lux).label;
+
+      if (label !== runLabel) {
+        flushRun(t);
+        runStartMs = t;
+        runLabel   = label;
+      }
+    }
+    flushRun(endMs);
   }
 
   function renderSVG(output, svgEl, stageTz, clockFmt) {
@@ -469,6 +546,9 @@
     var sunset  = output.sunsetUTC;
 
     if (!sunrise || !sunset) return;
+
+    var domain = DaylightMath.barDomainUTC(output);
+    if (!domain) return;
 
     var nowUTC = new Date();
 
@@ -485,10 +565,32 @@
     titleEl.textContent = titleText;
     svgEl.appendChild(titleEl);
 
+    renderMoonBand(output, domain, svgEl);
+
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-track',
       x1: BAR_X1, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
     }));
+
+    // True dark: domain start → astronomical dawn, and astronomical dusk →
+    // domain end. Drawn first (bottom layer) — the absence beneath the
+    // twilight bands. Skipped on whichever side lacks astronomical
+    // twilight (custom coords above ~48° in summer) rather than
+    // substituting a fallback rung's edge.
+    if (output.astronomicalDawn) {
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-bar-truedark',
+        x1: utcToBarX(domain.startUTC, domain), y1: BAR_Y,
+        x2: utcToBarX(output.astronomicalDawn, domain), y2: BAR_Y
+      }));
+    }
+    if (output.astronomicalDusk) {
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-bar-truedark',
+        x1: utcToBarX(output.astronomicalDusk, domain), y1: BAR_Y,
+        x2: utcToBarX(domain.endUTC, domain), y2: BAR_Y
+      }));
+    }
 
     var twilightBands = [
       { dawn: output.astronomicalDawn, dusk: output.astronomicalDusk, cls: 'dl-bar-astronomical' },
@@ -500,9 +602,9 @@
       if (!band.dawn || !band.dusk) return;
       svgEl.appendChild(makeSVGEl('line', {
         class: band.cls,
-        x1: utcToBarX(band.dawn, sunrise, sunset),
+        x1: utcToBarX(band.dawn, domain),
         y1: BAR_Y,
-        x2: utcToBarX(band.dusk, sunrise, sunset),
+        x2: utcToBarX(band.dusk, domain),
         y2: BAR_Y
       }));
     });
@@ -544,9 +646,9 @@
         return;
       }
 
-      var departX = utcToBarX(output.latestDepartUTC, sunrise, sunset);
+      var departX = utcToBarX(output.latestDepartUTC, domain);
       walkStartX  = departX;
-      walkEndX    = utcToBarX(output.walkEndUTC, sunrise, sunset);
+      walkEndX    = utcToBarX(output.walkEndUTC, domain);
       var walkX1  = Math.min(departX, walkEndX);
       var walkX2  = Math.max(departX, walkEndX);
 
@@ -575,8 +677,8 @@
         'stroke-width': 1.5
       }));
     } else {
-      var startX   = utcToBarX(output.startUTC,   sunrise, sunset);
-      var arrivalX = utcToBarX(output.arrivalUTC, sunrise, sunset);
+      var startX   = utcToBarX(output.startUTC,   domain);
+      var arrivalX = utcToBarX(output.arrivalUTC, domain);
       walkStartX   = startX;
       walkEndX     = arrivalX;
       var walkX1   = Math.min(startX, arrivalX);
@@ -639,10 +741,30 @@
     sunsetLbl.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
     svgEl.appendChild(sunsetLbl);
 
+    // Dark adaptation: rod cells take ~20 min to adjust. Only meaningful
+    // once there's true dark to adapt into — skip when astronomical dusk
+    // itself doesn't occur (fallback rung in effect).
+    if (output.astronomicalDusk) {
+      var adaptTime = new Date(output.astronomicalDusk.getTime() + DARK_ADAPT_MIN * 60000);
+      var adaptX    = utcToBarX(adaptTime, domain);
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-bar-tick-adapt',
+        x1: adaptX, y1: BAR_Y - 10,
+        x2: adaptX, y2: BAR_Y + 10
+      }));
+      var adaptLbl = makeSVGEl('text', {
+        class: 'dl-bar-label-adapt',
+        x: adaptX - 4, y: BAR_Y - 14,
+        'text-anchor': 'end'
+      });
+      adaptLbl.textContent = 'eyes adjust';
+      svgEl.appendChild(adaptLbl);
+    }
+
     if (output.moonriseUTC) {
       var mrT = output.moonriseUTC.getTime();
-      if (mrT >= sunrise.getTime() && mrT <= sunset.getTime()) {
-        var mrX = utcToBarX(output.moonriseUTC, sunrise, sunset);
+      if (mrT >= domain.startUTC.getTime() && mrT <= domain.endUTC.getTime()) {
+        var mrX = utcToBarX(output.moonriseUTC, domain);
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-moon-tick',
           x1: mrX, y1: BAR_Y - 6,
@@ -653,8 +775,8 @@
 
     if (output.moonsetUTC) {
       var msT = output.moonsetUTC.getTime();
-      if (msT >= sunrise.getTime() && msT <= sunset.getTime()) {
-        var msX = utcToBarX(output.moonsetUTC, sunrise, sunset);
+      if (msT >= domain.startUTC.getTime() && msT <= domain.endUTC.getTime()) {
+        var msX = utcToBarX(output.moonsetUTC, domain);
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-moon-tick',
           x1: msX, y1: BAR_Y - 6,
@@ -668,7 +790,7 @@
       && nowUTC.getUTCDate()     === sunrise.getUTCDate());
 
     if (sameDay) {
-      var nowX = utcToBarX(nowUTC, sunrise, sunset);
+      var nowX = utcToBarX(nowUTC, domain);
       if (nowX > BAR_X1 && nowX < BAR_X2) {
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-tick-now',
@@ -1270,9 +1392,13 @@
 
     var Moon = (typeof window !== 'undefined' && window.Moon) ? window.Moon : null;
 
-    if (output.sunriseUTC && output.sunsetUTC) {
-      var srT = output.sunriseUTC.getTime();
-      var ssT = output.sunsetUTC.getTime();
+    // Same [domain.startUTC, domain.endUTC] window the bar itself now
+    // draws moon ticks against (D4) — otherwise a moonset tick can render
+    // on the bar while this legend stays silent about it, or vice versa.
+    var legendDomain = DaylightMath.barDomainUTC(output);
+    if (legendDomain) {
+      var srT = legendDomain.startUTC.getTime();
+      var ssT = legendDomain.endUTC.getTime();
       var mrIn = output.moonriseUTC && output.moonriseUTC.getTime() >= srT && output.moonriseUTC.getTime() <= ssT;
       var msIn = output.moonsetUTC  && output.moonsetUTC.getTime()  >= srT && output.moonsetUTC.getTime()  <= ssT;
 
