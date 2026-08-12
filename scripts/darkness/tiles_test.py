@@ -2,8 +2,10 @@
 
 Run via:  .venv/bin/python scripts/darkness/tiles_test.py
 """
-import sys
+import hashlib
 import os
+import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tiles as T
@@ -62,6 +64,47 @@ ok(T.tiles_for(131.3, 137.0, 31.5, 35.6) == [['h31v05']],
    'Japan needs one tile')
 ok(T.tiles_for(-0.5, 0.5, 43.0, 43.5) == [['h17v04', 'h18v04']],
    'a bbox crossing the meridian needs two tiles side by side')
+
+print('tile_filename / tile_path')
+ok(T.tile_filename(2025, 'h17v04') == 'VNP46A4.A2025001.h17v04.h5',
+   'filename follows the product naming convention')
+ok(T.tile_path('/data', 2025, 'h17v04') == '/data/VNP46A4.A2025001.h17v04.h5',
+   'path joins data_dir and filename')
+
+print('require_tile')
+with tempfile.TemporaryDirectory() as tmp:
+    try:
+        T.require_tile(tmp, 2025, 'h17v04')
+        ok(False, 'raises when the tile file does not exist')
+    except SystemExit as exc:
+        ok(True, 'raises when the tile file does not exist')
+        message = str(exc)
+        ok('.venv/bin/python scripts/darkness/fetch_tiles.py --year 2025' in message,
+           'the error names the real invocation, not a bare script name')
+        ok('VNP46A4.A2025001.h17v04.h5' in message,
+           'the error names the actual missing file')
+
+    present = T.tile_path(tmp, 2025, 'h17v04')
+    open(present, 'wb').close()
+    ok(T.require_tile(tmp, 2025, 'h17v04') == present,
+       'an existing tile returns its path without complaint')
+
+print('sha256_file')
+with tempfile.TemporaryDirectory() as tmp:
+    sample = os.path.join(tmp, 'sample.bin')
+    with open(sample, 'wb') as handle:
+        handle.write(b'pilgrim')
+    ok(T.sha256_file(sample) == hashlib.sha256(b'pilgrim').hexdigest(),
+       'matches a hash computed directly over the same bytes')
+
+print('manifest round-trip')
+with tempfile.TemporaryDirectory() as tmp:
+    ok(T.read_manifest(tmp) == {}, 'a data dir with no manifest yet reads as empty')
+    entry = {'VNP46A4.A2025001.h17v04.h5': 'VNP46A4.A2025001.h17v04.002.2025999999999.h5'}
+    T.write_manifest(tmp, entry)
+    ok(T.read_manifest(tmp) == entry, 'what was written reads back unchanged')
+    ok(os.path.exists(os.path.join(tmp, 'manifest.json')),
+       'the manifest lives in the data dir under a fixed name')
 
 print('')
 print('%d passed, %d failed' % (passed, failed))

@@ -11,6 +11,12 @@ Exits non-zero if validation fails, unless --fallback-radiance is passed
 to ship the weaker claim deliberately. --fallback-radiance is only valid
 on a failing gate: passing it when validation actually passes is an
 error, not a way to ship the weaker claim instead of one that was earned.
+
+Every route artifact and meta.json are computed in full, in memory,
+before any of them touches disk, and then written together in one final
+pass — a mid-run failure (a missing tile, say) must never leave
+assets/darkness/ holding some routes from this bake and some from the
+last one, read against a meta.json that describes neither.
 """
 import argparse
 import hashlib
@@ -29,7 +35,6 @@ import calibrate as C
 import emit as E
 import sites as S
 import tiles as T
-from fetch_tiles import sha256_file, DATA_DIR, TILES
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PILGRIMAGES = os.path.join(REPO, '..', 'open-pilgrimages')
@@ -122,6 +127,42 @@ def load_points():
     return points, covered, geometry_stats
 
 
+def region_bbox(lats, lons):
+    """Bounding box for a set of points, padded to clear the kernel radius."""
+    return (min(lons) - MARGIN_DEG, max(lons) + MARGIN_DEG,
+            min(lats) - MARGIN_DEG, max(lats) + MARGIN_DEG)
+
+
+def tiles_needed(points):
+    """Every Black Marble tile a real bake over these route points will open.
+
+    Covers both the seven routes' regions and the five calibration sites
+    (sites.REFERENCE_SITES) -- the latter's tiles fall inside the
+    former's for every region that currently has reference sites, but
+    this asks tiles_for() directly rather than assuming that stays true.
+    Shares region_bbox() and tiles_for() with blurred_region(), so
+    fetch_tiles.py's download list and this bake's actual tile usage
+    share one computation and cannot quietly drift into two different
+    answers.
+    """
+    needed = set()
+
+    for region, ids in REGIONS.items():
+        lats = [pt[0] for rid in ids for pt in points[rid]]
+        lons = [pt[1] for rid in ids for pt in points[rid]]
+        west, east, south, north = region_bbox(lats, lons)
+        for row in T.tiles_for(west, east, south, north):
+            needed.update(row)
+
+    ref_lats = [s['lat'] for s in S.REFERENCE_SITES]
+    ref_lons = [s['lon'] for s in S.REFERENCE_SITES]
+    west, east, south, north = region_bbox(ref_lats, ref_lons)
+    for row in T.tiles_for(west, east, south, north):
+        needed.update(row)
+
+    return needed
+
+
 def region_of(lat, lon):
     return 'japan' if lon > 60.0 else 'iberia'
 
@@ -137,7 +178,7 @@ def region_has_held_out_site(region):
     return any(region_of(s['lat'], s['lon']) == region for s in S.REFERENCE_SITES)
 
 
-def compute_bake_id(epoch, geometry_sha, tile_hashes, alpha):
+def compute_bake_id(epoch, geometry_sha, tile_records, alpha):
     """Short fingerprint over everything that can vary between bakes.
 
     A partially-invalidated CDN could otherwise serve a route file from
@@ -148,7 +189,7 @@ def compute_bake_id(epoch, geometry_sha, tile_hashes, alpha):
     payload = json.dumps({
         'epoch': epoch,
         'geometryCommit': geometry_sha,
-        'tiles': tile_hashes,
+        'tiles': {t: tile_records[t]['sha256'] for t in sorted(tile_records)},
         'alpha': alpha,
     }, sort_keys=True)
     return hashlib.sha256(payload.encode('utf-8')).hexdigest()[:16]
@@ -165,13 +206,10 @@ def blurred_region(epoch, lats, lons, alpha):
     calibrated sky-brightness path absorbs this scale into the fitted A
     and never touches it directly.
     """
-    west = min(lons) - MARGIN_DEG
-    east = max(lons) + MARGIN_DEG
-    south = min(lats) - MARGIN_DEG
-    north = max(lats) + MARGIN_DEG
+    west, east, south, north = region_bbox(lats, lons)
 
     band, mosaic_west, mosaic_north = T.read_mosaic(
-        DATA_DIR, epoch, west, east, south, north)
+        T.DATA_DIR, epoch, west, east, south, north)
 
     x0 = max(0, int((west - mosaic_west) / T.DEG_PER_PX))
     y0 = max(0, int((mosaic_north - north) / T.DEG_PER_PX))
@@ -340,14 +378,25 @@ def main():
         'unit/gate contradiction: unit=%r but validation.passed=%r'
         % (unit, passed))
     print('writing artifacts as %s' % unit)
-    os.makedirs(OUT_DIR, exist_ok=True)
 
-    tile_hashes = {t: sha256_file(os.path.join(
-        DATA_DIR, 'VNP46A4.A%d001.%s.h5' % (args.epoch, t)))
-        for t in TILES}
-    bake_id = compute_bake_id(args.epoch, geometry_sha, tile_hashes, alpha)
+    tile_ids = sorted(tiles_needed(points))
+    manifest = T.read_manifest(T.DATA_DIR)
+    tile_records = {}
+    for tile_id in tile_ids:
+        path = T.require_tile(T.DATA_DIR, args.epoch, tile_id)
+        filename = os.path.basename(path)
+        tile_records[tile_id] = {
+            'sha256': T.sha256_file(path),
+            'producerGranuleId': manifest.get(filename),
+        }
+
+    bake_id = compute_bake_id(args.epoch, geometry_sha, tile_records, alpha)
     held_out_by_region = {region: region_has_held_out_site(region)
                           for region in REGIONS}
+
+    # Every route artifact and meta.json, computed in full before any of
+    # them touches disk — see the module docstring for why.
+    outputs = []
 
     for region, ids in REGIONS.items():
         lats = [pt[0] for rid in ids for pt in points[rid]]
@@ -376,8 +425,7 @@ def main():
                                         geometry_stats[route_id],
                                         held_out_by_region[region], bake_id)
             path = os.path.join(OUT_DIR, route_id + '.json')
-            with open(path, 'w') as handle:
-                handle.write(E.dumps(artifact))
+            outputs.append((path, E.dumps(artifact)))
             print('  %-18s %5d values -> %s'
                   % (route_id, len(values), os.path.relpath(path, REPO)))
 
@@ -408,7 +456,7 @@ def main():
         'source': {
             'product': 'NASA Black Marble VNP46A4 v002',
             'band': 'AllAngle_Composite_Snow_Free',
-            'tiles': tile_hashes,
+            'tiles': tile_records,
             'geometryCommit': geometry_sha,
         },
         # Per-route positional trust, keyed by route id -- see
@@ -459,9 +507,13 @@ def main():
         'excludedSites': S.EXCLUDED_SITES,
         'citation': CITATION,
     }
-    with open(os.path.join(OUT_DIR, 'meta.json'), 'w') as handle:
-        handle.write(E.dumps(meta))
-    print('wrote assets/darkness/meta.json')
+    outputs.append((os.path.join(OUT_DIR, 'meta.json'), E.dumps(meta)))
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    for path, text in outputs:
+        with open(path, 'w') as handle:
+            handle.write(text)
+    print('wrote %d files to %s' % (len(outputs), os.path.relpath(OUT_DIR, REPO)))
 
 
 if __name__ == '__main__':
