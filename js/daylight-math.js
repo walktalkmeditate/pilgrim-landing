@@ -395,22 +395,36 @@
     return intPart + fracPart + '\u00A0' + (unitSystem === 'mi' ? 'mi' : 'km');
   }
 
-  // darknessDistanceLeadIn — D10's "N of its M {unit} sampled" clause,
-  // gated on a >5 km gap between the darkness artifact's own coveredKm
-  // and route-meta.json's stated distanceKm (D13's own verified table:
-  // six of seven routes agree to sub-1 km rounding; Shikoku alone
-  // disagrees, by 173.2 km between the two bakes, comfortably clearing
-  // the 5 km gate). statedDistanceKm renders as a whole number, not
-  // forced to one decimal like coveredKm — it is itself a round,
-  // published trail-length figure in route-meta.json (1200, not
-  // 1200.4), and a fabricated ".0" on it would claim precision
-  // route-meta.json doesn't carry, the same discipline D7 applies to the
-  // darkness values themselves.
+  // darknessDistanceLeadIn — states the distance the ribbon covers, for
+  // every route (Finding 6): the ribbon draws it as an SVG <text> inside
+  // role="img", which flattens the subtree, so this sentence is the only
+  // textual path a screen reader (or anyone reading the sibling summary
+  // paragraph) has to it at all — renderSVG's own titleText comment
+  // states the standard this sentence has to clear: "can describe
+  // exactly what the bar draws below — never more, never less."
+  //
+  // Two branches, both always stating coveredKm:
+  //   - a >5 km gap between the darkness artifact's own coveredKm and
+  //     route-meta.json's stated distanceKm (D13's own verified table:
+  //     six of seven routes agree to sub-1 km rounding; Shikoku alone
+  //     disagrees, by 173.2 km between the two bakes) keeps D10's
+  //     original "N of its M {unit} sampled" discrepancy framing —
+  //     statedDistanceKm renders as a whole number, not forced to one
+  //     decimal like coveredKm, since it is itself a round, published
+  //     trail-length figure in route-meta.json (1200, not 1200.4), and a
+  //     fabricated ".0" on it would claim precision route-meta.json
+  //     doesn't carry, the same discipline D7 applies to the darkness
+  //     values themselves.
+  //   - anything else (no gap worth naming, or no statedDistanceKm to
+  //     compare against at all) states coveredKm plainly, with no
+  //     comparison to overstate.
   function darknessDistanceLeadIn(coveredKm, statedDistanceKm, unitSystem) {
-    if (statedDistanceKm == null) return '';
-    if (Math.abs(coveredKm - statedDistanceKm) <= 5) return '';
-    return darknessFmtDistance(coveredKm, 1, unitSystem) + ' of its '
-      + darknessFmtDistance(Math.round(statedDistanceKm), 0, unitSystem) + ' sampled. ';
+    var covered = darknessFmtDistance(coveredKm, 1, unitSystem);
+    if (statedDistanceKm != null && Math.abs(coveredKm - statedDistanceKm) > 5) {
+      return covered + ' of its '
+        + darknessFmtDistance(Math.round(statedDistanceKm), 0, unitSystem) + ' sampled. ';
+    }
+    return covered + ' sampled. ';
   }
 
   // selectNamedDarknessBands(counts) — D10's selection rule: rounded
@@ -474,16 +488,19 @@
   // would dominate it, out of proportion with the four/five-band case).
   //
   // Two independent, orthogonal clauses bracket the composition
-  // sentence: the distance lead-in (gated on the coveredKm/statedKm
-  // gap, D3/D13) and the heldOutValidation trailing clause (D4). Both
-  // Shikoku and Kumano get the trailing clause — D4 names both
-  // explicitly ("Shikoku carries both this marking and D3's
-  // coarsening... Kumano carries only this marking") — even though only
-  // Shikoku's gap is wide enough to also trigger the lead-in.
+  // sentence: the distance lead-in (Finding 6 — always states coveredKm;
+  // the "N of its M" discrepancy framing within it is what's gated on
+  // the coveredKm/statedKm gap, D3/D13) and the heldOutValidation
+  // trailing clause (D4). Both Shikoku and Kumano get the trailing
+  // clause — D4 names both explicitly ("Shikoku carries both this
+  // marking and D3's coarsening... Kumano carries only this marking") —
+  // even though only Shikoku's gap is wide enough to also trigger the
+  // discrepancy framing.
   //
   // statedDistanceKm is route-meta.json's stated distanceKm for this
-  // route, or null/undefined when unavailable — the lead-in simply
-  // doesn't fire rather than throwing.
+  // route, or null/undefined when unavailable — the lead-in still states
+  // coveredKm plainly rather than throwing, it just has nothing to
+  // compare it against.
   function darknessSummarySentence(darknessData, statedDistanceKm, unitSystem) {
     var counts = darknessBandCounts(darknessData.values);
     var bands  = selectNamedDarknessBands(counts);

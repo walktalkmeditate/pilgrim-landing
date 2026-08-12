@@ -762,9 +762,12 @@ console.log('\n=== renderRibbon — AC #5: text-readable equivalence (aria-label
 // composition sentence alone, but D4 is explicit that both Shikoku and
 // Kumano get the textual marking ("Kumano carries only this marking"),
 // and AC #3 above requires it the same way — the sentence below is the
-// union of both decisions, not D10 read in isolation.
-var D10_SENTENCE_PRIMITIVO = 'Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).';
-var D10_SENTENCE_KUMANO    = 'As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.';
+// union of both decisions, not D10 read in isolation. Both also now open
+// with their own plain "<coveredKm> sampled." lead-in (Finding 6) —
+// neither route's gap against route-meta's stated distanceKm is wide
+// enough to earn Shikoku's "of its M" discrepancy framing instead.
+var D10_SENTENCE_PRIMITIVO = '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).';
+var D10_SENTENCE_KUMANO    = '38.0\u00A0km sampled. As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.';
 
 var svgPrimitivo     = makeNode('svg');
 var summaryPrimitivo = makeNode('p');
@@ -786,6 +789,15 @@ ok(svgPrimitivo.attrs['aria-label'] === summaryPrimitivo.textContent,
   'camino-primitivo: aria-label and summary paragraph are byte-identical');
 ok(svgKumanoRibbon.attrs['aria-label'] === summaryKumano.textContent,
   'kumano-kodo: aria-label and summary paragraph are byte-identical');
+
+// Finding 6, one more route: camino-frances (rendered earlier under AC #2)
+// used to get no distance clause at all — its gap against route-meta's
+// stated distanceKm (764 vs 763.7) is nowhere near Shikoku's discrepancy
+// gate. It must still state its own covered distance now.
+ok(summaryFrances.textContent.indexOf('763.7') !== -1,
+  'camino-frances: summary sentence states its covered distance (763.7 km) even with no stated-length discrepancy');
+ok(summaryFrances.textContent.indexOf('of its') === -1,
+  'camino-frances: no "of its M" discrepancy framing — the gap is not wide enough to earn it (that is Shikoku\'s alone)');
 
 console.log('\n=== renderRibbon — AC #6: custom routes and the unselected state show no ribbon section at all (D12) ===\n');
 

@@ -662,25 +662,33 @@ var STATED_DISTANCE_KM = {
   'kumano-kodo':      39
 };
 
+// Finding 6: the ribbon draws coveredKm as an SVG <text> inside
+// role="img", which flattens the subtree — this sentence is the only
+// textual path to it, so it now leads with coveredKm for every route,
+// not only the one (Shikoku) whose gap against route-meta's stated
+// distanceKm is wide enough to also earn the "N of its M" discrepancy
+// framing. The four worked examples below all lack that gap (≤1 km),
+// so each gets the plain "<coveredKm> sampled." lead-in instead.
+
 var primitivoArtifactForSentence = loadDarknessArtifact('camino-primitivo');
 equal(
   D.darknessSummarySentence(primitivoArtifactForSentence, STATED_DISTANCE_KM['camino-primitivo'], 'km'),
-  'Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).',
-  'camino-primitivo (validated, no gap): four-band sentence, no lead-in, no trailing clause'
+  '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).',
+  'camino-primitivo (validated, no gap): plain distance lead-in + four-band sentence, no trailing clause'
 );
 
 var francesArtifactForSentence = loadDarknessArtifact('camino-frances');
 equal(
   D.darknessSummarySentence(francesArtifactForSentence, STATED_DISTANCE_KM['camino-frances'], 'km'),
-  'Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
-  'camino-frances (validated, no gap): four-band sentence — town glow\'s 3% is real but too small to name'
+  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
+  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name'
 );
 
 var portuguesArtifactForSentence = loadDarknessArtifact('camino-portugues');
 equal(
   D.darknessSummarySentence(portuguesArtifactForSentence, STATED_DISTANCE_KM['camino-portugues'], 'km'),
-  'Mostly countryside (66%) and edge of town (20%), with some open dark (10%) and town glow (5%).',
-  'camino-portugues (validated, no gap): 66% concentrated in one middle band'
+  '243.0\u00A0km sampled. Mostly countryside (66%) and edge of town (20%), with some open dark (10%) and town glow (5%).',
+  'camino-portugues (validated, no gap): plain distance lead-in + 66% concentrated in one middle band'
 );
 
 // Kumano: D6's single-band flatness collapses the composition sentence
@@ -688,13 +696,16 @@ equal(
 // since heldOutValidation is false here regardless of how many bands
 // qualify. D10's own worked example for Kumano shows the bare
 // composition sentence alone; D4 is explicit that Kumano gets the same
-// textual marking Shikoku does, and AC #3 requires it — the sentence
-// below is the union of both decisions, not D10 read in isolation.
+// textual marking Shikoku does, and AC #3 requires it. Finding 6 adds
+// the plain distance lead-in on top (Kumano's own gap — stated 39 vs
+// covered 38.0 — is only 1.0 km, nowhere near the discrepancy gate) —
+// the sentence below is the union of all three decisions, not D10 read
+// in isolation.
 var kumanoArtifactForSentence = loadDarknessArtifact('kumano-kodo');
 equal(
   D.darknessSummarySentence(kumanoArtifactForSentence, STATED_DISTANCE_KM['kumano-kodo'], 'km'),
-  'As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.',
-  'kumano-kodo (unvalidated, no gap — stated 39 vs covered 38.0, diff 1.0): single-band sentence + D4 clause'
+  '38.0\u00A0km sampled. As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.',
+  'kumano-kodo (unvalidated, no gap — stated 39 vs covered 38.0, diff 1.0): plain distance lead-in + single-band sentence + D4 clause'
 );
 
 // Shikoku: both the lead-in (D3/D13 — stated 1200 vs covered 1080.5,
@@ -710,32 +721,39 @@ equal(
 
 console.log('\n=== darknessSummarySentence — gate and edge-case behaviour ===\n');
 
-// The lead-in's own >5 km gate, checked directly rather than only via
-// real fixtures (which only exercise one side of the boundary each).
+// The discrepancy framing's own >5 km gate, checked directly rather than
+// only via real fixtures (which only exercise one side of the boundary
+// each). Finding 6: coveredKm is stated either way now — the gate only
+// decides which of the two phrasings carries it.
 var gateFixtureValues = new Array(10).fill(21.7); // all band 4, matches kumano's shape
 
 equal(
   D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105, 'km'),
-  'As it was, the whole way.',
-  'gap exactly 5 km: lead-in does not fire (boundary is ">5", not ">=5")'
+  '100.0\u00A0km sampled. As it was, the whole way.',
+  'gap exactly 5 km: plain distance lead-in, no "of its" discrepancy framing (boundary is ">5", not ">=5")'
 );
 equal(
   D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105.1, 'km'),
   '100.0\u00A0km of its 105\u00A0km sampled. As it was, the whole way.',
-  'gap 5.1 km: lead-in fires'
+  'gap 5.1 km: "of its" discrepancy framing fires'
 );
 equal(
   D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'km'),
-  'As it was, the whole way.',
-  'statedDistanceKm null (no route-meta entry found): lead-in silently omitted, not thrown'
+  '100.0\u00A0km sampled. As it was, the whole way.',
+  'statedDistanceKm null (no route-meta entry found): still states coveredKm plainly, not thrown, nothing to compare it against'
 );
 
-// unitSystem: mi conversion applies to both the sentence's own lead-in
-// numbers and nothing else (band shares are unitless percentages).
+// unitSystem: mi conversion applies to both the sentence's own distance
+// lead-in numbers and nothing else (band shares are unitless percentages).
 equal(
   D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 120, 'mi'),
   '62.1\u00A0mi of its 75\u00A0mi sampled. As it was, the whole way.',
-  'unitSystem "mi": lead-in numbers convert (100 km -> 62.1 mi, 120 km -> 75 mi rounded)'
+  'unitSystem "mi", gap fires: lead-in numbers convert (100 km -> 62.1 mi, 120 km -> 75 mi rounded)'
+);
+equal(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'mi'),
+  '62.1\u00A0mi sampled. As it was, the whole way.',
+  'unitSystem "mi", no statedDistanceKm: plain lead-in still converts (100 km -> 62.1 mi)'
 );
 
 console.log('\n=== darknessSummarySentence — heldOutValidation fails toward unvalidated, not trustworthy (Finding 5) ===\n');

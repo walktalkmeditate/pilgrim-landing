@@ -1021,12 +1021,13 @@
   //
   // statedDistanceKm and summaryEl are both optional (undefined is
   // fine): statedDistanceKm feeds DaylightMath.darknessSummarySentence's
-  // own ">5 km gap" gate (D3/D13) — omitting it just means that gate
-  // never fires, not a thrown error. summaryEl, when given, is the real
-  // sibling <p> outside this <svg> (D8, D11) — the same sentence used
-  // for aria-label/<title> is also written there, so a screen-reader
-  // user and a sighted reader relying on plain DOM text land on
-  // identical words (AC #5).
+  // own ">5 km gap" discrepancy framing (D3/D13) — omitting it just
+  // means that framing never fires, not a thrown error; the sentence
+  // still states coveredKm plainly (Finding 6). summaryEl, when given,
+  // is the real sibling <p> outside this <svg> (D8, D11) — the same
+  // sentence used for aria-label/<title> is also written there, so a
+  // screen-reader user and a sighted reader relying on plain DOM text
+  // land on identical words (AC #5).
   function renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl) {
     clearRibbonDisplay(svgEl, summaryEl);
 
@@ -1565,9 +1566,11 @@
 
   // statedDistanceForRoute(routeId) — route-meta.json's stated
   // distanceKm for this route, feeding darknessSummarySentence's own
-  // "N of its M km sampled" gate (D3/D13). null when _routeMeta hasn't
-  // loaded yet or carries no matching entry — the sentence gate simply
-  // doesn't fire rather than throwing (see darknessDistanceLeadIn).
+  // "N of its M km sampled" discrepancy framing (D3/D13). null when
+  // _routeMeta hasn't loaded yet or carries no matching entry — the
+  // sentence still states its own coveredKm plainly rather than
+  // throwing, it just has nothing to compare it against (see
+  // darknessDistanceLeadIn, Finding 6).
   function statedDistanceForRoute(routeId) {
     if (!_routeMeta) return null;
     var match = _routeMeta.filter(function (r) { return r.id === routeId; });
