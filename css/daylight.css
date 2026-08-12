@@ -470,8 +470,10 @@ body.constellation .dl-bar-waypoint {
    the hue shift (D11); js/muted-contrast.test.js's ribbon-band-
    separation assertions gate the result at >=1.25:1 for every adjacent
    pair and >=2.0:1 band-0-vs-band-4, in both this file's colours and
-   body.constellation's below — these values are load-bearing, not
-   decorative, and that test is what stops them drifting back to flat.
+   the dark-theme ramp below (html[data-theme="dark"], which covers
+   plain dark and constellation alike — see that rule's own comment) —
+   these values are load-bearing, not decorative, and that test is what
+   stops them drifting back to flat.
    stroke-linecap is butt, not round — the same D3 (night-bar spec)
    lesson applies here: these runs tile edge to edge, and a round cap's
    overhang would bleed across a shared boundary between two adjacent
@@ -495,10 +497,42 @@ body.constellation .dl-bar-waypoint {
 /* Unvalidated marking (D4) — a shape change, not a colour change, so it
    reads under any colour-vision profile. Composes with a band class
    (two independent classes on one element) rather than multiplying into
-   ten combined band+validation classes. */
+   ten combined band+validation classes — except for colour (below),
+   which the dash itself forces to diverge per band.
+
+   .dl-ribbon-unvalidated alone only carries the dasharray. It cannot
+   also carry the plain band colour, because a dashed stroke's gaps let
+   the page background show through: spatially averaged, a stroke
+   that's only painted a fraction `d` of the time reads the same as a
+   solid stroke at `d` times the alpha (composite(composite(rgb, a, bg),
+   d, bg) === composite(rgb, a*d, bg), algebraically). At the previous
+   4-3 dasharray (d = 4/7 ≈ 0.57), that dilution alone dropped light
+   mode's adjacent separation from 1.289:1 to 1.137:1 and its extremes
+   from 2.853:1 to 1.709:1 — under both floors — on Shikoku, the only
+   multi-band unvalidated route (Finding 3). js/muted-contrast.test.js
+   never rendered the dashed variant, so nothing caught it.
+
+   Fix, in two parts: the dasharray widens to 6-2 (d = 0.75 — still
+   unmistakably dashed against a solid run) and each band gets its own
+   alpha for the unvalidated case specifically, chosen so that
+   solid_alpha = unvalidated_alpha × 0.75 exactly — the dashed composite
+   reproduces the already-verified solid ramp's own numbers once its
+   own dilution is accounted for, rather than a separately-guessed one.
+   (The alternative — carrying "unvalidated" on a channel that removes
+   no paint at all, e.g. a second overlaid mark instead of a dasharray —
+   would dodge the dilution question entirely, but costs an extra
+   element per run for a signal the reader only needs to notice once per
+   ribbon, not per band; re-tuning the existing channel is the smaller
+   change for the same guarantee.) */
 .dl-ribbon-unvalidated {
-  stroke-dasharray: 4 3;
+  stroke-dasharray: 6 2;
 }
+
+.dl-ribbon-band-0.dl-ribbon-unvalidated { stroke: rgba(184, 175, 162, 0.40); }
+.dl-ribbon-band-1.dl-ribbon-unvalidated { stroke: rgba(152, 148, 144, 0.65); }
+.dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(120, 121, 125, 0.76); }
+.dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(87, 93, 107, 0.81); }
+.dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(55, 66, 88, 0.84); }
 
 .dl-ribbon-label {
   font-family: 'Lato', sans-serif;
@@ -1044,12 +1078,39 @@ body.constellation .dl-ribbon-summary {
    direction — see that comment. Every step here tops out at 0.44
    (band-4), below .dl-ribbon-summary's own 0.55 two rules up: the
    loudest band still reads quieter than the sentence already stating
-   the same fact in words. */
-body.constellation .dl-ribbon-band-0 { stroke: rgba(232, 224, 255, 0.10); }
-body.constellation .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.19); }
-body.constellation .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
-body.constellation .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
-body.constellation .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
+   the same fact in words.
+
+   Selector is html[data-theme="dark"], not body.constellation (Finding
+   2): plain dark mode sets data-theme="dark" on <html> without the
+   constellation class (js/main.js setTheme/getPreferredTheme — an
+   OS-dark visitor lands here directly), and this ribbon never had a
+   plain-dark treatment of its own. Keyed to body.constellation only,
+   plain dark fell through to the light-mode rgba(184, 175, 162, …)
+   values above, painted straight onto #1C1914 — measured at 1.09:1
+   adjacent and 1.36:1 extremes, both well under the floors below: the
+   ribbon was effectively invisible there. Constellation sets
+   data-theme="dark" too (same function, alongside its own
+   body.constellation class for the rest of its vocabulary), so this one
+   ramp now renders both themes identically — proven, not assumed, by
+   the "constellation renders through the same rule" test in
+   js/muted-contrast.test.js, which checks the old body.constellation
+   selector is gone rather than trusting the two themes to coincide. */
+html[data-theme="dark"] .dl-ribbon-band-0 { stroke: rgba(232, 224, 255, 0.10); }
+html[data-theme="dark"] .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.19); }
+html[data-theme="dark"] .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
+html[data-theme="dark"] .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
+html[data-theme="dark"] .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
+
+/* Dashed/unvalidated colour, dark theme — same duty-cycle-compensation
+   as the light-mode .dl-ribbon-band-N.dl-ribbon-unvalidated rules
+   above, same reasoning (Finding 3): solid_alpha = unvalidated_alpha ×
+   0.75 exactly, so the dashed composite reproduces the solid ramp two
+   rules up once its own 6-2 dasharray dilution is accounted for. */
+html[data-theme="dark"] .dl-ribbon-band-0.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.13); }
+html[data-theme="dark"] .dl-ribbon-band-1.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.25); }
+html[data-theme="dark"] .dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.36); }
+html[data-theme="dark"] .dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.47); }
+html[data-theme="dark"] .dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.59); }
 
 body.constellation .dl-ribbon-label {
   /* fill-opacity: 0.75 carries over from the light-mode rule above unless

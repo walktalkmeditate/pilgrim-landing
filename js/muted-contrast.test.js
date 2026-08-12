@@ -350,18 +350,51 @@ test('daylight ribbon caption/summary (outside-SVG text) clear AA for small text
    (band-0 vs band-4) span wide enough that the ramp reads as five
    steps rather than a flat strip with rounding noise at the ends.
 
-   'dark' here means the same thing it means for SVG_LABELS above:
-   body.constellation's override, checked against STATIC_PARCHMENT.dark
-   as the page's proxy background (this is the ribbon's *own* dark
-   treatment, not [data-theme="dark"] — /daylight has no such toggle). */
+   'dark' means html[data-theme="dark"] (Finding 2), not
+   body.constellation: /daylight carries the site's full three-theme
+   system (light / dark / star — js/main.js cycleTheme), and plain dark
+   sets data-theme="dark" without the constellation class. Keying the
+   ribbon's dark colours to body.constellation alone left plain dark
+   painting the light-mode rgba() values onto #1C1914 — measured at
+   1.09:1 adjacent, 1.36:1 extremes, both under the floors below: the
+   ribbon went effectively invisible for any OS-dark visitor who never
+   explicitly picked star mode. Constellation sets data-theme="dark" too
+   (js/main.js setTheme, theme 'star'), so 'dark' here now covers both —
+   proven identical below, not assumed, by asserting the old
+   body.constellation colour selector is gone rather than trusting two
+   themes to coincide by luck.
+
+   Each mode is also swept solid and dashed (Finding 3): the dash
+   pattern's own gaps let the background show through, so a stroke
+   that's only painted a fraction `d` of the time (stroke-dasharray's
+   own on/off pair, parsed below rather than hand-restated) composites
+   the same as a solid stroke at `d` times the alpha — a shipped route
+   (Shikoku, the only multi-band unvalidated route) fell under both
+   floors once that dilution was accounted for, while this file asserted
+   nothing about .dl-ribbon-unvalidated at all. */
 
 const RIBBON_BAND_VS_BG_MIN = 1.1;
 const RIBBON_BAND_ADJACENT_MIN = 1.25;
 const RIBBON_BAND_EXTREMES_MIN = 2.0;
 const RIBBON_BAND_COUNT = 5;
 
-function ribbonBandColor(index, mode) {
-  const sel = (mode === 'dark' ? 'body.constellation ' : '') + '.dl-ribbon-band-' + index;
+const RIBBON_MODE_SELECTOR_PREFIX = { light: '', dark: 'html[data-theme="dark"] ' };
+
+// The dashed composite's dilution factor, read from the stylesheet's own
+// stroke-dasharray rather than hardcoded — so a future retuning of the
+// dash pattern can't silently desync this test's math from what ships.
+function ribbonUnvalidatedDuty() {
+  const decls = ruleDeclarations(daylightCss, '.dl-ribbon-unvalidated');
+  assert.ok(decls, 'expected .dl-ribbon-unvalidated in css/daylight.css');
+  const m = decls.match(/stroke-dasharray:\s*([\d.]+)\s+([\d.]+)/);
+  assert.ok(m, '.dl-ribbon-unvalidated has no stroke-dasharray: <on> <off> declaration');
+  const on = parseFloat(m[1]), off = parseFloat(m[2]);
+  return on / (on + off);
+}
+
+function ribbonBandColor(index, mode, dashed) {
+  const base = RIBBON_MODE_SELECTOR_PREFIX[mode] + '.dl-ribbon-band-' + index;
+  const sel = dashed ? base + '.dl-ribbon-unvalidated' : base;
   // Not ruleDeclarations (single first-match): .dl-ribbon-band-4 is also the
   // last name in the shared band-0..4 selector list above (no trailing comma
   // before its `{`), so a first-match lookup finds that shared geometry rule
@@ -377,50 +410,69 @@ function ribbonBandColor(index, mode) {
   }
   assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
   const strokeM = decls.match(/stroke:\s*([^;]+);/);
-  return resolveFillColor(strokeM[1].trim(), mode);
+  const color = resolveFillColor(strokeM[1].trim(), mode);
+  if (!dashed) return color;
+  return { rgb: color.rgb, alpha: color.alpha * ribbonUnvalidatedDuty() };
 }
 
-test('darkness ribbon bands stay pairwise distinguishable in both themes (D11)', function () {
+test('darkness ribbon bands stay pairwise distinguishable in both themes, solid and dashed (D11, Finding 2, Finding 3)', function () {
   ['light', 'dark'].forEach(function (mode) {
-    const bg = hexToRgb(STATIC_PARCHMENT[mode]);
-    const composited = [];
-    for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
-      const color = ribbonBandColor(i, mode);
-      composited.push(composite(color.rgb, color.alpha, bg));
-    }
+    [false, true].forEach(function (dashed) {
+      const bg = hexToRgb(STATIC_PARCHMENT[mode]);
+      const composited = [];
+      for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
+        const color = ribbonBandColor(i, mode, dashed);
+        composited.push(composite(color.rgb, color.alpha, bg));
+      }
 
-    console.log('\n  darkness ribbon band separation — ' + mode + ' (bg ' + STATIC_PARCHMENT[mode] + ')');
-    composited.forEach(function (c, i) {
-      const ratio = contrast(c, bg);
-      console.log('    band-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
+      const label = mode + (dashed ? ' dashed (unvalidated)' : ' solid');
+      console.log('\n  darkness ribbon band separation — ' + label + ' (bg ' + STATIC_PARCHMENT[mode] + ')');
+      composited.forEach(function (c, i) {
+        const ratio = contrast(c, bg);
+        console.log('    band-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
+        assert.ok(
+          ratio >= RIBBON_BAND_VS_BG_MIN,
+          label + ' .dl-ribbon-band-' + i + ' is ' + ratio.toFixed(3) + ':1 against its page background, below the '
+            + RIBBON_BAND_VS_BG_MIN + ':1 distinguishability floor'
+        );
+      });
+
+      let minAdjacent = Infinity;
+      for (let i = 0; i < composited.length - 1; i++) {
+        const ratio = contrast(composited[i], composited[i + 1]);
+        console.log('    band-' + i + ' -> band-' + (i + 1) + '  = ' + ratio.toFixed(3) + ':1');
+        minAdjacent = Math.min(minAdjacent, ratio);
+        assert.ok(
+          ratio >= RIBBON_BAND_ADJACENT_MIN,
+          label + ' band-' + i + '->band-' + (i + 1) + ' is ' + ratio.toFixed(3) + ':1, below the '
+            + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+        );
+      }
+
+      const extremes = contrast(composited[0], composited[RIBBON_BAND_COUNT - 1]);
+      console.log('    band-0 -> band-4 (extremes) = ' + extremes.toFixed(3) + ':1   (min adjacent '
+        + minAdjacent.toFixed(3) + ':1)');
       assert.ok(
-        ratio >= RIBBON_BAND_VS_BG_MIN,
-        mode + ' .dl-ribbon-band-' + i + ' is ' + ratio.toFixed(3) + ':1 against its page background, below the '
-          + RIBBON_BAND_VS_BG_MIN + ':1 distinguishability floor'
+        extremes >= RIBBON_BAND_EXTREMES_MIN,
+        label + ' band-0 vs band-4 is ' + extremes.toFixed(3) + ':1, below the ' + RIBBON_BAND_EXTREMES_MIN
+          + ':1 extremes floor'
       );
     });
-
-    let minAdjacent = Infinity;
-    for (let i = 0; i < composited.length - 1; i++) {
-      const ratio = contrast(composited[i], composited[i + 1]);
-      console.log('    band-' + i + ' -> band-' + (i + 1) + '  = ' + ratio.toFixed(3) + ':1');
-      minAdjacent = Math.min(minAdjacent, ratio);
-      assert.ok(
-        ratio >= RIBBON_BAND_ADJACENT_MIN,
-        mode + ' band-' + i + '->band-' + (i + 1) + ' is ' + ratio.toFixed(3) + ':1, below the '
-          + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
-      );
-    }
-
-    const extremes = contrast(composited[0], composited[RIBBON_BAND_COUNT - 1]);
-    console.log('    band-0 -> band-4 (extremes) = ' + extremes.toFixed(3) + ':1   (min adjacent '
-      + minAdjacent.toFixed(3) + ':1)');
-    assert.ok(
-      extremes >= RIBBON_BAND_EXTREMES_MIN,
-      mode + ' band-0 vs band-4 is ' + extremes.toFixed(3) + ':1, below the ' + RIBBON_BAND_EXTREMES_MIN
-        + ':1 extremes floor'
-    );
   });
+});
+
+test('constellation renders the ribbon bands through the same html[data-theme="dark"] rule as plain dark, not a separate one (Finding 2)', function () {
+  // js/main.js setTheme: theme 'star' sets BOTH data-theme="dark" on <html>
+  // AND class="constellation" on <body> — never one without the other. If a
+  // distinct body.constellation .dl-ribbon-band-N colour rule existed
+  // alongside html[data-theme="dark"] .dl-ribbon-band-N, the two themes
+  // could silently diverge again even though each independently clears the
+  // floors above — so this asserts the old selector is gone outright,
+  // rather than trusting a coincidence.
+  assert.ok(
+    !/body\.constellation\s+\.dl-ribbon-band-\d/.test(daylightCss),
+    'css/daylight.css still has a body.constellation .dl-ribbon-band-N colour rule — constellation and plain dark can diverge again'
+  );
 });
 
 console.log(count + ' passed');
