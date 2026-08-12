@@ -421,7 +421,11 @@ body.constellation .dl-bar-waypoint {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 0.88rem;
-  color: var(--stone);
+  /* --stone tops out at 3.95:1 on light parchment even at full opacity —
+     not an AA small-text color at any opacity, the same trap already
+     noted on .dl-bar-label-adapt above. --ink-fog is the site's existing
+     token for muted text that clears AA on its own (js/muted-contrast.test.js). */
+  color: var(--ink-fog);
   margin: 0 0 0.8rem;
 }
 
@@ -438,7 +442,8 @@ body.constellation .dl-bar-waypoint {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 0.88rem;
-  color: var(--stone);
+  /* Same trap, same fix as .dl-ribbon-caption above. */
+  color: var(--ink-fog);
   margin: 0.6rem 0 0;
   line-height: 1.5;
 }
@@ -1005,7 +1010,14 @@ body.constellation .dl-bar-buffer {
   stroke: rgba(232, 224, 255, 0.3);
 }
 
-body.constellation .dl-ribbon-caption,
+/* Two single-selector rules rather than one grouped by a comma — same
+   declarations, but js/muted-contrast.test.js's rule-lookup reads one
+   selector's own block at a time, the same shape .dl-bar-label and its
+   siblings above already use. */
+body.constellation .dl-ribbon-caption {
+  color: rgba(232, 224, 255, 0.55);
+}
+
 body.constellation .dl-ribbon-summary {
   color: rgba(232, 224, 255, 0.55);
 }

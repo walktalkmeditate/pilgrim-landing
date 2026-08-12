@@ -224,7 +224,7 @@ function ruleDeclarations(css, selector) {
 function resolveFillColor(raw, mode) {
   const varM = raw.match(/var\(--([\w-]+)\)/);
   if (varM) {
-    const table = { ink: INK, stone: STONE }[varM[1]];
+    const table = { ink: INK, stone: STONE, 'ink-fog': INK_FOG }[varM[1]];
     assert.ok(table, 'css/daylight.css label rule uses unhandled token --' + varM[1]);
     return { rgb: hexToRgb(table[mode]), alpha: 1 };
   }
@@ -268,7 +268,8 @@ function labelEffectiveAlpha(baseSelector, darkSelector, mode) {
 const SVG_LABELS = [
   { base: '.dl-bar-label-adapt', dark: 'body.constellation .dl-bar-label-adapt' },
   { base: '.dl-bar-label',       dark: 'body.constellation .dl-bar-label' },
-  { base: '.dl-bar-label-now',   dark: 'body.constellation .dl-bar-label-now' }
+  { base: '.dl-bar-label-now',   dark: 'body.constellation .dl-bar-label-now' },
+  { base: '.dl-ribbon-label',    dark: 'body.constellation .dl-ribbon-label' }
 ];
 
 test('daylight bar SVG labels clear AA for small text in both modes, fill-opacity cascade included', function () {
@@ -282,6 +283,42 @@ test('daylight bar SVG labels clear AA for small text in both modes, fill-opacit
         ratio >= AA_SMALL,
         mode + ' ' + entry.base + ' is ' + ratio.toFixed(3) + ':1 (effective fill-opacity '
           + color.alpha.toFixed(3) + '), below AA ' + AA_SMALL + ':1'
+      );
+    });
+  });
+});
+
+/* The ribbon's caption and summary sit outside <svg> on purpose (D8/D11's
+   outside-SVG text equivalence), so they cascade through `color`, not
+   `fill`/`fill-opacity` — a CSS colour value resolves the same way
+   regardless of which property carries it, so this reuses resolveFillColor
+   rather than a second value-parser. */
+function textColorFor(baseSelector, darkSelector, mode) {
+  const baseDecls = ruleDeclarations(daylightCss, baseSelector);
+  assert.ok(baseDecls, 'expected ' + baseSelector + ' in css/daylight.css');
+  const darkDecls = mode === 'dark' ? ruleDeclarations(daylightCss, darkSelector) : null;
+
+  const colorSrc = (darkDecls && /color:/.test(darkDecls)) ? darkDecls : baseDecls;
+  const colorM = colorSrc.match(/color:\s*([^;]+);/);
+  assert.ok(colorM, baseSelector + ' has no color declaration');
+  return resolveFillColor(colorM[1].trim(), mode);
+}
+
+const DOM_TEXT_LABELS = [
+  { base: '.dl-ribbon-caption', dark: 'body.constellation .dl-ribbon-caption' },
+  { base: '.dl-ribbon-summary', dark: 'body.constellation .dl-ribbon-summary' }
+];
+
+test('daylight ribbon caption/summary (outside-SVG text) clear AA for small text in both modes', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const bg = hexToRgb(STATIC_PARCHMENT[mode]);
+    DOM_TEXT_LABELS.forEach(function (entry) {
+      const color = textColorFor(entry.base, entry.dark, mode);
+      const painted = composite(color.rgb, color.alpha, bg);
+      const ratio = contrast(painted, bg);
+      assert.ok(
+        ratio >= AA_SMALL,
+        mode + ' ' + entry.base + ' is ' + ratio.toFixed(3) + ':1, below AA ' + AA_SMALL + ':1'
       );
     });
   });
