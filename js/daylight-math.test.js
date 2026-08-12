@@ -587,6 +587,75 @@ arrEqual(
   'aggregated: each window classified by its median, windows merge the same way raw samples do'
 );
 
+console.log('\n=== darknessMedian — even-length branch (untested gap, closed) ===\n');
+
+// darknessMedian is what darknessMedian's even branch feeds every time
+// Shikoku's 40 km windows land on an even raw-sample count — 27 of its
+// 28 windows do (checked directly below, not assumed). No fixture in
+// this suite exercised the even path at all before this section: every
+// hand-built aggregated-path fixture above uses odd-length buckets.
+equal(D.darknessMedian([1, 3]), 2, 'even-length [1,3]: averages the two middle values (1+3)/2=2');
+equal(D.darknessMedian([4, 1, 3, 2]), 2.5, 'even-length unsorted [4,1,3,2]: sorts to [1,2,3,4], averages the middle two (2+3)/2=2.5');
+equal(D.darknessMedian([1, 2, 3]), 2, 'odd-length [1,2,3]: still returns the middle value (regression guard — the even branch must not break the odd one)');
+equal(D.darknessMedian([5]), 5, 'single value: trivially its own median (odd-length, n=1)');
+
+// A synthetic pair straddling a band boundary far enough that an
+// implementation which ignored parity (e.g. always sorted[Math.floor(n/2)])
+// would land in a DIFFERENT band than the correct even-length average —
+// so this discriminates the branch, not just its arithmetic in isolation.
+// Correct: (19.0+19.9)/2 = 19.45 -> band 1 (edge of town, < 19.5).
+// Wrong (sorted[1] = 19.9 alone) -> band 2 (countryside, >= 19.5).
+equal(D.darknessBandForValue(D.darknessMedian([19.0, 19.9])), 1,
+  'even-length median [19.0, 19.9] -> 19.45 -> band 1, not band 2 (proves the average is used, not just the upper of the two middle values)');
+
+// Real Shikoku data: confirms the even branch isn't a synthetic curiosity
+// — it's what 27 of the route's 28 real 40 km windows actually run
+// through (the 28th window covers only km 1080, a single sample, odd).
+var shikokuMedianArtifact = loadDarknessArtifact('shikoku-88');
+var shikokuMedianWindowKm = D.darknessAggregateWindowKm(shikokuMedianArtifact.positionalConfidence);
+var shikokuBucketSizes = [];
+shikokuMedianArtifact.values.forEach(function (v, i) {
+  var km = i * shikokuMedianArtifact.stepKm;
+  var bucketIdx = Math.floor(km / shikokuMedianWindowKm);
+  shikokuBucketSizes[bucketIdx] = (shikokuBucketSizes[bucketIdx] || 0) + 1;
+});
+var shikokuEvenBuckets = shikokuBucketSizes.filter(function (n) { return n % 2 === 0; }).length;
+equal(shikokuBucketSizes.length, 28, 'shikoku-88: 40 km aggregation produces 28 windows');
+equal(shikokuEvenBuckets, 27, 'shikoku-88: 27 of its 28 windows have an even raw-sample count — the even branch is what real Shikoku data mostly exercises, not a synthetic curiosity');
+
+console.log('\n=== mergeDarknessRuns — empty-bucket fallback (Finding 4) ===\n');
+
+// A later window can be empty while an earlier one wasn't (values[] that
+// doesn't extend all the way to coveredKm) — forward-fill from the last
+// real band keeps the tiling unbroken. Proven with a distinctive band
+// (0, "town glow" — the rarest in real data) so the result can only be
+// explained by the empty windows correctly inheriting it, not by
+// coincidence: a buggy version that emitted `band: null` instead would
+// split this into three runs, two of them null, not one run of band 0.
+arrEqual(
+  D.mergeDarknessRuns([17, 17, 17, 17, 17], 1, 30, 10),
+  [{ startKm: 0, endKm: 30, band: 0 }],
+  'windows 1 and 2 have no raw samples (values[] only reaches km 4 of a 30 km route) — both forward-fill window 0\'s band (0), merging into one run, not a null-banded gap'
+);
+
+// The one case forward-fill cannot cover honestly: the FIRST window is
+// itself empty, so there is no earlier band to carry. Before this fix
+// the fallback still ran (lastBand's initial value, null) and would have
+// reached the page as class "dl-ribbon-band-null" — a run with a real
+// position and no matching CSS rule, invisible with no error anywhere.
+// This must throw instead, naming the window, not draw nothing silently.
+var emptyFirstWindowThrew = false;
+var emptyFirstWindowMessage = '';
+try {
+  D.mergeDarknessRuns([], 1, 30, 10);
+} catch (e) {
+  emptyFirstWindowThrew = true;
+  emptyFirstWindowMessage = e.message;
+}
+ok(emptyFirstWindowThrew, 'values: [] with an aggregation window: mergeDarknessRuns throws rather than emitting band: null');
+ok(emptyFirstWindowMessage.indexOf('window 0') !== -1,
+  'the thrown error names the offending window (window 0): ' + JSON.stringify(emptyFirstWindowMessage));
+
 console.log('\n=== mergeDarknessRuns — trailing zero-width run is absorbed, not emitted (adversarial) ===\n');
 
 // coveredKm=3 is an EXACT multiple of stepKm=1, so the last raw sample's
@@ -646,6 +715,43 @@ var francesRuns = D.mergeDarknessRuns(francesArtifact.values, francesArtifact.st
 equal(francesRuns.length, 128, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 runs');
 var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
 ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
+
+console.log('\n=== darknessCompositionSentence / selectNamedDarknessBands — direct template tests (Finding 4) ===\n');
+
+// None of the seven shipped routes produce exactly two qualifying bands
+// (D1's table always yields one, three, or four), so the two-band
+// template ("Mostly A (a%) and B (b%).") was reachable only by mutating
+// it and watching both suites stay green. Tested directly here against
+// hand-built band lists, bypassing selectNamedDarknessBands entirely —
+// this is the template in isolation, not whichever real distribution
+// happens to select two bands.
+equal(
+  D.darknessCompositionSentence([{ name: 'open dark', pct: 50 }, { name: 'countryside', pct: 45 }]),
+  'Mostly open dark (50%) and countryside (45%).',
+  'exactly two bands: the two-band template, not the three-or-four-band one'
+);
+
+// selectNamedDarknessBands' own selection rule, hitting exactly two
+// qualifying bands from raw counts (not hand-built band objects) — the
+// two pass together prove the whole path, selection through template.
+equal(
+  D.darknessSummarySentence(
+    { values: [2, 3, 45, 50, 0].reduce(function (vals, n, band) {
+        for (var i = 0; i < n; i++) vals.push([18.0, 19.0, 20.0, 21.0, 21.5][band]);
+        return vals;
+      }, []),
+      coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true },
+    null, 'km'
+  ),
+  '100.0\u00A0km sampled. Mostly open dark (50%) and countryside (45%). Darkest near the end.',
+  // The fixture's values are grouped band-by-band (all band 0, then all
+  // band 1, ...), so it is also a monotonic gradient along the route —
+  // the positional clause (Finding 3) correctly picks that up too. Left
+  // in rather than flattened to a uniform fixture, since it shows the
+  // two-band template and the positional clause composing correctly,
+  // not just the template in isolation (already covered above).
+  'end-to-end: 100 samples at [2,3,45,50,0] counts select exactly two qualifying bands (2% and 3% both drop) and render the two-band template'
+);
 
 console.log('\n=== darknessPositionalClause — pinned fixtures, both gates (Finding 3) ===\n');
 

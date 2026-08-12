@@ -543,11 +543,23 @@ function ribbonBandIndex(el) {
 var RIBBON_X1 = 24;
 var RIBBON_X2 = 576;
 var RIBBON_W  = RIBBON_X2 - RIBBON_X1;
+// The ribbon's single y row for band-run lines, and the row its two
+// end-distance labels sit on — every geometry assertion below this point
+// in the file (and, before this section, above it) only ever checked
+// x1/x2. A y-coordinate regression — a run drawn on the wrong row, a
+// label sharing the runs' own y — would have been invisible to any of
+// them.
+var RIBBON_Y       = 16;
+var RIBBON_LABEL_Y = 36;
 
 function expectedRibbonX(kmFromStart, coveredKm) {
   if (coveredKm <= 0) return RIBBON_X1;
   var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
   return RIBBON_X1 + frac * RIBBON_W;
+}
+
+function onRibbonRow(el) {
+  return el.attrs.y1 === RIBBON_Y && el.attrs.y2 === RIBBON_Y;
 }
 
 var DARKNESS_DIR = path.join(__dirname, '..', 'assets', 'darkness');
@@ -643,6 +655,7 @@ var summaryFrances   = makeNode('p');
 Daylight.renderRibbon(francesArtifact, svgFrancesRibbon, 'km', STATED_DISTANCE_KM['camino-frances'], summaryFrances);
 var francesRuns = elementsWithClassPrefix(svgFrancesRibbon, 'dl-ribbon-band-');
 equal(francesRuns.length, 128, 'real camino-frances (withinInterpolationLimit true): 128 runs, unaggregated — matches js/daylight-math.test.js exactly');
+ok(francesRuns.every(onRibbonRow), 'camino-frances: every run sits on the ribbon\'s own y row (y1=y2=' + RIBBON_Y + '), not just correct on x');
 
 var svgKumanoRibbon = makeNode('svg');
 var summaryKumano   = makeNode('p');
@@ -652,6 +665,8 @@ equal(kumanoRuns.length, 1, 'real kumano-kodo (withinInterpolationLimit true): e
 if (kumanoRuns.length === 1) {
   equal(kumanoRuns[0].attrs.x1, RIBBON_X1, 'kumano-kodo: the one run starts at the ribbon\'s own left edge');
   equal(kumanoRuns[0].attrs.x2, RIBBON_X2, 'kumano-kodo: the one run ends at the ribbon\'s own right edge — one flat band, full width');
+  equal(kumanoRuns[0].attrs.y1, RIBBON_Y, 'kumano-kodo: the one run\'s y1 is the ribbon\'s own row');
+  equal(kumanoRuns[0].attrs.y2, RIBBON_Y, 'kumano-kodo: the one run\'s y2 is the ribbon\'s own row');
 }
 
 var svgShikokuRibbon = makeNode('svg');
@@ -659,6 +674,7 @@ var summaryShikoku   = makeNode('p');
 Daylight.renderRibbon(shikokuArtifact, svgShikokuRibbon, 'km', STATED_DISTANCE_KM['shikoku-88'], summaryShikoku);
 var shikokuRuns = elementsWithClassPrefix(svgShikokuRibbon, 'dl-ribbon-band-');
 equal(shikokuRuns.length, 9, 'real shikoku-88 (withinInterpolationLimit FALSE): coarsens to 9 runs — matches js/daylight-math.test.js exactly');
+ok(shikokuRuns.every(onRibbonRow), 'shikoku-88: every run sits on the ribbon\'s own y row, not just correct on x');
 
 var svgCoarseRibbon = makeNode('svg');
 Daylight.renderRibbon(coarseFixture, svgCoarseRibbon, 'km');
@@ -670,6 +686,8 @@ if (coarseRuns.length === 5) {
   coarseRuns.forEach(function (run, i) {
     equal(run.attrs.x1, expectedRibbonX(expectedCoarseBounds[i], 100), 'test-coarse-route run ' + i + ': x1 matches expectedRibbonX(' + expectedCoarseBounds[i] + ', 100)');
     equal(run.attrs.x2, expectedRibbonX(expectedCoarseBounds[i + 1], 100), 'test-coarse-route run ' + i + ': x2 matches expectedRibbonX(' + expectedCoarseBounds[i + 1] + ', 100)');
+    equal(run.attrs.y1, RIBBON_Y, 'test-coarse-route run ' + i + ': y1 is the ribbon\'s own row');
+    equal(run.attrs.y2, RIBBON_Y, 'test-coarse-route run ' + i + ': y2 is the ribbon\'s own row');
     equal(ribbonBandIndex(run), expectedCoarseBands[i], 'test-coarse-route run ' + i + ': band index');
   });
 }
@@ -844,14 +862,6 @@ var betweenOutputAndNoscript = indexHtml.slice(outputCloseIdx, noscriptIdx);
 ok(betweenOutputAndNoscript.indexOf('id="dl-ribbon-svg"') !== -1,
   'the ribbon lives between #dl-output\'s closing tag and <noscript> — a sibling of #dl-output, not a descendant, so it sits outside the aria-live="polite" region');
 
-// The oracle above never calls utcToBarX/expectedBarX (a time-domain
-// function) or kmToBarX (the bar's own walk-subrange helper) — it's a
-// fresh linear formula over RIBBON_X1/X2. Every x1/x2 assertion already
-// run against it above (test-coarse-route, kumano's full-width run)
-// already proves renderRibbon's real output agrees with this independent
-// re-derivation, not with the bar's own coordinate function.
-ok(true, 'coordinate independence from utcToBarX/kmToBarX: proven by the expectedRibbonX-matched assertions above, not re-asserted here');
-
 console.log('\n=== renderRibbon — AC #9: right-edge label reflects coveredKm, not route-meta\'s stated distanceKm (D3, D10) ===\n');
 
 // fmtDistance's unit suffix (js/daylight.js) carries a non-breaking space
@@ -865,6 +875,8 @@ equal(francesLabels.length, 2, 'camino-frances: exactly two end-distance labels'
 if (francesLabels.length === 2) {
   equal(francesLabels[0].textContent, '0.0' + NBSP + 'km', 'camino-frances: left label is the route start');
   equal(francesLabels[1].textContent, '763.7' + NBSP + 'km', 'camino-frances: right label is coveredKm (763.7), not route-meta\'s stated distanceKm');
+  equal(francesLabels[0].attrs.y, RIBBON_LABEL_Y, 'camino-frances: left label sits on the ribbon\'s label row, not the band row');
+  equal(francesLabels[1].attrs.y, RIBBON_LABEL_Y, 'camino-frances: right label sits on the ribbon\'s label row, not the band row');
 }
 
 var shikokuLabels = byClass(svgShikokuRibbon, 'dl-ribbon-label');
@@ -875,6 +887,7 @@ if (shikokuLabels.length === 2) {
   // that crosses four digits, so this literal gained a comma this slice
   // — see js/daylight.js's fmtDistanceNumber.
   equal(shikokuLabels[1].textContent, '1,080.5' + NBSP + 'km', 'shikoku-88: right label is coveredKm (1080.5), never the stated 1,200 km (D3)');
+  equal(shikokuLabels[1].attrs.y, RIBBON_LABEL_Y, 'shikoku-88: right label sits on the ribbon\'s label row, not the band row');
 }
 
 // The "N of M km sampled" lead-in needs route-meta.json's stated

@@ -333,14 +333,33 @@
       }
       var lastBand = null;
       points = buckets.map(function (bucketValues, w2) {
-        // An empty window doesn't occur in any shipped route (verified
-        // directly against shikoku-88, the only route this path runs for
-        // today) — carrying the previous window's band forward keeps the
-        // tiling unbroken if it ever did, rather than crashing on an
-        // empty median.
-        var band = bucketValues.length
-          ? darknessBandForValue(darknessMedian(bucketValues))
-          : lastBand;
+        // An empty window doesn't occur in any shipped route today
+        // (verified directly against shikoku-88, the only route this path
+        // runs for) — but a later window can still be empty in principle
+        // (a real gap wider than aggregateWindowKm) while an earlier one
+        // wasn't. Carrying the previous window's band forward there keeps
+        // the tiling unbroken rather than crashing on an empty median.
+        //
+        // The one case that forward-fill can't cover honestly is the
+        // FIRST empty window with no earlier band to carry — lastBand is
+        // still its initial null then, and silently emitting
+        // `band: null` used to reach the page as an invisible run (CSS
+        // class `dl-ribbon-band-null` matches no rule). That shape means
+        // values[] doesn't reach even the start of its own coveredKm, a
+        // genuinely malformed artifact — this throws instead, so it
+        // fails loud at the one point that actually knows what's wrong,
+        // rather than quietly drawing nothing where something was meant
+        // to be.
+        var band;
+        if (bucketValues.length) {
+          band = darknessBandForValue(darknessMedian(bucketValues));
+        } else if (lastBand !== null) {
+          band = lastBand;
+        } else {
+          throw new Error('mergeDarknessRuns: window ' + w2 + ' (starting at km '
+            + (w2 * aggregateWindowKm) + ') has no raw samples and no earlier window '
+            + 'to carry a band forward from — values[] does not reach this window\'s span.');
+        }
         lastBand = band;
         return { km: w2 * aggregateWindowKm, band: band };
       });
