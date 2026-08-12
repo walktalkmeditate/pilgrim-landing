@@ -16,7 +16,16 @@
 
    --fog is deliberately NOT covered: it is decoration (the walker, the cairn,
    the middots) and is exempt as such. If it ever becomes text again, it
-   belongs here. */
+   belongs here.
+
+   css/daylight.css gets a second, separate sweep near the bottom of this
+   file: its bar labels are SVG text painted with `fill` + `fill-opacity`
+   rather than `color` + `opacity`, and /daylight never loads seasonal.js,
+   so neither the --ink-fog machinery nor the seasonal envelope above
+   applies. The failure shape is the same one this file already exists to
+   catch — a per-element opacity composited toward the background — so it
+   gets the same AA proof, walking fill/fill-opacity through the cascade
+   instead. */
 
 'use strict';
 
@@ -191,6 +200,91 @@ test('the seasonal engine does not shift --ink-fog', function () {
     !/['"]?ink-fog['"]?\s*:/.test(seasonal),
     '--ink-fog appears in js/seasonal.js; it must stay static so its contrast cannot drift'
   );
+});
+
+/* --- css/daylight.css: the bar's SVG labels ------------------------ */
+
+// Comments stripped before parsing: the fix for this exact file writes
+// CSS comments that explain fill-opacity cascade behaviour and so contain
+// the literal text "fill-opacity: <number>" themselves — without this,
+// the regexes below would read a comment's example value instead of the
+// declaration that follows it.
+const daylightCss = fs.readFileSync(path.join(ROOT, 'css/daylight.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+
+const INK = { light: tokenIn(lightBlock, 'ink'), dark: tokenIn(darkBlock, 'ink') };
+const STONE = { light: tokenIn(lightBlock, 'stone'), dark: tokenIn(darkBlock, 'stone') };
+
+function ruleDeclarations(css, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = css.match(new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}'));
+  return m ? m[2] : null;
+}
+
+function resolveFillColor(raw, mode) {
+  const varM = raw.match(/var\(--([\w-]+)\)/);
+  if (varM) {
+    const table = { ink: INK, stone: STONE }[varM[1]];
+    assert.ok(table, 'css/daylight.css label rule uses unhandled token --' + varM[1]);
+    return { rgb: hexToRgb(table[mode]), alpha: 1 };
+  }
+  const rgbaM = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\)/);
+  if (rgbaM) {
+    return {
+      rgb: [parseInt(rgbaM[1], 10), parseInt(rgbaM[2], 10), parseInt(rgbaM[3], 10)],
+      alpha: rgbaM[4] !== undefined ? parseFloat(rgbaM[4]) : 1
+    };
+  }
+  const hexM = raw.match(/#[0-9A-Fa-f]{6}/);
+  assert.ok(hexM, 'unrecognized fill value in css/daylight.css: ' + raw);
+  return { rgb: hexToRgb(hexM[0]), alpha: 1 };
+}
+
+/* Models the cascade rather than restating it: `fill` and `fill-opacity`
+   are independent SVG properties, so a body.constellation override that
+   only restates `fill` silently inherits `fill-opacity` from the
+   light-mode rule and multiplies into it. Each property here falls back
+   from the dark-mode rule to the base rule independently, exactly as a
+   browser resolves it — which is the gap that let a dark-mode label look
+   fine on paper while an unrelated light-mode fill-opacity was still
+   composited in underneath it. */
+function labelEffectiveAlpha(baseSelector, darkSelector, mode) {
+  const baseDecls = ruleDeclarations(daylightCss, baseSelector);
+  assert.ok(baseDecls, 'expected ' + baseSelector + ' in css/daylight.css');
+  const darkDecls = mode === 'dark' ? ruleDeclarations(daylightCss, darkSelector) : null;
+
+  const fillSrc = (darkDecls && /fill:/.test(darkDecls)) ? darkDecls : baseDecls;
+  const fillM = fillSrc.match(/fill:\s*([^;]+);/);
+  assert.ok(fillM, baseSelector + ' has no fill declaration');
+  const color = resolveFillColor(fillM[1].trim(), mode);
+
+  const opacitySrc = (darkDecls && /fill-opacity:/.test(darkDecls)) ? darkDecls : baseDecls;
+  const opacityM = opacitySrc.match(/fill-opacity:\s*([\d.]+)/);
+  const fillOpacity = opacityM ? parseFloat(opacityM[1]) : 1;
+
+  return { rgb: color.rgb, alpha: color.alpha * fillOpacity };
+}
+
+const SVG_LABELS = [
+  { base: '.dl-bar-label-adapt', dark: 'body.constellation .dl-bar-label-adapt' },
+  { base: '.dl-bar-label',       dark: 'body.constellation .dl-bar-label' },
+  { base: '.dl-bar-label-now',   dark: 'body.constellation .dl-bar-label-now' }
+];
+
+test('daylight bar SVG labels clear AA for small text in both modes, fill-opacity cascade included', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const bg = hexToRgb(STATIC_PARCHMENT[mode]);
+    SVG_LABELS.forEach(function (entry) {
+      const color = labelEffectiveAlpha(entry.base, entry.dark, mode);
+      const painted = composite(color.rgb, color.alpha, bg);
+      const ratio = contrast(painted, bg);
+      assert.ok(
+        ratio >= AA_SMALL,
+        mode + ' ' + entry.base + ' is ' + ratio.toFixed(3) + ':1 (effective fill-opacity '
+          + color.alpha.toFixed(3) + '), below AA ' + AA_SMALL + ':1'
+      );
+    });
+  });
 });
 
 console.log(count + ' passed');

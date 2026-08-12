@@ -330,8 +330,10 @@
   font-weight: 300;
   font-size: 8px;
   letter-spacing: 0.04em;
-  fill: var(--stone);
-  fill-opacity: 0.65;
+  /* --stone tops out at 3.95:1 on parchment even at full opacity — not
+     an AA small-text color at any opacity. --ink clears it with room. */
+  fill: var(--ink);
+  fill-opacity: 0.80;
 }
 
 .dl-bar-tick-now {
@@ -364,7 +366,9 @@ body.constellation .dl-bar-waypoint {
   font-weight: 300;
   font-size: 9px;
   letter-spacing: 0.08em;
-  fill: var(--stone);
+  /* --stone tops out at 3.95:1 on parchment even at full opacity — not
+     an AA small-text color at any opacity. --ink clears it with room. */
+  fill: var(--ink);
   fill-opacity: 0.75;
 }
 
@@ -373,8 +377,11 @@ body.constellation .dl-bar-waypoint {
   font-weight: 300;
   font-size: 9px;
   letter-spacing: 0.04em;
-  fill: #DAA520;
-  fill-opacity: 0.9;
+  /* #DAA520 (goldenrod) tops out at 1.97:1 on light parchment even at
+     full opacity — the "now" highlight needs its own darker shade in
+     light mode; the brighter shade returns for dark mode below. */
+  fill: #6B5110;
+  fill-opacity: 1;
 }
 
 .daylight-result {
@@ -839,7 +846,12 @@ html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 body.constellation .dl-bar-label {
+  /* fill-opacity: 0.75 carries over from the light-mode rule above unless
+     restated here — left alone, it multiplies into this alpha and pulls
+     the real composited contrast below AA even though the color alone
+     reads fine. */
   fill: rgba(232, 224, 255, 0.55);
+  fill-opacity: 1;
 }
 
 body.constellation .dl-bar-daylight {
@@ -878,7 +890,18 @@ body.constellation .dl-bar-tick-adapt {
 }
 
 body.constellation .dl-bar-label-adapt {
+  /* fill-opacity: 0.80 carries over from the light-mode rule above unless
+     restated here — left alone, it multiplies into this alpha and pulls
+     the real composited contrast below AA even though the color alone
+     reads fine. */
   fill: rgba(232, 224, 255, 0.55);
+  fill-opacity: 1;
+}
+
+body.constellation .dl-bar-label-now {
+  /* Light mode needs its own darker gold (above); dark mode's original
+     brighter shade already clears AA against the dark background. */
+  fill: #DAA520;
 }
 
 body.constellation .dl-bar-moon-tick {
