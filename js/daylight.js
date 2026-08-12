@@ -1610,36 +1610,54 @@
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/assets/darkness/' + routeId + '.json');
     xhr.onload = function () {
-      if (xhr.status !== 200) return;
+      if (xhr.status !== 200) {
+        console.warn('Darkness ribbon: "' + routeId + '.json" fetch returned status ' + xhr.status + '.');
+        return;
+      }
       var data;
-      try { data = JSON.parse(xhr.responseText); } catch (e) { return; }
+      try { data = JSON.parse(xhr.responseText); } catch (e) {
+        console.warn('Darkness ribbon: "' + routeId + '.json" is not valid JSON.');
+        return;
+      }
       if (data.unit !== 'mag/arcsec2') {
         console.warn('Darkness ribbon: "' + routeId + '" artifact unit is "' + data.unit
           + '", expected "mag/arcsec2" — rendering nothing rather than mislabeling radiance as brightness (Gate 0 §7).');
       }
       _darknessData[routeId] = data;
+      // The reader may have already picked a different route while this
+      // request was in flight (Finding 1) — cache the response either way,
+      // so coming back to this route later is instant, but only repaint
+      // the ribbon if it's still the route on screen.
+      if (routeId !== _currentRoute) return;
       renderDarknessRibbon(routeId, data);
     };
     xhr.onerror = function () {
-      // Secondary, route-scoped content (D12's own framing) — a failed
-      // fetch leaves the ribbon section hidden, the same state a route
-      // with no darkness data at all is already in, rather than
-      // surfacing a second error channel alongside dom.result's.
+      // Secondary, route-scoped content (D12's own framing): warn to the
+      // console, matching the wrong-unit branch above. updateRibbonForRoute
+      // already hid and cleared the section when this route was selected,
+      // so a failure just leaves it that way — guarded on _currentRoute,
+      // same as xhr.onload above, so a request for a route the reader has
+      // since left can't clear a different, valid ribbon that loaded after it.
+      console.warn('Darkness ribbon: network error fetching "' + routeId + '.json".');
+      if (routeId !== _currentRoute) return;
+      dom.ribbonWrap.hidden = true;
+      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
     };
     xhr.send();
   }
 
   // updateRibbonForRoute(routeId) — the single call site onRouteChange
-  // and the URL-restored-route path both use. Custom routes and no
-  // selection hide immediately, no fetch (D12); anything else loads
-  // (or, once cached, re-renders) that route's darkness data.
+  // and the URL-restored-route path both use. Hides and clears
+  // unconditionally, before deciding anything else, so a route switch
+  // never leaves the previous route's ribbon on screen while the next
+  // one loads (or fails to). Custom routes and no selection stop there,
+  // no fetch (D12); anything else then loads (or, once cached,
+  // re-renders) that route's darkness data.
   function updateRibbonForRoute(routeId) {
     if (!dom.ribbonWrap) return;
-    if (!routeId || routeId === 'custom') {
-      dom.ribbonWrap.hidden = true;
-      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
-      return;
-    }
+    dom.ribbonWrap.hidden = true;
+    clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+    if (!routeId || routeId === 'custom') return;
     loadDarknessData(routeId);
   }
 
@@ -1656,9 +1674,15 @@
       var stages;
       try { stages = JSON.parse(xhr.responseText); } catch (e) { return; }
       _stageData[routeId] = stages;
+      // Same currency guard as loadDarknessData (Finding 1): now two
+      // async sources are keyed to the route picker, not one, so caching
+      // a stale route's response without also guarding its render would
+      // let the bar and the ribbon settle on two different stale routes.
+      if (routeId !== _currentRoute) return;
       populateStageSelect(stages, requestedStageStr);
     };
     xhr.onerror = function () {
+      if (routeId !== _currentRoute) return;
       dom.result.textContent = "Couldn't load stage data for " + routeId + ". Try refreshing.";
     };
     xhr.send();
