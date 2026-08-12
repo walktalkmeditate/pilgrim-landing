@@ -1022,10 +1022,25 @@
       radio.addEventListener('change', onModeChange);
     });
 
-    dom.latInput.addEventListener('input', onFieldChange);
-    dom.lonInput.addEventListener('input', onFieldChange);
-    dom.distInput.addEventListener('input', onFieldChange);
-    dom.elevInput.addEventListener('input', onFieldChange);
+    // Coalesce lat/lon/distance/elevation keystrokes into one recompute per
+    // animation frame — same rAF pattern as js/moonpath.js's date-scrubber
+    // listener (setupScrubberListeners), carried over here since these four
+    // fire a full recompute+render on every keystroke via 'input'.
+    (function setupCustomFieldListeners() {
+      var rafPending = false;
+      function onCoordInput() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(function () {
+          rafPending = false;
+          onFieldChange();
+        });
+      }
+      dom.latInput.addEventListener('input', onCoordInput);
+      dom.lonInput.addEventListener('input', onCoordInput);
+      dom.distInput.addEventListener('input', onCoordInput);
+      dom.elevInput.addEventListener('input', onCoordInput);
+    })();
 
     dom.locateBtn.addEventListener('click', function () {
       if (!navigator.geolocation) {
@@ -1524,11 +1539,18 @@
 
     var Moon = (typeof window !== 'undefined' && window.Moon) ? window.Moon : null;
 
+    // renderSVG returns before drawing any moon ticks once a reverse walk
+    // has no feasible departure (mode 'reverse' with latestDepartUTC null —
+    // the stage is longer than today's daylight minus buffer). The legend
+    // should stay silent about the moon then too, rather than describing
+    // ticks the bar never drew.
+    var barDrawsMoonTicks = !(output.mode === 'reverse' && output.latestDepartUTC === null);
+
     // Same [domain.startUTC, domain.endUTC] window the bar itself now
     // draws moon ticks against (D4) — otherwise a moonset tick can render
     // on the bar while this legend stays silent about it, or vice versa.
     var legendDomain = DaylightMath.barDomainUTC(output);
-    if (legendDomain) {
+    if (legendDomain && barDrawsMoonTicks) {
       var srT = legendDomain.startUTC.getTime();
       var ssT = legendDomain.endUTC.getTime();
       var mrIn = output.moonriseUTC && output.moonriseUTC.getTime() >= srT && output.moonriseUTC.getTime() <= ssT;
