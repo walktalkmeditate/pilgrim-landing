@@ -647,6 +647,103 @@ equal(francesRuns.length, 128, 'camino-frances: real data (unaggregated, 1 km re
 var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
 ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
 
+console.log('\n=== darknessSummarySentence — worked examples from spec D10, real data ===\n');
+
+// Stated distanceKm per route, from assets/daylight/route-meta.json —
+// verified directly, not re-derived, since this is a fixture value, not
+// something under test here.
+var STATED_DISTANCE_KM = {
+  'camino-frances':   764,
+  'camino-ingles':    112,
+  'camino-norte':     784,
+  'camino-portugues': 243,
+  'camino-primitivo': 263,
+  'shikoku-88':       1200,
+  'kumano-kodo':      39
+};
+
+var primitivoArtifactForSentence = loadDarknessArtifact('camino-primitivo');
+equal(
+  D.darknessSummarySentence(primitivoArtifactForSentence, STATED_DISTANCE_KM['camino-primitivo'], 'km'),
+  'Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).',
+  'camino-primitivo (validated, no gap): four-band sentence, no lead-in, no trailing clause'
+);
+
+var francesArtifactForSentence = loadDarknessArtifact('camino-frances');
+equal(
+  D.darknessSummarySentence(francesArtifactForSentence, STATED_DISTANCE_KM['camino-frances'], 'km'),
+  'Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
+  'camino-frances (validated, no gap): four-band sentence — town glow\'s 3% is real but too small to name'
+);
+
+var portuguesArtifactForSentence = loadDarknessArtifact('camino-portugues');
+equal(
+  D.darknessSummarySentence(portuguesArtifactForSentence, STATED_DISTANCE_KM['camino-portugues'], 'km'),
+  'Mostly countryside (66%) and edge of town (20%), with some open dark (10%) and town glow (5%).',
+  'camino-portugues (validated, no gap): 66% concentrated in one middle band'
+);
+
+// Kumano: D6's single-band flatness collapses the composition sentence
+// to the one-band template — but D4 still attaches the trailing clause,
+// since heldOutValidation is false here regardless of how many bands
+// qualify. D10's own worked example for Kumano shows the bare
+// composition sentence alone; D4 is explicit that Kumano gets the same
+// textual marking Shikoku does, and AC #3 requires it — the sentence
+// below is the union of both decisions, not D10 read in isolation.
+var kumanoArtifactForSentence = loadDarknessArtifact('kumano-kodo');
+equal(
+  D.darknessSummarySentence(kumanoArtifactForSentence, STATED_DISTANCE_KM['kumano-kodo'], 'km'),
+  'As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.',
+  'kumano-kodo (unvalidated, no gap — stated 39 vs covered 38.0, diff 1.0): single-band sentence + D4 clause'
+);
+
+// Shikoku: both the lead-in (D3/D13 — stated 1200 vs covered 1080.5,
+// diff 119.5, comfortably over the 5 km gate) and the trailing clause
+// (D4) fire together — the only route where all three clauses compose
+// in one sentence.
+var shikokuArtifactForSentence = loadDarknessArtifact('shikoku-88');
+equal(
+  D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km'),
+  '1,080.5\u00A0km of its 1,200\u00A0km sampled. Mostly as it was (51%) and open dark (32%), with some countryside (17%). Not checked against a ground reading here, the way the five Camino routes are.',
+  'shikoku-88 (unvalidated, gap fires): lead-in + three-band sentence + D4 clause'
+);
+
+console.log('\n=== darknessSummarySentence — gate and edge-case behaviour ===\n');
+
+// The lead-in's own >5 km gate, checked directly rather than only via
+// real fixtures (which only exercise one side of the boundary each).
+var gateFixtureValues = new Array(10).fill(21.7); // all band 4, matches kumano's shape
+
+equal(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105, 'km'),
+  'As it was, the whole way.',
+  'gap exactly 5 km: lead-in does not fire (boundary is ">5", not ">=5")'
+);
+equal(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105.1, 'km'),
+  '100.0\u00A0km of its 105\u00A0km sampled. As it was, the whole way.',
+  'gap 5.1 km: lead-in fires'
+);
+equal(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'km'),
+  'As it was, the whole way.',
+  'statedDistanceKm null (no route-meta entry found): lead-in silently omitted, not thrown'
+);
+
+// unitSystem: mi conversion applies to both the sentence's own lead-in
+// numbers and nothing else (band shares are unitless percentages).
+equal(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 120, 'mi'),
+  '62.1\u00A0mi of its 75\u00A0mi sampled. As it was, the whole way.',
+  'unitSystem "mi": lead-in numbers convert (100 km -> 62.1 mi, 120 km -> 75 mi rounded)'
+);
+
+// Purity: three identical calls must return byte-equal strings.
+var s1 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');
+var s2 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');
+var s3 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');
+ok(s1 === s2 && s2 === s3, 'darknessSummarySentence is pure (3x identical args -> identical result)');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

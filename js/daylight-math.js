@@ -369,6 +369,134 @@
     return runs;
   }
 
+  /* ==========================================
+     Darkness ribbon — the summary sentence (D10, D11)
+     ========================================== */
+
+  // darknessFmtDistance(km, decimals, unitSystem) — grouped-number
+  // formatting for this sentence's own "N of its M {unit} sampled"
+  // lead-in. Deliberately not js/daylight.js's fmtDistance: this module
+  // has no dependency on daylight.js (the require graph runs the other
+  // way — daylight.js requires this file, never the reverse), so this is
+  // a small local mirror of the same shape: thousands separator,
+  // unitSystem-aware conversion, and the same U+00A0 (non-breaking
+  // space) fmtDistance already uses before its unit suffix, so a number
+  // like "1,080.5" can never wrap onto its own line away from "km". The
+  // unit sits immediately after the number for a second reason too: AC
+  // #4's bare-decimal sweep treats an unattached "1,080.5" as
+  // suspicious — a raw magnitude-shaped number — and it should.
+  function darknessFmtDistance(km, decimals, unitSystem) {
+    var val   = unitSystem === 'mi' ? km * 0.621371 : km;
+    var fixed = val.toFixed(decimals);
+    var dot   = fixed.indexOf('.');
+    var intPart  = dot === -1 ? fixed : fixed.slice(0, dot);
+    var fracPart = dot === -1 ? '' : fixed.slice(dot);
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return intPart + fracPart + '\u00A0' + (unitSystem === 'mi' ? 'mi' : 'km');
+  }
+
+  // darknessDistanceLeadIn — D10's "N of its M {unit} sampled" clause,
+  // gated on a >5 km gap between the darkness artifact's own coveredKm
+  // and route-meta.json's stated distanceKm (D13's own verified table:
+  // six of seven routes agree to sub-1 km rounding; Shikoku alone
+  // disagrees, by 173.2 km between the two bakes, comfortably clearing
+  // the 5 km gate). statedDistanceKm renders as a whole number, not
+  // forced to one decimal like coveredKm — it is itself a round,
+  // published trail-length figure in route-meta.json (1200, not
+  // 1200.4), and a fabricated ".0" on it would claim precision
+  // route-meta.json doesn't carry, the same discipline D7 applies to the
+  // darkness values themselves.
+  function darknessDistanceLeadIn(coveredKm, statedDistanceKm, unitSystem) {
+    if (statedDistanceKm == null) return '';
+    if (Math.abs(coveredKm - statedDistanceKm) <= 5) return '';
+    return darknessFmtDistance(coveredKm, 1, unitSystem) + ' of its '
+      + darknessFmtDistance(Math.round(statedDistanceKm), 0, unitSystem) + ' sampled. ';
+  }
+
+  // selectNamedDarknessBands(counts) — D10's selection rule: rounded
+  // whole-percent share, using the identical Math.round(100 × count /
+  // total) already used to verify the D1 table itself (so this can
+  // never silently disagree with it), bands at or above 5% only, sorted
+  // descending by share. At least one band always qualifies whenever
+  // total > 0 — five shares summing to 100 can't all sit under 5%.
+  function selectNamedDarknessBands(counts) {
+    var total = counts[0] + counts[1] + counts[2] + counts[3] + counts[4];
+    var bands = [];
+    for (var i = 0; i < counts.length; i++) {
+      var pct = total > 0 ? Math.round(100 * counts[i] / total) : 0;
+      if (pct >= 5) bands.push({ name: DARKNESS_BAND_NAMES[i], pct: pct });
+    }
+    bands.sort(function (a, b) { return b.pct - a.pct; });
+    return bands;
+  }
+
+  function capitalizeFirst(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // darknessCompositionSentence(bands) — D10's one/two/three-or-four
+  // templates, over bands already selected and sorted by
+  // selectNamedDarknessBands. Every branch ends the sentence with a
+  // period — the "Rendered as" list in the spec omits it from the
+  // three-or-four template's own line, but every one of D10's worked
+  // examples carries it, so it is terminal punctuation, not a documented
+  // omission.
+  function darknessCompositionSentence(bands) {
+    if (bands.length === 0) return '';
+    if (bands.length === 1) {
+      return capitalizeFirst(bands[0].name) + ', the whole way.';
+    }
+    if (bands.length === 2) {
+      return 'Mostly ' + bands[0].name + ' (' + bands[0].pct + '%) and '
+        + bands[1].name + ' (' + bands[1].pct + '%).';
+    }
+    var sentence = 'Mostly ' + bands[0].name + ' (' + bands[0].pct + '%) and '
+      + bands[1].name + ' (' + bands[1].pct + '%), with some '
+      + bands[2].name + ' (' + bands[2].pct + '%)';
+    if (bands.length >= 4) {
+      sentence += ' and ' + bands[3].name + ' (' + bands[3].pct + '%)';
+    }
+    return sentence + '.';
+  }
+
+  // darknessSummarySentence(darknessData, statedDistanceKm, unitSystem) —
+  // D10. Pure: the ribbon's text equivalent (D11) — the same string
+  // renderRibbon uses for both the svg's aria-label/<title> and the real
+  // sibling <p> outside it (AC #5), so this function, not the DOM
+  // wiring, is where "what does the sentence say" is actually decided.
+  //
+  // No route display name anywhere in the returned text. The route is
+  // already established by whatever selected it — the picker above this
+  // ribbon, the section it sits in — so restating it here would be pure
+  // repetition, and it would break the aria-label/summary-paragraph
+  // equivalence AC #5 checks at both ends of the band-count range (a
+  // one-band route's sentence is short enough that a repeated route name
+  // would dominate it, out of proportion with the four/five-band case).
+  //
+  // Two independent, orthogonal clauses bracket the composition
+  // sentence: the distance lead-in (gated on the coveredKm/statedKm
+  // gap, D3/D13) and the heldOutValidation trailing clause (D4). Both
+  // Shikoku and Kumano get the trailing clause — D4 names both
+  // explicitly ("Shikoku carries both this marking and D3's
+  // coarsening... Kumano carries only this marking") — even though only
+  // Shikoku's gap is wide enough to also trigger the lead-in.
+  //
+  // statedDistanceKm is route-meta.json's stated distanceKm for this
+  // route, or null/undefined when unavailable — the lead-in simply
+  // doesn't fire rather than throwing.
+  function darknessSummarySentence(darknessData, statedDistanceKm, unitSystem) {
+    var counts = darknessBandCounts(darknessData.values);
+    var bands  = selectNamedDarknessBands(counts);
+
+    var leadIn   = darknessDistanceLeadIn(darknessData.coveredKm, statedDistanceKm, unitSystem);
+    var sentence = darknessCompositionSentence(bands);
+    var trailing = darknessData.heldOutValidation === false
+      ? ' Not checked against a ground reading here, the way the five Camino routes are.'
+      : '';
+
+    return leadIn + sentence + trailing;
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
@@ -380,7 +508,8 @@
     darknessBandForValue:      darknessBandForValue,
     darknessBandCounts:        darknessBandCounts,
     darknessAggregateWindowKm: darknessAggregateWindowKm,
-    mergeDarknessRuns:         mergeDarknessRuns
+    mergeDarknessRuns:         mergeDarknessRuns,
+    darknessSummarySentence:   darknessSummarySentence
   };
 
   if (typeof module !== 'undefined' && module.exports) {

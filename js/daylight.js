@@ -526,11 +526,28 @@
     return h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
   }
 
+  // fmtDistanceNumber(km) — the shared grouped-number core fmtDistance
+  // builds its unit-suffixed strings from. Adds a thousands separator at
+  // >=1,000 (D10's own side-finding): Shikoku's coveredKm (1,080.5) and
+  // stated length (1,200) are the first inputs this page has ever handed
+  // fmtDistance that cross four digits — every pre-existing call site
+  // (stage distances, route totals) tops out under 1,000, so this is
+  // invisible everywhere except the one new place that needs it (the
+  // ribbon's own Shikoku edge label).
+  function fmtDistanceNumber(km) {
+    var fixed = km.toFixed(1);
+    var dot      = fixed.indexOf('.');
+    var intPart  = fixed.slice(0, dot);
+    var fracPart = fixed.slice(dot);
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return intPart + fracPart;
+  }
+
   function fmtDistance(km, unitSystem) {
     if (unitSystem === 'mi') {
-      return (km * 0.621371).toFixed(1) + ' mi';
+      return fmtDistanceNumber(km * 0.621371) + '\u00A0mi';
     }
-    return km.toFixed(1) + ' km';
+    return fmtDistanceNumber(km) + '\u00A0km';
   }
 
   function utcToBarX(utcDate, domain) {
@@ -977,22 +994,26 @@
     return false;
   }
 
-  // renderRibbon(darknessData, svgEl, unitSystem) — one stroke segment
-  // per run from DaylightMath.mergeDarknessRuns, coloured/named by
-  // DARKNESS_BAND_NAMES[band] (D1, D9) via the dl-ribbon-band-N classes
-  // in css/daylight.css, dashed when heldOutValidation is false (D4),
-  // plus the two end-distance labels drawn from coveredKm — never
-  // route-meta's stated distanceKm (AC #9). Draws nothing else: no
-  // baseline track, no ticks, so nothing is ever painted over the runs
-  // after they're placed.
+  // renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl)
+  // — one stroke segment per run from DaylightMath.mergeDarknessRuns,
+  // coloured/named by DARKNESS_BAND_NAMES[band] (D1, D9) via the
+  // dl-ribbon-band-N classes in css/daylight.css, dashed when
+  // heldOutValidation is false (D4), plus the two end-distance labels
+  // drawn from coveredKm — never route-meta's stated distanceKm (AC #9).
+  // Draws nothing else: no baseline track, no ticks, so nothing is ever
+  // painted over the runs after they're placed.
   //
-  // Ships a minimal accessible name — this function has no route
-  // display name or route-meta input, so it cannot build the full D10
-  // summary sentence; that wiring (and the sibling summary <p>'s text)
-  // is a future slice's job. The element is never accessible-name-less
-  // in the interim.
-  function renderRibbon(darknessData, svgEl, unitSystem) {
+  // statedDistanceKm and summaryEl are both optional (undefined is
+  // fine): statedDistanceKm feeds DaylightMath.darknessSummarySentence's
+  // own ">5 km gap" gate (D3/D13) — omitting it just means that gate
+  // never fires, not a thrown error. summaryEl, when given, is the real
+  // sibling <p> outside this <svg> (D8, D11) — the same sentence used
+  // for aria-label/<title> is also written there, so a screen-reader
+  // user and a sighted reader relying on plain DOM text land on
+  // identical words (AC #5).
+  function renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl) {
     clearSVG(svgEl);
+    if (summaryEl) summaryEl.textContent = '';
 
     if (!darknessData || darknessData.unit !== 'mag/arcsec2') return;
 
@@ -1009,11 +1030,12 @@
       }));
     });
 
-    var titleText = 'Darkness ribbon — ' + fmtDistance(coveredKm, unitSystem) + '.';
-    svgEl.setAttribute('aria-label', titleText);
+    var sentence = DaylightMath.darknessSummarySentence(darknessData, statedDistanceKm, unitSystem);
+    svgEl.setAttribute('aria-label', sentence);
     var titleEl = document.createElementNS(SVG_NS, 'title');
-    titleEl.textContent = titleText;
+    titleEl.textContent = sentence;
     svgEl.appendChild(titleEl);
+    if (summaryEl) summaryEl.textContent = sentence;
 
     var leftLbl = makeSVGEl('text', {
       class: 'dl-ribbon-label',
