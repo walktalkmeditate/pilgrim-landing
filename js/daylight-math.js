@@ -216,11 +216,71 @@
     };
   }
 
+  /* ==========================================
+     Darkness ribbon — band classification (D1, D3)
+     ========================================== */
+
+  // Five coarse steps, brightest to darkest, at 18.5 / 19.5 / 20.5 / 21.3
+  // mag/arcsec² (D1). Comfortably wider than the ±0.32 mag swing Gate 0's
+  // α-sensitivity finding puts on any single value (D7), so no sample can
+  // cross more than one boundary across the full range of α that cleared
+  // Gate 0's own gate.
+  var DARKNESS_BAND_BOUNDS = [18.5, 19.5, 20.5, 21.3];
+
+  // D9 band names, index-aligned with the bands DARKNESS_BAND_BOUNDS cuts:
+  // brightest (town glow) to darkest (as it was). "Open dark" replaces the
+  // working brief's "properly dark" so it doesn't echo the bar's own
+  // "true dark" directly above this ribbon.
+  var DARKNESS_BAND_NAMES = ['town glow', 'edge of town', 'countryside', 'open dark', 'as it was'];
+
+  // darknessBandForValue(mag) — a direct index into DARKNESS_BAND_BOUNDS.
+  // Half-open, left-inclusive (mirrors js/moon-lux.js's luxBracketFor
+  // discipline): a value exactly on a boundary belongs to the darker band
+  // above it, not the brighter one below.
+  function darknessBandForValue(mag) {
+    if (mag >= DARKNESS_BAND_BOUNDS[3]) return 4;
+    if (mag >= DARKNESS_BAND_BOUNDS[2]) return 3;
+    if (mag >= DARKNESS_BAND_BOUNDS[1]) return 2;
+    if (mag >= DARKNESS_BAND_BOUNDS[0]) return 1;
+    return 0;
+  }
+
+  // darknessBandCounts(values) — one pass over a route's per-kilometre
+  // values[], tallying each sample into its band. No per-route
+  // special-casing: Kumano's all-one-band result (D6) and Shikoku's spread
+  // both fall out of running this same function against their own values[],
+  // not a branch that checks the route id.
+  function darknessBandCounts(values) {
+    var counts = [0, 0, 0, 0, 0];
+    for (var i = 0; i < values.length; i++) {
+      counts[darknessBandForValue(values[i])]++;
+    }
+    return counts;
+  }
+
+  // darknessAggregateWindowKm(positionalConfidence) — D3. null when the
+  // route's positions are trustworthy at 1 km resolution
+  // (withinInterpolationLimit true — every shipped route except
+  // shikoku-88 today), so the caller draws per-kilometre as normal.
+  // Otherwise, the smallest round-ten-kilometre window at or above the
+  // distance within which 90% of the route's real waypoint gaps fall — a
+  // reader is never shown a boundary finer than the data can locate.
+  function darknessAggregateWindowKm(positionalConfidence) {
+    if (positionalConfidence.withinInterpolationLimit) return null;
+    return Math.ceil(positionalConfidence.p90GapKm / 10) * 10;
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
     buildICS:        buildICS,
-    barDomainUTC:    barDomainUTC
+    barDomainUTC:    barDomainUTC,
+
+    DARKNESS_BAND_BOUNDS:      DARKNESS_BAND_BOUNDS,
+    DARKNESS_BAND_NAMES:       DARKNESS_BAND_NAMES,
+    darknessBandForValue:      darknessBandForValue,
+    darknessBandCounts:        darknessBandCounts,
+    darknessAggregateWindowKm: darknessAggregateWindowKm
   };
 
   if (typeof module !== 'undefined' && module.exports) {
