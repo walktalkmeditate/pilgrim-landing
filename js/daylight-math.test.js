@@ -321,6 +321,10 @@ function twilightFixture(overrides) {
   return base;
 }
 
+// The margin only applies when astronomicalDawn/Dusk is itself present
+// (Finding 10) — once that field is null, the domain edge sits exactly
+// on whichever rung it fell back to, no padding, because there's
+// nothing (no true-dark segment, no adapt mark) to make room for there.
 equal(
   D.barDomainUTC(twilightFixture({})).startUTC.getTime(),
   new Date('2026-06-21T01:00:00Z').getTime(),
@@ -328,18 +332,18 @@ equal(
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T01:40:00Z').getTime(),
-  'dawn rung 1 — astronomicalDawn null: start = nauticalDawn − 60 min'
+  new Date('2026-06-21T02:40:00Z').getTime(),
+  'dawn rung 1 — astronomicalDawn null: start = nauticalDawn exactly, no margin'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T02:20:00Z').getTime(),
-  'dawn rung 2 — astronomical + nautical null: start = civilDawn − 60 min'
+  new Date('2026-06-21T03:20:00Z').getTime(),
+  'dawn rung 2 — astronomical + nautical null: start = civilDawn exactly, no margin'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null, civilDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T03:00:00Z').getTime(),
-  'dawn rung 3 — astronomical + nautical + civil null: start = sunriseUTC − 60 min'
+  new Date('2026-06-21T04:00:00Z').getTime(),
+  'dawn rung 3 — astronomical + nautical + civil null: start = sunriseUTC exactly, no margin'
 );
 
 equal(
@@ -349,18 +353,18 @@ equal(
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T22:20:00Z').getTime(),
-  'dusk rung 1 — astronomicalDusk null: end = nauticalDusk + 60 min'
+  new Date('2026-06-21T21:20:00Z').getTime(),
+  'dusk rung 1 — astronomicalDusk null: end = nauticalDusk exactly, no margin'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T21:40:00Z').getTime(),
-  'dusk rung 2 — astronomical + nautical null: end = civilDusk + 60 min'
+  new Date('2026-06-21T20:40:00Z').getTime(),
+  'dusk rung 2 — astronomical + nautical null: end = civilDusk exactly, no margin'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null, civilDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T21:00:00Z').getTime(),
-  'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC + 60 min'
+  new Date('2026-06-21T20:00:00Z').getTime(),
+  'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC exactly, no margin'
 );
 
 console.log('\n=== barDomainUTC — no sunrise/sunset at all ===\n');

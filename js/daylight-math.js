@@ -187,8 +187,17 @@
   // available" — because above ~48° latitude in summer, astronomical
   // (and sometimes nautical) twilight never occurs and those fields
   // are null:
-  //   start: astronomicalDawn → nauticalDawn → civilDawn → sunriseUTC, − margin
-  //   end:   astronomicalDusk → nauticalDusk → civilDusk → sunsetUTC,  + margin
+  //   start: astronomicalDawn → nauticalDawn → civilDawn → sunriseUTC
+  //   end:   astronomicalDusk → nauticalDusk → civilDusk → sunsetUTC
+  //
+  // The margin is only added on a side where astronomicalDawn/Dusk is
+  // itself present. daylight.js gates both the true-dark segment and the
+  // dark-adaptation mark on that same field, so where astronomical
+  // twilight never occurs, neither one draws anything — widening the
+  // domain there would only pad the bar with dead space past whichever
+  // rung we fell back to, not "true dark" (see Finding 10: at latitudes
+  // like Stockholm/Paris/Reykjavik in June, that's exactly what the
+  // unconditional margin used to do).
   //
   // Returns null when there is no sunrise/sunset at all (polar day/night
   // — handled upstream via output.isPolarDay / output.isPolarNight).
@@ -198,9 +207,12 @@
     var start = firstDate([output.astronomicalDawn, output.nauticalDawn, output.civilDawn, output.sunriseUTC]);
     var end   = firstDate([output.astronomicalDusk, output.nauticalDusk, output.civilDusk, output.sunsetUTC]);
 
+    var startMargin = output.astronomicalDawn ? BAR_DOMAIN_MARGIN_MS : 0;
+    var endMargin   = output.astronomicalDusk ? BAR_DOMAIN_MARGIN_MS : 0;
+
     return {
-      startUTC: new Date(start.getTime() - BAR_DOMAIN_MARGIN_MS),
-      endUTC:   new Date(end.getTime()   + BAR_DOMAIN_MARGIN_MS)
+      startUTC: new Date(start.getTime() - startMargin),
+      endUTC:   new Date(end.getTime()   + endMargin)
     };
   }
 

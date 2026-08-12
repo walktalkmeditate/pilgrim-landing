@@ -358,6 +358,43 @@ for (var doy = 0; doy < 365; doy++) {
 equal(overlapCount, 0,
   '365 days at Burgos (2026): 0 dl-bar-moonlight segments overlap [sunrise, sunset] (was 423 segments >20px wide before the fix)');
 
+console.log('\n=== renderSVG — margin is coherent where astronomical twilight never occurs (Finding 10) ===\n');
+
+// Stockholm (59.33N) at summer solstice: astronomical AND nautical dusk
+// both fail to occur — only civil twilight persists. Before the fix, the
+// domain still widened by BAR_DOMAIN_MARGIN_MS past civilDusk (the
+// fallback rung actually used), and nothing rendered in that sliver —
+// no truedark segment (gated on astronomicalDusk, which is null here),
+// no band (civil ends exactly at civilDusk). The margin was dead space.
+var stockholmOut = Daylight.recompute({
+  route: 'custom', customLat: '59.33', customLon: '18.06',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-06-21', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+ok(stockholmOut.astronomicalDusk === null && stockholmOut.nauticalDusk === null,
+  'fixture sanity: Stockholm 2026-06-21 has neither astronomical nor nautical dusk');
+ok(stockholmOut.civilDusk !== null, 'fixture sanity: Stockholm 2026-06-21 still has civil dusk');
+
+var stockholmDomain = DaylightMath.barDomainUTC(stockholmOut);
+equal(stockholmDomain.startUTC.getTime(), stockholmOut.civilDawn.getTime(),
+  'Stockholm: domain start = civilDawn exactly — no margin past the outermost band we could compute');
+equal(stockholmDomain.endUTC.getTime(), stockholmOut.civilDusk.getTime(),
+  'Stockholm: domain end = civilDusk exactly — no margin');
+
+var svgStockholm     = makeNode('svg');
+Daylight.renderSVG(stockholmOut, svgStockholm, null, '24h');
+var stockholmCivil   = oneByClass(svgStockholm, 'dl-bar-civil');
+
+ok(stockholmCivil !== null, 'Stockholm: dl-bar-civil band is present');
+if (stockholmCivil) {
+  equal(stockholmCivil.attrs.x1, BAR_X1,
+    'Stockholm: dl-bar-civil reaches BAR_X1 exactly — the bar\'s left edge is meaningful, not dead margin');
+  equal(stockholmCivil.attrs.x2, BAR_X2,
+    'Stockholm: dl-bar-civil reaches BAR_X2 exactly — the bar\'s right edge is meaningful, not dead margin');
+}
+ok(byClass(svgStockholm, 'dl-bar-truedark').length === 0,
+  'Stockholm: no dl-bar-truedark element (astronomical twilight never occurs here)');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
