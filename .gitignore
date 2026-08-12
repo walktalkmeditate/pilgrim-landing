@@ -37,3 +37,10 @@ node_modules/
 
 # Wrangler local state (created by scripts/publish-collective-routes)
 .wrangler/
+
+# Python virtualenv for scripts/darkness/
+.venv/
+__pycache__/
+
+# Black Marble source tiles — ~90 MB each, fetched by scripts/darkness/fetch_tiles.py
+scripts/darkness/data/

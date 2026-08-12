@@ -51,6 +51,33 @@ The script refuses to publish when the working artifact differs from a fresh bak
 
 Bucket cache status is `DYNAMIC`, so an upload is live immediately and needs no purge. The published object carries `access-control-allow-origin: https://pilgrimapp.org`; from any other origin (a local server, a preview host) the CDN fetch fails and the pages fall back to the committed copy. That is the fallback working, not a bug.
 
+## Darkness data
+
+`assets/darkness/` holds per-kilometre sky-darkness values along each
+pilgrimage route, in mag/arcsec², sampled from NASA Black Marble VNP46A4
+night-lights radiance and blurred by a 100 km light-propagation kernel —
+sky glow travels, so the pixel under your boots is not the answer. Run
+`scripts/darkness/bake_darkness.py` when NASA publishes a new annual
+composite; see `scripts/darkness/README.md` for setup. Both it and
+`scripts/darkness/fetch_tiles.py` need a sibling `../open-pilgrimages`
+checkout, the same convention the two baking scripts above use.
+
+**This is the one place in the repo that uses Python and third-party
+dependencies.** Reading a 90 MB HDF5 grid and FFT-convolving it is not
+dependency-free Node work, and pretending otherwise would be worse than an
+honest exception. The rule that still holds everywhere: the browser reads
+only committed static JSON — no network call, no runtime dependency, no
+build step.
+
+The conversion from radiance to sky brightness is calibrated against five
+Galician SQM sites and validated leave-one-out at 0.378 mag against a 0.5
+tolerance. The Japanese routes carry no held-out validation — see the
+Result section of `docs/specs/2026-08-11-darkness-data-audit.md` before
+putting any of these numbers in front of a reader.
+
+Output is deterministic, so a clean `git diff assets/darkness/` confirms
+nothing drifted.
+
 ## Related
 
 - [Pilgrim iOS](https://github.com/walktalkmeditate/pilgrim-ios) — the iOS app
