@@ -487,29 +487,53 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  // darknessCompositionSentence(bands) — D10's one/two/three-or-four
-  // templates, over bands already selected and sorted by
-  // selectNamedDarknessBands. Every branch ends the sentence with a
-  // period — the "Rendered as" list in the spec omits it from the
-  // three-or-four template's own line, but every one of D10's worked
-  // examples carries it, so it is terminal punctuation, not a documented
-  // omission.
+  // fmtBandShare(band) — the "{name} ({pct}%)" fragment every template
+  // below builds from, so the two/three/four/five-band forms all read as
+  // one shared shape rather than each spelling it out separately.
+  function fmtBandShare(band) {
+    return band.name + ' (' + band.pct + '%)';
+  }
+
+  // joinWithAnd(parts) — "A", "A and B", or "A, B and C" (no serial comma
+  // before the final "and" — matches the two-item shape D10's own
+  // three-or-four-band template already used: "C (c%) and D (d%)", no
+  // comma). Used for whatever trails the fixed "Mostly A and B" opener
+  // below, so a fifth qualifying band extends the same list rather than
+  // needing a new sentence shape.
+  function joinWithAnd(parts) {
+    if (parts.length === 1) return parts[0];
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+  }
+
+  // darknessCompositionSentence(bands) — D10's templates, over bands
+  // already selected and sorted by selectNamedDarknessBands. Every branch
+  // ends the sentence with a period — the "Rendered as" list in the spec
+  // omits it from the three-or-more template's own line, but every one of
+  // D10's worked examples carries it, so it is terminal punctuation, not
+  // a documented omission.
+  //
+  // Bands beyond the fixed "Mostly A and B" opener form an n-ary
+  // "with some X, Y and Z" list, not a fixed three-or-four-band template
+  // with a cap at four: five bands can all qualify (five real shares
+  // summing to 100, each individually >=5%), and the fixed template used
+  // to just stop naming after the fourth, silently dropping a fifth real,
+  // qualifying band from the sentence. joinWithAnd generalizes the exact
+  // same "C (c%) and D (d%)" shape the old template used for its own
+  // two-item tail, so every one/two/three/four-band sentence this
+  // function already produced is byte-identical to before — only a fifth
+  // band (never produced by any of the seven shipped routes today) is
+  // new behaviour.
   function darknessCompositionSentence(bands) {
     if (bands.length === 0) return '';
     if (bands.length === 1) {
       return capitalizeFirst(bands[0].name) + ', the whole way.';
     }
     if (bands.length === 2) {
-      return 'Mostly ' + bands[0].name + ' (' + bands[0].pct + '%) and '
-        + bands[1].name + ' (' + bands[1].pct + '%).';
+      return 'Mostly ' + fmtBandShare(bands[0]) + ' and ' + fmtBandShare(bands[1]) + '.';
     }
-    var sentence = 'Mostly ' + bands[0].name + ' (' + bands[0].pct + '%) and '
-      + bands[1].name + ' (' + bands[1].pct + '%), with some '
-      + bands[2].name + ' (' + bands[2].pct + '%)';
-    if (bands.length >= 4) {
-      sentence += ' and ' + bands[3].name + ' (' + bands[3].pct + '%)';
-    }
-    return sentence + '.';
+    var rest = bands.slice(2).map(fmtBandShare);
+    return 'Mostly ' + fmtBandShare(bands[0]) + ' and ' + fmtBandShare(bands[1])
+      + ', with some ' + joinWithAnd(rest) + '.';
   }
 
   // darknessBandStatsInRange(runs, lo, hi) — the km-weighted mean band

@@ -753,6 +753,34 @@ equal(
   'end-to-end: 100 samples at [2,3,45,50,0] counts select exactly two qualifying bands (2% and 3% both drop) and render the two-band template'
 );
 
+console.log('\n=== darknessCompositionSentence — a fifth qualifying band is never silently dropped (Finding 5) ===\n');
+
+// Five real shares summing to 100, each individually >=5%, is a real
+// (if unshipped) shape: the old fixed "three-or-four" template stopped
+// naming after the fourth band, so a fifth qualifying band vanished from
+// the sentence with no error and no sign anything was missing.
+equal(
+  D.darknessCompositionSentence([
+    { name: 'as it was',    pct: 40 },
+    { name: 'open dark',    pct: 30 },
+    { name: 'countryside',  pct: 15 },
+    { name: 'edge of town', pct: 10 },
+    { name: 'town glow',    pct: 5 }
+  ]),
+  'Mostly as it was (40%) and open dark (30%), with some countryside (15%), edge of town (10%) and town glow (5%).',
+  'exactly five bands, hand-built: the "with some" list extends to all three trailing bands — none dropped'
+);
+
+// selectNamedDarknessBands' own selection/sort feeding straight into the
+// template, from raw counts rather than hand-built band objects — proves
+// the whole path (selection through five-band rendering), not just the
+// template in isolation above.
+equal(
+  D.darknessCompositionSentence(D.selectNamedDarknessBands([5, 10, 15, 30, 40])),
+  'Mostly as it was (40%) and open dark (30%), with some countryside (15%), edge of town (10%) and town glow (5%).',
+  'selectNamedDarknessBands([5,10,15,30,40]) selects and sorts all five (all clear 5%), darknessCompositionSentence names all five'
+);
+
 console.log('\n=== darknessPositionalClause — pinned fixtures, both gates (Finding 3) ===\n');
 
 // Hand-built runs, not real routes — isolates each gate precisely rather
