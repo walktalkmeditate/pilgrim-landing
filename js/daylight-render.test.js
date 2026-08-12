@@ -440,6 +440,50 @@ ok(titleStockholm.indexOf('true dark') === -1,
 ok(titleStockholm.indexOf('eyes adjust') === -1,
   'Stockholm: titleText omits "eyes adjust" — astronomicalDusk is null, no adaptation mark was drawn');
 
+console.log('\n=== recompute — night facts exist as text, not just SVG geometry (Finding 5) ===\n');
+
+// Burgos 2026-09-15 (fixture above): moon has set (19:12Z) before
+// astronomicalDusk + DARK_ADAPT_MIN (20:22Z), so the bracket at that
+// instant is 'faint' — an exact, hand-verified string, not just a
+// non-empty check, so a maths regression in the wiring (wrong instant,
+// wrong lat/lon) would show up here even though moon-lux.js's own
+// thresholds are out of scope.
+var burgosNightAnn = fwdOut.annotations.filter(function (a) {
+  return a.text.indexOf('True dark') !== -1;
+});
+ok(burgosNightAnn.length === 1, 'Burgos: exactly one true-dark/eyes-adjust annotation');
+if (burgosNightAnn.length === 1) {
+  equal(burgosNightAnn[0].text,
+    'True dark holds from 15:02 to 23:17; your eyes will have adjusted by 15:22.',
+    'Burgos: true-dark annotation text (24h, no stage tz — matches the burgosForward fixture)');
+}
+ok(fwdOut.moonBrightnessAtAdapt !== null, 'Burgos: moonBrightnessAtAdapt is populated (astronomicalDusk exists)');
+if (fwdOut.moonBrightnessAtAdapt) {
+  equal(fwdOut.moonBrightnessAtAdapt.label, 'faint',
+    'Burgos 2026-09-15: moon has already set by adapt time — bracket is faint');
+  equal(fwdOut.moonBrightnessAtAdapt.prose, 'effectively dark; headlamp required',
+    'Burgos 2026-09-15: prose is MoonLux.luxBracketFor\'s own string, not restated');
+}
+
+// A second date at the same coordinates, closer to full moon, to prove
+// the field tracks the actual moon geometry rather than always reading
+// the same bracket back.
+var brightNightOut = Daylight.recompute({
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-26', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+ok(brightNightOut.moonBrightnessAtAdapt && brightNightOut.moonBrightnessAtAdapt.label === 'mid',
+  'Burgos 2026-09-26 (closer to full moon): bracket differs from the 09-15 fixture (mid, not faint)');
+
+// Stockholm (fixture above): astronomicalDusk is null, so there is no
+// adaptation instant to sample brightness at, and no true-dark
+// annotation to push — both stay absent, matching the SVG's own gate.
+ok(stockholmOut.moonBrightnessAtAdapt === null,
+  'Stockholm: moonBrightnessAtAdapt is null — astronomicalDusk never occurs here');
+ok(stockholmOut.annotations.every(function (a) { return a.text.indexOf('True dark') === -1; }),
+  'Stockholm: no true-dark/eyes-adjust annotation — nothing to report');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

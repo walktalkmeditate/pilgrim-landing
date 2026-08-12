@@ -21,6 +21,11 @@
 
   var MS_PER_MIN = 60000;
 
+  // Rod-cell dark adaptation — a walker's number, not the sky's (D5).
+  // Shared by recompute (surfaces it as an annotation) and renderSVG
+  // (draws the tick + label) — both need the same instant.
+  var DARK_ADAPT_MIN = 20;
+
   /* ==========================================
      Timezone helpers (D4 + D5)
      ========================================== */
@@ -39,14 +44,33 @@
     return y + '-' + m + '-' + d;
   }
 
+  // Constructing an Intl.DateTimeFormat is the expensive part of
+  // formatting a time (millisecond-scale — ICU locale data, not a plain
+  // object literal); .format() on an existing one is not. recompute()
+  // calls timeInTz several times per invocation with the same
+  // (ianaTz, clockFmt) pair (once per annotation clause), and renderSVG
+  // calls it repeatedly across a single render, so a formatter is built
+  // once per pair and reused for the life of the page rather than once
+  // per call.
+  var _timeFormatterCache = {};
+  function timeFormatterFor(ianaTz, clockFmt) {
+    var key = (ianaTz || '') + '|' + clockFmt;
+    var fmt = _timeFormatterCache[key];
+    if (!fmt) {
+      var opts = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: clockFmt === '12h'
+      };
+      if (ianaTz) opts.timeZone = ianaTz;
+      fmt = new Intl.DateTimeFormat('en-US', opts);
+      _timeFormatterCache[key] = fmt;
+    }
+    return fmt;
+  }
+
   function timeInTz(utcDate, ianaTz, clockFmt) {
-    var opts = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: clockFmt === '12h'
-    };
-    if (ianaTz) opts.timeZone = ianaTz;
-    return new Intl.DateTimeFormat('en-US', opts).format(utcDate);
+    return timeFormatterFor(ianaTz, clockFmt).format(utcDate);
   }
 
   function tzOffsetMinutes(utcDate, ianaTz) {
@@ -169,6 +193,41 @@
       annotations.push({ kind: 'edge', text: 'Polar night — sun does not rise on this date.' });
     }
 
+    // Night facts: the bar draws a true-dark segment and a dark-adaptation
+    // mark whenever astronomical twilight exists, regardless of the walk
+    // plan (see renderSVG) — surfaced here as real annotation text too,
+    // since a role="img" SVG flattens its subtree and exposes only the
+    // accessible name, not any text drawn inside it. moonBrightnessAtAdapt
+    // rides along on the output so the moon legend (DOM layer) can report
+    // it without re-deriving the same lux sample.
+    var moonBrightnessAtAdapt = null;
+    if (astronomicalDusk) {
+      var adaptAtUTC    = new Date(astronomicalDusk.getTime() + DARK_ADAPT_MIN * MS_PER_MIN);
+      var adaptAltitude = SunPathMath.moonAltAzAt(adaptAtUTC, lat, lon).altitude;
+      var adaptLux      = MoonLux.moonLuxAt(moonKFromPhase(moonPhase), adaptAltitude);
+      moonBrightnessAtAdapt = MoonLux.luxBracketFor(adaptLux);
+    }
+
+    if (astronomicalDusk && astronomicalDawn) {
+      annotations.push({
+        kind: 'edge',
+        text: 'True dark holds from ' + timeInTz(astronomicalDusk, stageTz, '24h')
+          + ' to ' + timeInTz(astronomicalDawn, stageTz, '24h')
+          + '; your eyes will have adjusted by ' + timeInTz(adaptAtUTC, stageTz, '24h') + '.'
+      });
+    } else if (astronomicalDusk) {
+      annotations.push({
+        kind: 'edge',
+        text: 'True dark begins at ' + timeInTz(astronomicalDusk, stageTz, '24h')
+          + '; your eyes will have adjusted by ' + timeInTz(adaptAtUTC, stageTz, '24h') + '.'
+      });
+    } else if (astronomicalDawn) {
+      annotations.push({
+        kind: 'edge',
+        text: 'True dark lingers until ' + timeInTz(astronomicalDawn, stageTz, '24h') + '.'
+      });
+    }
+
     var walkMin = DaylightMath.walkingMinutes({
       distanceKm: distanceKm,
       elevGainM:  elevGainM,
@@ -204,6 +263,7 @@
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
           moonPhase:           moonPhase,
+          moonBrightnessAtAdapt: moonBrightnessAtAdapt,
           waypoints:           waypoints,
           distanceKm:          distanceKm
         };
@@ -236,6 +296,7 @@
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
           moonPhase:           moonPhase,
+          moonBrightnessAtAdapt: moonBrightnessAtAdapt,
           waypoints:           waypoints,
           distanceKm:          distanceKm
         };
@@ -275,6 +336,7 @@
           moonriseUTC:         moonriseUTC,
           moonsetUTC:          moonsetUTC,
           moonPhase:           moonPhase,
+          moonBrightnessAtAdapt: moonBrightnessAtAdapt,
           waypoints:           waypoints,
           distanceKm:          distanceKm
         };
@@ -303,6 +365,7 @@
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
         moonPhase:           moonPhase,
+        moonBrightnessAtAdapt: moonBrightnessAtAdapt,
         waypoints:           waypoints,
         distanceKm:          distanceKm
       };
@@ -343,6 +406,7 @@
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
         moonPhase:           moonPhase,
+        moonBrightnessAtAdapt: moonBrightnessAtAdapt,
         waypoints:           waypoints,
         distanceKm:          distanceKm
       };
@@ -372,6 +436,7 @@
         moonriseUTC:         moonriseUTC,
         moonsetUTC:          moonsetUTC,
         moonPhase:           moonPhase,
+        moonBrightnessAtAdapt: moonBrightnessAtAdapt,
         waypoints:           waypoints,
         distanceKm:          distanceKm
       };
@@ -418,6 +483,7 @@
       moonriseUTC:         moonriseUTC,
       moonsetUTC:          moonsetUTC,
       moonPhase:           moonPhase,
+      moonBrightnessAtAdapt: moonBrightnessAtAdapt,
       waypoints:           waypoints,
       distanceKm:          distanceKm
     };
@@ -438,9 +504,6 @@
   var MOON_BAND_Y      = 14;
   var MOON_SAMPLE_MS    = 10 * 60000;
   var MOON_BAND_OPACITY = { bright: 0.16, mid: 0.10, dim: 0.05, faint: 0 };
-
-  // Rod-cell dark adaptation — a walker's number, not the sky's (D5).
-  var DARK_ADAPT_MIN = 20;
 
   function clearSVG(svgEl) {
     while (svgEl.firstChild) {
@@ -1478,12 +1541,32 @@
       var mrIn = output.moonriseUTC && output.moonriseUTC.getTime() >= srT && output.moonriseUTC.getTime() <= ssT;
       var msIn = output.moonsetUTC  && output.moonsetUTC.getTime()  >= srT && output.moonsetUTC.getTime()  <= ssT;
 
-      if (mrIn || msIn) {
+      // moonBrightnessAtAdapt broadens this beyond "moonrise/moonset fell
+      // in frame" — a night can be worth reporting on brightness alone
+      // even when neither event does (moon already up, or still down,
+      // for the whole domain).
+      if (mrIn || msIn || output.moonBrightnessAtAdapt) {
         var parts = [];
         if (mrIn) parts.push('moonrise ' + fmtFn(output.moonriseUTC));
         if (msIn) parts.push('moonset '  + fmtFn(output.moonsetUTC));
         var phaseName = Moon ? Moon.getMoonPhaseName(output.moonPhase).toLowerCase() : '';
-        var moonText = parts.join(' · ') + (phaseName ? ' — ' + phaseName : '');
+        var riseSetPart = parts.length
+          ? parts.join(' · ') + (phaseName ? ' — ' + phaseName : '')
+          : '';
+        // Follows js/moonpath.js's lux-ring precedent (label — prose.) for
+        // the brightness clause, minus the raw lux figure: this page
+        // speaks in walking terms, not photometric ones.
+        var brightnessPart = output.moonBrightnessAtAdapt
+          ? 'Once your eyes adjust — ' + output.moonBrightnessAtAdapt.prose + '.'
+          : '';
+
+        var moonText;
+        if (riseSetPart && brightnessPart) {
+          moonText = riseSetPart + '. ' + brightnessPart;
+        } else {
+          moonText = riseSetPart || brightnessPart;
+        }
+
         dom.moonLegend.textContent = moonText;
         dom.moonLegend.hidden = false;
       }
