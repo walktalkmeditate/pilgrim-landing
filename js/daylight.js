@@ -511,6 +511,20 @@
     }
   }
 
+  // clearRibbonDisplay(svgEl, summaryEl) — empties both halves of the
+  // ribbon's text equivalence (D11), not only its geometry: clearSVG
+  // alone leaves a stale aria-label attribute behind (it only removes
+  // child nodes), which would otherwise keep describing whatever route
+  // was drawn last even after that route's runs are gone. Used by
+  // renderRibbon's own early-return guards and by the route-picker
+  // wiring's hide paths (updateRibbonForRoute, renderDarknessRibbon)
+  // alike, so "hidden" and "describes nothing" always change together.
+  function clearRibbonDisplay(svgEl, summaryEl) {
+    clearSVG(svgEl);
+    svgEl.setAttribute('aria-label', '');
+    if (summaryEl) summaryEl.textContent = '';
+  }
+
   function makeSVGEl(tag, attrs) {
     var el = document.createElementNS(SVG_NS, tag);
     Object.keys(attrs).forEach(function (k) {
@@ -1012,8 +1026,7 @@
   // user and a sighted reader relying on plain DOM text land on
   // identical words (AC #5).
   function renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl) {
-    clearSVG(svgEl);
-    if (summaryEl) summaryEl.textContent = '';
+    clearRibbonDisplay(svgEl, summaryEl);
 
     if (!darknessData || darknessData.unit !== 'mag/arcsec2') return;
 
@@ -1079,6 +1092,8 @@
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   var _stageData    = {};
+  var _darknessData = {};
+  var _routeMeta    = null;
   var _currentRoute = null;
   var _currentMode  = 'forward';
 
@@ -1120,6 +1135,9 @@
     dom.prefsPanel       = document.getElementById('dl-prefs-panel');
     dom.routesIndex      = document.getElementById('dl-routes-index');
     dom.routesIndexLinks = document.getElementById('dl-routes-index-links');
+    dom.ribbonWrap        = document.getElementById('dl-ribbon-wrap');
+    dom.ribbonSvg         = document.getElementById('dl-ribbon-svg');
+    dom.ribbonSummary     = document.getElementById('dl-ribbon-summary');
 
     if (!dom.routeSel) return;
 
@@ -1205,6 +1223,13 @@
           _prefs.unitSystem = radio.value;
           localStorage.setItem('pilgrim.prefs.unitSystem', _prefs.unitSystem);
           runAndRender();
+          // The ribbon isn't part of runAndRender's own output (D13 — it
+          // reacts to the route picker only), but its edge labels and
+          // summary sentence both carry unitSystem, so a km/mi switch
+          // still needs to repaint it — from cache, never a re-fetch.
+          if (_currentRoute && _darknessData[_currentRoute]) {
+            renderDarknessRibbon(_currentRoute, _darknessData[_currentRoute]);
+          }
         });
       });
 
@@ -1399,6 +1424,7 @@
       if (xhr.status !== 200) return;
       var meta;
       try { meta = JSON.parse(xhr.responseText); } catch (e) { return; }
+      _routeMeta = meta;
       populateRouteSelect(meta);
     };
     xhr.onerror = function () {
@@ -1473,6 +1499,7 @@
       } else if (_currentRoute) {
         loadStageData(_currentRoute, params.stage);
       }
+      updateRibbonForRoute(_currentRoute);
     }
   }
 
@@ -1510,11 +1537,95 @@
       dom.stageWrap.hidden = true;
       clearOutput();
     }
+    updateRibbonForRoute(routeId);
     pushURL();
   }
 
   function showCustomPanel(show) {
     dom.customPanel.hidden = !show;
+  }
+
+  /* ==========================================
+     Darkness ribbon — route-picker wiring (D12, D13)
+
+     Reacts to the route picker only: called from onRouteChange and from
+     populateRouteSelect's own URL-restored-route path, never from
+     onFieldChange (stage, date, pace, start time, buffer all route
+     through that instead, and none of them touch the ribbon). This
+     isn't a convention this code has to remember to honour —
+     renderRibbon's own signature has no stage/date parameter for a
+     caller to pass even by mistake (AC #7).
+     ========================================== */
+
+  // statedDistanceForRoute(routeId) — route-meta.json's stated
+  // distanceKm for this route, feeding darknessSummarySentence's own
+  // "N of its M km sampled" gate (D3/D13). null when _routeMeta hasn't
+  // loaded yet or carries no matching entry — the sentence gate simply
+  // doesn't fire rather than throwing (see darknessDistanceLeadIn).
+  function statedDistanceForRoute(routeId) {
+    if (!_routeMeta) return null;
+    var match = _routeMeta.filter(function (r) { return r.id === routeId; });
+    return match.length ? match[0].distanceKm : null;
+  }
+
+  // renderDarknessRibbon(routeId, data) — the DOM half of D12: shows or
+  // hides dl-ribbon-wrap based on ribbonSectionHidden's own verdict
+  // (custom/unselected routes, and Gate 0 §7's unit guard, both already
+  // decided there — this function doesn't re-decide either), and when
+  // shown, calls the same renderRibbon the render-test harness exercises
+  // directly.
+  function renderDarknessRibbon(routeId, data) {
+    if (!dom.ribbonWrap || !dom.ribbonSvg) return;
+
+    if (ribbonSectionHidden(routeId, data)) {
+      dom.ribbonWrap.hidden = true;
+      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+      return;
+    }
+
+    renderRibbon(data, dom.ribbonSvg, _prefs.unitSystem, statedDistanceForRoute(routeId), dom.ribbonSummary);
+    dom.ribbonWrap.hidden = false;
+  }
+
+  // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
+  // shape against _stageData, line for line, against a parallel
+  // _darknessData cache.
+  function loadDarknessData(routeId) {
+    if (_darknessData[routeId]) {
+      renderDarknessRibbon(routeId, _darknessData[routeId]);
+      return;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/assets/darkness/' + routeId + '.json');
+    xhr.onload = function () {
+      if (xhr.status !== 200) return;
+      var data;
+      try { data = JSON.parse(xhr.responseText); } catch (e) { return; }
+      _darknessData[routeId] = data;
+      renderDarknessRibbon(routeId, data);
+    };
+    xhr.onerror = function () {
+      // Secondary, route-scoped content (D12's own framing) — a failed
+      // fetch leaves the ribbon section hidden, the same state a route
+      // with no darkness data at all is already in, rather than
+      // surfacing a second error channel alongside dom.result's.
+    };
+    xhr.send();
+  }
+
+  // updateRibbonForRoute(routeId) — the single call site onRouteChange
+  // and the URL-restored-route path both use. Custom routes and no
+  // selection hide immediately, no fetch (D12); anything else loads
+  // (or, once cached, re-renders) that route's darkness data.
+  function updateRibbonForRoute(routeId) {
+    if (!dom.ribbonWrap) return;
+    if (!routeId || routeId === 'custom') {
+      dom.ribbonWrap.hidden = true;
+      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+      return;
+    }
+    loadDarknessData(routeId);
   }
 
   function loadStageData(routeId, requestedStageStr) {
