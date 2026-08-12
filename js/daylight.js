@@ -941,13 +941,107 @@
   }
 
   /* ==========================================
+     Darkness ribbon (D1-D13) — a second, independent instrument
+     beneath the bar above. Own <svg>, own coordinate function: never
+     utcToBarX (time) or kmToBarX (the bar's walk-subrange helper).
+     ========================================== */
+
+  var RIBBON_X1 = 24;
+  var RIBBON_X2 = 576;
+  var RIBBON_W  = RIBBON_X2 - RIBBON_X1;
+  var RIBBON_Y  = 16;
+  var RIBBON_LABEL_Y = 36;
+
+  // kmToRibbonX(kmFromStart, coveredKm) — the ribbon's own distance axis.
+  // RIBBON_X1/X2 share BAR_X1/BAR_X2's numeric values purely so the two
+  // rows keep the same page margins (D8's "layout coincidence, not a
+  // shared coordinate system") — restated as its own constants above
+  // rather than reusing BAR_X1/BAR_X2 by name, so nothing here implies
+  // otherwise. Never touches a Date or a bar domain object.
+  function kmToRibbonX(kmFromStart, coveredKm) {
+    if (coveredKm <= 0) return RIBBON_X1;
+    var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
+    return RIBBON_X1 + frac * RIBBON_W;
+  }
+
+  // ribbonSectionHidden(routeId, darknessData) — D12 (custom routes and
+  // the unselected state show no ribbon) plus the Gate 0 §7 defensive
+  // guard (a route whose artifact doesn't carry the sky-brightness unit
+  // renders nothing, rather than mislabeling a different quantity).
+  // Pure and DOM-free on purpose: the browser-only route-change wiring
+  // that calls this with real state is a later slice's concern; this
+  // slice's job is the decision itself, directly testable without it.
+  function ribbonSectionHidden(routeId, darknessData) {
+    if (!routeId || routeId === 'custom') return true;
+    if (!darknessData || darknessData.unit !== 'mag/arcsec2') return true;
+    return false;
+  }
+
+  // renderRibbon(darknessData, svgEl, unitSystem) — one stroke segment
+  // per run from DaylightMath.mergeDarknessRuns, coloured/named by
+  // DARKNESS_BAND_NAMES[band] (D1, D9) via the dl-ribbon-band-N classes
+  // in css/daylight.css, dashed when heldOutValidation is false (D4),
+  // plus the two end-distance labels drawn from coveredKm — never
+  // route-meta's stated distanceKm (AC #9). Draws nothing else: no
+  // baseline track, no ticks, so nothing is ever painted over the runs
+  // after they're placed.
+  //
+  // Ships a minimal accessible name — this function has no route
+  // display name or route-meta input, so it cannot build the full D10
+  // summary sentence; that wiring (and the sibling summary <p>'s text)
+  // is a future slice's job. The element is never accessible-name-less
+  // in the interim.
+  function renderRibbon(darknessData, svgEl, unitSystem) {
+    clearSVG(svgEl);
+
+    if (!darknessData || darknessData.unit !== 'mag/arcsec2') return;
+
+    var coveredKm = darknessData.coveredKm;
+    var windowKm  = DaylightMath.darknessAggregateWindowKm(darknessData.positionalConfidence);
+    var runs      = DaylightMath.mergeDarknessRuns(darknessData.values, darknessData.stepKm, coveredKm, windowKm);
+    var dashed    = darknessData.heldOutValidation === false;
+
+    runs.forEach(function (run) {
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-ribbon-band-' + run.band + (dashed ? ' dl-ribbon-unvalidated' : ''),
+        x1: kmToRibbonX(run.startKm, coveredKm), y1: RIBBON_Y,
+        x2: kmToRibbonX(run.endKm,   coveredKm), y2: RIBBON_Y
+      }));
+    });
+
+    var titleText = 'Darkness ribbon — ' + fmtDistance(coveredKm, unitSystem) + '.';
+    svgEl.setAttribute('aria-label', titleText);
+    var titleEl = document.createElementNS(SVG_NS, 'title');
+    titleEl.textContent = titleText;
+    svgEl.appendChild(titleEl);
+
+    var leftLbl = makeSVGEl('text', {
+      class: 'dl-ribbon-label',
+      x: RIBBON_X1, y: RIBBON_LABEL_Y,
+      'text-anchor': 'start'
+    });
+    leftLbl.textContent = fmtDistance(0, unitSystem);
+    svgEl.appendChild(leftLbl);
+
+    var rightLbl = makeSVGEl('text', {
+      class: 'dl-ribbon-label',
+      x: RIBBON_X2, y: RIBBON_LABEL_Y,
+      'text-anchor': 'end'
+    });
+    rightLbl.textContent = fmtDistance(coveredKm, unitSystem);
+    svgEl.appendChild(rightLbl);
+  }
+
+  /* ==========================================
      Exports
      ========================================== */
 
   var api = {
-    recompute:   recompute,
-    renderSVG:   renderSVG,
-    fmtDuration: fmtDuration
+    recompute:           recompute,
+    renderSVG:           renderSVG,
+    fmtDuration:         fmtDuration,
+    renderRibbon:        renderRibbon,
+    ribbonSectionHidden: ribbonSectionHidden
   };
 
   if (typeof module !== 'undefined' && module.exports) {

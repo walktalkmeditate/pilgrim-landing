@@ -402,6 +402,94 @@ body.constellation .dl-bar-waypoint {
 }
 
 /* =============================================
+   Darkness ribbon (darkness-ribbon slices 3-4)
+
+   A second, independent instrument (D8) — its own <svg>, its own
+   coordinate function (kmToRibbonX in js/daylight.js), never utcToBarX.
+   Shares X1/X2 pixel bounds with .daylight-bar-svg above purely so the
+   two rows keep the same left/right margins on the page; that is a
+   layout coincidence, not a shared axis.
+   ============================================= */
+
+.dl-ribbon-wrap {
+  margin: 0 0 3rem;
+}
+
+.dl-ribbon-wrap[hidden] { display: none; }
+
+.dl-ribbon-caption {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  margin: 0 0 0.8rem;
+}
+
+.dl-ribbon-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.dl-ribbon-summary {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--stone);
+  margin: 0.6rem 0 0;
+  line-height: 1.5;
+}
+
+/* Five bands, warm to cool, brightest to darkest (D1, D9) — the same
+   warm-stone-toward-cool-blue-grey direction .dl-bar-daylight through
+   .dl-bar-truedark already establish above, so a reader who has parsed
+   the bar transfers that intuition here for free (D8). Bolder overall
+   than the bar's own twilight opacities (0.22 down to 0.05): the ribbon
+   is meant to read as its own solid "ground" strip, not one more faint
+   layer folded into the bar's gradient stack. Hue and opacity both step
+   monotonically band to band, so band identity never rests on hue alone
+   for a reader who can't separate the hue shift (D11). stroke-linecap is
+   butt, not round — the same D3 (night-bar spec) lesson applies here:
+   these runs tile edge to edge, and a round cap's overhang would bleed
+   across a shared boundary between two adjacent bands. */
+.dl-ribbon-band-0,
+.dl-ribbon-band-1,
+.dl-ribbon-band-2,
+.dl-ribbon-band-3,
+.dl-ribbon-band-4 {
+  stroke-width: 16;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.dl-ribbon-band-0 { stroke: rgba(184, 175, 162, 0.30); }
+.dl-ribbon-band-1 { stroke: rgba(176, 173, 170, 0.24); }
+.dl-ribbon-band-2 { stroke: rgba(167, 170, 179, 0.18); }
+.dl-ribbon-band-3 { stroke: rgba(159, 168, 187, 0.13); }
+.dl-ribbon-band-4 { stroke: rgba(150, 165, 195, 0.09); }
+
+/* Unvalidated marking (D4) — a shape change, not a colour change, so it
+   reads under any colour-vision profile. Composes with a band class
+   (two independent classes on one element) rather than multiplying into
+   ten combined band+validation classes. */
+.dl-ribbon-unvalidated {
+  stroke-dasharray: 4 3;
+}
+
+.dl-ribbon-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  /* Same treatment as .dl-bar-label above, already proven to clear AA. */
+  fill: var(--ink);
+  fill-opacity: 0.75;
+}
+
+/* =============================================
    Routes index (slice 7)
    ============================================= */
 
@@ -915,6 +1003,25 @@ body.constellation .dl-bar-dot {
 
 body.constellation .dl-bar-buffer {
   stroke: rgba(232, 224, 255, 0.3);
+}
+
+body.constellation .dl-ribbon-caption,
+body.constellation .dl-ribbon-summary {
+  color: rgba(232, 224, 255, 0.55);
+}
+
+body.constellation .dl-ribbon-band-0 { stroke: rgba(232, 224, 255, 0.34); }
+body.constellation .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.27); }
+body.constellation .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.20); }
+body.constellation .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.13); }
+body.constellation .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.07); }
+
+body.constellation .dl-ribbon-label {
+  /* fill-opacity: 0.75 carries over from the light-mode rule above unless
+     restated here — see the identical note on body.constellation
+     .dl-bar-label. */
+  fill: rgba(232, 224, 255, 0.55);
+  fill-opacity: 1;
 }
 
 body.constellation .dl-routes-index {

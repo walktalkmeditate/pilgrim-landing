@@ -220,6 +220,21 @@
       </div>
     </section>
 
+    <!-- Darkness ribbon (D2, D8) — a sibling of #dl-output, not a
+         descendant: it reacts to the route picker only (D13), not to
+         #dl-output's aria-live="polite" recalculation cadence. Hidden by
+         default; shown only once a real baked route's darkness data has
+         loaded (D12). -->
+    <section class="dl-ribbon-wrap" id="dl-ribbon-wrap" aria-label="Darkness along the route" hidden>
+      <p class="dl-ribbon-caption">How dark this route gets, start to finish.</p>
+      <svg class="dl-ribbon-svg" id="dl-ribbon-svg"
+           viewBox="0 0 600 40" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-label="Darkness ribbon">
+        <title>Darkness ribbon</title>
+      </svg>
+      <p class="dl-ribbon-summary" id="dl-ribbon-summary"></p>
+    </section>
+
     <noscript>
       <p class="daylight-noscript">The walk-budget calculator needs JavaScript to run.</p>
     </noscript>

@@ -270,6 +270,105 @@
     return Math.ceil(positionalConfidence.p90GapKm / 10) * 10;
   }
 
+  // Standard median: the middle value, or the average of the two middle
+  // values when the count is even. Used by mergeDarknessRuns's aggregated
+  // path (D3) — median rather than mean, so one long interpolated run
+  // inside a window can't pull its displayed band further than a mean
+  // would.
+  function darknessMedian(values) {
+    var sorted = values.slice().sort(function (a, b) { return a - b; });
+    var mid = Math.floor(sorted.length / 2);
+    return (sorted.length % 2) ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  // mergeDarknessRuns(values, stepKm, coveredKm, aggregateWindowKm) — D3.
+  // Slice 2's prose named this helper but nothing demanded it yet, so it
+  // shipped without it; the ribbon needs it to turn per-kilometre values
+  // into drawable spans.
+  //
+  // Two paths, selected by aggregateWindowKm (darknessAggregateWindowKm's
+  // return value):
+  //   - null: classify every raw sample directly (darknessBandForValue) —
+  //     one point per kilometre.
+  //   - a number: bucket samples into fixed-width, grid-aligned windows —
+  //     [0, w), [w, 2w), … clamped to coveredKm at the end — and classify
+  //     each window by the *median* of the raw values that fall inside it.
+  //     Windows sit on the grid, not on wherever a sample happened to
+  //     land, so a window's width matches "the smallest round-ten-
+  //     kilometre window" D3 describes even when the last one is shorter.
+  //
+  // Either way, the classified points are then merged: consecutive points
+  // sharing a band collapse into one run — Kumano's uniform values[]
+  // collapses to the single flat run D6 describes, with no route-id
+  // special-casing. A run boundary sits at the km of whichever point
+  // started the new run — the same convention computeMoonBandRuns already
+  // uses on the bar's time axis (js/daylight.js), reused as a pattern
+  // here, not shared code, since one walks time and the other distance.
+  //
+  // The very last point can land exactly on coveredKm itself — an
+  // exact-multiple route length (unaggregated path), or a window whose
+  // grid boundary lands there (aggregated path). If that point's band
+  // disagrees with the run before it, the naive result is a
+  // {startKm: coveredKm, endKm: coveredKm, band: ...} run: a real
+  // classification with zero pixels to draw it. It's absorbed into the
+  // run before it instead of emitted as an invisible sliver — verified to
+  // never trigger on any of the seven shipped routes, only on adversarial
+  // input (js/daylight-math.test.js).
+  function mergeDarknessRuns(values, stepKm, coveredKm, aggregateWindowKm) {
+    var n = values.length;
+    var points;
+
+    if (aggregateWindowKm === null) {
+      points = values.map(function (v, i) {
+        return { km: i * stepKm, band: darknessBandForValue(v) };
+      });
+    } else {
+      var numWindows = Math.ceil(coveredKm / aggregateWindowKm);
+      var buckets = [];
+      for (var w = 0; w < numWindows; w++) buckets.push([]);
+      for (var i = 0; i < n; i++) {
+        var km = i * stepKm;
+        var bucketIdx = Math.min(Math.floor(km / aggregateWindowKm), numWindows - 1);
+        buckets[bucketIdx].push(values[i]);
+      }
+      var lastBand = null;
+      points = buckets.map(function (bucketValues, w2) {
+        // An empty window doesn't occur in any shipped route (verified
+        // directly against shikoku-88, the only route this path runs for
+        // today) — carrying the previous window's band forward keeps the
+        // tiling unbroken if it ever did, rather than crashing on an
+        // empty median.
+        var band = bucketValues.length
+          ? darknessBandForValue(darknessMedian(bucketValues))
+          : lastBand;
+        lastBand = band;
+        return { km: w2 * aggregateWindowKm, band: band };
+      });
+    }
+
+    if (!points.length) return [];
+
+    var runs = [];
+    var runStartKm = points[0].km;
+    var runBand   = points[0].band;
+    for (var j = 1; j < points.length; j++) {
+      if (points[j].band !== runBand) {
+        runs.push({ startKm: runStartKm, endKm: points[j].km, band: runBand });
+        runStartKm = points[j].km;
+        runBand    = points[j].band;
+      }
+    }
+    runs.push({ startKm: runStartKm, endKm: coveredKm, band: runBand });
+
+    var lastRun = runs[runs.length - 1];
+    if (runs.length > 1 && lastRun.endKm <= lastRun.startKm) {
+      runs.pop();
+      runs[runs.length - 1].endKm = coveredKm;
+    }
+
+    return runs;
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
@@ -280,7 +379,8 @@
     DARKNESS_BAND_NAMES:       DARKNESS_BAND_NAMES,
     darknessBandForValue:      darknessBandForValue,
     darknessBandCounts:        darknessBandCounts,
-    darknessAggregateWindowKm: darknessAggregateWindowKm
+    darknessAggregateWindowKm: darknessAggregateWindowKm,
+    mergeDarknessRuns:         mergeDarknessRuns
   };
 
   if (typeof module !== 'undefined' && module.exports) {
