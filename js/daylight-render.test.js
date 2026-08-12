@@ -302,6 +302,62 @@ adaptLocations.forEach(function (loc) {
   }
 });
 
+console.log('\n=== renderSVG — moon band never overlaps daylight (Finding 9) ===\n');
+
+// The finding's own reproduction: 2026-09-19 at Burgos used to emit a
+// "mid" run ("usable light along an open trail") that ran into
+// mid-afternoon, well before sunset (18:19:43Z that day).
+var sep19Out    = Daylight.recompute({
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-19', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+var sep19Domain = DaylightMath.barDomainUTC(sep19Out);
+var sep19SunriseX = expectedBarX(sep19Out.sunriseUTC, sep19Domain);
+var sep19SunsetX  = expectedBarX(sep19Out.sunsetUTC,  sep19Domain);
+
+var svgSep19 = makeNode('svg');
+Daylight.renderSVG(sep19Out, svgSep19, null, '24h');
+var sep19MoonLines = byClass(svgSep19, 'dl-bar-moonlight');
+
+ok(sep19MoonLines.length > 0, '2026-09-19 Burgos: moon band still renders something (fixture is non-vacuous)');
+ok(
+  sep19MoonLines.every(function (line) {
+    return line.attrs.x2 <= sep19SunriseX || line.attrs.x1 >= sep19SunsetX;
+  }),
+  '2026-09-19 Burgos: no dl-bar-moonlight segment overlaps [sunriseX, sunsetX]'
+);
+
+// Broader regression guard: the finding measured 423 segments wider than
+// 20px that were more than 50% inside daylight, replicated across all
+// 365 days of 2026 at Burgos. Post-fix, none should overlap daylight at
+// all (any width, any overlap fraction) — civilDawn/civilDusk gating is
+// strictly wider than sunrise/sunset, so full exclusion subsumes both.
+var overlapCount = 0;
+for (var doy = 0; doy < 365; doy++) {
+  var sweepDate = new Date(Date.UTC(2026, 0, 1 + doy)).toISOString().slice(0, 10);
+  var sweepOut = Daylight.recompute({
+    route: 'custom', customLat: '42.34', customLon: '-3.70',
+    customDistance: '20', customElevGain: '0',
+    date: sweepDate, paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+  });
+  if (sweepOut.error || sweepOut.isPolarDay || sweepOut.isPolarNight) continue;
+  var sweepDomain = DaylightMath.barDomainUTC(sweepOut);
+  if (!sweepDomain) continue;
+
+  var sweepSunriseX = expectedBarX(sweepOut.sunriseUTC, sweepDomain);
+  var sweepSunsetX  = expectedBarX(sweepOut.sunsetUTC,  sweepDomain);
+
+  var sweepSvg = makeNode('svg');
+  Daylight.renderSVG(sweepOut, sweepSvg, null, '24h');
+  byClass(sweepSvg, 'dl-bar-moonlight').forEach(function (line) {
+    if (line.attrs.x2 > sweepSunriseX && line.attrs.x1 < sweepSunsetX) overlapCount++;
+  });
+}
+
+equal(overlapCount, 0,
+  '365 days at Burgos (2026): 0 dl-bar-moonlight segments overlap [sunrise, sunset] (was 423 segments >20px wide before the fix)');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

@@ -497,6 +497,14 @@
   // bracket are merged into one line each, so a still night doesn't cost
   // ~100 DOM nodes. Zero-opacity (faint / moon down or new) runs are
   // skipped entirely — that skip *is* "visibly absent".
+  //
+  // Samples between civilDawn and civilDusk (falling back to
+  // sunriseUTC/sunsetUTC when those are null, per barDomainUTC's own
+  // fallback chain) are skipped outright: moonlight can't plausibly be
+  // "the light" a walker is using once the sky itself is doing that job.
+  // The current run is flushed at the boundary so a run never spans the
+  // gap — otherwise a bracket that happened to match on both sides of
+  // daylight would merge into one line straight through midday.
   function renderMoonBand(output, domain, svgEl) {
     if (!SunPathMath || !MoonLux) return;
     if (output.lat == null || output.lon == null) return;
@@ -504,6 +512,11 @@
     var k = moonKFromPhase(output.moonPhase);
     var startMs = domain.startUTC.getTime();
     var endMs   = domain.endUTC.getTime();
+
+    var dayStart = output.civilDawn || output.sunriseUTC;
+    var dayEnd   = output.civilDusk || output.sunsetUTC;
+    var dayStartMs = dayStart ? dayStart.getTime() : null;
+    var dayEndMs   = dayEnd   ? dayEnd.getTime()   : null;
 
     var runStartMs = null;
     var runLabel   = null;
@@ -519,9 +532,19 @@
           opacity: opacity
         }));
       }
+      runStartMs = null;
+      runLabel   = null;
     }
 
     for (var t = startMs; t <= endMs; t += MOON_SAMPLE_MS) {
+      var inDaylight = dayStartMs !== null && dayEndMs !== null &&
+        t >= dayStartMs && t < dayEndMs;
+
+      if (inDaylight) {
+        flushRun(t);
+        continue;
+      }
+
       var altitude = SunPathMath.moonAltAzAt(new Date(t), output.lat, output.lon).altitude;
       var lux      = MoonLux.moonLuxAt(k, altitude);
       var label    = MoonLux.luxBracketFor(lux).label;
