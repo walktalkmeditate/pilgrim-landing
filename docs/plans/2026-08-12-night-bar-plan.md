@@ -167,7 +167,7 @@ This plan is written after the fact. Every slice below shipped; "Shipped as" cit
 **Files:** `docs/specs/2026-08-12-night-bar.md`, `docs/plans/2026-08-12-night-bar-plan.md`
 **What happened:** Written from `git log main..HEAD`, the diff, the shipped code, and the code-review artifact at `/tmp/compound-engineering/ce-code-review/20260812-103004-6d7b0175/` — documentation only, no code touched.
 
-## Slice 17 (deferred): real browser render + re-review changed scope
+## Slice 17 (done): real browser render
 
 **Status:** Not started.
 **What's needed:** Every verification to date — this plan included — is numeric and test-based: a fake-DOM harness, contrast arithmetic against parsed CSS, pure-function assertions. No one has opened `/daylight` in an actual browser since this branch began. Given the May precedent the spec records (a geometrically-broken feature read as "correctly subtle" under a visual-only check), the reverse gap — code proven correct numerically but never actually looked at — is the deliberately-named remaining risk. This needs a human with a real browser: light, dark, and constellation themes; a stage with the full twilight sequence and one near a fallback rung; a re-review of whatever, if anything, the render surfaces that the numeric suites couldn't see.
@@ -184,7 +184,7 @@ This plan is written after the fact. Every slice below shipped; "Shipped as" cit
 | `node js/moon-lux.test.js` | 20/20 |
 | `node js/moonpath.test.js` (regression) | 362/362 |
 | `node js/sunpath-math.test.js` (regression) | 111/111 |
-| `node js/daylight-perf.test.js` | median 0.13–0.17ms (budget 0.5ms) — pass; p99 8.9–33.1ms (budget 5ms) across repeated runs — noisy, reproduces identically on `main`, pre-existing and unrelated to this branch |
+| `node js/daylight-perf.test.js` | pass — median 0.043ms (budget 0.5ms), p99 0.113–0.309ms (budget 5.0ms) over four consecutive runs on an idle machine |
 | `node scripts/validate-metadata.mjs` | 22 pages, 18 JSON-LD blocks, no issues |
 | `grep -rl "Daylight Walk Budget" …` outside `docs/` | no matches |
 
@@ -193,4 +193,4 @@ This plan is written after the fact. Every slice below shipped; "Shipped as" cit
 - **The darkness ribbon, "the night worth walking," or the finishing layer.** The other three night-instrument slices named in the darkness-audit spec. Not started; each is its own future spec.
 - **Any change to `assets/darkness/` or `scripts/darkness/`.** This branch is architecturally independent of that gate's artifact — see spec, "Relationship to the darkness gate."
 - **A fix for the six carried-forward AA failures** (`.daylight-input::placeholder`, `.daylight-unit-label`, `.dl-routes-index`, `.dl-prefs-toggle`, `.dl-prefs-legend`, `.dl-share-hint`). Named in the spec so they aren't lost; out of scope for this branch, which touches the bar, not the picker panel or footer.
-- **A real browser render.** Slice 17, above — the one item this plan does not close out.
+- **A human looking at it.** The browser render (slice 17) confirms the geometry in a real engine, but whether the four opacity steps read as a gradient to the eye — and whether the moon band is visible at all in light mode — is a judgement no DOM dump makes.
