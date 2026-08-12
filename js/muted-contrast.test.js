@@ -25,7 +25,13 @@
    applies. The failure shape is the same one this file already exists to
    catch — a per-element opacity composited toward the background — so it
    gets the same AA proof, walking fill/fill-opacity through the cascade
-   instead. */
+   instead.
+
+   A third, separate sweep near the very bottom covers the darkness
+   ribbon's five band fills. Those aren't text, so AA doesn't apply — but
+   they are decoration that a shipped version once rendered nearly flat
+   (1.02:1 between adjacent bands), so this file also gates the property
+   that actually matters for them: pairwise separation, not AA. */
 
 'use strict';
 
@@ -321,6 +327,99 @@ test('daylight ribbon caption/summary (outside-SVG text) clear AA for small text
         mode + ' ' + entry.base + ' is ' + ratio.toFixed(3) + ':1, below AA ' + AA_SMALL + ':1'
       );
     });
+  });
+});
+
+/* --- css/daylight.css: the ribbon's five band fills, pairwise -------
+
+   The five band classes are decoration, not text — AA doesn't gate
+   them (the launch doc already recorded that plainly). But the
+   feature's entire point is a reader telling five steps apart, and a
+   shipped version once measured 1.02:1 between adjacent bands in light
+   mode: correct data, correct geometry, visually inert, and it passed
+   a no-crowding pass because "not crowded" and "not visible" are
+   different questions. This sweep is what would have caught it: parse
+   the raw rgba() straight from the stylesheet (never restated as a
+   literal here, so it can't drift from what ships), composite each
+   band over the mode's real background at the stylesheet's own alpha —
+   same composite()/contrast() this whole file already uses — and gate
+   three things D9's five discrete bands and D11's "band identity never
+   rests on hue alone" both depend on: every band reads against its own
+   background, every adjacent pair clears a floor chosen to be actually
+   perceptible rather than merely non-identical, and the two extremes
+   (band-0 vs band-4) span wide enough that the ramp reads as five
+   steps rather than a flat strip with rounding noise at the ends.
+
+   'dark' here means the same thing it means for SVG_LABELS above:
+   body.constellation's override, checked against STATIC_PARCHMENT.dark
+   as the page's proxy background (this is the ribbon's *own* dark
+   treatment, not [data-theme="dark"] — /daylight has no such toggle). */
+
+const RIBBON_BAND_VS_BG_MIN = 1.1;
+const RIBBON_BAND_ADJACENT_MIN = 1.25;
+const RIBBON_BAND_EXTREMES_MIN = 2.0;
+const RIBBON_BAND_COUNT = 5;
+
+function ribbonBandColor(index, mode) {
+  const sel = (mode === 'dark' ? 'body.constellation ' : '') + '.dl-ribbon-band-' + index;
+  // Not ruleDeclarations (single first-match): .dl-ribbon-band-4 is also the
+  // last name in the shared band-0..4 selector list above (no trailing comma
+  // before its `{`), so a first-match lookup finds that shared geometry rule
+  // — stroke-width/fill/stroke-linecap, no colour — instead of the colour
+  // rule further down. Scanning every match and keeping the last one that
+  // actually declares `stroke:` sidesteps the ambiguity without changing the
+  // shared helper every other lookup in this file already relies on.
+  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}', 'g');
+  let m, decls = null;
+  while ((m = re.exec(daylightCss)) !== null) {
+    if (/stroke:\s*[^;]+;/.test(m[2])) decls = m[2];
+  }
+  assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
+  const strokeM = decls.match(/stroke:\s*([^;]+);/);
+  return resolveFillColor(strokeM[1].trim(), mode);
+}
+
+test('darkness ribbon bands stay pairwise distinguishable in both themes (D11)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const bg = hexToRgb(STATIC_PARCHMENT[mode]);
+    const composited = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
+      const color = ribbonBandColor(i, mode);
+      composited.push(composite(color.rgb, color.alpha, bg));
+    }
+
+    console.log('\n  darkness ribbon band separation — ' + mode + ' (bg ' + STATIC_PARCHMENT[mode] + ')');
+    composited.forEach(function (c, i) {
+      const ratio = contrast(c, bg);
+      console.log('    band-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
+      assert.ok(
+        ratio >= RIBBON_BAND_VS_BG_MIN,
+        mode + ' .dl-ribbon-band-' + i + ' is ' + ratio.toFixed(3) + ':1 against its page background, below the '
+          + RIBBON_BAND_VS_BG_MIN + ':1 distinguishability floor'
+      );
+    });
+
+    let minAdjacent = Infinity;
+    for (let i = 0; i < composited.length - 1; i++) {
+      const ratio = contrast(composited[i], composited[i + 1]);
+      console.log('    band-' + i + ' -> band-' + (i + 1) + '  = ' + ratio.toFixed(3) + ':1');
+      minAdjacent = Math.min(minAdjacent, ratio);
+      assert.ok(
+        ratio >= RIBBON_BAND_ADJACENT_MIN,
+        mode + ' band-' + i + '->band-' + (i + 1) + ' is ' + ratio.toFixed(3) + ':1, below the '
+          + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+      );
+    }
+
+    const extremes = contrast(composited[0], composited[RIBBON_BAND_COUNT - 1]);
+    console.log('    band-0 -> band-4 (extremes) = ' + extremes.toFixed(3) + ':1   (min adjacent '
+      + minAdjacent.toFixed(3) + ':1)');
+    assert.ok(
+      extremes >= RIBBON_BAND_EXTREMES_MIN,
+      mode + ' band-0 vs band-4 is ' + extremes.toFixed(3) + ':1, below the ' + RIBBON_BAND_EXTREMES_MIN
+        + ':1 extremes floor'
+    );
   });
 });
 

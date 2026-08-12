@@ -448,18 +448,34 @@ body.constellation .dl-bar-waypoint {
   line-height: 1.5;
 }
 
-/* Five bands, warm to cool, brightest to darkest (D1, D9) — the same
-   warm-stone-toward-cool-blue-grey direction .dl-bar-daylight through
-   .dl-bar-truedark already establish above, so a reader who has parsed
-   the bar transfers that intuition here for free (D8). Bolder overall
-   than the bar's own twilight opacities (0.22 down to 0.05): the ribbon
-   is meant to read as its own solid "ground" strip, not one more faint
-   layer folded into the bar's gradient stack. Hue and opacity both step
-   monotonically band to band, so band identity never rests on hue alone
-   for a reader who can't separate the hue shift (D11). stroke-linecap is
-   butt, not round — the same D3 (night-bar spec) lesson applies here:
-   these runs tile edge to edge, and a round cap's overhang would bleed
-   across a shared boundary between two adjacent bands. */
+/* Five bands, warm to cool (D1, D9) — the same warm-stone-toward-cool-
+   blue-grey direction .dl-bar-daylight through .dl-bar-truedark already
+   establish above, so a reader who has parsed the bar transfers that
+   intuition here for free (D8). Bolder overall than the bar's own
+   twilight opacities (0.22 down to 0.05): the ribbon is meant to read
+   as its own solid "ground" strip, not one more faint layer folded
+   into the bar's gradient stack.
+
+   Fill opacity climbs band-0 -> band-4, and the direction is
+   deliberate, not a copy of the bar's fade-out: band-0 ("town glow")
+   sits closest to both page backgrounds already (warm-on-parchment in
+   light mode, a dim wash on near-black in constellation), so it can
+   stay the quietest mark on the page and still hold a real gap to
+   band-4. Anchoring the loud end at band-0 instead would push band-4
+   ("as it was") toward invisibility against its own background just to
+   keep the same gap — losing the one property that matters more than
+   any single number here, that every band stays visible against the
+   page it sits on. Hue and opacity both step band to band, so band
+   identity never rests on hue alone for a reader who can't separate
+   the hue shift (D11); js/muted-contrast.test.js's ribbon-band-
+   separation assertions gate the result at >=1.25:1 for every adjacent
+   pair and >=2.0:1 band-0-vs-band-4, in both this file's colours and
+   body.constellation's below — these values are load-bearing, not
+   decorative, and that test is what stops them drifting back to flat.
+   stroke-linecap is butt, not round — the same D3 (night-bar spec)
+   lesson applies here: these runs tile edge to edge, and a round cap's
+   overhang would bleed across a shared boundary between two adjacent
+   bands. */
 .dl-ribbon-band-0,
 .dl-ribbon-band-1,
 .dl-ribbon-band-2,
@@ -471,10 +487,10 @@ body.constellation .dl-bar-waypoint {
 }
 
 .dl-ribbon-band-0 { stroke: rgba(184, 175, 162, 0.30); }
-.dl-ribbon-band-1 { stroke: rgba(176, 173, 170, 0.24); }
-.dl-ribbon-band-2 { stroke: rgba(167, 170, 179, 0.18); }
-.dl-ribbon-band-3 { stroke: rgba(159, 168, 187, 0.13); }
-.dl-ribbon-band-4 { stroke: rgba(150, 165, 195, 0.09); }
+.dl-ribbon-band-1 { stroke: rgba(152, 148, 144, 0.49); }
+.dl-ribbon-band-2 { stroke: rgba(120, 121, 125, 0.57); }
+.dl-ribbon-band-3 { stroke: rgba(87, 93, 107, 0.61); }
+.dl-ribbon-band-4 { stroke: rgba(55, 66, 88, 0.63); }
 
 /* Unvalidated marking (D4) — a shape change, not a colour change, so it
    reads under any colour-vision profile. Composes with a band class
@@ -1022,11 +1038,18 @@ body.constellation .dl-ribbon-summary {
   color: rgba(232, 224, 255, 0.55);
 }
 
-body.constellation .dl-ribbon-band-0 { stroke: rgba(232, 224, 255, 0.34); }
-body.constellation .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.27); }
-body.constellation .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.20); }
-body.constellation .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.13); }
-body.constellation .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.07); }
+/* One hue (lavender, matching the site's star-mode vocabulary
+   elsewhere) carrying all the separation on opacity, climbing band-0 ->
+   band-4 for the same reason the light-mode rule above climbs the same
+   direction — see that comment. Every step here tops out at 0.44
+   (band-4), below .dl-ribbon-summary's own 0.55 two rules up: the
+   loudest band still reads quieter than the sentence already stating
+   the same fact in words. */
+body.constellation .dl-ribbon-band-0 { stroke: rgba(232, 224, 255, 0.10); }
+body.constellation .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.19); }
+body.constellation .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
+body.constellation .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
+body.constellation .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
 
 body.constellation .dl-ribbon-label {
   /* fill-opacity: 0.75 carries over from the light-mode rule above unless
