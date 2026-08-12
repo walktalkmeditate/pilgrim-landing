@@ -10,6 +10,8 @@
 
 'use strict';
 
+var fs   = require('fs');
+var path = require('path');
 var D = require('./daylight-math.js');
 var Daylight = require('./daylight.js');
 
@@ -51,6 +53,19 @@ function ok(condition, label) {
     failed++;
     failures.push(label + ': condition was false');
     console.log('  ✗ ' + label);
+  }
+}
+
+// Shallow value comparison for arrays of primitives (band-count / boundary
+// fixtures) — === only checks reference identity, so equal() can't do this.
+function arrEqual(actual, expected, label) {
+  if (JSON.stringify(actual) === JSON.stringify(expected)) {
+    passed++;
+    console.log('  ✓ ' + label + '  (' + JSON.stringify(actual) + ')');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+    console.log('  ✗ ' + label + '  (' + JSON.stringify(actual) + ' vs ' + JSON.stringify(expected) + ')');
   }
 }
 
@@ -441,6 +456,95 @@ var tromsoSummerOut = Daylight.recompute({
 });
 ok(tromsoSummerOut.isPolarDay === true, 'Tromsø 2026-06-21 fixture sanity: isPolarDay true');
 isNull(D.barDomainUTC(tromsoSummerOut), 'polar day output → barDomainUTC null');
+
+console.log('\n=== darknessBandForValue — boundary-edge fixtures (D1) ===\n');
+
+// Half-open, left-inclusive: a value exactly on a boundary belongs to the
+// darker band above it, not the brighter one below (mirrors js/moon-lux.js's
+// luxBracketFor discipline). Proven independently against the real
+// distribution below, not just at these hand-picked edges.
+equal(D.darknessBandForValue(17.0),  0, '17.0 (well below lowest boundary) → band 0 (town glow)');
+equal(D.darknessBandForValue(18.4),  0, '18.4 (just below 18.5) → band 0 (town glow)');
+equal(D.darknessBandForValue(18.5),  1, '18.5 (on the boundary) → band 1 (edge of town)');
+equal(D.darknessBandForValue(19.4),  1, '19.4 (just below 19.5) → band 1 (edge of town)');
+equal(D.darknessBandForValue(19.5),  2, '19.5 (on the boundary) → band 2 (countryside)');
+equal(D.darknessBandForValue(20.4),  2, '20.4 (just below 20.5) → band 2 (countryside)');
+equal(D.darknessBandForValue(20.5),  3, '20.5 (on the boundary) → band 3 (open dark)');
+equal(D.darknessBandForValue(21.2),  3, '21.2 (just below 21.3) → band 3 (open dark)');
+equal(D.darknessBandForValue(21.3),  4, '21.3 (on the boundary) → band 4 (as it was)');
+equal(D.darknessBandForValue(22.0),  4, '22.0 (well above highest boundary) → band 4 (as it was)');
+
+console.log('\n=== DARKNESS_BAND_BOUNDS / DARKNESS_BAND_NAMES — shape (D1, D9) ===\n');
+
+arrEqual(D.DARKNESS_BAND_BOUNDS, [18.5, 19.5, 20.5, 21.3],
+  'DARKNESS_BAND_BOUNDS is the four D1 boundaries, in order');
+arrEqual(D.DARKNESS_BAND_NAMES, ['town glow', 'edge of town', 'countryside', 'open dark', 'as it was'],
+  'DARKNESS_BAND_NAMES is the five D9 names, brightest to darkest');
+
+console.log('\n=== darknessBandCounts — measured distribution across all 7 real artifacts (D1, AC #1) ===\n');
+
+var DARKNESS_DIR = path.join(__dirname, '..', 'assets', 'darkness');
+
+function loadDarknessArtifact(routeId) {
+  return JSON.parse(fs.readFileSync(path.join(DARKNESS_DIR, routeId + '.json'), 'utf8'));
+}
+
+// The exact percentage table from spec D1 (docs/specs/2026-08-12-darkness-ribbon.md),
+// which the spec itself derived directly from these same seven committed
+// artifacts — not a hand-built fixture standing in for them. AC #1 requires
+// this test read assets/darkness/*.json directly so the assertion can never
+// silently drift from what's actually shipped.
+var EXPECTED_DISTRIBUTION = {
+  'camino-frances':   [3,  8,  21, 39, 30],
+  'camino-ingles':    [2,  18, 46, 34, 0],
+  'camino-norte':     [3,  14, 34, 43, 7],
+  'camino-portugues': [5,  20, 66, 10, 0],
+  'camino-primitivo': [0,  6,  8,  34, 52],
+  'shikoku-88':       [0,  1,  17, 32, 51],
+  'kumano-kodo':      [0,  0,  0,  0,  100]
+};
+
+Object.keys(EXPECTED_DISTRIBUTION).forEach(function (routeId) {
+  var artifact = loadDarknessArtifact(routeId);
+  var counts   = D.darknessBandCounts(artifact.values);
+  var total    = artifact.values.length;
+  var pct      = counts.map(function (c) { return Math.round(100 * c / total); });
+  arrEqual(pct, EXPECTED_DISTRIBUTION[routeId],
+    routeId + ' — band % distribution matches D1 table (n=' + total + ')');
+});
+
+console.log('\n=== darknessAggregateWindowKm — D3 aggregation-window formula ===\n');
+
+equal(D.darknessAggregateWindowKm({ withinInterpolationLimit: false, p90GapKm: 34.4 }), 40,
+  'p90GapKm 34.4 (Shikoku-shaped), not within limit → 40 km window');
+equal(D.darknessAggregateWindowKm({ withinInterpolationLimit: false, p90GapKm: 6.0 }), 10,
+  'p90GapKm 6.0, not within limit → 10 km window');
+equal(D.darknessAggregateWindowKm({ withinInterpolationLimit: false, p90GapKm: 30.0 }), 30,
+  'p90GapKm 30.0 (exact multiple of 10) → 30 km window, ceil does not round past itself');
+equal(D.darknessAggregateWindowKm({ withinInterpolationLimit: true, p90GapKm: 34.4 }), null,
+  'withinInterpolationLimit true → null regardless of p90GapKm (no aggregation)');
+
+console.log('\n=== darknessAggregateWindowKm — real positionalConfidence, all 7 artifacts (D3) ===\n');
+
+// Only shikoku-88 fails withinInterpolationLimit today (meta.json geometry
+// summary, cross-checked per-route below) — the other six take the
+// unaggregated per-kilometre path.
+var EXPECTED_WINDOW = {
+  'camino-frances':   null,
+  'camino-ingles':    null,
+  'camino-norte':     null,
+  'camino-portugues': null,
+  'camino-primitivo': null,
+  'shikoku-88':       40,
+  'kumano-kodo':      null
+};
+
+Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
+  var artifact = loadDarknessArtifact(routeId);
+  var windowKm = D.darknessAggregateWindowKm(artifact.positionalConfidence);
+  equal(windowKm, EXPECTED_WINDOW[routeId],
+    routeId + ' — darknessAggregateWindowKm from real positionalConfidence');
+});
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
