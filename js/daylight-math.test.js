@@ -738,6 +738,38 @@ equal(
   'unitSystem "mi": lead-in numbers convert (100 km -> 62.1 mi, 120 km -> 75 mi rounded)'
 );
 
+console.log('\n=== darknessSummarySentence — heldOutValidation fails toward unvalidated, not trustworthy (Finding 5) ===\n');
+
+// A missing field, or a non-boolean value that merely LOOKS like it means
+// "false", must not be read as the literal boolean true — anything other
+// than true marks the route unvalidated (dashed stroke + trailing clause),
+// mirroring the identical !== true guard on js/daylight.js's renderRibbon.
+ok(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: undefined }, null, 'km')
+    .indexOf('Not checked against a ground reading') !== -1,
+  'heldOutValidation undefined (field missing entirely): treated as unvalidated, trailing clause present'
+);
+ok(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: 'false' }, null, 'km')
+    .indexOf('Not checked against a ground reading') !== -1,
+  'heldOutValidation "false" (string, not the boolean false): treated as unvalidated, trailing clause present'
+);
+ok(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: 0 }, null, 'km')
+    .indexOf('Not checked against a ground reading') !== -1,
+  'heldOutValidation 0 (falsy, not the boolean false): treated as unvalidated, trailing clause present'
+);
+ok(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: false }, null, 'km')
+    .indexOf('Not checked against a ground reading') !== -1,
+  'heldOutValidation false (the real boolean): still unvalidated, trailing clause present — unchanged from before Finding 5'
+);
+ok(
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'km')
+    .indexOf('Not checked against a ground reading') === -1,
+  'heldOutValidation true (the real boolean): validated, no trailing clause'
+);
+
 // Purity: three identical calls must return byte-equal strings.
 var s1 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');
 var s2 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');

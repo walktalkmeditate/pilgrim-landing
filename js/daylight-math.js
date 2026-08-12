@@ -490,7 +490,12 @@
 
     var leadIn   = darknessDistanceLeadIn(darknessData.coveredKm, statedDistanceKm, unitSystem);
     var sentence = darknessCompositionSentence(bands);
-    var trailing = darknessData.heldOutValidation === false
+    // !== true, not === false (Finding 5): a missing field or a malformed
+    // non-boolean value must read as unvalidated, not as trustworthy —
+    // mirrors the identical guard on the dashed stroke in
+    // js/daylight.js's renderRibbon, so the shape and the words never
+    // disagree about which routes are validated.
+    var trailing = darknessData.heldOutValidation !== true
       ? ' Not checked against a ground reading here, the way the five Camino routes are.'
       : '';
 

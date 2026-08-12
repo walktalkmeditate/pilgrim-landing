@@ -699,6 +699,35 @@ ok(summaryShikoku.textContent.indexOf('Not checked against a ground reading here
 ok(summaryFrances.textContent.indexOf('Not checked against a ground reading here') === -1,
   'real camino-frances (heldOutValidation true): summary paragraph carries no D4 clause');
 
+console.log('\n=== renderRibbon — Finding 5: heldOutValidation fails toward unvalidated (dashed), not trustworthy ===\n');
+
+// A missing field, or a non-boolean value that merely LOOKS like it means
+// "false", must not be read as the literal boolean true — anything other
+// than true dashes every run. Built from camino-frances (real,
+// heldOutValidation true, 128 runs) so the fixture proves the SAME
+// artifact flips from solid to fully dashed on this field alone, nothing
+// else about it changed.
+function cloneArtifact(artifact) {
+  return JSON.parse(JSON.stringify(artifact));
+}
+
+var missingValidationArtifact = cloneArtifact(francesArtifact);
+delete missingValidationArtifact.heldOutValidation;
+var svgMissingValidation = makeNode('svg');
+Daylight.renderRibbon(missingValidationArtifact, svgMissingValidation, 'km');
+var missingValidationRuns = elementsWithClassPrefix(svgMissingValidation, 'dl-ribbon-band-');
+ok(missingValidationRuns.length > 0, 'fixture sanity: heldOutValidation-missing fixture still draws runs');
+ok(missingValidationRuns.every(function (r) { return hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'heldOutValidation missing entirely (field absent from the artifact): every run is dashed');
+
+var stringFalseArtifact = cloneArtifact(francesArtifact);
+stringFalseArtifact.heldOutValidation = 'false';
+var svgStringFalse = makeNode('svg');
+Daylight.renderRibbon(stringFalseArtifact, svgStringFalse, 'km');
+var stringFalseRuns = elementsWithClassPrefix(svgStringFalse, 'dl-ribbon-band-');
+ok(stringFalseRuns.length > 0 && stringFalseRuns.every(function (r) { return hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'heldOutValidation "false" (the string, not the boolean false): every run is dashed');
+
 console.log('\n=== renderRibbon — AC #4: no bare magnitude value, no star-count vocabulary, in any text the ribbon produces (numeric-sweep half) ===\n');
 
 var BARE_DECIMAL_RE = /\d+\.\d+(?!\s*(km|mi|%))/;

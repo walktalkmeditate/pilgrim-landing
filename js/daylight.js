@@ -1011,11 +1011,13 @@
   // renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl)
   // — one stroke segment per run from DaylightMath.mergeDarknessRuns,
   // coloured/named by DARKNESS_BAND_NAMES[band] (D1, D9) via the
-  // dl-ribbon-band-N classes in css/daylight.css, dashed when
-  // heldOutValidation is false (D4), plus the two end-distance labels
-  // drawn from coveredKm — never route-meta's stated distanceKm (AC #9).
-  // Draws nothing else: no baseline track, no ticks, so nothing is ever
-  // painted over the runs after they're placed.
+  // dl-ribbon-band-N classes in css/daylight.css, dashed unless
+  // heldOutValidation is the literal boolean true (D4, Finding 5 — a
+  // missing or malformed field reads as unvalidated, not trustworthy),
+  // plus the two end-distance labels drawn from coveredKm — never
+  // route-meta's stated distanceKm (AC #9). Draws nothing else: no
+  // baseline track, no ticks, so nothing is ever painted over the runs
+  // after they're placed.
   //
   // statedDistanceKm and summaryEl are both optional (undefined is
   // fine): statedDistanceKm feeds DaylightMath.darknessSummarySentence's
@@ -1033,7 +1035,11 @@
     var coveredKm = darknessData.coveredKm;
     var windowKm  = DaylightMath.darknessAggregateWindowKm(darknessData.positionalConfidence);
     var runs      = DaylightMath.mergeDarknessRuns(darknessData.values, darknessData.stepKm, coveredKm, windowKm);
-    var dashed    = darknessData.heldOutValidation === false;
+    // !== true, not === false (Finding 5): a missing field or a malformed
+    // non-boolean value must read as unvalidated, not as trustworthy —
+    // the same fail-toward-the-safer-claim discipline the unit guard
+    // above already applies.
+    var dashed    = darknessData.heldOutValidation !== true;
 
     runs.forEach(function (run) {
       svgEl.appendChild(makeSVGEl('line', {
