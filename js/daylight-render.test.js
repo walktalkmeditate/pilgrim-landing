@@ -93,6 +93,7 @@ function ok(condition, label) {
 var BAR_X1 = 24;
 var BAR_X2 = 576;
 var BAR_W  = BAR_X2 - BAR_X1;
+var BAR_Y  = 52;
 
 function expectedBarX(utcDate, domain) {
   var span = domain.endUTC.getTime() - domain.startUTC.getTime();
@@ -251,6 +252,55 @@ if (civil && nautical && astronomical) {
     'right side nests: daylight < civil < nautical < astronomical < domain end'
   );
 }
+
+console.log('\n=== renderSVG — dark-adaptation mark clears the bar edge, own label row (Finding 8) ===\n');
+
+var adaptTick = oneByClass(svgFwd, 'dl-bar-tick-adapt');
+var adaptLbl  = oneByClass(svgFwd, 'dl-bar-label-adapt');
+var nowLabelRow  = BAR_Y - 14;
+var edgeLabelRow = BAR_Y + 22;
+
+ok(adaptTick !== null, 'Burgos: dl-bar-tick-adapt element is present (astronomical dusk occurs)');
+if (adaptTick) {
+  ok(BAR_X2 - adaptTick.attrs.x1 >= 20,
+    'Burgos: dl-bar-tick-adapt is at least 20px inside the right edge (BAR_X2=576), got x=' + adaptTick.attrs.x1.toFixed(2));
+}
+ok(adaptLbl !== null, 'Burgos: dl-bar-label-adapt element is present');
+if (adaptLbl) {
+  ok(adaptLbl.attrs.y !== nowLabelRow,
+    'dl-bar-label-adapt y does not share the "now" label row (BAR_Y-14=' + nowLabelRow + '), got y=' + adaptLbl.attrs.y);
+  ok(adaptLbl.attrs.y !== edgeLabelRow,
+    'dl-bar-label-adapt y does not share the sunrise/sunset label row (BAR_Y+22=' + edgeLabelRow + '), got y=' + adaptLbl.attrs.y);
+}
+
+// Same property across a spread of latitudes and hemispheres. The mark's
+// offset from astronomicalDusk is fixed in time (BAR_DOMAIN_MARGIN_MS −
+// DARK_ADAPT_MIN = 40 min), but the bar's ms-per-pixel varies with each
+// place's twilight-sequence length, so clearing 20px isn't proven by the
+// Burgos case alone — this is the same location set Finding 8 was measured
+// against.
+var adaptLocations = [
+  { name: 'equator',  lat: '0',       lon: '0' },
+  { name: 'Santiago', lat: '-33.45',  lon: '-70.67' },
+  { name: 'Tokyo',    lat: '35.6762', lon: '139.6503' },
+  { name: 'Ushuaia',  lat: '-54.8',   lon: '-68.3' }
+];
+
+adaptLocations.forEach(function (loc) {
+  var out = Daylight.recompute({
+    route: 'custom', customLat: loc.lat, customLon: loc.lon,
+    customDistance: '20', customElevGain: '0',
+    date: '2026-09-15', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+  });
+  var svg = makeNode('svg');
+  Daylight.renderSVG(out, svg, out.stageTz || null, '24h');
+  var tick = oneByClass(svg, 'dl-bar-tick-adapt');
+  ok(tick !== null, loc.name + ': dl-bar-tick-adapt is present');
+  if (tick) {
+    ok(BAR_X2 - tick.attrs.x1 >= 20,
+      loc.name + ': dl-bar-tick-adapt is at least 20px inside the right edge, got x=' + tick.attrs.x1.toFixed(2));
+  }
+});
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

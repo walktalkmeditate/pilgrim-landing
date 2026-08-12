@@ -747,6 +747,13 @@
     // Dark adaptation: rod cells take ~20 min to adjust. Only meaningful
     // once there's true dark to adapt into — skip when astronomical dusk
     // itself doesn't occur (fallback rung in effect).
+    //
+    // The mark sits at astronomicalDusk + DARK_ADAPT_MIN, and the domain
+    // ends at astronomicalDusk + BAR_DOMAIN_MARGIN_MS (daylight-math.js) —
+    // so it lands a fixed (BAR_DOMAIN_MARGIN_MS − DARK_ADAPT_MIN) short of
+    // the right edge at every latitude and season, by construction. That's
+    // correct, not a bug: both ends of the gap are anchored to the same
+    // instant, so widening the margin is what gives it room to read.
     if (output.astronomicalDusk) {
       var adaptTime = new Date(output.astronomicalDusk.getTime() + DARK_ADAPT_MIN * 60000);
       var adaptX    = utcToBarX(adaptTime, domain);
@@ -757,7 +764,10 @@
       }));
       var adaptLbl = makeSVGEl('text', {
         class: 'dl-bar-label-adapt',
-        x: adaptX - 4, y: BAR_Y - 14,
+        // Own row, above the "now" row (BAR_Y-14, which "now" occupies
+        // for a ~1h49m window most evenings) and clear of the
+        // sunrise/sunset row (BAR_Y+22) below the bar.
+        x: adaptX - 4, y: BAR_Y - 24,
         'text-anchor': 'end'
       });
       adaptLbl.textContent = 'eyes adjust';

@@ -165,7 +165,10 @@
 
   // Margin added beyond the earliest/latest twilight bound so the
   // true-dark segments at each end of the bar have visible extent.
-  var BAR_DOMAIN_MARGIN_MS = 30 * 60000;
+  // 60 min (not 20, DARK_ADAPT_MIN in daylight.js) so the dark-adaptation
+  // mark — anchored at astronomicalDusk + DARK_ADAPT_MIN — lands a
+  // legible 40 min inside the edge rather than crushed against it.
+  var BAR_DOMAIN_MARGIN_MS = 60 * 60000;
 
   function firstDate(candidates) {
     for (var i = 0; i < candidates.length; i++) {

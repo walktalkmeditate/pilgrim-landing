@@ -286,10 +286,10 @@ var burgosOut    = Daylight.recompute(burgosState);
 var burgosDomain = D.barDomainUTC(burgosOut);
 
 ok(burgosDomain !== null, 'Burgos: barDomainUTC is not null');
-equal(burgosDomain.startUTC.getTime(), burgosOut.astronomicalDawn.getTime() - 30 * 60000,
-  'Burgos: domain start = astronomicalDawn − 30 min');
-equal(burgosDomain.endUTC.getTime(), burgosOut.astronomicalDusk.getTime() + 30 * 60000,
-  'Burgos: domain end = astronomicalDusk + 30 min');
+equal(burgosDomain.startUTC.getTime(), burgosOut.astronomicalDawn.getTime() - 60 * 60000,
+  'Burgos: domain start = astronomicalDawn − 60 min');
+equal(burgosDomain.endUTC.getTime(), burgosOut.astronomicalDusk.getTime() + 60 * 60000,
+  'Burgos: domain end = astronomicalDusk + 60 min');
 ok(
   burgosDomain.startUTC.getTime()          <  burgosOut.astronomicalDawn.getTime() &&
   burgosOut.astronomicalDawn.getTime()     <  burgosOut.nauticalDawn.getTime()     &&
@@ -323,44 +323,44 @@ function twilightFixture(overrides) {
 
 equal(
   D.barDomainUTC(twilightFixture({})).startUTC.getTime(),
-  new Date('2026-06-21T01:30:00Z').getTime(),
-  'dawn rung 0 — astronomicalDawn present: start = astronomicalDawn − 30 min'
+  new Date('2026-06-21T01:00:00Z').getTime(),
+  'dawn rung 0 — astronomicalDawn present: start = astronomicalDawn − 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T02:10:00Z').getTime(),
-  'dawn rung 1 — astronomicalDawn null: start = nauticalDawn − 30 min'
+  new Date('2026-06-21T01:40:00Z').getTime(),
+  'dawn rung 1 — astronomicalDawn null: start = nauticalDawn − 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T02:50:00Z').getTime(),
-  'dawn rung 2 — astronomical + nautical null: start = civilDawn − 30 min'
+  new Date('2026-06-21T02:20:00Z').getTime(),
+  'dawn rung 2 — astronomical + nautical null: start = civilDawn − 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDawn: null, nauticalDawn: null, civilDawn: null })).startUTC.getTime(),
-  new Date('2026-06-21T03:30:00Z').getTime(),
-  'dawn rung 3 — astronomical + nautical + civil null: start = sunriseUTC − 30 min'
+  new Date('2026-06-21T03:00:00Z').getTime(),
+  'dawn rung 3 — astronomical + nautical + civil null: start = sunriseUTC − 60 min'
 );
 
 equal(
   D.barDomainUTC(twilightFixture({})).endUTC.getTime(),
-  new Date('2026-06-21T22:30:00Z').getTime(),
-  'dusk rung 0 — astronomicalDusk present: end = astronomicalDusk + 30 min'
+  new Date('2026-06-21T23:00:00Z').getTime(),
+  'dusk rung 0 — astronomicalDusk present: end = astronomicalDusk + 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T21:50:00Z').getTime(),
-  'dusk rung 1 — astronomicalDusk null: end = nauticalDusk + 30 min'
+  new Date('2026-06-21T22:20:00Z').getTime(),
+  'dusk rung 1 — astronomicalDusk null: end = nauticalDusk + 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T21:10:00Z').getTime(),
-  'dusk rung 2 — astronomical + nautical null: end = civilDusk + 30 min'
+  new Date('2026-06-21T21:40:00Z').getTime(),
+  'dusk rung 2 — astronomical + nautical null: end = civilDusk + 60 min'
 );
 equal(
   D.barDomainUTC(twilightFixture({ astronomicalDusk: null, nauticalDusk: null, civilDusk: null })).endUTC.getTime(),
-  new Date('2026-06-21T20:30:00Z').getTime(),
-  'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC + 30 min'
+  new Date('2026-06-21T21:00:00Z').getTime(),
+  'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC + 60 min'
 );
 
 console.log('\n=== barDomainUTC — no sunrise/sunset at all ===\n');
