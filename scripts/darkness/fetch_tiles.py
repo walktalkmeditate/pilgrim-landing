@@ -155,8 +155,10 @@ def download(url, out_path, token):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--year', type=int, required=True)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--year', type=int, required=True,
+                        help='Black Marble annual composite year to fetch, e.g. 2025')
     args = parser.parse_args()
 
     token = os.environ.get('EARTHDATA_TOKEN')
