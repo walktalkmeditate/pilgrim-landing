@@ -198,7 +198,7 @@ contains(fwdICS, 'BEGIN:VALARM',      'forward: BEGIN:VALARM present');
 contains(fwdICS, 'END:VALARM',        'forward: END:VALARM present');
 contains(fwdICS, 'TRIGGER:-P1D',      'forward: VALARM TRIGGER present');
 contains(fwdICS, 'ACTION:DISPLAY',    'forward: VALARM ACTION present');
-contains(fwdICS, 'PRODID:-//Pilgrim//Daylight Walk Budget//EN', 'forward: PRODID present');
+contains(fwdICS, 'PRODID:-//Pilgrim//The Light Budget//EN', 'forward: PRODID present');
 
 console.log('\n=== buildICS — reverse mode fixture ===\n');
 

@@ -115,7 +115,7 @@
     var lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Pilgrim//Daylight Walk Budget//EN',
+      'PRODID:-//Pilgrim//The Light Budget//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       '',

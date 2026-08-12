@@ -1,5 +1,5 @@
 /* =============================================
-   Daylight Walk Budget — hub page controller
+   The Light Budget — hub page controller
 
    Two-layer architecture:
      Inner core   — recompute(state): pure function, no DOM, no async

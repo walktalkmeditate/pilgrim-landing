@@ -1,5 +1,5 @@
 /* =============================================
-   Daylight Walk Budget — performance test
+   The Light Budget — performance test
 
    Verifies AC #3 thresholds on the core math path.
    Uses process.hrtime.bigint() for nanosecond precision.

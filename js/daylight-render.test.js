@@ -1,5 +1,5 @@
 /* =============================================
-   Daylight Walk Budget — renderSVG test harness
+   The Light Budget — renderSVG test harness
 
    Run via:  node js/daylight-render.test.js
 
