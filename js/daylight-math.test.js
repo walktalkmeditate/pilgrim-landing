@@ -367,6 +367,52 @@ equal(
   'dusk rung 3 — astronomical + nautical + civil null: end = sunsetUTC exactly, no margin'
 );
 
+console.log('\n=== barDomainUTC — fallback rungs, real astronomy pipeline (Finding 14) ===\n');
+
+// The fixtures above hand-null individual fields on a synthetic object —
+// they prove barDomainUTC's own fallback arithmetic, but never that a real
+// Daylight.recompute() output actually reaches a fallback rung. These two
+// go through the real pipeline, at latitudes/dates where the corresponding
+// twilight genuinely doesn't occur (found by sampling recompute() output
+// across latitudes near the June solstice, not assumed).
+
+var rung2State = {
+  route: 'custom', customLat: '55', customLon: '10',
+  customDistance: '10', customElevGain: '0',
+  date: '2026-06-21', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+};
+var rung2Out    = Daylight.recompute(rung2State);
+var rung2Domain = D.barDomainUTC(rung2Out);
+
+ok(rung2Out.astronomicalDawn === null, 'lat 55/lon 10, 2026-06-21 fixture sanity: astronomicalDawn null');
+ok(rung2Out.nauticalDawn     === null, 'lat 55/lon 10, 2026-06-21 fixture sanity: nauticalDawn null');
+ok(rung2Out.civilDawn        !== null, 'lat 55/lon 10, 2026-06-21 fixture sanity: civilDawn present');
+ok(rung2Out.isPolarDay === false && rung2Out.isPolarNight === false,
+  'lat 55/lon 10, 2026-06-21 fixture sanity: neither polar flag set');
+
+ok(rung2Domain !== null, 'real rung-2 fixture: barDomainUTC is not null');
+equal(rung2Domain.startUTC.getTime(), rung2Out.civilDawn.getTime(),
+  'real rung-2 fixture: domain start = civilDawn exactly (astro + nautical both absent, no margin)');
+equal(rung2Domain.endUTC.getTime(), rung2Out.civilDusk.getTime(),
+  'real rung-2 fixture: domain end = civilDusk exactly (astro + nautical both absent, no margin)');
+
+var rung1State = {
+  route: 'custom', customLat: '50', customLon: '10',
+  customDistance: '10', customElevGain: '0',
+  date: '2026-06-21', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+};
+var rung1Out    = Daylight.recompute(rung1State);
+var rung1Domain = D.barDomainUTC(rung1Out);
+
+ok(rung1Out.astronomicalDawn === null, 'lat 50/lon 10, 2026-06-21 fixture sanity: astronomicalDawn null');
+ok(rung1Out.nauticalDawn     !== null, 'lat 50/lon 10, 2026-06-21 fixture sanity: nauticalDawn present');
+
+ok(rung1Domain !== null, 'real rung-1 fixture: barDomainUTC is not null');
+equal(rung1Domain.startUTC.getTime(), rung1Out.nauticalDawn.getTime(),
+  'real rung-1 fixture: domain start = nauticalDawn exactly (astro absent, nautical present, no margin)');
+equal(rung1Domain.endUTC.getTime(), rung1Out.nauticalDusk.getTime(),
+  'real rung-1 fixture: domain end = nauticalDusk exactly (astro absent, nautical present, no margin)');
+
 console.log('\n=== barDomainUTC — no sunrise/sunset at all ===\n');
 
 function isNull(actual, label) {
