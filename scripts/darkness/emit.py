@@ -23,13 +23,25 @@ def round_sig(value, digits=3):
 
 
 def route_artifact(route_id, epoch, step_km, unit, values, covered_km,
-                   positional_confidence):
+                   positional_confidence, held_out_validation, bake_id):
     """One route's darkness profile.
 
-    covered_km is the kilometre span the waypoints actually reach, which is
-    not always the route's published length — Shikoku's waypoints cover 1080
-    of its 1200 km. Recording it keeps a short ribbon legible as a known
-    limit rather than a mystery.
+    values is the authoritative sample count for the route; coveredKm is
+    descriptive only. coveredKm is the kilometre span the waypoints
+    actually reach, which is not always the route's published length —
+    Shikoku's waypoints cover 1080 of its 1200 km. Recording it keeps a
+    short ribbon legible as a known limit rather than a mystery.
+
+    coveredKm is rounded to a fixed one decimal place, not significant
+    figures. Significant-figure rounding drops to zero decimal places
+    once a covered span reaches the thousands (Shikoku), which can land
+    an exact x.5 km remainder on Python's round-half-to-even boundary
+    instead of a stable, predictable value. The assertion below is what
+    actually keeps coveredKm and values honest against each other:
+    resample_polyline() never places a sample past the last whole
+    step_km within the waypoints' span, so floor(coveredKm / stepKm) + 1
+    must equal len(values) — a relationship a consumer holding only this
+    file can check for itself.
 
     positional_confidence is geometry.interpolated_fraction()'s stats for
     this route (interpolatedFraction, maxGapKm, p90GapKm, meanGapKm) plus
@@ -38,18 +50,41 @@ def route_artifact(route_id, epoch, step_km, unit, values, covered_km,
     every route in one place; carrying a copy here means a consumer
     holding only this file can judge whether its positions are
     trustworthy without opening meta.json.
+
+    held_out_validation is whether this route's region contains any of
+    the leave-one-out reference sites the calibration was judged
+    against — true for the five Caminos (Galicia), false for Shikoku and
+    Kumano. Japan's conversion rests on the same physics but was never
+    scored against a held-out Japanese reading.
+
+    bake_id ties this file to the meta.json it was baked alongside — see
+    bake_darkness.compute_bake_id().
     """
     if unit not in UNITS:
         raise ValueError('unknown unit %r; expected one of %r' % (unit, UNITS))
     if not values:
         raise ValueError('route %s has no sample values' % route_id)
+
+    covered_km = float(covered_km)
+    if not math.isfinite(covered_km):
+        raise ValueError('coveredKm must be finite, got %r' % covered_km)
+    covered_rounded = round(covered_km, 1)
+    expected_count = math.floor(covered_rounded / step_km) + 1
+    if expected_count != len(values):
+        raise ValueError(
+            'route %s: coveredKm %.1f at stepKm %s implies %d samples '
+            '(floor(coveredKm / stepKm) + 1), but got %d values'
+            % (route_id, covered_rounded, step_km, expected_count, len(values)))
+
     return {
         'route': route_id,
         'epoch': epoch,
+        'bakeId': bake_id,
         'stepKm': step_km,
-        'coveredKm': round_sig(covered_km, 4),
+        'coveredKm': covered_rounded,
         'unit': unit,
         'values': [round_sig(v) for v in values],
+        'heldOutValidation': bool(held_out_validation),
         'positionalConfidence': {
             'interpolatedFraction': round_sig(positional_confidence['interpolatedFraction']),
             'maxGapKm': round_sig(positional_confidence['maxGapKm'], 4),

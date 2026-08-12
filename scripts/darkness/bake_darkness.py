@@ -8,9 +8,12 @@ sites, and writes assets/darkness/. Amplitude and ordering are judged by
 different models — see choose_alpha() for why.
 
 Exits non-zero if validation fails, unless --fallback-radiance is passed
-to ship the weaker claim deliberately.
+to ship the weaker claim deliberately. --fallback-radiance is only valid
+on a failing gate: passing it when validation actually passes is an
+error, not a way to ship the weaker claim instead of one that was earned.
 """
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -123,8 +126,45 @@ def region_of(lat, lon):
     return 'japan' if lon > 60.0 else 'iberia'
 
 
+def region_has_held_out_site(region):
+    """Whether any REFERENCE_SITES member falls in this region.
+
+    True for iberia (five Galician sites), false for japan. Derived from
+    the sites themselves rather than a hardcoded route list, so adding or
+    removing a reference site updates every affected route's
+    heldOutValidation automatically instead of needing a second edit here.
+    """
+    return any(region_of(s['lat'], s['lon']) == region for s in S.REFERENCE_SITES)
+
+
+def compute_bake_id(epoch, geometry_sha, tile_hashes, alpha):
+    """Short fingerprint over everything that can vary between bakes.
+
+    A partially-invalidated CDN could otherwise serve a route file from
+    one bake next to a meta.json from another with no way to tell —
+    same epoch, same route id, different underlying data. Any consumer
+    holding two files can compare this instead of trusting the filename.
+    """
+    payload = json.dumps({
+        'epoch': epoch,
+        'geometryCommit': geometry_sha,
+        'tiles': tile_hashes,
+        'alpha': alpha,
+    }, sort_keys=True)
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()[:16]
+
+
 def blurred_region(epoch, lats, lons, alpha):
-    """Mosaic, window to the bbox plus margin, convolve. Returns field+origin."""
+    """Mosaic, window to the bbox plus margin, convolve.
+
+    Returns (blurred_field, crop_west, crop_north, kernel_sum). kernel_sum
+    is the propagation kernel's total weight (Sum of w*A_px over its
+    footprint) -- the denominator that turns a sampled value, which is a
+    kernel-weighted area integral of radiance, into a true kernel-weighted
+    mean radiance. Only the fallback-radiance path needs it; the
+    calibrated sky-brightness path absorbs this scale into the fitted A
+    and never touches it directly.
+    """
     west = min(lons) - MARGIN_DEG
     east = max(lons) + MARGIN_DEG
     south = min(lats) - MARGIN_DEG
@@ -144,7 +184,8 @@ def blurred_region(epoch, lats, lons, alpha):
 
     kern = K.build_kernel(alpha, D0_KM, RADIUS_KM, T.DEG_PER_PX,
                           float(np.mean(lats)))
-    return R.convolve_field(crop, kern), crop_west, crop_north
+    field = R.convolve_field(crop, kern)
+    return field, crop_west, crop_north, float(kern.sum())
 
 
 def raw_at_sites(epoch, site_list, alpha, cache):
@@ -159,7 +200,7 @@ def raw_at_sites(epoch, site_list, alpha, cache):
             cache[key] = blurred_region(
                 epoch, [s['lat'] for s in members],
                 [s['lon'] for s in members], alpha)
-        field, west, north = cache[key]
+        field, west, north, _ = cache[key]
         values.append(R.sample_bilinear(field, west, north, T.DEG_PER_PX,
                                         site['lat'], site['lon']))
     return values
@@ -277,6 +318,11 @@ def main():
 
     passed = (full_report['monotonic']
              and loo_report['max_abs_residual'] <= C.TOLERANCE_MAG)
+    if passed and args.fallback_radiance:
+        sys.exit('validation PASSED; --fallback-radiance ships a weaker '
+                 'claim than the data supports and exists only for a '
+                 'failing gate. Drop the flag to write the sky-brightness '
+                 'artifact the data actually earned.')
     if not passed and not args.fallback_radiance:
         sys.exit('validation FAILED (leave-one-out amplitude / full-set-fit '
                  'ordering). Do not widen the tolerance. Re-run with '
@@ -287,20 +333,48 @@ def main():
           'all five reference sites)' % (A, p, C.M_NAT_MAG))
 
     unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
+    # Belt and suspenders against the two branches above ever drifting
+    # apart from this invariant: the gate's verdict and the unit it ships
+    # under must always agree, in both directions.
+    assert (unit == E.UNIT_SKY) == passed, (
+        'unit/gate contradiction: unit=%r but validation.passed=%r'
+        % (unit, passed))
     print('writing artifacts as %s' % unit)
     os.makedirs(OUT_DIR, exist_ok=True)
+
+    tile_hashes = {t: sha256_file(os.path.join(
+        DATA_DIR, 'VNP46A4.A%d001.%s.h5' % (args.epoch, t)))
+        for t in TILES}
+    bake_id = compute_bake_id(args.epoch, geometry_sha, tile_hashes, alpha)
+    held_out_by_region = {region: region_has_held_out_site(region)
+                          for region in REGIONS}
 
     for region, ids in REGIONS.items():
         lats = [pt[0] for rid in ids for pt in points[rid]]
         lons = [pt[1] for rid in ids for pt in points[rid]]
-        field, west, north = blurred_region(args.epoch, lats, lons, alpha)
+        field, west, north, kernel_sum = blurred_region(
+            args.epoch, lats, lons, alpha)
         for route_id in ids:
             raw = [R.sample_bilinear(field, west, north, T.DEG_PER_PX, la, lo)
                    for la, lo in points[route_id]]
-            values = raw if args.fallback_radiance else C.predict(raw, params)
+            if args.fallback_radiance:
+                # raw is a kernel-weighted AREA INTEGRAL of radiance
+                # (Sum w*L*A_px), not a radiance -- dividing by the
+                # kernel's own total weight turns it into a genuine
+                # kernel-weighted MEAN radiance, nW/cm2/sr as labelled.
+                values = [v / kernel_sum for v in raw]
+                for v in values:
+                    assert 0.0 <= v <= 2000.0, (
+                        'fallback radiance %.4f nW/cm2/sr for route %s is '
+                        'outside the physically plausible range [0, 2000] '
+                        '-- the kernel-mean computation is probably wrong'
+                        % (v, route_id))
+            else:
+                values = C.predict(raw, params)
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
                                         unit, values, covered[route_id],
-                                        geometry_stats[route_id])
+                                        geometry_stats[route_id],
+                                        held_out_by_region[region], bake_id)
             path = os.path.join(OUT_DIR, route_id + '.json')
             with open(path, 'w') as handle:
                 handle.write(E.dumps(artifact))
@@ -328,14 +402,13 @@ def main():
 
     meta = {
         'epoch': args.epoch,
+        'bakeId': bake_id,
         'unit': unit,
         'stepKm': int(STEP_KM),
         'source': {
             'product': 'NASA Black Marble VNP46A4 v002',
             'band': 'AllAngle_Composite_Snow_Free',
-            'tiles': {t: sha256_file(os.path.join(
-                DATA_DIR, 'VNP46A4.A%d001.%s.h5' % (args.epoch, t)))
-                for t in TILES},
+            'tiles': tile_hashes,
             'geometryCommit': geometry_sha,
         },
         # Per-route positional trust, keyed by route id -- see
@@ -344,6 +417,14 @@ def main():
         # where that fact must be visible to anyone reading the artifact,
         # not just in the console log load_points() printed it to.
         'geometry': geometry_stats,
+        # Per-route: does this route's region contain any leave-one-out
+        # reference site? True for the five Caminos, false for Shikoku
+        # and Kumano -- see region_has_held_out_site(). Japan's
+        # conversion rests on the same physics but was never scored
+        # against a held-out Japanese reading.
+        'heldOutValidation': {route_id: held_out_by_region[region]
+                              for region, ids in REGIONS.items()
+                              for route_id in ids},
         'kernel': {'form': '(1 + d/d0) ** -alpha',
                    'alpha': alpha, 'd0Km': D0_KM, 'radiusKm': RADIUS_KM},
         'calibration': {'mNatMag': C.M_NAT_MAG, 'A': A, 'p': p,
@@ -373,8 +454,7 @@ def main():
             # claims to mean next to the search that produced it.
             'alphaGrid': ALPHA_GRID,
             'qualifyingAlphas': qualifying_alphas,
-            'passed': bool(loo_report['within_tolerance']
-                           and full_report['monotonic']),
+            'passed': passed,
         },
         'excludedSites': S.EXCLUDED_SITES,
         'citation': CITATION,
