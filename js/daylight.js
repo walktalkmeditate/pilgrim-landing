@@ -1590,6 +1590,17 @@
   // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
   // shape against _stageData, line for line, against a parallel
   // _darknessData cache.
+  //
+  // Gate 0 §7 alignment: every shipped route carries unit: "mag/arcsec2"
+  // today, but a future re-bake could ship the radiance-only fallback
+  // unit instead. renderDarknessRibbon already fails safe either way —
+  // ribbonSectionHidden's own unit check (shared with renderRibbon's
+  // own guard) keeps the section hidden rather than mislabeling a
+  // radiance figure as a magnitude. The check here is this slice's own,
+  // additional contribution on top of that: failing loudly, not just
+  // quietly rendering nothing, so a future re-bake under the wrong unit
+  // is diagnosable from the console rather than a silent, unexplained
+  // absence a reader (or a future engineer) has no way to account for.
   function loadDarknessData(routeId) {
     if (_darknessData[routeId]) {
       renderDarknessRibbon(routeId, _darknessData[routeId]);
@@ -1602,6 +1613,10 @@
       if (xhr.status !== 200) return;
       var data;
       try { data = JSON.parse(xhr.responseText); } catch (e) { return; }
+      if (data.unit !== 'mag/arcsec2') {
+        console.warn('Darkness ribbon: "' + routeId + '" artifact unit is "' + data.unit
+          + '", expected "mag/arcsec2" — rendering nothing rather than mislabeling radiance as brightness (Gate 0 §7).');
+      }
       _darknessData[routeId] = data;
       renderDarknessRibbon(routeId, data);
     };
