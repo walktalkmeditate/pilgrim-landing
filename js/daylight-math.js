@@ -369,6 +369,26 @@
     return runs;
   }
 
+  // darknessBandKmShares(runs) — like darknessBandCounts, but weighted by
+  // each merged run's km span rather than raw sample count. Exists so the
+  // summary sentence (darknessSummarySentence, below) and the ribbon's
+  // drawn strip (renderRibbon, js/daylight.js) can share one aggregation:
+  // both read the same mergeDarknessRuns output, so a route whose
+  // positions are coarsened (D3 — shikoku-88's 40 km windows) reports the
+  // composition of the WINDOWS actually drawn, not the raw 1 km samples
+  // underneath them. Before this, the sentence tallied raw samples
+  // (darknessBandCounts) while the strip drew merged runs — the same
+  // route could get a different composition in words than on screen.
+  // selectNamedDarknessBands's own total/pct math only ever computes a
+  // ratio, so it needs no change to consume km totals instead of counts.
+  function darknessBandKmShares(runs) {
+    var kmByBand = [0, 0, 0, 0, 0];
+    for (var i = 0; i < runs.length; i++) {
+      kmByBand[runs[i].band] += (runs[i].endKm - runs[i].startKm);
+    }
+    return kmByBand;
+  }
+
   /* ==========================================
      Darkness ribbon — the summary sentence (D10, D11)
      ========================================== */
@@ -473,6 +493,88 @@
     return sentence + '.';
   }
 
+  // darknessBandStatsInRange(runs, lo, hi) — the km-weighted mean band
+  // index and the single dominant (plurality-share) band, both restricted
+  // to the [lo, hi) slice of the route. One pass over runs computes the
+  // per-band km totals; both figures are derived from that one array
+  // rather than walking runs twice. Used only by darknessPositionalClause
+  // below — it needs two different questions answered about the same
+  // slice ("how dark on average" to pick which third is darkest, "which
+  // single band actually dominates" to decide whether that's worth
+  // saying), not one.
+  function darknessBandStatsInRange(runs, lo, hi) {
+    var span = hi - lo;
+    var kmByBand = [0, 0, 0, 0, 0];
+    for (var i = 0; i < runs.length; i++) {
+      var overlapLo = Math.max(runs[i].startKm, lo);
+      var overlapHi = Math.min(runs[i].endKm, hi);
+      var overlap   = overlapHi - overlapLo;
+      if (overlap > 0) kmByBand[runs[i].band] += overlap;
+    }
+    var dominantBand = 0;
+    var weightedSum  = 0;
+    for (var b = 0; b < 5; b++) {
+      weightedSum += kmByBand[b] * b;
+      if (kmByBand[b] > kmByBand[dominantBand]) dominantBand = b;
+    }
+    return { mean: span > 0 ? weightedSum / span : 0, dominantBand: dominantBand };
+  }
+
+  // POSITION_THIRD_NAMES — index-aligned with the three equal-length
+  // slices darknessPositionalClause divides a route into, start to end.
+  var POSITION_THIRD_NAMES = ['near the start', 'through the middle stretch', 'near the end'];
+
+  // darknessPositionalClause(runs, coveredKm) — Finding 3. The composition
+  // sentence says how much of each band; this says coarsely where, using
+  // the same merged runs already computed for it (one aggregation, D3,
+  // shared by both — the same discipline Finding 1 applies to the
+  // percentages themselves). Thirds, not kilometre markers: D7 caps what
+  // any single sample can defend to about ±0.32 mag, comfortably inside
+  // one band's width (D1), so a boundary finer than "start / middle /
+  // end" would claim more precision than the data carries.
+  //
+  // Two gates, not one numeric threshold invented for this function
+  // alone:
+  //   1. The darkest third (by km-weighted mean band index) must differ
+  //      from the brightest third — trivially false for a single-run
+  //      route (Kumano, D6) or any route whose thirds happen to average
+  //      out identically.
+  //   2. Those two thirds' own DOMINANT bands (the one band that actually
+  //      occupies the most km within each third) must also differ. A
+  //      route can have unequal means yet still be dominated by the same
+  //      band everywhere — Camino Portugués is ~66% countryside start to
+  //      finish, and its thirds' means do drift a little, but every third
+  //      is still countryside-dominated. Gate 2 is what keeps that route
+  //      silent here rather than naming a "darkest third" that isn't
+  //      actually a different kind of place.
+  //
+  // Always phrased from the darkest side ("Darkest {position}.") rather
+  // than switching between "darkest"/"brightest" — one branch, one voice,
+  // and the composition sentence already established that "how dark" is
+  // this instrument's whole subject.
+  function darknessPositionalClause(runs, coveredKm) {
+    if (!runs || runs.length <= 1 || !(coveredKm > 0)) return '';
+
+    var thirdKm = coveredKm / 3;
+    var bounds = [
+      [0, thirdKm],
+      [thirdKm, 2 * thirdKm],
+      [2 * thirdKm, coveredKm]
+    ];
+    var stats = bounds.map(function (b) { return darknessBandStatsInRange(runs, b[0], b[1]); });
+
+    var darkestIdx   = 0;
+    var brightestIdx = 0;
+    for (var i = 1; i < 3; i++) {
+      if (stats[i].mean > stats[darkestIdx].mean)   darkestIdx   = i;
+      if (stats[i].mean < stats[brightestIdx].mean) brightestIdx = i;
+    }
+    if (darkestIdx === brightestIdx) return '';
+    if (stats[darkestIdx].dominantBand === stats[brightestIdx].dominantBand) return '';
+
+    return ' Darkest ' + POSITION_THIRD_NAMES[darkestIdx] + '.';
+  }
+
   // darknessSummarySentence(darknessData, statedDistanceKm, unitSystem) —
   // D10. Pure: the ribbon's text equivalent (D11) — the same string
   // renderRibbon uses for both the svg's aria-label/<title> and the real
@@ -501,12 +603,28 @@
   // route, or null/undefined when unavailable — the lead-in still states
   // coveredKm plainly rather than throwing, it just has nothing to
   // compare it against.
+  //
+  // Shares come from the same mergeDarknessRuns output renderRibbon draws
+  // (via darknessBandKmShares), not a raw tally of darknessData.values
+  // (that was darknessBandCounts, still used standalone for D1's own
+  // per-kilometre distribution table). For six of the seven shipped
+  // routes the two agree to within a point of rounding — one sample
+  // already is one kilometre. Shikoku is the exception: D3's 40 km
+  // windows mean the picture and a raw per-kilometre tally describe two
+  // different aggregations of the same route, and used to say so
+  // differently (a raw "17% countryside" against a drawn 11%). Reusing
+  // mergeDarknessRuns's own output here is what makes that impossible —
+  // the sentence and the strip now share one computation, not two that
+  // happen to agree most of the time.
   function darknessSummarySentence(darknessData, statedDistanceKm, unitSystem) {
-    var counts = darknessBandCounts(darknessData.values);
-    var bands  = selectNamedDarknessBands(counts);
+    var windowKm = darknessAggregateWindowKm(darknessData.positionalConfidence);
+    var runs     = mergeDarknessRuns(darknessData.values, darknessData.stepKm, darknessData.coveredKm, windowKm);
+    var shares   = darknessBandKmShares(runs);
+    var bands    = selectNamedDarknessBands(shares);
 
-    var leadIn   = darknessDistanceLeadIn(darknessData.coveredKm, statedDistanceKm, unitSystem);
-    var sentence = darknessCompositionSentence(bands);
+    var leadIn     = darknessDistanceLeadIn(darknessData.coveredKm, statedDistanceKm, unitSystem);
+    var sentence   = darknessCompositionSentence(bands);
+    var positional = darknessPositionalClause(runs, darknessData.coveredKm);
     // !== true, not === false (Finding 5): a missing field or a malformed
     // non-boolean value must read as unvalidated, not as trustworthy —
     // mirrors the identical guard on the dashed stroke in
@@ -516,7 +634,7 @@
       ? ' Not checked against a ground reading here, the way the five Camino routes are.'
       : '';
 
-    return leadIn + sentence + trailing;
+    return leadIn + sentence + positional + trailing;
   }
 
   var api = {
@@ -525,13 +643,18 @@
     buildICS:        buildICS,
     barDomainUTC:    barDomainUTC,
 
-    DARKNESS_BAND_BOUNDS:      DARKNESS_BAND_BOUNDS,
-    DARKNESS_BAND_NAMES:       DARKNESS_BAND_NAMES,
-    darknessBandForValue:      darknessBandForValue,
-    darknessBandCounts:        darknessBandCounts,
-    darknessAggregateWindowKm: darknessAggregateWindowKm,
-    mergeDarknessRuns:         mergeDarknessRuns,
-    darknessSummarySentence:   darknessSummarySentence
+    DARKNESS_BAND_BOUNDS:        DARKNESS_BAND_BOUNDS,
+    DARKNESS_BAND_NAMES:         DARKNESS_BAND_NAMES,
+    darknessBandForValue:        darknessBandForValue,
+    darknessBandCounts:          darknessBandCounts,
+    darknessBandKmShares:        darknessBandKmShares,
+    darknessMedian:              darknessMedian,
+    darknessAggregateWindowKm:   darknessAggregateWindowKm,
+    mergeDarknessRuns:           mergeDarknessRuns,
+    selectNamedDarknessBands:    selectNamedDarknessBands,
+    darknessCompositionSentence: darknessCompositionSentence,
+    darknessPositionalClause:    darknessPositionalClause,
+    darknessSummarySentence:     darknessSummarySentence
   };
 
   if (typeof module !== 'undefined' && module.exports) {

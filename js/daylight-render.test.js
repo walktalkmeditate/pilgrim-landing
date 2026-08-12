@@ -766,7 +766,7 @@ console.log('\n=== renderRibbon — AC #5: text-readable equivalence (aria-label
 // with their own plain "<coveredKm> sampled." lead-in (Finding 6) —
 // neither route's gap against route-meta's stated distanceKm is wide
 // enough to earn Shikoku's "of its M" discrepancy framing instead.
-var D10_SENTENCE_PRIMITIVO = '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).';
+var D10_SENTENCE_PRIMITIVO = '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%). Darkest through the middle stretch.';
 var D10_SENTENCE_KUMANO    = '38.0\u00A0km sampled. As it was, the whole way. Not checked against a ground reading here, the way the five Camino routes are.';
 
 var svgPrimitivo     = makeNode('svg');

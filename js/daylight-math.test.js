@@ -647,6 +647,59 @@ equal(francesRuns.length, 128, 'camino-frances: real data (unaggregated, 1 km re
 var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
 ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
 
+console.log('\n=== darknessPositionalClause — pinned fixtures, both gates (Finding 3) ===\n');
+
+// Hand-built runs, not real routes — isolates each gate precisely rather
+// than relying on whichever real route happens to exercise it.
+
+equal(D.darknessPositionalClause([{ startKm: 0, endKm: 10, band: 3 }], 10), '',
+  'a single run (Kumano-shaped, D6): no positional clause — nothing varies to point at');
+
+equal(D.darknessPositionalClause([], 10), '',
+  'zero runs: no positional clause (defensive — mergeDarknessRuns never actually returns this)');
+
+// Gate 1: the three thirds' km-weighted means come out identical, even
+// though there is real texture within each third (band 2 and band 0
+// alternating) — so runs.length > 1 alone must not be enough to fire.
+var uniformThirdsRuns = [
+  { startKm: 0, endKm: 1, band: 2 }, { startKm: 1, endKm: 2, band: 0 }, { startKm: 2, endKm: 3, band: 2 },
+  { startKm: 3, endKm: 4, band: 2 }, { startKm: 4, endKm: 5, band: 0 }, { startKm: 5, endKm: 6, band: 2 },
+  { startKm: 6, endKm: 7, band: 2 }, { startKm: 7, endKm: 8, band: 0 }, { startKm: 8, endKm: 9, band: 2 }
+];
+equal(D.darknessPositionalClause(uniformThirdsRuns, 9), '',
+  'Gate 1: every third averages out identically (1.333 each) despite 9 runs — no clause');
+
+// Gate 2: the darkest-mean third (2.667) and brightest-mean third (1.333)
+// are a real, non-trivial gap apart — but both are still dominated by
+// band 2 (2 of their 3 km each), the Camino Portugués shape (mostly one
+// band, start to finish, even where the mean drifts a little). Gate 1
+// alone would fire here; Gate 2 is what stops it.
+var sameDominantRuns = [
+  { startKm: 0, endKm: 2, band: 2 }, { startKm: 2, endKm: 3, band: 4 }, // third 1: mean 2.667, dominant band 2
+  { startKm: 3, endKm: 5, band: 2 }, { startKm: 5, endKm: 6, band: 0 }, // third 2: mean 1.333, dominant band 2
+  { startKm: 6, endKm: 9, band: 2 }                                     // third 3: mean 2.000, dominant band 2
+];
+equal(D.darknessPositionalClause(sameDominantRuns, 9), '',
+  'Gate 2: darkest third (mean 2.667) and brightest third (mean 1.333) disagree on average, but both are dominated by the same band 2 — no clause');
+
+// One clear, isolated fixture per position, so each of the three phrases
+// is pinned independently of which real route happens to produce it.
+equal(
+  D.darknessPositionalClause([{ startKm: 0, endKm: 3, band: 4 }, { startKm: 3, endKm: 9, band: 1 }], 9),
+  ' Darkest near the start.',
+  'darkest third is the first: " Darkest near the start."'
+);
+equal(
+  D.darknessPositionalClause([{ startKm: 0, endKm: 3, band: 1 }, { startKm: 3, endKm: 6, band: 4 }, { startKm: 6, endKm: 9, band: 1 }], 9),
+  ' Darkest through the middle stretch.',
+  'darkest third is the middle: " Darkest through the middle stretch."'
+);
+equal(
+  D.darknessPositionalClause([{ startKm: 0, endKm: 6, band: 1 }, { startKm: 6, endKm: 9, band: 4 }], 9),
+  ' Darkest near the end.',
+  'darkest third is the last: " Darkest near the end."'
+);
+
 console.log('\n=== darknessSummarySentence — worked examples from spec D10, real data ===\n');
 
 // Stated distanceKm per route, from assets/daylight/route-meta.json —
@@ -673,22 +726,22 @@ var STATED_DISTANCE_KM = {
 var primitivoArtifactForSentence = loadDarknessArtifact('camino-primitivo');
 equal(
   D.darknessSummarySentence(primitivoArtifactForSentence, STATED_DISTANCE_KM['camino-primitivo'], 'km'),
-  '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).',
-  'camino-primitivo (validated, no gap): plain distance lead-in + four-band sentence, no trailing clause'
+  '262.9\u00A0km sampled. Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%). Darkest through the middle stretch.',
+  'camino-primitivo (validated, no gap): plain distance lead-in + four-band sentence + Finding 3 positional clause, no trailing clause'
 );
 
 var francesArtifactForSentence = loadDarknessArtifact('camino-frances');
 equal(
   D.darknessSummarySentence(francesArtifactForSentence, STATED_DISTANCE_KM['camino-frances'], 'km'),
-  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
-  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name'
+  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%). Darkest near the end.',
+  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name — + Finding 3 positional clause'
 );
 
 var portuguesArtifactForSentence = loadDarknessArtifact('camino-portugues');
 equal(
   D.darknessSummarySentence(portuguesArtifactForSentence, STATED_DISTANCE_KM['camino-portugues'], 'km'),
-  '243.0\u00A0km sampled. Mostly countryside (66%) and edge of town (20%), with some open dark (10%) and town glow (5%).',
-  'camino-portugues (validated, no gap): plain distance lead-in + 66% concentrated in one middle band'
+  '243.0\u00A0km sampled. Mostly countryside (66%) and edge of town (19%), with some open dark (10%) and town glow (5%).',
+  'camino-portugues (validated, no gap): plain distance lead-in + 66% concentrated in one middle band \u2014 19%, not the raw per-km tally\'s 20%, since this is now km-weighted off the merged runs (Finding 1)'
 );
 
 // Kumano: D6's single-band flatness collapses the composition sentence
@@ -715,9 +768,72 @@ equal(
 var shikokuArtifactForSentence = loadDarknessArtifact('shikoku-88');
 equal(
   D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km'),
-  '1,080.5\u00A0km of its 1,200\u00A0km sampled. Mostly as it was (51%) and open dark (32%), with some countryside (17%). Not checked against a ground reading here, the way the five Camino routes are.',
-  'shikoku-88 (unvalidated, gap fires): lead-in + three-band sentence + D4 clause'
+  '1,080.5\u00A0km of its 1,200\u00A0km sampled. Mostly as it was (52%) and open dark (37%), with some countryside (11%). Darkest through the middle stretch. Not checked against a ground reading here, the way the five Camino routes are.',
+  // Finding 1: these three percentages are km-weighted off the same 40 km
+  // merged runs the strip draws (52/37/11), not a raw per-kilometre tally
+  // of values[] (which would read 51/32/17 \u2014 the mismatch Finding 1
+  // named). D3's aggregation is real: 40 km windows genuinely redistribute
+  // where "open dark" and "countryside" fall along the route once
+  // classified by window median instead of by lone kilometre.
+  'shikoku-88 (unvalidated, gap fires): lead-in + three-band sentence (km-weighted, matches the strip) + D4 clause'
 );
+
+console.log('\n=== darknessSummarySentence — stated shares match drawn shares, all 7 routes (Finding 1) ===\n');
+
+// AC #5 only ever compared the aria-label to the sibling paragraph — text
+// against text, both produced by the same function call. Neither was ever
+// checked against the geometry mergeDarknessRuns actually hands
+// renderRibbon to draw. This is that missing comparison: for every band
+// named in the sentence, its stated percentage must match the percentage
+// of the strip's own pixels (km, in this pure layer) that band occupies —
+// derived independently here via darknessBandKmShares, not by re-calling
+// darknessSummarySentence's own internals.
+var SHARE_TOLERANCE_PCT = 0; // exact match: both now read the same merged runs.
+
+function drawnPctByBand(artifact) {
+  var windowKm = D.darknessAggregateWindowKm(artifact.positionalConfidence);
+  var runs     = D.mergeDarknessRuns(artifact.values, artifact.stepKm, artifact.coveredKm, windowKm);
+  var kmShares = D.darknessBandKmShares(runs);
+  return kmShares.map(function (km) { return Math.round(100 * km / artifact.coveredKm); });
+}
+
+// Parses every "{band name} (N%)" pair out of a rendered sentence — the
+// same shape darknessCompositionSentence's two/three/four/five-band
+// templates all produce for named bands (the one-band template, "X, the
+// whole way.", carries no percentage to parse, and is skipped below by
+// virtue of matching zero pairs).
+function statedPctByBand(sentence) {
+  var stated = [null, null, null, null, null];
+  D.DARKNESS_BAND_NAMES.forEach(function (name, i) {
+    var re = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\((\\d+)%\\)');
+    var m = re.exec(sentence);
+    if (m) stated[i] = parseInt(m[1], 10);
+  });
+  return stated;
+}
+
+Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
+  var artifact = loadDarknessArtifact(routeId);
+  var stated   = STATED_DISTANCE_KM[routeId];
+  var sentence = D.darknessSummarySentence(artifact, stated, 'km');
+  var drawn    = drawnPctByBand(artifact);
+  var found    = statedPctByBand(sentence);
+
+  // The one-band template ("X, the whole way.") states no percentage at
+  // all (D10) — so a route with exactly one qualifying band is expected
+  // to parse zero pairs, not one.
+  var qualifyingCount   = drawn.filter(function (pct) { return pct >= 5; }).length;
+  var expectedNamedCount = qualifyingCount === 1 ? 0 : qualifyingCount;
+  var foundCount = found.filter(function (pct) { return pct !== null; }).length;
+  equal(foundCount, expectedNamedCount,
+    routeId + ': the sentence names exactly as many bands as clear the 5% share threshold (fixture sanity — proves the regex parse itself is complete, not vacuously matching nothing)');
+
+  var allMatch = found.every(function (pct, i) {
+    return pct === null || Math.abs(pct - drawn[i]) <= SHARE_TOLERANCE_PCT;
+  });
+  ok(allMatch,
+    routeId + ': every share stated in the sentence matches the share the strip draws, within ' + SHARE_TOLERANCE_PCT + ' point(s) — stated ' + JSON.stringify(found) + ' vs drawn ' + JSON.stringify(drawn));
+});
 
 console.log('\n=== darknessSummarySentence — gate and edge-case behaviour ===\n');
 
@@ -728,17 +844,17 @@ console.log('\n=== darknessSummarySentence — gate and edge-case behaviour ===\
 var gateFixtureValues = new Array(10).fill(21.7); // all band 4, matches kumano's shape
 
 equal(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105, 'km'),
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, 105, 'km'),
   '100.0\u00A0km sampled. As it was, the whole way.',
   'gap exactly 5 km: plain distance lead-in, no "of its" discrepancy framing (boundary is ">5", not ">=5")'
 );
 equal(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 105.1, 'km'),
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, 105.1, 'km'),
   '100.0\u00A0km of its 105\u00A0km sampled. As it was, the whole way.',
   'gap 5.1 km: "of its" discrepancy framing fires'
 );
 equal(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'km'),
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, null, 'km'),
   '100.0\u00A0km sampled. As it was, the whole way.',
   'statedDistanceKm null (no route-meta entry found): still states coveredKm plainly, not thrown, nothing to compare it against'
 );
@@ -746,12 +862,12 @@ equal(
 // unitSystem: mi conversion applies to both the sentence's own distance
 // lead-in numbers and nothing else (band shares are unitless percentages).
 equal(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, 120, 'mi'),
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, 120, 'mi'),
   '62.1\u00A0mi of its 75\u00A0mi sampled. As it was, the whole way.',
   'unitSystem "mi", gap fires: lead-in numbers convert (100 km -> 62.1 mi, 120 km -> 75 mi rounded)'
 );
 equal(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'mi'),
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, null, 'mi'),
   '62.1\u00A0mi sampled. As it was, the whole way.',
   'unitSystem "mi", no statedDistanceKm: plain lead-in still converts (100 km -> 62.1 mi)'
 );
@@ -763,27 +879,27 @@ console.log('\n=== darknessSummarySentence — heldOutValidation fails toward un
 // than true marks the route unvalidated (dashed stroke + trailing clause),
 // mirroring the identical !== true guard on js/daylight.js's renderRibbon.
 ok(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: undefined }, null, 'km')
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: undefined }, null, 'km')
     .indexOf('Not checked against a ground reading') !== -1,
   'heldOutValidation undefined (field missing entirely): treated as unvalidated, trailing clause present'
 );
 ok(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: 'false' }, null, 'km')
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: 'false' }, null, 'km')
     .indexOf('Not checked against a ground reading') !== -1,
   'heldOutValidation "false" (string, not the boolean false): treated as unvalidated, trailing clause present'
 );
 ok(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: 0 }, null, 'km')
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: 0 }, null, 'km')
     .indexOf('Not checked against a ground reading') !== -1,
   'heldOutValidation 0 (falsy, not the boolean false): treated as unvalidated, trailing clause present'
 );
 ok(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: false }, null, 'km')
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: false }, null, 'km')
     .indexOf('Not checked against a ground reading') !== -1,
   'heldOutValidation false (the real boolean): still unvalidated, trailing clause present — unchanged from before Finding 5'
 );
 ok(
-  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, heldOutValidation: true }, null, 'km')
+  D.darknessSummarySentence({ values: gateFixtureValues, coveredKm: 100, stepKm: 1, positionalConfidence: { withinInterpolationLimit: true }, heldOutValidation: true }, null, 'km')
     .indexOf('Not checked against a ground reading') === -1,
   'heldOutValidation true (the real boolean): validated, no trailing clause'
 );
