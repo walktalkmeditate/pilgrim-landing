@@ -1,0 +1,263 @@
+/* =============================================
+   Daylight Walk Budget — renderSVG test harness
+
+   Run via:  node js/daylight-render.test.js
+
+   renderSVG had no test at all before this file. That's how three
+   coordinate-system bugs survived fifteen green suites: a previous
+   change widened the bar's time domain from [sunrise, sunset] to
+   [earliest twilight − 30 min, latest twilight + 30 min] and updated
+   eight utcToBarX call sites — but left BAR_X1/BAR_X2 literals behind
+   at three more: the dl-bar-daylight fill, the sunrise/sunset ticks +
+   labels (both the forward branch and the reverse-mode
+   latestDepartUTC===null branch), and the reverse-mode buffer band.
+   Those literals used to equal sunrise/sunset exactly, back when the
+   domain WAS [sunrise, sunset] — now they're just the bar's pixel
+   edges.
+
+   renderSVG reaches document.createElementNS directly (makeSVGEl,
+   clearSVG, the <title> element), and there's no DOM in Node, so this
+   file installs a minimal fake document before requiring daylight.js.
+   window is left unset, so daylight.js's browser-only DOM-glue block
+   (guarded by `typeof window === 'undefined' || ...`) still exits at
+   load time — only renderSVG's own document use is exercised here.
+   ============================================= */
+
+'use strict';
+
+function makeNode(tag) {
+  var node = {
+    tag: tag,
+    attrs: {},
+    textContent: '',
+    children: [],
+    firstChild: null,
+    setAttribute: function (name, value) { node.attrs[name] = value; },
+    appendChild: function (child) {
+      node.children.push(child);
+      node.firstChild = node.children[0];
+      return child;
+    },
+    removeChild: function (child) {
+      var idx = node.children.indexOf(child);
+      if (idx !== -1) node.children.splice(idx, 1);
+      node.firstChild = node.children.length ? node.children[0] : null;
+      return child;
+    }
+  };
+  return node;
+}
+
+global.document = {
+  createElementNS: function (ns, tag) { return makeNode(tag); }
+};
+
+var Daylight     = require('./daylight.js');
+var DaylightMath = require('./daylight-math.js');
+
+var passed   = 0;
+var failed   = 0;
+var failures = [];
+
+function fmtVal(v) {
+  return (typeof v === 'number') ? v.toFixed(2) : String(v);
+}
+
+function equal(actual, expected, label) {
+  if (actual === expected) {
+    passed++;
+    console.log('  ✓ ' + label + '  (' + fmtVal(actual) + ')');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + fmtVal(expected) + ', got ' + fmtVal(actual));
+    console.log('  ✗ ' + label + '  (' + fmtVal(actual) + ' vs ' + fmtVal(expected) + ')');
+  }
+}
+
+function ok(condition, label) {
+  if (condition) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': condition was false');
+    console.log('  ✗ ' + label);
+  }
+}
+
+// Independent oracle for expected pixel positions. renderSVG's own
+// utcToBarX is module-private (exporting it would be more
+// restructuring than this fix calls for) — this mirrors its formula
+// exactly, against the same BAR_X1/BAR_X2 the bug report names, so a
+// leftover bar-edge literal and a correct utcToBarX call disagree here too.
+var BAR_X1 = 24;
+var BAR_X2 = 576;
+var BAR_W  = BAR_X2 - BAR_X1;
+
+function expectedBarX(utcDate, domain) {
+  var span = domain.endUTC.getTime() - domain.startUTC.getTime();
+  if (span <= 0) return BAR_X1;
+  var t = utcDate.getTime() - domain.startUTC.getTime();
+  var frac = Math.max(0, Math.min(1, t / span));
+  return BAR_X1 + frac * BAR_W;
+}
+
+function byClass(svgEl, cls) {
+  return svgEl.children.filter(function (c) { return c.attrs['class'] === cls; });
+}
+
+function oneByClass(svgEl, cls) {
+  var found = byClass(svgEl, cls);
+  return found.length ? found[0] : null;
+}
+
+// --- Fixtures: Burgos (42.34, -3.70), 2026-09-15 --------------------
+// Same coordinates/date as the barDomainUTC fixture in
+// js/daylight-math.test.js — full twilight sequence present.
+
+var burgosForward = {
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-15', paceKey: 'standard', startTimeMin: 9 * 60,
+  mode: 'forward'
+};
+
+var burgosReverse = {
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-15', paceKey: 'standard', bufferMin: 60,
+  mode: 'reverse'
+};
+
+var burgosReverseNoBuffer = {
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-15', paceKey: 'standard', bufferMin: 0,
+  mode: 'reverse'
+};
+
+// 100 km can't fit before sunset even with the buffer — exercises the
+// reverse-mode `latestDepartUTC === null` branch, which duplicates the
+// sunrise/sunset tick + label block.
+var burgosReverseTooLong = {
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '100', customElevGain: '0',
+  date: '2026-09-15', paceKey: 'standard', bufferMin: 60,
+  mode: 'reverse'
+};
+
+console.log('\n=== renderSVG — dl-bar-daylight spans sunrise -> sunset, not the bar edges ===\n');
+
+var fwdOut    = Daylight.recompute(burgosForward);
+var fwdDomain = DaylightMath.barDomainUTC(fwdOut);
+var sunriseX  = expectedBarX(fwdOut.sunriseUTC, fwdDomain);
+var sunsetX   = expectedBarX(fwdOut.sunsetUTC,  fwdDomain);
+
+var svgFwd = makeNode('svg');
+Daylight.renderSVG(fwdOut, svgFwd, fwdOut.stageTz || null, '24h');
+
+var daylightBand = oneByClass(svgFwd, 'dl-bar-daylight');
+ok(daylightBand !== null, 'dl-bar-daylight element is present');
+equal(daylightBand.attrs.x1, sunriseX, 'dl-bar-daylight x1 = sunriseX (not BAR_X1=24)');
+equal(daylightBand.attrs.x2, sunsetX,  'dl-bar-daylight x2 = sunsetX (not BAR_X2=576)');
+
+console.log('\n=== renderSVG — sunrise/sunset ticks + labels sit at sunrise/sunset, not the bar edges (forward mode) ===\n');
+
+var tickSunrise = oneByClass(svgFwd, 'dl-bar-tick-sunrise');
+var tickSunset  = oneByClass(svgFwd, 'dl-bar-tick-sunset');
+var labels      = byClass(svgFwd, 'dl-bar-label');
+
+ok(tickSunrise !== null, 'dl-bar-tick-sunrise element is present');
+ok(tickSunset  !== null, 'dl-bar-tick-sunset element is present');
+equal(tickSunrise.attrs.x1, sunriseX, 'dl-bar-tick-sunrise x1 = utcToBarX(sunrise, domain)');
+equal(tickSunrise.attrs.x2, sunriseX, 'dl-bar-tick-sunrise x2 = utcToBarX(sunrise, domain)');
+equal(tickSunset.attrs.x1,  sunsetX,  'dl-bar-tick-sunset x1 = utcToBarX(sunset, domain)');
+equal(tickSunset.attrs.x2,  sunsetX,  'dl-bar-tick-sunset x2 = utcToBarX(sunset, domain)');
+
+ok(labels.length === 2, 'exactly two dl-bar-label elements (sunrise, sunset)');
+if (labels.length === 2) {
+  equal(labels[0].attrs.x, tickSunrise.attrs.x1, 'sunrise label x matches its tick x');
+  equal(labels[1].attrs.x, tickSunset.attrs.x1,  'sunset label x matches its tick x');
+}
+
+console.log('\n=== renderSVG — sunrise/sunset ticks + labels, reverse-mode latestDepartUTC===null branch ===\n');
+
+var tooLongOut    = Daylight.recompute(burgosReverseTooLong);
+var tooLongDomain = DaylightMath.barDomainUTC(tooLongOut);
+ok(tooLongOut.latestDepartUTC === null, 'fixture sanity: 100 km reverse walk has latestDepartUTC null');
+
+var sunriseX2 = expectedBarX(tooLongOut.sunriseUTC, tooLongDomain);
+var sunsetX2  = expectedBarX(tooLongOut.sunsetUTC,  tooLongDomain);
+
+var svgTooLong = makeNode('svg');
+Daylight.renderSVG(tooLongOut, svgTooLong, tooLongOut.stageTz || null, '24h');
+
+var tickSunrise2 = oneByClass(svgTooLong, 'dl-bar-tick-sunrise');
+var tickSunset2  = oneByClass(svgTooLong, 'dl-bar-tick-sunset');
+var labels2      = byClass(svgTooLong, 'dl-bar-label');
+
+equal(tickSunrise2.attrs.x1, sunriseX2, 'reverse-null branch: dl-bar-tick-sunrise x1 = utcToBarX(sunrise, domain)');
+equal(tickSunset2.attrs.x1,  sunsetX2,  'reverse-null branch: dl-bar-tick-sunset x1 = utcToBarX(sunset, domain)');
+if (labels2.length === 2) {
+  equal(labels2[0].attrs.x, tickSunrise2.attrs.x1, 'reverse-null branch: sunrise label x matches its tick x');
+  equal(labels2[1].attrs.x, tickSunset2.attrs.x1,  'reverse-null branch: sunset label x matches its tick x');
+}
+
+console.log('\n=== renderSVG — reverse-mode buffer band terminates at sunset, not the bar edge ===\n');
+
+var revOut    = Daylight.recompute(burgosReverse);
+var revDomain = DaylightMath.barDomainUTC(revOut);
+ok(revOut.latestDepartUTC !== null, 'fixture sanity: 20 km reverse walk fits, latestDepartUTC is set');
+var sunsetX3 = expectedBarX(revOut.sunsetUTC, revDomain);
+
+var svgRev = makeNode('svg');
+Daylight.renderSVG(revOut, svgRev, revOut.stageTz || null, '24h');
+
+var buffer = oneByClass(svgRev, 'dl-bar-buffer');
+ok(buffer !== null, 'dl-bar-buffer element is present for a 60-min buffer');
+if (buffer) {
+  equal(buffer.attrs.x2, sunsetX3, 'dl-bar-buffer x2 = sunsetX (not BAR_X2=576)');
+}
+
+console.log('\n=== renderSVG — bufferMin=0 emits no phantom buffer band ===\n');
+
+var revNoBufOut = Daylight.recompute(burgosReverseNoBuffer);
+var svgRevNoBuf = makeNode('svg');
+Daylight.renderSVG(revNoBufOut, svgRevNoBuf, revNoBufOut.stageTz || null, '24h');
+ok(byClass(svgRevNoBuf, 'dl-bar-buffer').length === 0, 'bufferMin=0: no dl-bar-buffer element emitted');
+
+console.log('\n=== renderSVG — twilight bands nest strictly: daylight ⊂ civil ⊂ nautical ⊂ astronomical ⊂ domain ===\n');
+
+var civil        = oneByClass(svgFwd, 'dl-bar-civil');
+var nautical     = oneByClass(svgFwd, 'dl-bar-nautical');
+var astronomical = oneByClass(svgFwd, 'dl-bar-astronomical');
+
+ok(civil !== null && nautical !== null && astronomical !== null,
+  'civil/nautical/astronomical bands are all present (Burgos has the full twilight sequence)');
+
+if (civil && nautical && astronomical) {
+  ok(
+    BAR_X1                <  astronomical.attrs.x1 &&
+    astronomical.attrs.x1 <  nautical.attrs.x1     &&
+    nautical.attrs.x1     <  civil.attrs.x1         &&
+    civil.attrs.x1        <  daylightBand.attrs.x1,
+    'left side nests: domain start < astronomical < nautical < civil < daylight'
+  );
+  ok(
+    daylightBand.attrs.x2 <  civil.attrs.x2         &&
+    civil.attrs.x2        <  nautical.attrs.x2      &&
+    nautical.attrs.x2     <  astronomical.attrs.x2  &&
+    astronomical.attrs.x2 <  BAR_X2,
+    'right side nests: daylight < civil < nautical < astronomical < domain end'
+  );
+}
+
+console.log('\n=== Summary ===\n');
+console.log('passed: ' + passed);
+console.log('failed: ' + failed);
+if (failed > 0) {
+  console.log('\nfailures:');
+  failures.forEach(function (f) { console.log('  - ' + f); });
+  process.exit(1);
+}
+console.log('\nall green');
