@@ -492,11 +492,11 @@
   }
 
   // Sample moon altitude across the bar domain at MOON_SAMPLE_MS
-  // intervals, convert to lux, and paint a quiet band above the main bar
-  // whose opacity steps with the lux bracket. Runs of samples sharing a
-  // bracket are merged into one line each, so a still night doesn't cost
-  // ~100 DOM nodes. Zero-opacity (faint / moon down or new) runs are
-  // skipped entirely — that skip *is* "visibly absent".
+  // intervals, convert to lux, and merge samples sharing a lux bracket
+  // into runs — pure, no DOM, so a still night doesn't cost ~100 DOM
+  // nodes and so renderSVG can ask "does the moon band draw anything
+  // visible" before it commits to a titleText sentence, without
+  // re-sampling the whole domain a second time.
   //
   // Samples between civilDawn and civilDusk (falling back to
   // sunriseUTC/sunsetUTC when those are null, per barDomainUTC's own
@@ -505,9 +505,10 @@
   // The current run is flushed at the boundary so a run never spans the
   // gap — otherwise a bracket that happened to match on both sides of
   // daylight would merge into one line straight through midday.
-  function renderMoonBand(output, domain, svgEl) {
-    if (!SunPathMath || !MoonLux) return;
-    if (output.lat == null || output.lon == null) return;
+  function computeMoonBandRuns(output, domain) {
+    var runs = [];
+    if (!SunPathMath || !MoonLux) return runs;
+    if (output.lat == null || output.lon == null) return runs;
 
     var k = moonKFromPhase(output.moonPhase);
     var startMs = domain.startUTC.getTime();
@@ -523,15 +524,12 @@
 
     function flushRun(runEndMs) {
       if (runStartMs === null) return;
-      var opacity = MOON_BAND_OPACITY[runLabel];
-      if (opacity > 0) {
-        svgEl.appendChild(makeSVGEl('line', {
-          class: 'dl-bar-moonlight',
-          x1: utcToBarX(new Date(runStartMs), domain), y1: MOON_BAND_Y,
-          x2: utcToBarX(new Date(runEndMs),   domain), y2: MOON_BAND_Y,
-          opacity: opacity
-        }));
-      }
+      runs.push({
+        startMs: runStartMs,
+        endMs:   runEndMs,
+        label:   runLabel,
+        opacity: MOON_BAND_OPACITY[runLabel]
+      });
       runStartMs = null;
       runLabel   = null;
     }
@@ -556,6 +554,23 @@
       }
     }
     flushRun(endMs);
+
+    return runs;
+  }
+
+  // Paints the runs computeMoonBandRuns produced. Zero-opacity (faint /
+  // moon down or new) runs are skipped entirely — that skip *is*
+  // "visibly absent".
+  function paintMoonBand(runs, domain, svgEl) {
+    runs.forEach(function (run) {
+      if (!(run.opacity > 0)) return;
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-bar-moonlight',
+        x1: utcToBarX(new Date(run.startMs), domain), y1: MOON_BAND_Y,
+        x2: utcToBarX(new Date(run.endMs),   domain), y2: MOON_BAND_Y,
+        opacity: run.opacity
+      }));
+    });
   }
 
   function renderSVG(output, svgEl, stageTz, clockFmt) {
@@ -578,9 +593,35 @@
 
     var nowUTC = new Date();
 
+    // Computed before titleText so the sentence can describe exactly what
+    // the bar draws below — never more, never less. Each clause is gated
+    // on the same field renderSVG itself checks to decide whether to draw
+    // the corresponding element (astronomicalDawn/Dusk for true dark and
+    // the moon-band daylight cutoff, astronomicalDusk for the adaptation
+    // mark), so a fallback-rung day (Finding 10) states only what it has.
+    var moonBandRuns = computeMoonBandRuns(output, domain);
+    var moonBandVisible = moonBandRuns.some(function (run) { return run.opacity > 0; });
+    var adaptUTC = output.astronomicalDusk
+      ? new Date(output.astronomicalDusk.getTime() + DARK_ADAPT_MIN * 60000)
+      : null;
+
     var tzSuffix = stageTz ? '' : ' (local time)';
     var titleText = 'Daylight from ' + timeInTz(sunrise, stageTz, clockFmt || '24h')
       + ' to ' + timeInTz(sunset, stageTz, clockFmt || '24h') + tzSuffix;
+
+    if (output.astronomicalDusk && output.astronomicalDawn) {
+      titleText += '; true dark from ' + timeInTz(output.astronomicalDusk, stageTz, clockFmt || '24h')
+        + ' to ' + timeInTz(output.astronomicalDawn, stageTz, clockFmt || '24h')
+        + (moonBandVisible ? ', partly moonlit' : '');
+    } else if (output.astronomicalDusk) {
+      titleText += '; true dark begins at ' + timeInTz(output.astronomicalDusk, stageTz, clockFmt || '24h');
+    } else if (output.astronomicalDawn) {
+      titleText += '; true dark until ' + timeInTz(output.astronomicalDawn, stageTz, clockFmt || '24h');
+    }
+
+    if (adaptUTC) {
+      titleText += '; eyes adjust by ' + timeInTz(adaptUTC, stageTz, clockFmt || '24h');
+    }
 
     // Mirror the rich title into aria-label so screen readers announce the
     // actual sunrise/sunset times — otherwise the static aria-label on the
@@ -591,7 +632,7 @@
     titleEl.textContent = titleText;
     svgEl.appendChild(titleEl);
 
-    renderMoonBand(output, domain, svgEl);
+    paintMoonBand(moonBandRuns, domain, svgEl);
 
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-track',
@@ -777,9 +818,8 @@
     // the right edge at every latitude and season, by construction. That's
     // correct, not a bug: both ends of the gap are anchored to the same
     // instant, so widening the margin is what gives it room to read.
-    if (output.astronomicalDusk) {
-      var adaptTime = new Date(output.astronomicalDusk.getTime() + DARK_ADAPT_MIN * 60000);
-      var adaptX    = utcToBarX(adaptTime, domain);
+    if (adaptUTC) {
+      var adaptX = utcToBarX(adaptUTC, domain);
       svgEl.appendChild(makeSVGEl('line', {
         class: 'dl-bar-tick-adapt',
         x1: adaptX, y1: BAR_Y - 10,

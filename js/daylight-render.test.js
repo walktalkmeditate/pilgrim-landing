@@ -358,6 +358,42 @@ for (var doy = 0; doy < 365; doy++) {
 equal(overlapCount, 0,
   '365 days at Burgos (2026): 0 dl-bar-moonlight segments overlap [sunrise, sunset] (was 423 segments >20px wide before the fix)');
 
+console.log('\n=== renderSVG — titleText/aria-label describes what is actually drawn (Finding 4) ===\n');
+
+// Burgos 2026-09-15 (burgosForward, above): astronomicalDawn and
+// astronomicalDusk both occur, and the moon-band sampling finds a
+// visible run (the moon is briefly up and bright enough before it sets,
+// ahead of true dark) — so all three new clauses should appear.
+var titleFwd = svgFwd.attrs['aria-label'];
+ok(titleFwd.indexOf('true dark from') !== -1,
+  'Burgos: titleText states the true-dark range (both astronomicalDawn/Dusk present)');
+ok(titleFwd.indexOf('partly moonlit') !== -1,
+  'Burgos: titleText notes partly moonlit (moon band paints a visible run)');
+ok(titleFwd.indexOf('eyes adjust by') !== -1,
+  'Burgos: titleText states the dark-adaptation time (astronomicalDusk present)');
+
+// Burgos 2026-09-11 — new moon (k≈0.0014). astronomicalDawn/Dusk both
+// still occur, but the moon's k is so low that lux never clears the
+// 'dim' bracket even at maximum altitude, so the moon band paints
+// nothing. titleText must not claim moonlight that isn't drawn.
+var newMoonOut = Daylight.recompute({
+  route: 'custom', customLat: '42.34', customLon: '-3.70',
+  customDistance: '20', customElevGain: '0',
+  date: '2026-09-11', paceKey: 'standard', startTimeMin: 9 * 60, mode: 'forward'
+});
+var svgNewMoon = makeNode('svg');
+Daylight.renderSVG(newMoonOut, svgNewMoon, null, '24h');
+var titleNewMoon = svgNewMoon.attrs['aria-label'];
+
+ok(byClass(svgNewMoon, 'dl-bar-moonlight').length === 0,
+  'fixture sanity: 2026-09-11 Burgos draws no dl-bar-moonlight segment (new moon)');
+ok(titleNewMoon.indexOf('true dark from') !== -1,
+  'new moon: titleText still states the true-dark range');
+ok(titleNewMoon.indexOf('partly moonlit') === -1,
+  'new moon: titleText omits "partly moonlit" — nothing was drawn to describe');
+ok(titleNewMoon.indexOf('eyes adjust by') !== -1,
+  'new moon: titleText still states the dark-adaptation time (independent of moon band visibility)');
+
 console.log('\n=== renderSVG — margin is coherent where astronomical twilight never occurs (Finding 10) ===\n');
 
 // Stockholm (59.33N) at summer solstice: astronomical AND nautical dusk
@@ -394,6 +430,15 @@ if (stockholmCivil) {
 }
 ok(byClass(svgStockholm, 'dl-bar-truedark').length === 0,
   'Stockholm: no dl-bar-truedark element (astronomical twilight never occurs here)');
+
+// Finding 4, same fixture: astronomicalDawn/Dusk are both null here, so
+// neither the true-dark segment nor the dark-adaptation mark is drawn —
+// titleText must not claim either.
+var titleStockholm = svgStockholm.attrs['aria-label'];
+ok(titleStockholm.indexOf('true dark') === -1,
+  'Stockholm: titleText omits "true dark" — astronomicalDawn/Dusk are both null, nothing was drawn');
+ok(titleStockholm.indexOf('eyes adjust') === -1,
+  'Stockholm: titleText omits "eyes adjust" — astronomicalDusk is null, no adaptation mark was drawn');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
