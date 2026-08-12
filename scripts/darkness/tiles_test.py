@@ -89,6 +89,18 @@ with tempfile.TemporaryDirectory() as tmp:
     ok(T.require_tile(tmp, 2025, 'h17v04') == present,
        'an existing tile returns its path without complaint')
 
+print('read_mosaic — a missing tile fails before any rasterio call')
+with tempfile.TemporaryDirectory() as tmp:
+    try:
+        T.read_mosaic(tmp, 2025, 131.3, 137.0, 31.5, 35.6)
+        ok(False, 'raises when a tile the bbox needs is not on disk')
+    except SystemExit as exc:
+        ok(True, 'raises when a tile the bbox needs is not on disk')
+        message = str(exc)
+        ok('h31v05' in message, 'the error names the missing tile')
+        ok('fetch_tiles.py --year 2025' in message,
+           'the error names the real invocation to fetch it, via require_tile')
+
 print('sha256_file')
 with tempfile.TemporaryDirectory() as tmp:
     sample = os.path.join(tmp, 'sample.bin')
@@ -96,6 +108,8 @@ with tempfile.TemporaryDirectory() as tmp:
         handle.write(b'pilgrim')
     ok(T.sha256_file(sample) == hashlib.sha256(b'pilgrim').hexdigest(),
        'matches a hash computed directly over the same bytes')
+    ok(T.sha256_file(sample) == T.sha256_file(sample),
+       'hashing the same file twice is deterministic')
 
 print('manifest round-trip')
 with tempfile.TemporaryDirectory() as tmp:

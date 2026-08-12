@@ -44,15 +44,22 @@ print('artifact shape')
 pos_conf = {'interpolatedFraction': 0.08123, 'maxGapKm': 34.567,
            'p90GapKm': 12.345, 'meanGapKm': 5.4321,
            'withinInterpolationLimit': True}
+# 763.7 is camino-frances' real shipped coveredKm -- chosen over a short
+# value like 2.3 because it is precise enough that fixed-decimal rounding
+# (763.7) and significant-figure rounding (763.7 would collapse to 764)
+# actually disagree. A fixture too short to show that gap would still
+# pass if coveredKm's rounding ever regressed to round_sig().
+values = [21.4372, 20.11, 18.0] + [20.0] * 761
 art = E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY,
-                       [21.4372, 20.11, 18.0], 2.3, pos_conf, True, 'deadbeef1234')
+                       values, 763.7, pos_conf, True, 'deadbeef1234')
 ok(art['route'] == 'camino-frances', 'route id carried')
 ok(art['epoch'] == 2024, 'epoch carried')
 ok(art['bakeId'] == 'deadbeef1234', 'bake id carried')
 ok(art['stepKm'] == 1, 'step carried')
-ok(art['coveredKm'] == 2.3, 'covered span carried')
+ok(art['coveredKm'] == 763.7, 'covered span carried at fixed-decimal precision, not rounded to 764')
 ok(art['unit'] == 'mag/arcsec2', 'unit carried')
-ok(art['values'] == [21.4, 20.1, 18.0], 'values rounded')
+ok(art['values'][:3] == [21.4, 20.1, 18.0], 'values rounded')
+ok(len(art['values']) == 764, 'one value per sample')
 ok(art['heldOutValidation'] is True, 'held-out validation flag carried')
 ok(list(art.keys()) == ['route', 'epoch', 'bakeId', 'stepKm', 'coveredKm', 'unit',
                         'values', 'heldOutValidation', 'positionalConfidence'],
@@ -120,7 +127,7 @@ for bad, why in [(('x', 2024, 1, 'bogus/unit', [1.0], 0.0, pos_conf, True, 'id')
 print('determinism')
 a = E.dumps(art)
 b = E.dumps(E.route_artifact('camino-frances', 2024, 1, E.UNIT_SKY,
-                             [21.4372, 20.11, 18.0], 2.3, pos_conf, True,
+                             values, 763.7, pos_conf, True,
                              'deadbeef1234'))
 ok(a == b, 'two runs serialise identically')
 ok(a.endswith('\n'), 'output ends with a newline')

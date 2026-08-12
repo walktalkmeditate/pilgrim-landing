@@ -46,6 +46,17 @@ REGIONS = {
     'japan': ['shikoku-88', 'kumano-kodo'],
 }
 
+# REGIONS here and geometry.WAYPOINT_TYPES are two independent route
+# lists that happen to agree today. A route added to one and not the
+# other would be silently dropped from either the bake or the waypoint
+# filter, so this fails loudly the moment they drift instead.
+_regions_route_ids = sorted(rid for ids in REGIONS.values() for rid in ids)
+_waypoint_route_ids = sorted(G.WAYPOINT_TYPES)
+assert _regions_route_ids == _waypoint_route_ids, (
+    'REGIONS (bake_darkness.py) and WAYPOINT_TYPES (geometry.py) have '
+    'drifted apart: REGIONS names %r, WAYPOINT_TYPES names %r'
+    % (_regions_route_ids, _waypoint_route_ids))
+
 STEP_KM = 1.0
 D0_KM = 1.0
 RADIUS_KM = 100.0
@@ -75,6 +86,11 @@ def geometry_commit():
     cannot change what we read, and blocking on it would be a false alarm —
     the kind that teaches people to bypass the guard.
     """
+    if not os.path.isdir(PILGRIMAGES):
+        sys.exit(
+            'missing sibling checkout %s — clone open-pilgrimages next to '
+            'this repo before baking; both bake_darkness.py and '
+            'fetch_tiles.py read route geometry from it' % PILGRIMAGES)
     sha = subprocess.check_output(
         ['git', '-C', PILGRIMAGES, 'rev-parse', 'HEAD']).decode().strip()
     dirty = subprocess.check_output(
@@ -195,6 +211,25 @@ def compute_bake_id(epoch, geometry_sha, tile_records, alpha):
     return hashlib.sha256(payload.encode('utf-8')).hexdigest()[:16]
 
 
+def crop_window(west, east, south, north, mosaic_west, mosaic_north,
+                mosaic_height, mosaic_width, deg_per_px):
+    """Pixel indices of the bbox window inside a mosaic, clamped to it.
+
+    Returns (x0, y0, x1, y1, crop_west, crop_north): mosaic[y0:y1, x0:x1]
+    is the smallest pixel window covering (west, east, south, north), and
+    (crop_west, crop_north) is that window's own north-west corner --
+    the origin sample_bilinear() needs to read positions out of the crop
+    rather than the full mosaic.
+    """
+    x0 = max(0, int((west - mosaic_west) / deg_per_px))
+    y0 = max(0, int((mosaic_north - north) / deg_per_px))
+    x1 = min(mosaic_width, int((east - mosaic_west) / deg_per_px) + 1)
+    y1 = min(mosaic_height, int((mosaic_north - south) / deg_per_px) + 1)
+    crop_west = mosaic_west + x0 * deg_per_px
+    crop_north = mosaic_north - y0 * deg_per_px
+    return x0, y0, x1, y1, crop_west, crop_north
+
+
 def blurred_region(epoch, lats, lons, alpha):
     """Mosaic, window to the bbox plus margin, convolve.
 
@@ -211,14 +246,10 @@ def blurred_region(epoch, lats, lons, alpha):
     band, mosaic_west, mosaic_north = T.read_mosaic(
         T.DATA_DIR, epoch, west, east, south, north)
 
-    x0 = max(0, int((west - mosaic_west) / T.DEG_PER_PX))
-    y0 = max(0, int((mosaic_north - north) / T.DEG_PER_PX))
-    x1 = min(band.shape[1], int((east - mosaic_west) / T.DEG_PER_PX) + 1)
-    y1 = min(band.shape[0], int((mosaic_north - south) / T.DEG_PER_PX) + 1)
+    x0, y0, x1, y1, crop_west, crop_north = crop_window(
+        west, east, south, north, mosaic_west, mosaic_north,
+        band.shape[0], band.shape[1], T.DEG_PER_PX)
     crop = band[y0:y1, x0:x1]
-
-    crop_west = mosaic_west + x0 * T.DEG_PER_PX
-    crop_north = mosaic_north - y0 * T.DEG_PER_PX
 
     kern = K.build_kernel(alpha, D0_KM, RADIUS_KM, T.DEG_PER_PX,
                           float(np.mean(lats)))
@@ -322,17 +353,62 @@ def choose_alpha(epoch, cache):
                  full_report['monotonic'], full_report['max_abs_residual']))
         graded.append((alpha, loo_report, params, full_report))
 
+    chosen, qualifying_alphas = select_alpha(graded)
+    return chosen + (qualifying_alphas,)
+
+
+def select_alpha(graded):
+    """Pick the winning (alpha, loo_report, params, full_report) tuple.
+
+    graded is a list of (alpha, loo_report, params, full_report), one per
+    ALPHA_GRID entry -- loo_report and full_report are C.validate()'s
+    dicts, so g[1]['max_abs_residual'] is the leave-one-out worst
+    residual and g[3]['monotonic'] is the full-set-fit ordering verdict.
+
+    Among alphas that are monotonic under the full-set fit AND whose
+    leave-one-out worst residual is within C.TOLERANCE_MAG, keep the
+    smallest leave-one-out worst residual. If none qualify, fall back to
+    the smallest leave-one-out worst residual overall, so the gate can
+    fail loudly on a real miss rather than have grid choice hide it.
+
+    Returns (chosen, qualifying_alphas).
+    """
     qualifying = [g for g in graded if g[3]['monotonic']
                   and g[1]['max_abs_residual'] <= C.TOLERANCE_MAG]
     pool = qualifying if qualifying else graded
     chosen = min(pool, key=lambda g: g[1]['max_abs_residual'])
     qualifying_alphas = [g[0] for g in qualifying]
-    return chosen + (qualifying_alphas,)
+    return chosen, qualifying_alphas
+
+
+def gate_decision(passed, fallback_radiance):
+    """Whether the bake may proceed, and which unit it ships under.
+
+    passed is full_report['monotonic'] and loo_report['max_abs_residual']
+    <= C.TOLERANCE_MAG -- the gate's verdict. Exits with an actionable
+    message for the two combinations that contradict the flag (a passing
+    gate asked to ship the weaker claim, or a failing one asked to ship
+    the stronger one); otherwise returns the unit the artifact ships
+    under.
+    """
+    if passed and fallback_radiance:
+        sys.exit('validation PASSED; --fallback-radiance ships a weaker '
+                 'claim than the data supports and exists only for a '
+                 'failing gate. Drop the flag to write the sky-brightness '
+                 'artifact the data actually earned.')
+    if not passed and not fallback_radiance:
+        sys.exit('validation FAILED (leave-one-out amplitude / full-set-fit '
+                 'ordering). Do not widen the tolerance. Re-run with '
+                 '--fallback-radiance to ship banded radiance, per section '
+                 '7 of the spec.')
+    return E.UNIT_RADIANCE if fallback_radiance else E.UNIT_SKY
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--epoch', type=int, required=True)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--epoch', type=int, required=True,
+                        help='Black Marble annual composite year to bake, e.g. 2025')
     parser.add_argument('--fallback-radiance', action='store_true',
                         help='ship banded radiance instead of sky brightness')
     args = parser.parse_args()
@@ -350,30 +426,21 @@ def main():
     print('chose alpha=%.2f  LOO worst=%.4f  monotonic=%s  full worst=%.4f'
           % (alpha, loo_report['max_abs_residual'], full_report['monotonic'],
              full_report['max_abs_residual']))
-    for site, resid in zip(S.REFERENCE_SITES, loo_report['residuals']):
+    for site, resid in zip(S.REFERENCE_SITES, loo_report['residuals'],
+                           strict=True):
         print('  %-34s measured %.2f  LOO residual %+.3f'
               % (site['name'][:34], site['mag_arcsec2'], resid))
 
     passed = (full_report['monotonic']
              and loo_report['max_abs_residual'] <= C.TOLERANCE_MAG)
-    if passed and args.fallback_radiance:
-        sys.exit('validation PASSED; --fallback-radiance ships a weaker '
-                 'claim than the data supports and exists only for a '
-                 'failing gate. Drop the flag to write the sky-brightness '
-                 'artifact the data actually earned.')
-    if not passed and not args.fallback_radiance:
-        sys.exit('validation FAILED (leave-one-out amplitude / full-set-fit '
-                 'ordering). Do not widen the tolerance. Re-run with '
-                 '--fallback-radiance to ship banded radiance, per section '
-                 '7 of the spec.')
+    unit = gate_decision(passed, args.fallback_radiance)
 
     print('final calibration  A=%.4e  p=%.4f  mNatMag=%.1f  (full fit, '
           'all five reference sites)' % (A, p, C.M_NAT_MAG))
 
-    unit = E.UNIT_RADIANCE if args.fallback_radiance else E.UNIT_SKY
-    # Belt and suspenders against the two branches above ever drifting
-    # apart from this invariant: the gate's verdict and the unit it ships
-    # under must always agree, in both directions.
+    # Belt and suspenders against gate_decision() ever drifting from this
+    # invariant: the gate's verdict and the unit it ships under must
+    # always agree, in both directions.
     assert (unit == E.UNIT_SKY) == passed, (
         'unit/gate contradiction: unit=%r but validation.passed=%r'
         % (unit, passed))
@@ -397,6 +464,7 @@ def main():
     # Every route artifact and meta.json, computed in full before any of
     # them touches disk — see the module docstring for why.
     outputs = []
+    values_by_route = {}
 
     for region, ids in REGIONS.items():
         lats = [pt[0] for rid in ids for pt in points[rid]]
@@ -420,6 +488,7 @@ def main():
                         % (v, route_id))
             else:
                 values = C.predict(raw, params)
+            values_by_route[route_id] = values
             artifact = E.route_artifact(route_id, args.epoch, int(STEP_KM),
                                         unit, values, covered[route_id],
                                         geometry_stats[route_id],
@@ -428,6 +497,25 @@ def main():
             outputs.append((path, E.dumps(artifact)))
             print('  %-18s %5d values -> %s'
                   % (route_id, len(values), os.path.relpath(path, REPO)))
+
+    if unit == E.UNIT_SKY:
+        # The reference sites bound the calibration only between them --
+        # M_NAT_MAG floors the dark end, but nothing floors the bright
+        # end the way it does. A sample brighter than every reference
+        # site is extrapolating past the brightest anchor with no
+        # analogous physical ceiling holding it back. See "Bright-end
+        # extrapolation" in docs/specs/2026-08-11-darkness-data-audit.md.
+        iberia_values = [v for route_id in REGIONS['iberia']
+                         for v in values_by_route[route_id]]
+        brightest = min(S.REFERENCE_SITES, key=lambda s: s['mag_arcsec2'])
+        exceeding = sum(1 for v in iberia_values if v < brightest['mag_arcsec2'])
+        print('  bright-end extrapolation: %d/%d Iberia samples (%.1f%%) '
+              'read brighter than the brightest calibration anchor '
+              '(%.2f mag/arcsec2, %s) -- unlike the dark end, nothing '
+              'bounds this'
+              % (exceeding, len(iberia_values),
+                 100.0 * exceeding / len(iberia_values),
+                 brightest['mag_arcsec2'], brightest['name']))
 
     # Which pair the monotonicity verdict actually rests on, so a future
     # edit that removes it -- deliberately or not -- shows up in the
@@ -481,7 +569,8 @@ def main():
             'method': 'leave-one-out for amplitude, full-set fit for ordering',
             'residuals': [{'name': site['name'], 'residual': resid}
                           for site, resid in zip(S.REFERENCE_SITES,
-                                                  loo_report['residuals'])],
+                                                  loo_report['residuals'],
+                                                  strict=True)],
             'alpha': alpha,
             'fullSetWorstResidual': full_report['max_abs_residual'],
             # The verdict travels with the data. A reader holding only this
