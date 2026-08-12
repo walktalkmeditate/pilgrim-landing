@@ -550,6 +550,9 @@
     var domain = DaylightMath.barDomainUTC(output);
     if (!domain) return;
 
+    var sunriseX = utcToBarX(sunrise, domain);
+    var sunsetX  = utcToBarX(sunset,  domain);
+
     var nowUTC = new Date();
 
     var tzSuffix = stageTz ? '' : ' (local time)';
@@ -611,7 +614,7 @@
 
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-daylight',
-      x1: BAR_X1, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
+      x1: sunriseX, y1: BAR_Y, x2: sunsetX, y2: BAR_Y
     }));
 
     var walkStartX = null;
@@ -621,24 +624,24 @@
       if (output.latestDepartUTC === null) {
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-tick-sunrise',
-          x1: BAR_X1, y1: BAR_Y - 10,
-          x2: BAR_X1, y2: BAR_Y + 10
+          x1: sunriseX, y1: BAR_Y - 10,
+          x2: sunriseX, y2: BAR_Y + 10
         }));
         var sunriseLblOnly = makeSVGEl('text', {
           class: 'dl-bar-label',
-          x: BAR_X1, y: BAR_Y + 22,
+          x: sunriseX, y: BAR_Y + 22,
           'text-anchor': 'middle'
         });
         sunriseLblOnly.textContent = timeInTz(sunrise, stageTz, clockFmt || '24h');
         svgEl.appendChild(sunriseLblOnly);
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-tick-sunset',
-          x1: BAR_X2, y1: BAR_Y - 10,
-          x2: BAR_X2, y2: BAR_Y + 10
+          x1: sunsetX, y1: BAR_Y - 10,
+          x2: sunsetX, y2: BAR_Y + 10
         }));
         var sunsetLblOnly = makeSVGEl('text', {
           class: 'dl-bar-label',
-          x: BAR_X2, y: BAR_Y + 22,
+          x: sunsetX, y: BAR_Y + 22,
           'text-anchor': 'middle'
         });
         sunsetLblOnly.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
@@ -659,10 +662,10 @@
         }));
       }
 
-      if (walkEndX < BAR_X2 - 0.5) {
+      if (walkEndX < sunsetX - 0.5) {
         svgEl.appendChild(makeSVGEl('line', {
           class: 'dl-bar-buffer',
-          x1: walkEndX, y1: BAR_Y, x2: BAR_X2, y2: BAR_Y
+          x1: walkEndX, y1: BAR_Y, x2: sunsetX, y2: BAR_Y
         }));
       }
 
@@ -717,12 +720,12 @@
 
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-tick-sunrise',
-      x1: BAR_X1, y1: BAR_Y - 10,
-      x2: BAR_X1, y2: BAR_Y + 10
+      x1: sunriseX, y1: BAR_Y - 10,
+      x2: sunriseX, y2: BAR_Y + 10
     }));
     var sunriseLbl = makeSVGEl('text', {
       class: 'dl-bar-label',
-      x: BAR_X1, y: BAR_Y + 22,
+      x: sunriseX, y: BAR_Y + 22,
       'text-anchor': 'middle'
     });
     sunriseLbl.textContent = timeInTz(sunrise, stageTz, clockFmt || '24h');
@@ -730,12 +733,12 @@
 
     svgEl.appendChild(makeSVGEl('line', {
       class: 'dl-bar-tick-sunset',
-      x1: BAR_X2, y1: BAR_Y - 10,
-      x2: BAR_X2, y2: BAR_Y + 10
+      x1: sunsetX, y1: BAR_Y - 10,
+      x2: sunsetX, y2: BAR_Y + 10
     }));
     var sunsetLbl = makeSVGEl('text', {
       class: 'dl-bar-label',
-      x: BAR_X2, y: BAR_Y + 22,
+      x: sunsetX, y: BAR_Y + 22,
       'text-anchor': 'middle'
     });
     sunsetLbl.textContent = timeInTz(sunset, stageTz, clockFmt || '24h');
