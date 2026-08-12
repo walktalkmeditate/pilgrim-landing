@@ -546,6 +546,107 @@ Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
     routeId + ' — darknessAggregateWindowKm from real positionalConfidence');
 });
 
+console.log('\n=== mergeDarknessRuns — unaggregated path, hand-computed (D3) ===\n');
+
+// stepKm=1, coveredKm=5.5 (deliberately NOT an exact multiple of stepKm, so
+// the last sample's natural position (5) sits short of coveredKm and every
+// run below gets real, positive width — the "ordinary" case, distinct from
+// the exact-multiple edge case exercised further down).
+// values -> bands: 20,20 -> 2,2 | 19,19,19 -> 1,1,1 | 22 -> 4
+arrEqual(
+  D.mergeDarknessRuns([20, 20, 19, 19, 19, 22], 1, 5.5, null),
+  [
+    { startKm: 0, endKm: 2,   band: 2 },
+    { startKm: 2, endKm: 5,   band: 1 },
+    { startKm: 5, endKm: 5.5, band: 4 }
+  ],
+  'unaggregated: three bands merge into three runs, tiling [0, 5.5] exactly'
+);
+
+console.log('\n=== mergeDarknessRuns — Kumano-shaped: one band, one run (D6) ===\n');
+
+var oneband = new Array(10).fill(21.7); // all band 4, stepKm=1, coveredKm=9
+arrEqual(
+  D.mergeDarknessRuns(oneband, 1, 9, null),
+  [{ startKm: 0, endKm: 9, band: 4 }],
+  'ten identical-band samples collapse to a single run spanning the whole route — no per-route special-casing needed'
+);
+
+console.log('\n=== mergeDarknessRuns — aggregated path, hand-computed (D3) ===\n');
+
+// windowKm=3, coveredKm=8 -> windows [0,3) [3,6) [6,8), grid-aligned (not
+// sample-position-aligned). Window medians: [22,22,21]->22->band4;
+// [19,19,20]->19->band1; [17,17,17]->17->band0.
+arrEqual(
+  D.mergeDarknessRuns([22, 22, 21, 19, 19, 20, 17, 17, 17], 1, 8, 3),
+  [
+    { startKm: 0, endKm: 3, band: 4 },
+    { startKm: 3, endKm: 6, band: 1 },
+    { startKm: 6, endKm: 8, band: 0 }
+  ],
+  'aggregated: each window classified by its median, windows merge the same way raw samples do'
+);
+
+console.log('\n=== mergeDarknessRuns — trailing zero-width run is absorbed, not emitted (adversarial) ===\n');
+
+// coveredKm=3 is an EXACT multiple of stepKm=1, so the last raw sample's
+// own position (index 3, km 3) coincides with coveredKm exactly. Its band
+// (4) disagrees with its predecessor (2) — without the safety net this
+// pushes a {startKm: 3, endKm: 3, band: 4} run: real classification, zero
+// pixels to draw it with. It must be absorbed into the run before it
+// instead of appearing as an invisible sliver that still tiles "correctly"
+// on paper.
+arrEqual(
+  D.mergeDarknessRuns([20, 20, 20, 22], 1, 3, null),
+  [{ startKm: 0, endKm: 3, band: 2 }],
+  'a same-position, disagreeing final sample is absorbed into the previous run rather than emitted at zero width'
+);
+
+console.log('\n=== mergeDarknessRuns — tiles [0, coveredKm] with no gaps, overlaps, or zero-width runs, all 7 real artifacts ===\n');
+
+Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
+  var artifact = loadDarknessArtifact(routeId);
+  var windowKm = D.darknessAggregateWindowKm(artifact.positionalConfidence);
+  var runs = D.mergeDarknessRuns(artifact.values, artifact.stepKm, artifact.coveredKm, windowKm);
+
+  ok(runs.length > 0, routeId + ': mergeDarknessRuns returns at least one run');
+
+  var startsAtZero = runs[0] && runs[0].startKm === 0;
+  ok(startsAtZero, routeId + ': first run starts at km 0');
+
+  var endsAtCovered = runs.length && runs[runs.length - 1].endKm === artifact.coveredKm;
+  ok(endsAtCovered, routeId + ': last run ends at coveredKm (' + artifact.coveredKm + ')');
+
+  var tilesCleanly = runs.every(function (r, i) {
+    if (r.endKm <= r.startKm) return false;
+    if (i > 0 && r.startKm !== runs[i - 1].endKm) return false;
+    return true;
+  });
+  ok(tilesCleanly, routeId + ': every run has positive width, and each run\'s start meets the previous run\'s end exactly (' + runs.length + ' runs)');
+});
+
+console.log('\n=== mergeDarknessRuns — pinned shapes, real data (D3, D6) ===\n');
+
+var kumanoArtifact = loadDarknessArtifact('kumano-kodo');
+var kumanoRuns = D.mergeDarknessRuns(kumanoArtifact.values, kumanoArtifact.stepKm, kumanoArtifact.coveredKm,
+  D.darknessAggregateWindowKm(kumanoArtifact.positionalConfidence));
+arrEqual(kumanoRuns, [{ startKm: 0, endKm: 38, band: 4 }],
+  'kumano-kodo: real data collapses to exactly one run, the whole 38 km, band 4 (D6 — emergent, not special-cased)');
+
+var shikokuArtifact = loadDarknessArtifact('shikoku-88');
+var shikokuRuns = D.mergeDarknessRuns(shikokuArtifact.values, shikokuArtifact.stepKm, shikokuArtifact.coveredKm,
+  D.darknessAggregateWindowKm(shikokuArtifact.positionalConfidence));
+equal(shikokuRuns.length, 9, 'shikoku-88: real data (40 km windows) merges to 9 runs — coarse, but not one flat bar (D3)');
+arrEqual(shikokuRuns[0], { startKm: 0, endKm: 120, band: 3 }, 'shikoku-88: first run');
+arrEqual(shikokuRuns[shikokuRuns.length - 1], { startKm: 1080, endKm: 1080.5, band: 4 }, 'shikoku-88: last run reaches coveredKm exactly (1080.5, not 1080)');
+
+var francesArtifact = loadDarknessArtifact('camino-frances');
+var francesRuns = D.mergeDarknessRuns(francesArtifact.values, francesArtifact.stepKm, francesArtifact.coveredKm,
+  D.darknessAggregateWindowKm(francesArtifact.positionalConfidence));
+equal(francesRuns.length, 128, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 runs');
+var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
+ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

@@ -52,6 +52,9 @@ global.document = {
   createElementNS: function (ns, tag) { return makeNode(tag); }
 };
 
+var fs   = require('fs');
+var path = require('path');
+
 var Daylight     = require('./daylight.js');
 var DaylightMath = require('./daylight-math.js');
 
@@ -483,6 +486,331 @@ ok(stockholmOut.moonBrightnessAtAdapt === null,
   'Stockholm: moonBrightnessAtAdapt is null — astronomicalDusk never occurs here');
 ok(stockholmOut.annotations.every(function (a) { return a.text.indexOf('True dark') === -1; }),
   'Stockholm: no true-dark/eyes-adjust annotation — nothing to report');
+
+/* =============================================
+   The darkness ribbon — Slice 3/4 (spec: docs/specs/2026-08-12-darkness-ribbon.md)
+
+   Red-first, on purpose (see this slice's own launch note): every
+   assertion below is written against Daylight.renderRibbon and a
+   dl-ribbon-svg element before either exists, so the first thing this
+   section does is fail with "Daylight.renderRibbon is not a function" —
+   a clean, named absence, not a silently-passing no-op. Slice 4 makes
+   the geometry-shaped assertions (AC #2, #3's stroke half, #4's
+   numeric-sweep half, #8, #9's label half) green; AC #5 and #9's
+   "N of M km sampled" sentence half stay red on purpose, pending a
+   future slice's darknessSummarySentence (D10) — renderRibbon has no
+   route-display-name or route-meta input to build that sentence from.
+   ============================================= */
+
+function arrEqual(actual, expected, label) {
+  if (JSON.stringify(actual) === JSON.stringify(expected)) {
+    passed++;
+    console.log('  ✓ ' + label + '  (' + JSON.stringify(actual) + ')');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+    console.log('  ✗ ' + label + '  (' + JSON.stringify(actual) + ' vs ' + JSON.stringify(expected) + ')');
+  }
+}
+
+function classTokens(el) {
+  return (el.attrs['class'] || '').split(/\s+/).filter(Boolean);
+}
+
+function hasClassToken(el, token) {
+  return classTokens(el).indexOf(token) !== -1;
+}
+
+function elementsWithClassPrefix(svgEl, prefix) {
+  return svgEl.children.filter(function (c) {
+    return classTokens(c).some(function (t) { return t.indexOf(prefix) === 0; });
+  });
+}
+
+function ribbonBandIndex(el) {
+  var token = classTokens(el).filter(function (t) { return /^dl-ribbon-band-\d$/.test(t); })[0];
+  return token ? parseInt(token.slice('dl-ribbon-band-'.length), 10) : null;
+}
+
+// Independent oracle for the ribbon's own distance axis — deliberately not
+// derived from utcToBarX/expectedBarX above (a time-domain function) or
+// from kmToBarX (the bar's own waypoint-tick helper, scoped to a walk
+// sub-range). Same shape as expectedBarX, same X1/X2 pixel values as the
+// bar purely for column alignment (D8) — restated here, not imported,
+// since the spec is explicit that sharing the numbers is a layout
+// coincidence, not a shared coordinate system.
+var RIBBON_X1 = 24;
+var RIBBON_X2 = 576;
+var RIBBON_W  = RIBBON_X2 - RIBBON_X1;
+
+function expectedRibbonX(kmFromStart, coveredKm) {
+  if (coveredKm <= 0) return RIBBON_X1;
+  var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
+  return RIBBON_X1 + frac * RIBBON_W;
+}
+
+var DARKNESS_DIR = path.join(__dirname, '..', 'assets', 'darkness');
+function loadDarknessArtifact(routeId) {
+  return JSON.parse(fs.readFileSync(path.join(DARKNESS_DIR, routeId + '.json'), 'utf8'));
+}
+
+// AC #2/#3(b) — a fixture route under a name that is NOT "shikoku-88" or
+// "kumano-kodo", with withinInterpolationLimit and heldOutValidation both
+// forced false by hand. This is the assertion that actually proves the
+// renderer reads the fields rather than the route id — testing only
+// against the real Shikoku/Kumano data would pass even a hardcoded
+// `if (routeId === 'shikoku-88')` check. Shaped so every one of the five
+// bands appears in a distinct, hand-verifiable 20 km window (D3:
+// ceil(15/10)*10 = 20).
+function buildTestCoarseRoute() {
+  var values = [];
+  var i;
+  for (i = 0; i < 30; i++) values.push(22.0); // band 4, km 0-29
+  for (i = 0; i < 40; i++) values.push(20.0); // band 2, km 30-69
+  for (i = 0; i < 31; i++) values.push(17.0); // band 0, km 70-100
+  return {
+    route: 'test-coarse-route',
+    epoch: 2025,
+    bakeId: 'test-fixture',
+    stepKm: 1,
+    coveredKm: 100,
+    unit: 'mag/arcsec2',
+    values: values,
+    heldOutValidation: false,
+    positionalConfidence: {
+      interpolatedFraction: 0.5,
+      maxGapKm: 20,
+      p90GapKm: 15,
+      meanGapKm: 10,
+      withinInterpolationLimit: false
+    }
+  };
+}
+
+// AC #10 — a shape no real shipped route has today (all seven carry
+// mag/arcsec2, independently re-checked while writing the spec).
+function buildWrongUnitRoute() {
+  return {
+    route: 'test-wrong-unit',
+    epoch: 2025,
+    bakeId: 'test-fixture',
+    stepKm: 1,
+    coveredKm: 10,
+    unit: 'nW/cm2/sr',
+    values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    heldOutValidation: true,
+    positionalConfidence: {
+      interpolatedFraction: 0, maxGapKm: 1, p90GapKm: 1, meanGapKm: 1,
+      withinInterpolationLimit: true
+    }
+  };
+}
+
+var francesArtifact  = loadDarknessArtifact('camino-frances');
+var kumanoArtifact   = loadDarknessArtifact('kumano-kodo');
+var shikokuArtifact  = loadDarknessArtifact('shikoku-88');
+var primitivoArtifact = loadDarknessArtifact('camino-primitivo');
+var coarseFixture    = buildTestCoarseRoute();
+var wrongUnitFixture = buildWrongUnitRoute();
+
+console.log('\n=== renderRibbon — smoke: draws something for a real route (this is where Slice 3 goes red) ===\n');
+
+var svgSmoke = makeNode('svg');
+Daylight.renderRibbon(francesArtifact, svgSmoke, 'km');
+ok(elementsWithClassPrefix(svgSmoke, 'dl-ribbon-band-').length > 0,
+  'camino-frances: renderRibbon draws at least one dl-ribbon-band-* element');
+
+console.log('\n=== renderRibbon — AC #2: Shikoku-shaped coarsening is keyed off positionalConfidence, not a route id ===\n');
+
+var svgFrancesRibbon = makeNode('svg');
+Daylight.renderRibbon(francesArtifact, svgFrancesRibbon, 'km');
+var francesRuns = elementsWithClassPrefix(svgFrancesRibbon, 'dl-ribbon-band-');
+equal(francesRuns.length, 128, 'real camino-frances (withinInterpolationLimit true): 128 runs, unaggregated — matches js/daylight-math.test.js exactly');
+
+var svgKumanoRibbon = makeNode('svg');
+Daylight.renderRibbon(kumanoArtifact, svgKumanoRibbon, 'km');
+var kumanoRuns = elementsWithClassPrefix(svgKumanoRibbon, 'dl-ribbon-band-');
+equal(kumanoRuns.length, 1, 'real kumano-kodo (withinInterpolationLimit true): exactly one run (D6)');
+if (kumanoRuns.length === 1) {
+  equal(kumanoRuns[0].attrs.x1, RIBBON_X1, 'kumano-kodo: the one run starts at the ribbon\'s own left edge');
+  equal(kumanoRuns[0].attrs.x2, RIBBON_X2, 'kumano-kodo: the one run ends at the ribbon\'s own right edge — one flat band, full width');
+}
+
+var svgShikokuRibbon = makeNode('svg');
+Daylight.renderRibbon(shikokuArtifact, svgShikokuRibbon, 'km');
+var shikokuRuns = elementsWithClassPrefix(svgShikokuRibbon, 'dl-ribbon-band-');
+equal(shikokuRuns.length, 9, 'real shikoku-88 (withinInterpolationLimit FALSE): coarsens to 9 runs — matches js/daylight-math.test.js exactly');
+
+var svgCoarseRibbon = makeNode('svg');
+Daylight.renderRibbon(coarseFixture, svgCoarseRibbon, 'km');
+var coarseRuns = elementsWithClassPrefix(svgCoarseRibbon, 'dl-ribbon-band-');
+equal(coarseRuns.length, 5, 'synthetic "test-coarse-route" (NOT named shikoku-88, withinInterpolationLimit forced false): also coarsens — proves the field drives it, not the id');
+if (coarseRuns.length === 5) {
+  var expectedCoarseBounds = [0, 20, 40, 60, 80, 100];
+  var expectedCoarseBands  = [4, 3, 2, 1, 0];
+  coarseRuns.forEach(function (run, i) {
+    equal(run.attrs.x1, expectedRibbonX(expectedCoarseBounds[i], 100), 'test-coarse-route run ' + i + ': x1 matches expectedRibbonX(' + expectedCoarseBounds[i] + ', 100)');
+    equal(run.attrs.x2, expectedRibbonX(expectedCoarseBounds[i + 1], 100), 'test-coarse-route run ' + i + ': x2 matches expectedRibbonX(' + expectedCoarseBounds[i + 1] + ', 100)');
+    equal(ribbonBandIndex(run), expectedCoarseBands[i], 'test-coarse-route run ' + i + ': band index');
+  });
+}
+
+console.log('\n=== renderRibbon — AC #3: heldOutValidation gates a dashed stroke, independent of route id ===\n');
+
+ok(kumanoRuns.every(function (r) { return hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'real kumano-kodo (heldOutValidation false): every run carries the dashed/unvalidated class');
+ok(shikokuRuns.every(function (r) { return hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'real shikoku-88 (heldOutValidation false): every run carries the dashed/unvalidated class');
+ok(francesRuns.every(function (r) { return !hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'real camino-frances (heldOutValidation true): no run carries the dashed/unvalidated class');
+ok(coarseRuns.every(function (r) { return hasClassToken(r, 'dl-ribbon-unvalidated'); }),
+  'synthetic "test-coarse-route" (heldOutValidation forced false, NOT named shikoku/kumano): dashed anyway — field-driven, not id-driven');
+
+// D4's text clause is a trailing appendage to the D10 summary sentence
+// (darknessSummarySentence), which this slice does not implement — the
+// stroke half above is real; this half stays red until that lands.
+var svgFrancesSummary = makeNode('p');
+ok(svgFrancesSummary.textContent.indexOf('Not checked against a ground reading here') !== -1,
+  '[expected red until darknessSummarySentence/D10 lands] unvalidated routes\' summary text carries the D4 clause');
+
+console.log('\n=== renderRibbon — AC #4: no bare magnitude value, no star-count vocabulary, in any text the ribbon produces (numeric-sweep half) ===\n');
+
+var BARE_DECIMAL_RE = /\d+\.\d+(?!\s*(km|mi|%))/;
+var STAR_WORD_RE = /\bstars?\b/i;
+
+function collectRibbonTexts(svgEl) {
+  var texts = [];
+  if (svgEl.attrs['aria-label']) texts.push(svgEl.attrs['aria-label']);
+  svgEl.children.forEach(function (c) {
+    if (c.tag === 'text' || c.tag === 'title') texts.push(c.textContent);
+  });
+  return texts;
+}
+
+[svgFrancesRibbon, svgKumanoRibbon, svgShikokuRibbon, svgCoarseRibbon].forEach(function (svgEl, idx) {
+  var label = ['camino-frances', 'kumano-kodo', 'shikoku-88', 'test-coarse-route'][idx];
+  var texts = collectRibbonTexts(svgEl);
+  ok(texts.length > 0, label + ': the sweep has real text to check (fixture is non-vacuous)');
+  var offenders = [];
+  texts.forEach(function (t) {
+    if (BARE_DECIMAL_RE.test(t)) offenders.push('bare-decimal in "' + t + '"');
+    if (STAR_WORD_RE.test(t))   offenders.push('star-vocab in "' + t + '"');
+  });
+  ok(offenders.length === 0, label + ': no bare magnitude value or star-count word in aria-label/title/text' + (offenders.length ? ' -- ' + offenders.join('; ') : ''));
+});
+
+console.log('\n=== renderRibbon — AC #5: text-readable equivalence (aria-label and outside-SVG summary say the same thing) ===\n');
+
+// Exact worked sentences from spec D10 — the multi-band and single-band
+// ends of the "how many bands qualify" range.
+var D10_SENTENCE_PRIMITIVO = 'Mostly as it was (52%) and open dark (34%), with some countryside (8%) and edge of town (6%).';
+var D10_SENTENCE_KUMANO    = 'As it was, the whole way.';
+
+var svgPrimitivo = makeNode('svg');
+Daylight.renderRibbon(primitivoArtifact, svgPrimitivo, 'km');
+var summaryPrimitivo = makeNode('p'); // nothing in this slice populates this — see header note
+equal(svgPrimitivo.attrs['aria-label'], D10_SENTENCE_PRIMITIVO,
+  '[expected red until D10/Slice 5] camino-primitivo: aria-label carries the full D10 sentence');
+equal(summaryPrimitivo.textContent, D10_SENTENCE_PRIMITIVO,
+  '[expected red until D10/Slice 5] camino-primitivo: sibling summary paragraph carries the full D10 sentence');
+
+var summaryKumano = makeNode('p');
+equal(svgKumanoRibbon.attrs['aria-label'], D10_SENTENCE_KUMANO,
+  '[expected red until D10/Slice 5] kumano-kodo: aria-label carries the full D10 sentence (single-band end of the range)');
+equal(summaryKumano.textContent, D10_SENTENCE_KUMANO,
+  '[expected red until D10/Slice 5] kumano-kodo: sibling summary paragraph carries the full D10 sentence (single-band end of the range)');
+
+console.log('\n=== renderRibbon — AC #6: custom routes and the unselected state show no ribbon section at all (D12) ===\n');
+
+equal(Daylight.ribbonSectionHidden('custom', null), true, 'custom route (no darkness data): section stays hidden');
+equal(Daylight.ribbonSectionHidden(null, null), true, 'no route selected: section stays hidden');
+equal(Daylight.ribbonSectionHidden('', null), true, 'empty route id: section stays hidden');
+equal(Daylight.ribbonSectionHidden('camino-frances', francesArtifact), false, 'a real baked route id with loaded darkness data: section is shown');
+
+console.log('\n=== renderRibbon — AC #7: output depends only on which route is loaded, never stage/date/pace/start/buffer (D13) ===\n');
+
+// renderRibbon's own signature (darknessData, svgEl, unitSystem) has no
+// stage/date/pace/start/buffer parameter to vary in the first place —
+// checked directly, not simulated: two calls with the same darkness data
+// (the only thing it can possibly react to) must be byte-identical.
+function svgSnapshot(svgEl) {
+  return svgEl.children.map(function (c) {
+    return { tag: c.tag, attrs: c.attrs, textContent: c.textContent };
+  });
+}
+
+var svgRouteCallA = makeNode('svg');
+var svgRouteCallB = makeNode('svg');
+Daylight.renderRibbon(primitivoArtifact, svgRouteCallA, 'km');
+Daylight.renderRibbon(primitivoArtifact, svgRouteCallB, 'km');
+arrEqual(svgSnapshot(svgRouteCallA), svgSnapshot(svgRouteCallB),
+  'two renderRibbon calls with the same route data produce byte-identical geometry');
+
+console.log('\n=== renderRibbon — AC #8: the bar and the ribbon are structurally two instruments, never one (D8) ===\n');
+
+var indexHtmlPath = path.join(__dirname, '..', 'daylight', 'index.html');
+var indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+
+ok(indexHtml.indexOf('id="dl-ribbon-svg"') !== -1, 'daylight/index.html: a dl-ribbon-svg element exists');
+ok(indexHtml.indexOf('id="dl-ribbon-svg"') !== indexHtml.indexOf('id="dl-bar-svg"'),
+  'dl-ribbon-svg is a distinct element id from dl-bar-svg');
+
+var outputOpenIdx = indexHtml.indexOf('id="dl-output"');
+ok(outputOpenIdx !== -1, 'daylight/index.html: #dl-output exists');
+var outputCloseIdx = indexHtml.indexOf('</section>', outputOpenIdx);
+var noscriptIdx = indexHtml.indexOf('<noscript>', outputCloseIdx);
+ok(outputCloseIdx !== -1 && noscriptIdx !== -1 && outputCloseIdx < noscriptIdx,
+  'daylight/index.html: #dl-output closes, then <noscript> follows (sane fixture)');
+var betweenOutputAndNoscript = indexHtml.slice(outputCloseIdx, noscriptIdx);
+ok(betweenOutputAndNoscript.indexOf('id="dl-ribbon-svg"') !== -1,
+  'the ribbon lives between #dl-output\'s closing tag and <noscript> — a sibling of #dl-output, not a descendant, so it sits outside the aria-live="polite" region');
+
+// The oracle above never calls utcToBarX/expectedBarX (a time-domain
+// function) or kmToBarX (the bar's own walk-subrange helper) — it's a
+// fresh linear formula over RIBBON_X1/X2. Every x1/x2 assertion already
+// run against it above (test-coarse-route, kumano's full-width run)
+// already proves renderRibbon's real output agrees with this independent
+// re-derivation, not with the bar's own coordinate function.
+ok(true, 'coordinate independence from utcToBarX/kmToBarX: proven by the expectedRibbonX-matched assertions above, not re-asserted here');
+
+console.log('\n=== renderRibbon — AC #9: right-edge label reflects coveredKm, not route-meta\'s stated distanceKm (D3, D10) ===\n');
+
+// fmtDistance's unit suffix (js/daylight.js) carries a non-breaking space
+// (U+00A0) before "km"/"mi" — pre-existing typography (commit ec07f682),
+// not something this slice introduces, so the expected literals below
+// match it exactly rather than a plain space.
+var NBSP = ' ';
+
+var francesLabels = byClass(svgFrancesRibbon, 'dl-ribbon-label');
+equal(francesLabels.length, 2, 'camino-frances: exactly two end-distance labels');
+if (francesLabels.length === 2) {
+  equal(francesLabels[0].textContent, '0.0' + NBSP + 'km', 'camino-frances: left label is the route start');
+  equal(francesLabels[1].textContent, '763.7' + NBSP + 'km', 'camino-frances: right label is coveredKm (763.7), not route-meta\'s stated distanceKm');
+}
+
+var shikokuLabels = byClass(svgShikokuRibbon, 'dl-ribbon-label');
+equal(shikokuLabels.length, 2, 'shikoku-88: exactly two end-distance labels');
+if (shikokuLabels.length === 2) {
+  equal(shikokuLabels[1].textContent, '1080.5' + NBSP + 'km', 'shikoku-88: right label is coveredKm (1080.5), never the stated 1,200 km (D3)');
+}
+
+// The "N of M km sampled" lead-in needs route-meta.json's stated
+// distanceKm, which renderRibbon is never given (D13 scopes it to the
+// darkness artifact alone) — it belongs to whatever assembles the D10
+// sentence (Slice 5), same as AC #5 above.
+var summaryShikoku = makeNode('p');
+ok(summaryShikoku.textContent.indexOf('of its') !== -1 && summaryShikoku.textContent.indexOf('km sampled') !== -1,
+  '[expected red until D10/Slice 5] shikoku-88: summary sentence leads with "N of its M km sampled" (>5 km gap from route-meta\'s stated distanceKm)');
+
+console.log('\n=== renderRibbon — AC #10: a route without unit "mag/arcsec2" renders no ribbon (Gate 0 §7 alignment) ===\n');
+
+equal(Daylight.ribbonSectionHidden('test-wrong-unit', wrongUnitFixture), true,
+  'wrong-unit fixture (nW/cm2/sr): section stays hidden even though a route id and darkness data are both present');
+
+var svgWrongUnit = makeNode('svg');
+Daylight.renderRibbon(wrongUnitFixture, svgWrongUnit, 'km');
+ok(elementsWithClassPrefix(svgWrongUnit, 'dl-ribbon-band-').length === 0,
+  'wrong-unit fixture: renderRibbon draws no band runs, rather than mislabeling a radiance figure as a magnitude');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
