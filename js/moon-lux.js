@@ -5,7 +5,18 @@
    approximation, extracted from js/moonpath.js so pages that only need
    these two functions (e.g. /daylight) don't have to load that whole
    69 KB module. moonpath.js consumes this file rather than keeping its
-   own copies — see js/moonpath.test.js for the behaviour-preserving proof.
+   own copies. Behaviour-preserving proof:
+     - luxBracketFor — js/moonpath.test.js's own boundary tests carry over
+       unchanged, so that file still proves this one.
+     - moonLuxAt — js/moonpath.test.js only ever asserted the derived
+       moonLuxAtCoord is `typeof === 'number'` and `>= 0`, which a stub
+       returning 0.0 would also satisfy. The real proof is this file's
+       own js/moon-lux.test.js, which pins actual values.
+
+   kFromPhase(phase): the illuminated-disk-fraction formula, promoted
+   here from duplicate inline copies in js/daylight.js and js/moonpath.js
+   so the two pages share one definition instead of two that can drift.
+   See js/moon-lux.test.js.
 
    No external dependencies.
    ============================================= */
@@ -49,9 +60,19 @@
     return 0.32 * k * Math.sin(altitudeDeg * Math.PI / 180);
   }
 
+  /*
+   * kFromPhase(phase) — illuminated-disk fraction from the synodic phase
+   * fraction (0 = new moon, 0.5 = full moon, wrapping back toward 0 at 1).
+   *   k = (1 − cos(2π × phase)) / 2
+   */
+  function kFromPhase(phase) {
+    return (1 - Math.cos(2 * Math.PI * phase)) / 2;
+  }
+
   var api = {
     moonLuxAt:     moonLuxAt,
-    luxBracketFor: luxBracketFor
+    luxBracketFor: luxBracketFor,
+    kFromPhase:    kFromPhase
   };
 
   if (typeof module !== 'undefined' && module.exports) {

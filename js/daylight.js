@@ -204,7 +204,7 @@
     if (astronomicalDusk) {
       var adaptAtUTC    = new Date(astronomicalDusk.getTime() + DARK_ADAPT_MIN * MS_PER_MIN);
       var adaptAltitude = SunPathMath.moonAltAzAt(adaptAtUTC, lat, lon).altitude;
-      var adaptLux      = MoonLux.moonLuxAt(moonKFromPhase(moonPhase), adaptAltitude);
+      var adaptLux      = MoonLux.moonLuxAt(MoonLux.kFromPhase(moonPhase), adaptAltitude);
       moonBrightnessAtAdapt = MoonLux.luxBracketFor(adaptLux);
     }
 
@@ -547,13 +547,6 @@
     return walkStartX + t * (walkEndX - walkStartX);
   }
 
-  // Illuminated-disk fraction from the synodic phase fraction (D13 in
-  // js/moonpath.js — inlined here too rather than exported, per that
-  // file's own note that this one-liner isn't worth a shared helper).
-  function moonKFromPhase(phase) {
-    return (1 - Math.cos(2 * Math.PI * phase)) / 2;
-  }
-
   // Sample moon altitude across the bar domain at MOON_SAMPLE_MS
   // intervals, convert to lux, and merge samples sharing a lux bracket
   // into runs — pure, no DOM, so a still night doesn't cost ~100 DOM
@@ -573,7 +566,7 @@
     if (!SunPathMath || !MoonLux) return runs;
     if (output.lat == null || output.lon == null) return runs;
 
-    var k = moonKFromPhase(output.moonPhase);
+    var k = MoonLux.kFromPhase(output.moonPhase);
     var startMs = domain.startUTC.getTime();
     var endMs   = domain.endUTC.getTime();
 

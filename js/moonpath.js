@@ -260,6 +260,7 @@
 
   var luxBracketFor = MoonLux && MoonLux.luxBracketFor;
   var moonLuxAt      = MoonLux && MoonLux.moonLuxAt;
+  var kFromPhase     = MoonLux && MoonLux.kFromPhase;
 
   /* ==========================================
      Date scrubber math — D24 log scale, base 1.0293
@@ -347,8 +348,7 @@
 
     // --- Phase and illuminated-disk fraction (D13) ---
     var phase = SunPathMath.moonPhaseAtUTC(now);
-    // D13: k = (1 − cos(2π · phase)) / 2.  Inline per plan — not a slice-1 helper.
-    var k = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+    var k = kFromPhase(phase);
 
     // --- Altitude / azimuth ---
     var moonAltAz = SunPathMath.moonAltAzAt(now, lat, lon);

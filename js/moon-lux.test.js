@@ -6,10 +6,13 @@
    Covers:
      - moonLuxAt()      — below-horizon / new-moon zero cases, a known value
      - luxBracketFor()  — D19 half-open bracket boundaries
+     - kFromPhase()     — new/quarter/full moon fractions
 
-   These mirror the equivalent assertions in js/moonpath.test.js — this
-   file is the direct proof that js/moon-lux.js computes byte-identical
-   results to the code it was extracted from.
+   moonLuxAt/luxBracketFor mirror the equivalent assertions in
+   js/moonpath.test.js — this file is the direct proof that js/moon-lux.js
+   computes byte-identical results to the code it was extracted from.
+   kFromPhase has no such predecessor: it's a newly shared helper, not an
+   extraction, so this is its only test.
    ============================================= */
 
 'use strict';
@@ -71,6 +74,12 @@ ok(MoonLux.luxBracketFor(0.2).prose.length   > 0, 'bright prose non-empty');
 ok(MoonLux.luxBracketFor(0.05).prose.length  > 0, 'mid prose non-empty');
 ok(MoonLux.luxBracketFor(0.005).prose.length > 0, 'dim prose non-empty');
 ok(MoonLux.luxBracketFor(0).prose.length     > 0, 'faint prose non-empty');
+
+console.log('\n=== kFromPhase — illuminated-disk fraction ===\n');
+
+ok(Math.abs(MoonLux.kFromPhase(0)    - 0)   < 1e-9, 'phase=0 (new moon) → k≈0');
+ok(Math.abs(MoonLux.kFromPhase(0.25) - 0.5) < 1e-9, 'phase=0.25 (quarter) → k≈0.5');
+ok(Math.abs(MoonLux.kFromPhase(0.5)  - 1)   < 1e-9, 'phase=0.5 (full moon) → k≈1');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
