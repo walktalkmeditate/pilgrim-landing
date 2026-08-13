@@ -175,20 +175,44 @@ nights and the two named nights. Colour is never the only signal. Contrast floor
 ribbon's: 1.25:1 adjacent, 2:1 extremes, across parchment, dark and `#0a0a12`.
 
 **What marks a night, and what numbers it.** *Rewritten during the second review — the first
-version of this paragraph became false when the strip started coalescing.*
+version of this paragraph became false when the strip started coalescing. Amended again in
+the third: the mark described here was on the band, and could not be seen there.*
 
 - **The mark.** Adjacent cells that share a moon band are drawn as one `<line>`, because two
   abutting semi-transparent strokes composite a seam stronger than the real band steps
   around them. That was right, and it erased every true per-night boundary along with the
   false ones: 77% of named nights ended up inside a wider merged span, camino-frances drew
-  33 nights as 7 lines, and the prose named "night 17" over a bar covering a third of a
-  **kilometre** axis on which 17 of 33 cannot be interpolated. So the two nights the
-  sentence names — and only those — carry a `.dl-moon-tick`: a short vertical stroke at the
+  33 nights as 7 lines **from a 2026-08-13 start** (10 from the 12 October start this repo's
+  tests pin — the claim carried no date until the third review, and both numbers are true),
+  and the prose named "night 17" over a bar covering a third of a **kilometre** axis on which
+  17 of 33 cannot be interpolated. Both counts are pinned in `js/daylight-render.test.js`.
+  So the two nights the sentence names — and only those — carry a `.dl-moon-tick`: a short
+  vertical stroke at the
   centre of that night's **own cell extent**, not the merged span's. A suppressed clause
-  draws no mark, so the marks and the sentence always name the same nights. The mark is
-  shorter than the band is tall, so band colour shows above and below it and it cannot read
-  as the boundary the coalescing exists to remove. It is measured against every band it can
-  sit on, on all three backgrounds (AC #12).
+  draws no mark, so the marks and the sentence always name the same nights.
+- **The mark hangs below the strip, not across it.** It first shipped crossing the band, and
+  there it could not be read at any colour. It is 2.5 units of stroke over a 504-unit fill,
+  and against band 4 — the band a lantern night is *by definition* on — it measured
+  **1.550:1**, where WCAG 1.4.11 asks 3:1 of a graphical object carrying essential
+  information, and locating the named night is the mark's whole purpose. That was not a
+  tuning failure: against the dark ramp's composited extremes, band 0 `rgb(60,56,49)` and
+  band 4 `rgb(219,204,154)`, the best achievable worst-case for **any** grey is 2.681:1, at
+  value 122. Demanding luminance separation from every step of a full-range ramp is asking
+  for something that does not exist — the same shape as the cross-ramp mistake recorded
+  under *Departures* below. It was also 8 units tall against a block's stroke-width of 10,
+  leaving one unit of band each side (0.467 device px on the narrowest column this page
+  renders at) while 89% of shikoku's marks land on a block: the mark read as exactly the
+  boundary the coalescing exists to remove.
+
+  So the mark moved into the axis-label row beneath the band, where the only thing behind it
+  is the page — one known colour per theme, and 3:1 becomes arithmetic rather than a
+  compromise (the mark measures **6.110 / 5.130 / 5.773:1**, AC #12). It is painted in
+  `--ink-fog`, the ink the axis labels beside it already use, so moving it did not make it
+  louder; the strip's viewBox
+  grew from 40 to 46 units so the mark gets its own row rather than landing inside the left
+  label's glyphs on a walk whose first night is a named one. Its **x is unchanged** — that is
+  the whole of the claim, and it was verified correct across 4,179 placements. Only the y
+  moved.
 - **The numbering.** One scheme, everywhere: a night's number is its number in the schedule,
   counted from the start date, which is the number a reader can carry to a calendar. The
   label states the walk's own length in nights and, when the strip cannot draw all of them,
@@ -198,12 +222,22 @@ version of this paragraph became false when the strip started coalescing.*
 
 **The phase range and the moon band are two different claims, and the sentence says so.**
 `getMoonPhaseName`'s "Last Quarter" bucket spans 0.6875–0.8125, so it can call a 30%-lit
-waning crescent a quarter moon while the band beside it is band 1 — 40 of 366 shikoku start
-dates read "…last quarter to new moon, with barely a trace of moon…". Both statements were
-true and they looked like one claim contradicting itself. A phase is where the moon is in
-its month; a band is how much of it was above the horizon while the sky was dark. The
-sentence now says the second as "in the dark hours", and frames the first as the moon's own
-passage ("under a moon going from last quarter to new").
+waning crescent a quarter moon while the band beside it is band 1: shikoku start dates on
+which the sky clause read "…last quarter to new moon, with barely a trace of moon…" are a
+regular occurrence, not an edge case. Both statements were true and they looked like one
+claim contradicting itself. A phase is where the moon is in its month; a band is how much
+of it was above the horizon while the sky was dark. The sentence now says the second as
+"in the dark hours", and frames the first as the moon's own passage ("under a moon going
+from last quarter to new").
+
+*The count that stood here — "40 of 366" — is deleted rather than corrected, per the third
+review.* Three people measured it three ways and got 60, 40 and 12, because nothing defined
+what counted as a mismatch. Even under a precise definition (a quarter-or-brighter phase
+name in shikoku's sky clause beside a band of 2 or lower) it is 38 / 40 / 29 / 23 across
+start years 2025–2028, and the figure never named a year. What is checkable is that the
+pairing occurs and that the wording holds when it does, and that is what
+`js/daylight-math.test.js` asserts — a non-zero count over its own sweep, plus one such
+sentence pulled out and read in full.
 
 ### D11 — Custom routes and missing data show nothing
 
@@ -257,16 +291,24 @@ too — one malformed-artifact path, not two.
     *Corrected during the review:* this said 3:1, which `js/muted-contrast.test.js` has
     never enforced — `RIBBON_BAND_EXTREMES_MIN` is 2.0, and it cannot be raised, because
     the darkness ribbon's own solid extremes measure 2.853:1 and 2.874:1 on two of the
-    three backgrounds. The moon ramp clears either bar: **4.506 / 7.278 / 8.593:1** over
-    light parchment, dark parchment and `#0a0a12`.
+    three backgrounds. The moon ramp clears either bar; its extremes measure
+    **4.506 / 7.278 / 8.593:1** over light parchment, dark parchment and `#0a0a12`.
     *Corrected again during the second review:* this line first said 4.9 / 7.3 / 8.6, which
     were the ramp's figures **before** `bd8530e` retuned the light alphas to lift band 0 off
     the page — written into a commit whose whole purpose was correcting a misstated number.
     The figures above are recomputed from the shipped alphas.
-    The `.dl-moon-tick` that marks a named night is held to **1.45:1** against every band it
-    can sit on — above the ramp's own adjacent floor, because it is a 2.5×8-unit stroke over
-    a 504-unit fill, and 1.25 was measurably too loose to catch three realistic drifts. Its
-    binding case is band 4 in dark themes, at 1.550:1.
+    *Corrected a third time:* the two lines that stood here held the `.dl-moon-tick` to
+    1.45:1 **against the band under it**, and recorded its binding case as 1.550:1. That was
+    the number the relationship could reach, not the number a reader needs — WCAG 1.4.11 asks
+    3:1 of a graphical object carrying essential information, and 1.45 was a floor written
+    down to the measurement. The mark now hangs below the band against the page instead
+    (D10), where the mark measures **6.110 / 5.130 / 5.773:1** over light parchment, dark
+    parchment and `#0a0a12`, and `js/muted-contrast.test.js` holds it at a **3:1** floor.
+    That sweep is only the right measurement while the mark really is off the band, so the
+    separation is
+    measured too, in `js/daylight-render.test.js`, from the emitted `y` attributes against
+    this stylesheet's own band `stroke-width`. The mark is also held to at least one device
+    pixel in **both** dimensions on the narrowest column this page renders at.
 13. `role="img"` label states walk length in nights and names the same nights as the prose.
 14. Custom routes and shape-invalid artifacts hide the section without a console error.
 
@@ -300,22 +342,37 @@ Built as specced. All eight tasks landed; 16 suites green throughout.
 
 ### Page weight (AC-adjacent, the open question above)
 
-`/daylight`, JS + CSS combined:
+`/daylight`, JS + CSS combined — the ten local files `daylight/index.html` links,
+each gzipped separately at `-9` and summed:
 
-| | raw | gzipped (per-file) |
+| measured at | raw | gzipped (per-file) |
 |---|---|---|
-| **after Slice 3** | **329.4 KB** | **93.5 KB** |
+| Slice 3 as first built | 329.4 KB | 93.5 KB |
+| **`9a6f084`** (after two fix waves) | **357.3 KB** | **103.5 KB** |
+| **this third fix wave, on top of `9a6f084`** | **363.3 KB** | **106.0 KB** |
+
+*Corrected during the third review.* The row this table carried was measured when the
+slice was first built and then left standing through two fix waves that added 27.9 KB
+raw and 10.0 KB gzipped to the page it describes — the same shape of staleness as every
+other number this document has had to correct. Each row now names the tree it was
+measured at, because that is the only thing that makes a page-weight figure checkable
+at all.
 
 **On the measurement.** An earlier version of this table gzipped the concatenated
 stream and reported 88.7 KB. That understates by 4.8 KB: a CDN gzips each response
 separately, so the cross-file dictionary sharing a single stream enjoys does not
-exist in transit. The figure above is the sum of per-file `gzip -9`, which is what
-a reader's browser actually downloads. The earlier Slice 1–2 figures in this repo
-were measured the same wrong way and are similarly understated; the *trend* they
-describe holds, the absolute numbers do not.
+exist in transit. The figures above are the sum of per-file `gzip -9` (Apple gzip 479),
+which is what a reader's browser actually downloads. Gzipped bytes vary a little with
+the zlib build, so this is deliberately **not** pinned by a test: the raw column could
+be, but it would go red on every commit that touches any of the ten files, which is a
+nuisance rather than a guard — and a ceiling instead of an equality would be deciding
+the budget question below by accident, which that question exists to prevent. The
+earlier Slice 1–2 figures in this repo were measured the concatenated way and are
+similarly understated; the *trend* they describe holds, the absolute numbers do not.
 
-93.5 KB of gzipped JS+CSS is still within reasonable practice, and nothing here is
-render-blocking. But the trend is the point: three slices, three increases, no
+106.0 KB of gzipped JS+CSS is still within reasonable practice, and nothing here is
+render-blocking. But the trend is the point, and it is now visible inside a single
+slice: three slices, three increases, three fix waves, three more increases, no
 budget, and Slice 4 lands on the same page. **Recorded as unresolved.**
 
 **Two mitigations this spec previously proposed are wrong**, and are retracted here

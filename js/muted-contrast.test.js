@@ -775,64 +775,142 @@ test('moon strip bands stay pairwise distinguishable on every background each th
   });
 });
 
-/* The mark on a named night (G1, D10).
+/* The mark on a named night (H1, D10).
 
    The two nights the closing sentence names carry a short vertical
-   stroke, drawn ON a band rather than beside it — so the thing it has to
-   be tellable apart from is not the page, it is whichever of the five
-   bands happens to lie under it. A mark you cannot separate from its own
-   band marks nothing, which is this page's oldest failure shape wearing
-   a new hat.
+   stroke. It hangs BELOW the strip, in the axis-label row, so the thing
+   it has to be tellable apart from is the page — one known colour per
+   theme — and not whichever of five ramp steps happens to lie under it.
 
-   Held ABOVE the ramp's own adjacent-pair floor, deliberately. The mark
-   is a 2.5-by-8 unit stroke; a band is 504 units of fill. Separation
-   that is enough between two large adjacent areas is not enough between
-   a small mark and the area under it, and 1.25 was measurably too loose
-   here — three realistic drifts (deleting the dark-theme rule so light
-   ink falls through to it, reaching for var(--ink), or letting the mark
-   warm toward the ramp) all land between 1.27 and 1.35 and would have
-   passed. Swept over all five bands on all three real backgrounds, both
-   themes. Shipped worst case: 1.550:1, dark themes, band 4. */
-const MOON_TICK_VS_BAND_MIN = 1.45;
-function moonTickColor(mode) {
-  const sel = RIBBON_MODE_SELECTOR_PREFIX[mode] + '.dl-moon-tick';
-  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}', 'g');
-  let m, decls = null;
-  while ((m = re.exec(daylightCss)) !== null) {
-    if (/stroke:\s*[^;]+;/.test(m[2])) decls = m[2];
-  }
-  assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
-  return resolveFillColor(decls.match(/stroke:\s*([^;]+);/)[1].trim(), mode);
+   That is why it moved. The sweep this replaces measured the mark
+   against every band, and the mark could not clear an honest floor on
+   any of them: 1.550:1 on band 4 in dark themes, and a lantern night is
+   by definition on the ramp's bright end, so the worst case was the
+   common case (89% of shikoku's marks land on a block, and on the pinned
+   date both named nights are blocks). Nor was that a tuning failure —
+   against the dark ramp's composited extremes, band 0 rgb(60,56,49) and
+   band 4 rgb(219,204,154), the best achievable worst-case for any grey
+   is 2.681:1, at value 122. No colour on the band clears 3:1 at both
+   ends, and the earlier 1.45 floor was the number that relationship
+   could reach, not the number the reader needs.
+
+   Off the band, WCAG 1.4.11's 3:1 for a graphical object carrying
+   essential information is simply reachable — and locating the named
+   night is this mark's whole purpose, so 3:1 is the right bar.
+
+   This measurement is only the right one while the mark really is off
+   the band. That is not asserted here, where the CSS is: it is measured
+   in js/daylight-render.test.js, from the emitted y attributes against
+   this stylesheet's own band stroke-width. */
+const MOON_MARK_VS_BG_MIN = 3.0;
+
+/* Resolves .dl-moon-tick's stroke the way a browser would, base rule
+   plus any dark-theme override. The mark ships as one rule painted in
+   var(--ink-fog) — a token that flips itself between themes, so no
+   second rule can fall through in a theme the first did not cover, which
+   is how the ribbon's own bands once shipped at 1.02:1. If a dark
+   override is ever added back, this measures it rather than the base. */
+function moonMarkColor(mode) {
+  const base = ruleDeclarations(daylightCss, '.dl-moon-tick');
+  assert.ok(base, 'expected .dl-moon-tick in css/daylight.css');
+  const dark = mode === 'dark'
+    ? ruleDeclarations(daylightCss, RIBBON_MODE_SELECTOR_PREFIX.dark + '.dl-moon-tick')
+    : null;
+  const src = (dark && /stroke:\s*[^;]+;/.test(dark)) ? dark : base;
+  const m = src.match(/stroke:\s*([^;]+);/);
+  assert.ok(m, '.dl-moon-tick has no stroke colour declaration');
+  return resolveFillColor(m[1].trim(), mode);
 }
 
-test('a named night\'s mark stays tellable apart from every band it can sit on (G1, D10)', function () {
+const NIGHT_SPEC_PATH = path.join(ROOT, 'docs/specs/2026-08-13-night-worth-walking.md');
+
+function markVsBackgroundRatios() {
+  const out = [];
   ['light', 'dark'].forEach(function (mode) {
-    const tick = moonTickColor(mode);
-    const bands = [];
-    for (let i = 0; i < RIBBON_BAND_COUNT; i++) bands.push(moonBandColor(i, mode));
+    const mark = moonMarkColor(mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      out.push({
+        label: background.label,
+        mode: mode,
+        painted: composite(mark.rgb, mark.alpha, background.rgb),
+        ratio: contrast(composite(mark.rgb, mark.alpha, background.rgb), background.rgb)
+      });
+    });
+  });
+  return out;
+}
+
+test('a named night\'s mark clears 3:1 against the page it sits on, on all three backgrounds (H1, D10, AC #12)', function () {
+  markVsBackgroundRatios().forEach(function (r) {
+    console.log('\n  named-night mark over ' + r.label + '  ' + r.painted
+      + ' = ' + r.ratio.toFixed(3) + ':1');
+    assert.ok(
+      r.ratio >= MOON_MARK_VS_BG_MIN,
+      r.mode + ' .dl-moon-tick is ' + r.ratio.toFixed(3) + ':1 against ' + r.label
+        + ', below the ' + MOON_MARK_VS_BG_MIN + ':1 floor WCAG 1.4.11 asks of a graphical '
+        + 'object carrying essential information — a mark nobody can find names nothing'
+    );
+  });
+});
+
+test('every figure the spec states for the mark is the figure the mark measures (H1, AC #12)', function () {
+  /* The same guard AC #12's ramp triple already has, applied to the
+     number this wave introduced — and applied to EVERY occurrence of it,
+     because the mark's figure is stated twice (D10 and AC #12) and a
+     correction that lands in one place and not the other is how the ramp
+     figure came to be wrong the second time. */
+  const spec = fs.readFileSync(NIGHT_SPEC_PATH, 'utf8');
+  const measured = markVsBackgroundRatios().map(function (r) { return r.ratio; });
+
+  const re = /the mark measures\s+\*\*([\d.]+)\s*\/\s*([\d.]+)\s*\/\s*([\d.]+):1\*\*/g;
+  let m, occurrences = 0;
+  while ((m = re.exec(spec)) !== null) {
+    occurrences++;
+    const stated = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+    console.log('  spec occurrence ' + occurrences + ' states '
+      + stated.map(function (v) { return v.toFixed(3); }).join(' / ')
+      + '  measured ' + measured.map(function (v) { return v.toFixed(3); }).join(' / '));
+    assert.strictEqual(stated.length, measured.length,
+      'the spec states ' + stated.length + ' figures for the mark but it has '
+        + measured.length + ' real backgrounds');
+    measured.forEach(function (value, i) {
+      assert.ok(
+        Math.abs(value - stated[i]) < 0.001,
+        'the spec states ' + stated[i] + ':1 for the mark on background ' + i
+          + ', but the shipped stylesheet measures ' + value.toFixed(3) + ':1'
+      );
+    });
+  }
+  assert.strictEqual(occurrences, 2,
+    'the spec states the mark\'s measured contrast in ' + occurrences + ' places, expected 2 '
+      + '(D10 and AC #12) — a figure this file cannot find is a figure that can drift');
+});
+
+test('a named night\'s mark is no louder than the axis labels it now sits beside (H1)', function () {
+  /* The mark moved into the label row of a deliberately restrained
+     instrument. "Off the band" bought the contrast; it must not also buy
+     a new loudest mark on the strip. Painting it in the labels' own ink
+     is the whole of the answer, and this is what holds it there. */
+  ['light', 'dark'].forEach(function (mode) {
+    const mark = moonMarkColor(mode);
+    const labelDecls = ruleDeclarations(daylightCss, '.dl-moon-label');
+    assert.ok(labelDecls, 'expected .dl-moon-label in css/daylight.css');
+    const labelFill = resolveFillColor(labelDecls.match(/fill:\s*([^;]+);/)[1].trim(), mode);
+    const labelOpacityM = labelDecls.match(/fill-opacity:\s*([\d.]+)/);
+    const labelAlpha = labelFill.alpha * (labelOpacityM ? parseFloat(labelOpacityM[1]) : 1);
 
     RIBBON_BACKGROUNDS[mode].forEach(function (background) {
       const bg = background.rgb;
-      const label = mode + ' moon tick over ' + background.label;
-      console.log('\n  named-night mark vs the band under it — ' + label);
-
-      let worst = Infinity;
-      bands.forEach(function (band, i) {
-        const painted = composite(band.rgb, band.alpha, bg);
-        const marked = composite(tick.rgb, tick.alpha, painted);
-        const ratio = contrast(marked, painted);
-        worst = Math.min(worst, ratio);
-        console.log('    tick on moon-' + i + '  ' + marked + ' vs ' + painted
-          + ' = ' + ratio.toFixed(3) + ':1');
-        assert.ok(
-          ratio >= MOON_TICK_VS_BAND_MIN,
-          label + ' .dl-moon-tick on .dl-moon-band-' + i + ' is ' + ratio.toFixed(3)
-            + ':1, below the ' + MOON_TICK_VS_BAND_MIN + ':1 floor for a mark this small — '
-            + 'a mark that vanishes into its own band points at nothing'
-        );
-      });
-      console.log('    worst pairing = ' + worst.toFixed(3) + ':1');
+      const markRatio = contrast(composite(mark.rgb, mark.alpha, bg), bg);
+      const labelRatio = contrast(composite(labelFill.rgb, labelAlpha, bg), bg);
+      console.log('  ' + background.label + ': mark ' + markRatio.toFixed(3)
+        + ':1, axis label ' + labelRatio.toFixed(3) + ':1');
+      assert.ok(
+        markRatio <= labelRatio + 0.001,
+        mode + ' .dl-moon-tick is ' + markRatio.toFixed(3) + ':1 against ' + background.label
+          + ' while .dl-moon-label beside it is ' + labelRatio.toFixed(3)
+          + ':1 — the mark has become the loudest thing under the strip'
+      );
     });
   });
 });
@@ -903,10 +981,18 @@ test('the spec\'s stated moon-ramp extremes are the ramp\'s actual extremes (AC 
      moved. A number in a spec that nothing checks is a number that
      drifts, so this reads the three figures back out of the document and
      recomputes them from what ships. */
-  const specPath = path.join(ROOT, 'docs/specs/2026-08-13-night-worth-walking.md');
-  const spec = fs.readFileSync(specPath, 'utf8');
-  const m = spec.match(/\*\*([\d.]+) \/ ([\d.]+) \/ ([\d.]+):1\*\*/);
-  assert.ok(m, 'the spec no longer states the moon ramp\'s three extremes in the form "a / b / c:1"');
+  const spec = fs.readFileSync(NIGHT_SPEC_PATH, 'utf8');
+  /* Anchored on its own sentence, not on "the first triple in the
+     document". The unanchored version broke the moment the spec gained a
+     SECOND figure of the same shape — the mark's, checked below — and
+     silently measured the ramp against it. A regex that matches two
+     different claims is not checking either. */
+  // \s+ rather than literal spaces: the spec is hand-wrapped prose, and a
+  // reflow that puts the anchor and the figure on two lines is a legitimate
+  // edit that must not silently switch this guard off.
+  const m = spec.match(/its extremes measure\s+\*\*([\d.]+)\s*\/\s*([\d.]+)\s*\/\s*([\d.]+):1\*\*/);
+  assert.ok(m, 'the spec no longer states the moon ramp\'s three extremes as '
+    + '"its extremes measure **a / b / c:1**"');
   const stated = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
 
   const measured = [];

@@ -1203,14 +1203,44 @@
   // read against each other — same inset, same km-to-x mapping. Only y
   // differs, and it is the strip's own SVG anyway.
   var MOON_Y = 16;
-  var MOON_LABEL_Y = 36;
 
-  // Half the height of a named night's tick. Deliberately smaller than
-  // the band's own half-width (8, or 5 on a block), so band colour always
-  // shows above and below the mark: a full-height mark in a contrasting
-  // colour would read as a boundary between two spans, which is the very
-  // thing coalesceMoonCells exists to stop the strip drawing.
-  var MOON_TICK_HALF = 4;
+  // Half the band's drawn height, from .dl-moon-band-N's stroke-width: 16
+  // in css/daylight.css. Named here because the mark below has to clear
+  // it; js/daylight-render.test.js reads the stylesheet's real
+  // stroke-width against the emitted y attributes, so the two cannot
+  // quietly disagree.
+  var MOON_BAND_HALF = 8;
+
+  // A named night's mark hangs BELOW the strip, in the axis-label row,
+  // with only the page behind it.
+  //
+  // It used to cross the band, and there it could not be read. The mark
+  // is 2.5 units of stroke over a 504-unit fill, and against the ramp's
+  // bright steps — the ones a lantern night is by definition on — it
+  // measured 1.550:1, where WCAG 1.4.11 asks 3:1 of a graphical object
+  // carrying essential information, and locating the named night is the
+  // mark's whole purpose. No colour fixes that: against the dark ramp's
+  // composited extremes the best worst-case any grey reaches is 2.681:1.
+  // Asking for separation from every step of a full-range ramp is asking
+  // for something that does not exist.
+  //
+  // Off the band there is one colour behind the mark per theme, so the
+  // floor is arithmetic rather than a compromise. It also ends the seam
+  // question outright: the mark was 8 units tall against a block's
+  // stroke-width of 10, leaving one unit of band each side — 0.467 device
+  // px on the narrowest column this page renders at — and 89% of
+  // shikoku's marks land on a block. A mark that touches no band cannot
+  // read as a boundary.
+  var MOON_MARK_Y1 = MOON_Y + MOON_BAND_HALF + 3;
+  var MOON_MARK_Y2 = MOON_MARK_Y1 + 5;
+
+  // The axis labels drop below the mark rather than sharing its row: a
+  // named night can be night 1 of a 33-night walk, and its mark would
+  // then land inside the left label's own glyphs. The strip's viewBox
+  // grew to 46 to hold the extra row (daylight/index.html), keeping the
+  // same four units of descender tail the labels had at 36 in a 40-unit
+  // box.
+  var MOON_LABEL_Y = 42;
 
   // Two cells abut when the end of one is the start of the next. The
   // tolerance is there because both numbers arrive from stagePlacements'
@@ -1326,10 +1356,13 @@
      * (D10). Coalescing was right — it stopped the strip asserting
      * boundaries the data does not have — but it also erased every true
      * per-night boundary along with the false ones, and 77% of named
-     * nights ended up inside a wider merged span. On camino-frances the
-     * prose named "night 17" while 33 nights drew as 7 lines and night 17
-     * sat somewhere inside a bar covering a third of the axis; the axis is
-     * kilometres, so 17 of 33 could not be interpolated either.
+     * nights ended up inside a wider merged span. On camino-frances from
+     * a 2026-08-13 start the prose named "night 17" while 33 nights drew
+     * as 7 lines and night 17 sat somewhere inside a bar covering a third
+     * of the axis; the axis is kilometres, so 17 of 33 could not be
+     * interpolated either. The span count moves with the start date — the
+     * 12 October start this repo's tests pin gives 10 — so the date is
+     * stated rather than left to be read as a constant.
      *
      * Showing the lunation's shape and locating a night are separable
      * jobs. The spans do the first; these two marks do the second.
@@ -1339,17 +1372,18 @@
      * A suppressed clause draws no tick, so the marks and the sentence
      * always name the same nights: both read `notable`, nothing else.
      *
-     * Drawn after the bands so they sit ON a span rather than splitting
-     * one, and shorter than the band is tall (MOON_TICK_HALF) so no mark
-     * can be read as a seam.
+     * The x is the whole claim and it is unchanged. What moved is the y:
+     * the mark hangs under the strip rather than crossing it, because on
+     * the band it cleared no honest contrast floor and could not be made
+     * to (MOON_MARK_Y1 above).
      */
     [notable && notable.sky, notable && notable.lantern].forEach(function (cell) {
       if (!cell) return;
       var tickX = kmToRibbonX((cell.loKm + cell.hiKm) / 2, coveredKm);
       svgEl.appendChild(makeSVGEl('line', {
         class: 'dl-moon-tick',
-        x1: tickX, y1: MOON_Y - MOON_TICK_HALF,
-        x2: tickX, y2: MOON_Y + MOON_TICK_HALF
+        x1: tickX, y1: MOON_MARK_Y1,
+        x2: tickX, y2: MOON_MARK_Y2
       }));
     });
 
@@ -1767,12 +1801,26 @@
       params.pace = 'standard';
     }
 
+    /* One policy, one function (H3). This used to answer the
+       out-of-range question with todayString() while a typed edit
+       answered it with the nearest bound and the moon strip answered it
+       by hiding — so a hand-edited link like ?date=2101-06-15 showed the
+       recipient TODAY's walk while the address bar still read 2101. That
+       is the one-URL-two-pages failure the bounds exist to prevent,
+       surviving in the entry point the fix did not reach.
+
+       Clamp first, then check the clamped value parses: a five-digit
+       year is out of range AND unparseable by `new Date`, and asking
+       about the raw string first would send it to today instead of to
+       the bound. todayString() is kept for what it is really for —
+       nothing to clamp (junk like "2026-13-45" or an unparseable
+       string), where there is no nearest bound to move to. */
     if (params.date) {
-      var d = new Date(params.date);
-      var yr = parseInt(params.date.split('-')[0], 10);
-      if (isNaN(d.getTime()) || yr < MIN_WALK_YEAR || yr > MAX_WALK_YEAR) {
-        params.date = todayString();
-      }
+      var clampedDate = clampWalkDate(params.date);
+      var parsedDate  = clampedDate === null ? null : new Date(clampedDate);
+      params.date = (parsedDate === null || isNaN(parsedDate.getTime()))
+        ? todayString()
+        : clampedDate;
     }
 
     if (params.start) {
@@ -2140,16 +2188,17 @@
   // timezone offset can never roll it onto the previous or next day —
   // the same trap wallTimeToUTC exists to avoid elsewhere on this page.
   function moonStartDate() {
-    var raw = dom.dateInput && dom.dateInput.value;
-    if (!raw) return null;
-    var parts = raw.split('-');
-    if (parts.length !== 3) return null;
-    // The same bounds coerceParams applies to a date arriving by URL, so
-    // the strip a reader draws and the strip their share link produces
-    // are the same strip.
-    var year = Number(parts[0]);
-    if (!(year >= MIN_WALK_YEAR && year <= MAX_WALK_YEAR)) return null;
-    var d = new Date(Date.UTC(year, Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
+    // Through clampWalkDate, not a range check of its own (H3). This was
+    // the third of three answers to one question: the typed edit moved to
+    // the nearest bound, the URL restore jumped to today, and this hid
+    // the strip — so which walk a reader saw depended on which door they
+    // came in by. It now draws the same clamped date the bar computes and
+    // the share link carries. null survives only for a value there is
+    // nothing to clamp: empty, or not a yyyy-mm-dd shape at all.
+    var clamped = clampWalkDate(dom.dateInput && dom.dateInput.value);
+    if (clamped === null) return null;
+    var parts = clamped.split('-');
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
     return isNaN(d.getTime()) ? null : d;
   }
 
@@ -2298,7 +2347,19 @@
   function buildState() {
     var routeId  = dom.routeSel.value;
     var paceKey  = dom.paceInput.value || 'standard';
-    var dateStr  = dom.dateInput.value;
+    // Clamped, like every other reader of this input (H3). The bar used
+    // to take the raw value, so any runAndRender() triggered by a
+    // NON-date field — pace, stage, start time, the km/mi toggle —
+    // painted a walk for a year pushURL was simultaneously refusing to
+    // write. Worse, a five-digit year makes wallTimeToUTC build an
+    // Invalid Date, on which Intl.DateTimeFormat.formatToParts throws
+    // RangeError: fired during a warm route reselection that aborts
+    // onRouteChange after _currentRoute is reassigned but before pushURL
+    // and updateRibbonForRoute run, leaving the variable and the visible
+    // strip permanently out of sync. The fallback keeps an empty or
+    // unparseable value exactly as it was — recompute's own guards
+    // already answer for that, and there is no bound to clamp it to.
+    var dateStr  = clampWalkDate(dom.dateInput.value) || dom.dateInput.value;
     var startStr = dom.startInput.value;
 
     var startMin = null;

@@ -227,8 +227,12 @@
   var MIN_DARK_SPREAD_BANDS = 1.0;
 
   /*
-   * selectNotableNights(cells) — at most two nights, and nothing that
-   * has not been earned (D7).
+   * selectNotableNights(cells, coveredKm) — at most two nights, and
+   * nothing that has not been earned (D7).
+   *
+   * coveredKm is required: it goes to drawableCells, which asks the axis
+   * — not the kilometres — whether a cell can be drawn (G5), and throws
+   * without it rather than silently answering "nothing is drawable".
    *
    * The sky night is the darkest night ON WHICH THE MOON GIVES NO USABLE
    * LIGHT, not the darkest night outright: a dark site under a full moon
@@ -350,13 +354,20 @@
    * (phaseRangePhrase below), and it is exactly what the band measures:
    * the mean moon illuminance between astronomical dusk and dawn (D2).
    * Without it the sentence read "…last quarter to new moon, with barely
-   * a trace of moon…" on 40 of 366 shikoku start dates —
+   * a trace of moon…" on a regular share of shikoku start dates —
    * getMoonPhaseName's "Last Quarter" bucket runs 0.6875-0.8125, so it
    * can call a 30%-lit waning crescent a quarter moon while the pixel
    * beside it is band 1. Both statements were true and they looked like
    * one claim contradicting itself. A phase is where the moon is in its
    * month; a band is how much of it was above the horizon while the sky
    * was dark.
+   *
+   * A count stood here ("40 of 366") and is gone: three measurements of
+   * it disagreed because none of them defined a mismatch, and even
+   * pinned down it moves between 23 and 40 across four consecutive start
+   * years. js/daylight-math.test.js asserts the checkable part instead —
+   * that the pairing occurs in its own sweep, and that one such sentence
+   * reads as cause and consequence.
    */
   var SKY_MOON_PHRASES = ['with no moon in the dark hours',
                           'with barely a trace of moon in the dark hours',
@@ -471,6 +482,15 @@
    * clause exists for; the wording no longer assumes it is the only route
    * that can reach the threshold.
    *
+   * Each extent is clamped to the axis before it is summed. Without that,
+   * a cell reaching past coveredKm contributes kilometres the axis does
+   * not have, `placed` overshoots, and the sentence understates the blank
+   * — on the fixture G5 was written from (cells at 0-10 and 40-50 km on a
+   * 30 km axis) it said "No stage is placed on 33% of the route" while
+   * two thirds of the axis carried no ink. Same axis, same clamp, same
+   * question as ribbonFracForKm and isDrawableCell: what the reader can
+   * see is bounded by coveredKm, so what this counts must be too.
+   *
    * The other half — placed but not painted — is deliberately silent
    * here. Its honest short wording would have to name a cause, and there
    * are two possible ones (no astronomical night, or no width on the
@@ -480,7 +500,9 @@
    */
   function unplacedClause(cells, coveredKm) {
     if (!cells.length || !(coveredKm > 0)) return '';
-    var placed = cells.reduce(function (a, c) { return a + Math.max(0, c.hiKm - c.loKm); }, 0);
+    var placed = cells.reduce(function (a, c) {
+      return a + Math.max(0, Math.min(c.hiKm, coveredKm) - Math.min(c.loKm, coveredKm));
+    }, 0);
     var unplacedFrac = 1 - (placed / coveredKm);
     if (unplacedFrac < 0.05) return '';
     return ' No stage is placed on '

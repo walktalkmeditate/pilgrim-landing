@@ -1945,10 +1945,18 @@ ok(shikokuSent.text.indexOf('No stage is placed on 27% of the route') !== -1,
    sentence keeps them apart.
 
    getMoonPhaseName's "Last Quarter" bucket runs 0.6875-0.8125, so it can
-   call a 30%-lit waning crescent a quarter moon. On 40 of 366 shikoku
-   start dates the sky clause read "…last quarter to new moon, with
-   barely a trace of moon…" — both halves true, the pair reading as one
-   claim contradicting itself.
+   call a 30%-lit waning crescent a quarter moon. Shikoku start dates
+   whose sky clause read "…last quarter to new moon, with barely a trace
+   of moon…" are a regular occurrence — both halves true, the pair
+   reading as one claim contradicting itself.
+
+   The "40 of 366" that stood here is deleted rather than restated (H4).
+   Three measurements of it disagreed (60 / 40 / 12) because none defined
+   a mismatch, and under a precise definition it still moves — 38 / 40 /
+   29 / 23 across start years 2025-2028 — while the figure named no year.
+   The count below is what this file can honestly assert: that the
+   pairing is present in ITS OWN sweep, so the wording assertions above
+   are not vacuous.
    ============================================= */
 
 console.log('\n=== a phase name and a moon band never read as the same claim (G6) ===\n');

@@ -1139,6 +1139,19 @@ var francesLines = moonLinesOf(moonFrances.svg);
 // brighter than the real band steps around it (F1). The cells are
 // unchanged — this is what gets DRAWN.
 equal(francesLines.length, 10, 'camino-frances: 33 cells coalesce into 10 drawn spans');
+
+/* Both halves of the claim the finding was written from (H4). "33 nights
+   drew as 7 lines" was true of the day it was measured and not of the day
+   this file pins, and it carried no date — so it read as a constant while
+   the count actually moves with the start date (6 to 11 across 2026). The
+   two dates are pinned together here so the prose quoting either of them
+   cannot drift from what ships. */
+var francesOnFindingDate = renderMoonInto('camino-frances', new Date('2026-08-13T12:00:00Z'));
+equal(francesOnFindingDate.cells.length, 33,
+  'camino-frances: the same 33 cells on the date the finding was measured');
+equal(moonLinesOf(francesOnFindingDate.svg).length, 7,
+  'camino-frances: they coalesce into 7 spans from a 2026-08-13 start — the count the '
+    + 'finding quoted, which is not the count this file\'s own 12 October start gives');
 equal(Number(francesLines[0].attrs.x1), 48, 'camino-frances: first span starts at the ribbon inset x=48');
 equal(Number(francesLines[francesLines.length - 1].attrs.x2), 552,
   'camino-frances: last span ends at the ribbon inset x=552');
@@ -1280,20 +1293,78 @@ ALL_MOON_ROUTES.forEach(function (routeId) {
    G1 — the strip can point at the night it names again.
 
    Coalescing was right about the false seams and wrong about everything
-   else it erased: with 33 cells drawn as 7 lines, 77% of named nights
-   ended up inside a wider merged span, and the prose named "night 17"
-   over a bar covering a third of a kilometre axis on which 17 of 33
-   cannot be interpolated.
+   else it erased: with 33 cells drawn as 7 lines from a 2026-08-13 start,
+   77% of named nights ended up inside a wider merged span, and the prose
+   named "night 17" over a bar covering a third of a kilometre axis on
+   which 17 of 33 cannot be interpolated. The count moves with the start
+   date, so it is pinned below alongside this file's own.
 
    So the two named nights carry a mark of their own, at the centre of
    their OWN cell's extent — not the merged span's — and nothing else
    does. Asserted off the emitted elements, because a tick computed
    correctly and drawn nowhere is this page's oldest defect.
+
+   H1 moved that mark off the band and into the axis-label row beneath
+   it. The x — the whole of the claim — is unchanged and still checked
+   here. The y is now checked against the band's real drawn extent.
    ============================================= */
 
-console.log('\n=== renderMoonStrip — the two named nights are marked where they are walked (G1, D10) ===\n');
+console.log('\n=== renderMoonStrip — the two named nights are marked where they are walked (G1, D10, H1) ===\n');
 
-var MOON_TICK_HALF = 4;
+/* The stylesheet's own numbers, read rather than restated (H1).
+
+   "The mark clears the band" is a relationship between what
+   renderMoonStrip emits and what css/daylight.css strokes, so neither
+   side of it can be pinned from one file alone. The assertion this
+   replaces tried and failed at exactly that: it compared a test-local
+   copy of MOON_TICK_HALF against a literal 8, so it read neither the
+   implementation nor the stylesheet, and setting the real constant to 20
+   left it green. */
+var daylightCssSrc = fs.readFileSync(path.join(__dirname, '..', 'css/daylight.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+
+function cssNumberFor(selector, prop) {
+  var escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  var re = new RegExp(escaped + '[^{}]*\\{([^}]*)\\}', 'g');
+  var m, value = null;
+  while ((m = re.exec(daylightCssSrc)) !== null) {
+    var v = m[1].match(new RegExp(prop + ':\\s*([\\d.]+)'));
+    if (v) value = parseFloat(v[1]);
+  }
+  return value;
+}
+
+var MOON_BAND_STROKE  = cssNumberFor('.dl-moon-band-0', 'stroke-width');
+var MOON_BLOCK_STROKE = cssNumberFor('.dl-moon-block', 'stroke-width');
+var MOON_LABEL_FONT   = cssNumberFor('.dl-moon-label', 'font-size');
+ok(MOON_BAND_STROKE > 0,
+  'css/daylight.css declares a stroke-width for the moon bands (read ' + MOON_BAND_STROKE + ')');
+ok(MOON_BLOCK_STROKE > 0,
+  'css/daylight.css declares a stroke-width for a multi-night block (read ' + MOON_BLOCK_STROKE + ')');
+ok(MOON_LABEL_FONT > 0,
+  'css/daylight.css declares a font-size for the moon axis labels (read ' + MOON_LABEL_FONT + ')');
+
+// 600 is the strip's viewBox width; 280 the narrowest content column this
+// page renders at (a 320px phone less the layout's own padding). The pair
+// js/muted-contrast.test.js applies to the mark's stroke-width, applied
+// here to its HEIGHT — which is an emitted attribute, so the stylesheet
+// cannot answer for it.
+var VIEWBOX_UNITS = 600;
+var NARROWEST_CONTENT_PX = 280;
+
+// The y-range a band really covers: its emitted row, plus half whichever
+// stroke-width the stylesheet gives it. A block strokes narrower than a
+// single night, so the widest of them is what the mark has to clear.
+function bandYRangeOf(bandLines) {
+  var top = Infinity, bottom = -Infinity;
+  bandLines.forEach(function (l) {
+    var half = (/(^|\s)dl-moon-block(\s|$)/.test(l.attrs.class || '')
+      ? MOON_BLOCK_STROKE : MOON_BAND_STROKE) / 2;
+    top    = Math.min(top,    Number(l.attrs.y1) - half);
+    bottom = Math.max(bottom, Number(l.attrs.y2) + half);
+  });
+  return { top: top, bottom: bottom };
+}
 
 function tickXFor(cell, coveredKm) {
   return expectedRibbonX((cell.loKm + cell.hiKm) / 2, coveredKm);
@@ -1316,18 +1387,39 @@ ALL_MOON_ROUTES.forEach(function (routeId) {
   arrEqual(actualXs, expectedXs,
     routeId + ': each tick sits at the centre of its own night\'s kilometres');
 
+  // The band's own drawn extent on this route, from the emitted rows and
+  // the stylesheet's real stroke-widths.
+  var bandY = bandYRangeOf(moonLinesOf(drawn.svg));
+
   ticks.forEach(function (t, i) {
     equal(Number(t.attrs.x2), Number(t.attrs.x1), routeId + ' tick ' + i + ': is vertical');
-    equal(Number(t.attrs.y1), 16 - MOON_TICK_HALF, routeId + ' tick ' + i + ': top edge');
-    equal(Number(t.attrs.y2), 16 + MOON_TICK_HALF, routeId + ' tick ' + i + ': bottom edge');
-    // Shorter than the band is tall (stroke-width 16, so 8 either side of
-    // the row), so band colour shows above and below it. A full-height
-    // mark would read as the boundary coalesceMoonCells exists to remove.
-    ok(MOON_TICK_HALF < 8, routeId + ' tick ' + i + ': does not reach the band\'s own edges');
+
+    var top = Number(t.attrs.y1), bottom = Number(t.attrs.y2);
+    ok(bottom > top, routeId + ' tick ' + i + ': runs downward, top ' + top + ' to bottom ' + bottom);
+
+    // No overlap with the band at all (H1) — not "shorter than it", which
+    // is what the old assertion claimed to check and did not. On the band
+    // the mark cleared 1.550:1 against band 4 where WCAG 1.4.11 asks 3:1,
+    // and no colour existed that would have cleared it at both ends of
+    // the ramp. It is measured against 3:1 on the page background in
+    // js/muted-contrast.test.js, and that measurement is only the right
+    // one while this holds.
+    ok(top > bandY.bottom,
+      routeId + ' tick ' + i + ': starts at y=' + top + ', below the band\'s own lower edge ('
+        + bandY.bottom + ') — a mark that touches the band is measured against the wrong thing');
+
+    // A mark that cleared the band by shrinking to nothing would satisfy
+    // the line above and be this page's oldest defect again.
+    var heightPx = (bottom - top) * (NARROWEST_CONTENT_PX / VIEWBOX_UNITS);
+    ok(heightPx >= 1,
+      routeId + ' tick ' + i + ': is ' + heightPx.toFixed(3) + ' device px tall on the narrowest '
+        + 'column this page renders at — under one pixel it is painted at partial coverage, and '
+        + 'every contrast figure measured for it is a fiction');
   });
 
-  // A tick sits ON a span; it never splits one. Every mark must land
-  // strictly inside some drawn band's x-range, or it marks bare page.
+  // A tick names a kilometre, so the kilometre it names must have ink on
+  // it: every mark must land inside some drawn band's x-range, or it
+  // points at bare page.
   ticks.forEach(function (t, i) {
     var x = Number(t.attrs.x1);
     var covering = moonLinesOf(drawn.svg).filter(function (l) {
@@ -1358,8 +1450,24 @@ ok(moonIngles.notable.sky !== null, 'camino-ingles: fixture sanity — but a sky
 equal(moonTicksOf(moonIngles.svg).length, 1,
   'camino-ingles: one clause, one mark — the marks and the sentence name the same nights');
 
-// The ticks are painted after the bands, so they sit on top of them
-// rather than under.
+// The mark shares its row with the axis labels, so the third thing it
+// has to clear is the labels themselves: a named night can be night 1 of
+// a 33-night walk, and its mark then lands a few units from the left
+// label's own anchor. Measured against the emitted baseline and the
+// stylesheet's real font-size, at 0.75em above the baseline — a bound on
+// any Lato glyph's height (its cap height is 0.7165em, and the ascenders
+// in "night" reach no higher).
+var LABEL_ASCENDER_EM = 0.75;
+var francesMark = moonTicksOf(moonFrances.svg)[0];
+var francesLabelBaseline = Number(byClass(moonFrances.svg, 'dl-moon-label')[0].attrs.y);
+ok(Number(francesMark.attrs.y2) <= francesLabelBaseline - MOON_LABEL_FONT * LABEL_ASCENDER_EM,
+  'camino-frances: the mark ends at y=' + francesMark.attrs.y2 + ', clear of the axis labels\' own '
+    + 'glyphs (baseline ' + francesLabelBaseline + ', font-size ' + MOON_LABEL_FONT + ')');
+
+// The ticks are emitted after the bands. They no longer overlap one, so
+// this is no longer about paint order covering a mark — it is the DOM
+// order the AC #11 read-back below walks, and the one thing that would
+// still put a mark under a band if the band ever grew into its row.
 var francesTickIdx = moonFrances.svg.children.indexOf(moonTicksOf(moonFrances.svg)[0]);
 var francesLastBandIdx = moonFrances.svg.children.indexOf(
   moonLinesOf(moonFrances.svg)[moonLinesOf(moonFrances.svg).length - 1]);
@@ -1543,6 +1651,16 @@ equal(pastAxisSentence.indexOf('2 nights from') === 0, true,
 ok(pastAxisSentence.indexOf('The strip draws 1 of them.') !== -1,
   'and says how many it drew, rather than counting a night with no ink: '
     + JSON.stringify(pastAxisSentence));
+
+/* And the blank it reports is the blank the reader sees (H2). This
+   fixture places 10 of 30 axis kilometres, so two thirds of the strip
+   carries no ink. unplacedClause used to sum hiKm - loKm unclamped, so
+   the 40-50 km cell contributed ten kilometres the axis does not have
+   and the sentence said 33% — the same number this file used to print
+   in the message above and never assert, which is how it survived. */
+ok(pastAxisSentence.indexOf('No stage is placed on 67% of the route') !== -1,
+  'and the blank it reports is the blank the axis really has (67%, not the 33% an '
+    + 'unclamped sum gives): ' + JSON.stringify(pastAxisSentence));
 
 /* =============================================
    G9 — the NightMathRef guard, built rather than assumed.

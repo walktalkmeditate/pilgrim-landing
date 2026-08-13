@@ -628,8 +628,15 @@ body.constellation .dl-bar-waypoint {
    way.
 
    js/muted-contrast.test.js sweeps this ramp over all three real
-   backgrounds and holds it to the same floors as the ribbon: 1.25:1
-   between neighbours, 3:1 across the extremes. */
+   backgrounds and holds it to the same floors as the ribbon:
+   RIBBON_BAND_ADJACENT_MIN 1.25:1 between neighbours,
+   RIBBON_BAND_EXTREMES_MIN 2:1 across them. This said 3:1, which nothing
+   has ever enforced and nothing can: the darkness ribbon's own solid
+   extremes measure 2.853:1 and 2.874:1 on two of the three backgrounds,
+   so raising the shared constant would fail the strip above before it
+   tested this one. AC #12 records the same correction, twice. This ramp
+   clears either bar with room — 4.506 / 7.278 / 8.593:1, checked back
+   against the spec's stated figures by that same file. */
 .dl-moon-band-0,
 .dl-moon-band-1,
 .dl-moon-band-2,
@@ -677,38 +684,44 @@ body.constellation .dl-bar-waypoint {
   stroke-width: 10;
 }
 
-/* The two nights the closing sentence names, marked where they are
-   walked (D10: "the sky and lantern nights are marked positionally in
-   the strip, not by hue alone").
+/* The two nights the closing sentence names, marked at the kilometre
+   they are walked at (D10).
 
-   A different visual language from the bands on purpose: the bands run
-   along the axis and carry a value, this crosses the axis and carries a
-   position. Same idiom as .dl-bar-tick-adapt and .dl-bar-moon-tick on
-   the time bar above — a short vertical stroke on the thing it marks.
+   The mark hangs BELOW the strip, in the axis-label row, and touches no
+   band. It used to cross one, and there it could not be read at any
+   colour. It is 2.5 units of stroke over a 504-unit fill, and against
+   band 4 — the band a lantern night is by definition on — it measured
+   1.550:1, where WCAG 1.4.11 asks 3:1 of a graphical object carrying
+   essential information. Nor was that a tuning failure: against the dark
+   ramp's composited extremes the best worst-case any single grey reaches
+   is 2.681:1, so no colour on this ramp clears 3:1 at both ends.
 
-   Shorter than the band is tall, so band colour shows above and below
-   it: a full-height mark would read as a boundary between two spans,
-   which is precisely what coalesceMoonCells exists to stop the strip
-   drawing.
+   Off the band there is one colour behind it per theme, and the floor is
+   arithmetic: 6.110 / 5.130 / 5.773:1 over light parchment, dark
+   parchment and #0a0a12. js/muted-contrast.test.js sweeps all three at a
+   3:1 floor; js/daylight-render.test.js reads the band's stroke-width
+   above against the emitted y attributes, so "off the band" is measured
+   rather than asserted here.
 
-   Two colours, one per theme, because the ramp runs in opposite
-   directions in the two: ink on a ramp that darkens with moonlight,
-   near-white on one that brightens. js/muted-contrast.test.js measures
-   the mark against every band on all three real backgrounds and holds it
-   to 1.45:1 — above the ramp's own 1.25:1 adjacent floor, because this
-   is a 2.5-by-8 unit stroke and that is a 504-unit fill. A mark you
-   cannot separate from the band under it marks nothing. The binding case
-   is band 4 in dark themes (1.550:1); every other pair is 2.6:1 or
-   better. Deleting the dark rule below drops star mode's band 0 to
-   1.270:1 and the sweep goes red, which is the point of the margin. */
+   --ink-fog is the ink .dl-moon-label already uses two rules down. Moving
+   the mark into the label row must not make it louder than the labels
+   already sitting there, and one token means no second rule can fall
+   through in a theme the first did not cover — the drift that put the
+   ribbon's own bands out at 1.02:1.
+
+   Off the band it also cannot draw a seam. The old mark was 8 units tall
+   against a block's stroke-width of 10, leaving one unit of band each
+   side (0.467 device px on the narrowest column this page renders at),
+   and 89% of shikoku's marks land on a block: it read as exactly the
+   boundary coalesceMoonCells exists to remove.
+
+   Still the house idiom of .dl-bar-tick-adapt and .dl-bar-moon-tick on
+   the time bar above — a short vertical stroke under the thing it
+   marks. */
 .dl-moon-tick {
-  stroke: #1A150E;
+  stroke: var(--ink-fog);
   stroke-width: 2.5;
   stroke-linecap: butt;
-}
-
-html[data-theme="dark"] .dl-moon-tick {
-  stroke: #FFFBF2;
 }
 
 .dl-ribbon-label {

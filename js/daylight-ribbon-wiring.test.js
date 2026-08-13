@@ -1081,6 +1081,142 @@ ok(moonLines().some(function (l) {
 }), 'the mark falls on a span that was actually drawn, not on the blank middle stage');
 
 /* ==========================================
+   H3 — one date policy, reached through the doors the typed edit is not.
+
+   Three functions answered "what if the date is out of range?"
+   differently: clampWalkDate moved to the nearest bound, coerceParams
+   jumped to today, moonStartDate hid the strip. buildState asked nobody
+   at all — it read #dl-date raw — so any recompute triggered by a
+   NON-date field painted the bar for a year pushURL was simultaneously
+   refusing to write.
+
+   With a five-digit year that recompute does not merely disagree, it
+   throws: wallTimeToUTC builds an Invalid Date and
+   Intl.DateTimeFormat.formatToParts raises RangeError on it. Fired
+   during a route change, that aborts onRouteChange after _currentRoute
+   is reassigned but before pushURL and updateRibbonForRoute run —
+   leaving the variable and the visible strip permanently out of sync.
+
+   Set WITHOUT firing `change`, which is the whole point: this is a value
+   the page can hold with the clamp listener never having run.
+   ========================================== */
+
+console.log('\n=== H3 — the bar, the strip and the share link read one clamped date ===\n');
+
+// runAndRender appends the bar's reading as a text node after clearing
+// textContent, and this harness's appendChild does not fold one into the
+// other — so the reading is the last text node, not textContent. Reading
+// textContent here would have compared '' against '' and proved nothing.
+function barReading(el) {
+  var texts = el.children.filter(function (c) { return c.tag === '#text'; });
+  return texts.length ? texts[texts.length - 1].textContent : '';
+}
+
+lastPushedURL = '';
+dateInput.value = '20261-06-15';
+var h3Threw = false, h3Error = '';
+try {
+  selectRoute(MOON_ROUTE);
+} catch (e) { h3Threw = true; h3Error = e && e.message; }
+ok(!h3Threw, 'a route change with a five-digit year in #dl-date does not throw'
+  + (h3Threw ? ' — threw: ' + h3Error : ''));
+
+var h3BarOut  = barReading(resultEl);
+var h3Summary = moonSummary.textContent;
+var h3URL     = lastPushedURL;
+
+ok(h3BarOut.length > 0,
+  'fixture sanity: the bar drew a reading rather than aborting partway: ' + JSON.stringify(h3BarOut));
+ok(h3URL.indexOf('date=2100-12-31') !== -1,
+  'the share link carries the clamped date: ' + h3URL);
+ok(h3Summary.indexOf('31 December') !== -1,
+  'and the strip draws that same date: ' + JSON.stringify(h3Summary));
+
+// The three agree because they are one date, not because they happen to
+// coincide: the same page with the clamped value already in the input
+// produces the same bar, the same strip and the same link.
+lastPushedURL = '';
+dateInput.value = '2100-12-31';
+selectRoute(MOON_ROUTE);
+equal(barReading(resultEl), h3BarOut, 'the bar drew the clamped walk, not the raw one');
+equal(moonSummary.textContent, h3Summary, 'the strip drew the clamped walk');
+equal(lastPushedURL, h3URL, 'and the share link is the same link');
+
+// A non-date field is the path buildState's raw read was reachable
+// through: pace runs through onFieldChange -> pushURL + runAndRender and
+// never touches the date listeners at all.
+lastPushedURL = '';
+var h3StripBeforePace = moonSummary.textContent;
+dateInput.value = '20261-06-15';
+fireEvent(paceInput, 'change');
+equal(barReading(resultEl), h3BarOut,
+  'a PACE change with an out-of-range date in the input still draws the clamped walk');
+ok(lastPushedURL.indexOf('date=2100-12-31') !== -1,
+  'and writes the clamped date to the share link: ' + lastPushedURL);
+equal(moonSummary.textContent, h3StripBeforePace,
+  'while the strip does not move for a pace change at all (D9, AC #8)');
+
+/* And the entry point the finding is actually about: a hand-edited link.
+   ?date=2101-06-15 showed the recipient TODAY's walk while the address
+   bar still read 2101 — one URL, two different pages, which is exactly
+   what the bounds exist to prevent, surviving in the door the earlier
+   fix did not reach.
+
+   applyParamsFromURL runs once, at DOMContentLoaded, so this needs a
+   page of its own: a fresh element registry, a fresh location, a fresh
+   module instance. Everything the sections above hold is snapshotted and
+   put back — including the DOMContentLoaded listener list, so the
+   instance driving them is untouched and the Finding 9 section below
+   still counts exactly one listener before its own. */
+
+console.log('\n=== H3 — a hand-edited ?date= is clamped on the way in, not reset to today ===\n');
+
+var savedElements = elementsById;
+var savedSearch   = location.search;
+var savedReady    = document._listeners['DOMContentLoaded'];
+
+elementsById = {};
+elementsById['dl-prefs-toggle'] = makeNode('button');
+elementsById['dl-prefs-panel']  = makeNode('div');
+elementsById['dl-prefs-panel'].querySelectorAll = function () { return []; };
+document._listeners['DOMContentLoaded'] = [];
+location.search = '?route=' + MOON_ROUTE + '&date=2101-06-15';
+lastPushedURL = '';
+
+delete require.cache[require.resolve('./daylight.js')];
+require('./daylight.js');
+equal(document._listeners['DOMContentLoaded'].length, 1,
+  'fixture sanity: the restored-page instance registered exactly one DOMContentLoaded listener');
+document._listeners['DOMContentLoaded'][0]();
+
+var restoredMeta = pendingXHR('/assets/daylight/route-meta.json');
+ok(restoredMeta !== null, 'fixture sanity: the restored page asked for route-meta.json');
+restoredMeta.status = 200;
+restoredMeta.responseText = fs.readFileSync(
+  path.join(__dirname, '..', 'assets', 'daylight', 'route-meta.json'), 'utf8');
+restoredMeta.onload();
+
+resolveStages(MOON_ROUTE, assetText('daylight', MOON_ROUTE));
+resolveDarkness(MOON_ROUTE, darknessFixtureText(MOON_ROUTE));
+
+equal(elementsById['dl-date'].value, '2100-12-31',
+  'a ?date= past 2100 is pulled to the nearest bound — the answer the typed edit gives — '
+    + 'not silently reset to today');
+ok(barReading(elementsById['dl-result']).length > 0,
+  'the bar drew a reading for it: ' + JSON.stringify(barReading(elementsById['dl-result'])));
+ok(elementsById['dl-moon-summary'].textContent.indexOf('31 December') !== -1,
+  'the strip drew that same date: ' + JSON.stringify(elementsById['dl-moon-summary'].textContent));
+ok(lastPushedURL.indexOf('date=2100-12-31') !== -1,
+  'and the address bar the recipient ends up with says the same: ' + lastPushedURL);
+ok(lastPushedURL.indexOf('2101') === -1,
+  'with no trace of the year that was asked for');
+
+elementsById = savedElements;
+location.search = savedSearch;
+document._listeners['DOMContentLoaded'] = savedReady;
+dateInput.value = '2026-12-04';
+
+/* ==========================================
    Finding 9 — the two hide paths disagreed about which nodes have to
    exist. renderDarknessRibbon guards both dl-ribbon-wrap and
    dl-ribbon-svg; updateRibbonForRoute guarded only the wrap, then handed
