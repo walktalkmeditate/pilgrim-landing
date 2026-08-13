@@ -15,6 +15,7 @@ var path = require('path');
 var D = require('./daylight-math.js');
 var Daylight = require('./daylight.js');
 var N = require('./night-math.js');
+var MoonLuxRef = require('./moon-lux.js');
 
 var passed = 0;
 var failed = 0;
@@ -1411,6 +1412,121 @@ var m1 = N.nightMoonLux(night15.dates[0], stage15.startLat, stage15.startLon);
 var m2 = N.nightMoonLux(night15.dates[0], stage15.startLat, stage15.startLon);
 ok(m1.mean === m2.mean && m1.peak === m2.peak && m1.usableFrac === m2.usableFrac,
   'nightMoonLux is pure (identical args -> identical result)');
+
+/* =============================================
+   Slice 3, Task 3 — moonBandForLux, buildNightCells, selectNotableNights
+   (spec D5, D7, D8)
+
+   The strip's five steps sit on MoonLux.luxBracketFor's own boundaries
+   rather than new ones, and a value exactly on a boundary takes the
+   HIGHER band index — the same tie rule darknessBandForValue applies.
+
+   selectNotableNights names at most two nights and suppresses either
+   when the walk has not earned it. Both suppressions are load-bearing on
+   real routes: camino-ingles has no lantern night, kumano has no darkest
+   night. A clause invented for them would be a lie the reader cannot
+   check.
+   ============================================= */
+
+console.log('\n=== moonBandForLux — five steps on luxBracketFor boundaries (D8) ===\n');
+
+equal(N.moonBandForLux(0),       0, 'lux 0 -> band 0 (no moon at all)');
+equal(N.moonBandForLux(0.001),   1, 'lux 0.001 -> band 1 (a trace)');
+equal(N.moonBandForLux(0.005),   2, 'lux exactly 0.005 -> band 2 (boundary takes the higher band)');
+equal(N.moonBandForLux(0.02),    2, 'lux 0.02 -> band 2');
+equal(N.moonBandForLux(0.05),    3, 'lux exactly 0.05 -> band 3 (boundary takes the higher band)');
+equal(N.moonBandForLux(0.1),     3, 'lux 0.1 -> band 3');
+equal(N.moonBandForLux(0.2),     4, 'lux exactly 0.2 -> band 4 (boundary takes the higher band)');
+equal(N.moonBandForLux(0.5),     4, 'lux 0.5 -> band 4 (enough to walk a known path)');
+
+// The bands must agree with the prose brackets they are built from,
+// or the strip and the sentence would describe different nights.
+equal(MoonLuxRef.luxBracketFor(0.3).label, 'bright', 'band 4 territory is luxBracketFor bright');
+equal(MoonLuxRef.luxBracketFor(0.1).label, 'mid',    'band 3 territory is luxBracketFor mid');
+equal(MoonLuxRef.luxBracketFor(0.01).label, 'dim',   'band 2 territory is luxBracketFor dim');
+
+console.log('\n=== buildNightCells / selectNotableNights — the two named nights (D5, D7) ===\n');
+
+function cellsFor(routeId, startDate) {
+  var stages   = loadStages(routeId);
+  var artifact = loadDarknessArtifact(routeId);
+  var runs     = D.mergeDarknessRuns(artifact.values, artifact.stepKm, artifact.coveredKm,
+                                     D.darknessAggregateWindowKm(artifact.positionalConfidence));
+  var schedule = D.nightSchedule(D.stagePlacements(stages, artifact.coveredKm), startDate);
+  return N.buildNightCells(schedule, stages, runs);
+}
+
+var francesCells = cellsFor('camino-frances', WALK_START);
+equal(francesCells.length, 33, 'camino-frances: 33 enriched cells');
+ok(francesCells.every(function (c) { return typeof c.darkMean === 'number' && !isNaN(c.darkMean); }),
+  'camino-frances: every cell carries a numeric darkness mean');
+ok(francesCells.every(function (c) { return c.moon !== null; }),
+  'camino-frances: every cell has a resolvable dark window');
+
+var francesNotable = N.selectNotableNights(francesCells);
+equal(francesNotable.sky.firstNight, 27,
+  'camino-frances: the sky night is night 27, O Cebreiro — darkest, and no moon');
+equal(francesNotable.lantern.firstNight, 15,
+  'camino-frances: the lantern night is night 15, the meseta at full moon');
+ok(francesNotable.sky.moon.usableFrac === 0,
+  'camino-frances: the sky night has no usable moonlight by construction');
+ok(francesNotable.lantern.moon.usableFrac > 0,
+  'camino-frances: the lantern night does have usable moonlight');
+
+// The sky night must be the darkest AMONG MOONLESS nights, not the
+// darkest outright — a dark site under a full moon is not a good sky.
+//
+// Asserting this on the 12 October walk proves nothing: night 27 is both
+// the darkest overall AND moonless, so restricting to moonless nights
+// cannot change the answer and the assertion passes even when the filter
+// is deleted (verified by mutation). Starting thirteen days later the
+// moon has caught up with O Cebreiro — night 27 is still the darkest at
+// 3.97, but now carries usable moonlight for 72% of the night, and the
+// sky night must move to the darkest night that is genuinely moonless.
+var lateStart  = new Date('2026-10-25T12:00:00Z');
+var lateCells  = cellsFor('camino-frances', lateStart);
+var lateSky    = N.selectNotableNights(lateCells).sky;
+var lateDarkest = lateCells.reduce(function (a, c) { return c.darkMean > a.darkMean ? c : a; });
+
+equal(lateDarkest.firstNight, 27, 'frances from 25 Oct: night 27 is still the darkest place on the route');
+approx(lateDarkest.moon.usableFrac, 0.72, 0.02, 'frances from 25 Oct: but night 27 is now moonlit for most of the night');
+equal(lateSky.firstNight, 11, 'frances from 25 Oct: the sky night moves to night 11, the darkest MOONLESS night');
+equal(lateSky.moon.usableFrac, 0, 'frances from 25 Oct: the chosen sky night has no usable moonlight');
+ok(lateSky.darkMean < lateDarkest.darkMean,
+  'frances from 25 Oct: the sky night is deliberately NOT the darkest place — the moon disqualified it');
+
+// camino-ingles: six nights is a fifth of a lunation and it peaks at
+// 0.0067 lux. There is no lantern night, so there is no lantern clause.
+var inglesCells    = cellsFor('camino-ingles', WALK_START);
+var inglesNotable  = N.selectNotableNights(inglesCells);
+var inglesPeak     = Math.max.apply(null, inglesCells.map(function (c) { return c.moon.peak; }));
+ok(inglesPeak < 0.05, 'camino-ingles: no night anywhere reaches usable moonlight (peak ' + inglesPeak.toFixed(4) + ')');
+equal(inglesNotable.lantern, null, 'camino-ingles: the lantern clause is suppressed, not fabricated');
+ok(inglesNotable.sky !== null, 'camino-ingles: the sky clause still stands (1.93 bands of spread)');
+
+// kumano-kodo: one flat band on all four nights. There is no darkest
+// night to name.
+var kumanoCells   = cellsFor('kumano-kodo', WALK_START);
+var kumanoNotable = N.selectNotableNights(kumanoCells);
+var kumanoSpread  = Math.max.apply(null, kumanoCells.map(function (c) { return c.darkMean; }))
+                  - Math.min.apply(null, kumanoCells.map(function (c) { return c.darkMean; }));
+ok(kumanoSpread < 1.0, 'kumano-kodo: darkness spread is under one band (' + kumanoSpread.toFixed(2) + ')');
+equal(kumanoNotable.sky, null, 'kumano-kodo: the sky clause is suppressed — no night is darker than another');
+
+// A one-night walk can make no comparison at all.
+var oneNight = N.selectNotableNights([francesCells[0]]);
+equal(oneNight.sky, null, 'a one-night walk names no sky night');
+equal(oneNight.lantern, null, 'a one-night walk names no lantern night');
+
+// Shikoku's blocks carry a phase range, which is what D5 states instead
+// of a single phase.
+var shikokuCells = cellsFor('shikoku-88', WALK_START);
+var block = shikokuCells[3];
+ok(block.isBlock, 'shikoku-88: cell 3 is a block');
+ok(typeof block.phaseFirst === 'number' && typeof block.phaseLast === 'number',
+  'shikoku-88: a block carries the phase at its first and last night');
+ok(Math.abs(block.phaseLast - block.phaseFirst) > 0.1,
+  'shikoku-88: the 6-night block spans a real stretch of the lunation');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

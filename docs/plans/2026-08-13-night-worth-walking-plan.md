@@ -105,7 +105,8 @@ first uses it, not before.
       (0 / 0.005 / 0.05 / 0.2), boundary values landing in the **brighter** band to match
       the ribbon's documented tie rule, and for `selectNotableNights(schedule)`:
   - camino-frances → sky night 27 (O Cebreiro→Triacastela), lantern night 15
-  - **camino-ingles → lantern clause suppressed** (peak 0.0067 < 0.05 lux)
+  - **camino-ingles → lantern clause suppressed** (brightest instant 0.0380 lux, highest
+    nightly mean 0.0067 — neither reaches the 0.05 usable threshold)
   - **kumano-kodo → sky clause suppressed** (flat band 4.00, spread < 1 band)
   - a one-night walk → both suppressed
 - [ ] Run — expect FAIL.

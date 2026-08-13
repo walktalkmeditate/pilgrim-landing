@@ -137,9 +137,10 @@ Following the ribbon's one-quiet-sentence pattern (its D10), not a legend or too
 Both clauses are **suppressed when unearned**:
 
 - No lantern clause unless at least one night reaches **0.05 lux** (`luxBracketFor`'s
-  `mid` threshold — "usable light along an open trail"). Verified necessary:
-  camino-ingles over 6 nights peaks at 0.0067 lux, a fifth of a lunation. Naming a best
-  lantern there would be a false claim.
+  `mid` threshold — "usable light along an open trail"). Verified necessary: camino-ingles
+  is six nights, a fifth of a lunation, and its brightest instant across the whole walk is
+  **0.0380 lux** — its highest nightly *mean* is 0.0067. Neither reaches usable. Naming a
+  best lantern there would be a false claim.
 - No sky clause unless the darkest and brightest nights differ by at least **one full
   band**. Verified necessary: kumano-kodo is a flat band 4.00 on all four nights, so
   "darkest night" would be arbitrary.
