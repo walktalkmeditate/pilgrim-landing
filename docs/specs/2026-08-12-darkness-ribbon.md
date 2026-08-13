@@ -31,6 +31,8 @@ Gate 0's "Carried forward" section is binding here, clause by clause:
 
 None of these are re-litigated below; they are treated as settled and are implemented, not re-argued.
 
+**A fifth carried-forward point the table above doesn't map to any decision, because none of D1–D13 addresses it.** Gate 0 excluded Falchi's World Atlas partly because CC BY-NC "would also ride the CDN into the iOS and Android apps, which market a product" (`docs/specs/2026-08-11-darkness-data-audit.md`, "Falchi exclusion") — a claim about where this data was headed, not only about where it sat that day. Nothing has moved on that claim since, and this slice doesn't move it either: there is no `publish-darkness` script, and no iOS or Android consumption of `assets/darkness/` is scoped in any spec, this one included. The repo has a precedent for exactly this fork — `scripts/publish-collective-routes` pushes `assets/collective-routes.json` to `cdn.pilgrimapp.org` because the site and both apps read one shared object, and `docs/specs/2026-07-17-collective-trail.md`'s own non-goals name the deferral explicitly ("Mobile apps (iOS / Android). Phase two, separate spec, iOS-first."). This slice follows the same web-first, apps-phase-two pattern, just without ever writing it down before now: it renders `assets/darkness/` on `/daylight` only. Stated here so it reads as a deferred decision, not a forgotten one — a `publish-darkness` step and app consumption remain undecided-when, not dropped. Gate 0's CC0-over-CC-BY-NC choice is what keeps that door open for whenever they're built; this spec does not build them, and does not need to for Gate 0's rationale to have been the right call.
+
 ---
 
 ## Decisions
