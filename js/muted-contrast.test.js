@@ -731,6 +731,26 @@ test('moon strip bands stay pairwise distinguishable on every background each th
         );
       });
 
+      /* Band 0 is held to the ADJACENT floor against the background, not
+         the weaker vs-background one the other four get.
+
+         This strip is the one thing on the page with real holes in it —
+         shikoku's 288 km between temple clusters draw as bare parchment
+         — so "no moon" and "nothing drawn" are two readings a reader has
+         to separate, which makes the page background band 0's neighbour
+         and 1.25:1 its floor. It shipped at 1.247:1, missing by 0.003,
+         while a real band-0 cell on shikoku (9.00 units) is narrower
+         than a real gap (9.70 units) and 24% of kumano's start dates
+         render the entire strip as band 0. */
+      const gapRatio = contrast(composited[0], bg);
+      console.log('    moon-0 vs a GAP (bare background) = ' + gapRatio.toFixed(3) + ':1');
+      assert.ok(
+        gapRatio >= RIBBON_BAND_ADJACENT_MIN,
+        label + ' .dl-moon-band-0 is ' + gapRatio.toFixed(3) + ':1 against bare background, below the '
+          + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor — "no moon" and "nothing drawn" are '
+          + 'not tellable apart, and this strip really does draw gaps'
+      );
+
       let minAdjacent = Infinity;
       for (let i = 0; i < composited.length - 1; i++) {
         const ratio = contrast(composited[i], composited[i + 1]);

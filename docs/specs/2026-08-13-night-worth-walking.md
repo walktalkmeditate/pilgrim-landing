@@ -247,22 +247,37 @@ Built as specced. All eight tasks landed; 16 suites green throughout.
 
 `/daylight`, JS + CSS combined:
 
-| | raw | gzipped |
+| | raw | gzipped (per-file) |
 |---|---|---|
-| before the night work | 215.3 KB | 52.1 KB |
-| after Slices 1–2 | 293.5 KB | 77.7 KB |
-| **after Slice 3** | **329.4 KB** | **88.7 KB** |
+| **after Slice 3** | **329.4 KB** | **93.5 KB** |
 
-This slice adds **11.0 KB gzipped** — `js/night-math.js` (12.7 KB raw) plus the
-strip's CSS and render code. The page is now **70% heavier gzipped than before
-the night instrument began**, and Slice 4 lands on it too.
+**On the measurement.** An earlier version of this table gzipped the concatenated
+stream and reported 88.7 KB. That understates by 4.8 KB: a CDN gzips each response
+separately, so the cross-file dictionary sharing a single stream enjoys does not
+exist in transit. The figure above is the sum of per-file `gzip -9`, which is what
+a reader's browser actually downloads. The earlier Slice 1–2 figures in this repo
+were measured the same wrong way and are similarly understated; the *trend* they
+describe holds, the absolute numbers do not.
 
-88.7 KB of gzipped JS+CSS is still within reasonable practice, and nothing here is
-render-blocking — all eight local scripts sit at the bottom of `<body>`. But the
-trend is the point: three slices, three increases, no budget. **Recorded as
-unresolved.** The cheap mitigations, in order of value: `defer` on the eight local
-scripts (they currently download serially after parse), and asking whether
-`/daylight` needs `universe.js` (12.1 KB) and `sunpath-math.js` (37.6 KB) at all.
+93.5 KB of gzipped JS+CSS is still within reasonable practice, and nothing here is
+render-blocking. But the trend is the point: three slices, three increases, no
+budget, and Slice 4 lands on the same page. **Recorded as unresolved.**
+
+**Two mitigations this spec previously proposed are wrong**, and are retracted here
+rather than left to mislead:
+
+- *`defer` on the local scripts* — near-worthless. They already sit at lines 279–286
+  of a 288-line document, with only `</body></html>` after them, so there is
+  essentially nothing left for `defer` to unblock.
+- *Dropping `universe.js` (12.1 KB) or `sunpath-math.js` (37.6 KB)* — neither is
+  free. `js/main.js:81` reads `if (theme === 'star' && !window.Universe) theme =
+  'dark'`, so removing `universe.js` silently downgrades the star theme on this
+  page; `sunpath-math.js` is a hard dependency of both `js/daylight.js` and
+  `js/night-math.js`.
+
+The real lever, if one is wanted, is the 37.6 KB of `sunpath-math.js` and 32.2 KB of
+`main.js` being loaded whole for the handful of functions this page calls — a
+splitting job, not a deletion one, and out of scope here.
 
 ### Departures from the spec, and why
 

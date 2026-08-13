@@ -645,17 +645,34 @@ body.constellation .dl-bar-waypoint {
    of the thing on a light page. A brightening ramp was tried first and
    put band 0 at 1.067:1 against the background: correct arithmetic,
    invisible strip, the defect this page has now shipped five times.
-   Amber throughout, against the ribbon's cool blue. */
-.dl-moon-band-0 { stroke: rgba(186, 178, 160, 0.38); }
-.dl-moon-band-1 { stroke: rgba(172, 150, 104, 0.58); }
-.dl-moon-band-2 { stroke: rgba(158, 130, 74,  0.70); }
-.dl-moon-band-3 { stroke: rgba(134, 104, 46,  0.84); }
+   Amber throughout, against the ribbon's cool blue.
+
+   Band 0 is measured against the PAGE, not only against band 1. This
+   strip has real gaps in it — shikoku's 288 km between temple clusters —
+   so bare parchment is a state the reader has to tell "no moon" apart
+   from, which makes the background band 0's true neighbour and the
+   1.25:1 adjacent floor its true floor. The first version of this ramp
+   put band 0 at 1.247:1 and missed by 0.003: on shikoku a real band-0
+   cell (9.00 units) is narrower than a real gap (9.70 units), and 44% of
+   2026 start dates give shikoku at least one; on kumano 24% of start
+   dates render the whole strip as four band-0 cells whose entire
+   sentence is "4 nights from 16 January."
+
+   Retuned by measurement, not by eye: the five alphas below are the
+   ladder that puts every step — background to band 0 included — at
+   1.354:1 or better, where the tightest step used to be 1.247:1. The
+   declared colours are unchanged, so the hue separation from the
+   darkness ramp is exactly what it was. */
+.dl-moon-band-0 { stroke: rgba(186, 178, 160, 0.52); }
+.dl-moon-band-1 { stroke: rgba(172, 150, 104, 0.69); }
+.dl-moon-band-2 { stroke: rgba(158, 130, 74,  0.81); }
+.dl-moon-band-3 { stroke: rgba(134, 104, 46,  0.87); }
 .dl-moon-band-4 { stroke: rgba(110, 80,  24,  0.97); }
 
 /* Shikoku's stages are temple clusters spanning several nights each, so
    its cells stand for a stretch of the lunation rather than one night.
-   The lighter, taller edge marks them as a block without changing the
-   band colour that carries the reading. */
+   The shorter bar — 10 against the bands' 16 — marks them as a block
+   without changing the band colour that carries the reading. */
 .dl-moon-block {
   stroke-width: 10;
 }

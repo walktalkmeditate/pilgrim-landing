@@ -14,7 +14,9 @@
    Depends on: js/sunpath-math.js (twilight, moon altitude),
    js/moon-lux.js (illuminance, brackets), js/moon.js (phase).
 
-   See js/night-math.test.js.
+   Tested from js/daylight-math.test.js (the pure math), js/daylight-render.test.js
+   and js/daylight-ribbon-wiring.test.js (rendering and wiring), and
+   js/muted-contrast.test.js (the silver ramp).
    ============================================= */
 
 (function (root) {
@@ -31,6 +33,17 @@
   var Moon = (typeof root !== 'undefined' && root.Moon)
     ? root.Moon
     : (typeof require === 'function' ? require('./moon.js') : null);
+
+  // daylight/index.html loads daylight-math.js at line 284 and this file
+  // at 285, so DaylightMath is already on `root` by the time this runs —
+  // the same resolution the three modules above use. A local copy of
+  // darknessBandStatsInRange used to live at the bottom of this file,
+  // justified by a load-order claim that was the wrong way round; the
+  // copy that drew every cell was the untested one, while the public
+  // export this slice added had no consumer at all.
+  var DaylightMath = (typeof root !== 'undefined' && root.DaylightMath)
+    ? root.DaylightMath
+    : (typeof require === 'function' ? require('./daylight-math.js') : null);
 
   var MS_PER_DAY = 86400000;
 
@@ -142,7 +155,7 @@
         };
       }
 
-      var stats = darknessStatsInRange(runs, cell.loKm, cell.hiKm);
+      var stats = DaylightMath.darknessBandStatsInRange(runs, cell.loKm, cell.hiKm);
 
       return {
         index:      cell.index,
@@ -163,25 +176,25 @@
     });
   }
 
-  // Local copy of daylight-math's darknessBandStatsInRange so this module
-  // does not depend on it at load time in the browser (script order puts
-  // daylight-math.js after this file would need it). Kept deliberately
-  // identical, including the >= tie rule that sends an exact tie to the
-  // darker band — the rule that once silently deleted camino-frances's
-  // "Darkest near the end."
-  function darknessStatsInRange(runs, lo, hi) {
-    var span = hi - lo;
-    var kmByBand = [0, 0, 0, 0, 0];
-    for (var i = 0; i < runs.length; i++) {
-      var overlap = Math.min(runs[i].endKm, hi) - Math.max(runs[i].startKm, lo);
-      if (overlap > 0) kmByBand[runs[i].band] += overlap;
-    }
-    var dominantBand = 0, weightedSum = 0;
-    for (var b = 0; b < 5; b++) {
-      weightedSum += kmByBand[b] * b;
-      if (kmByBand[b] >= kmByBand[dominantBand]) dominantBand = b;
-    }
-    return { mean: span > 0 ? weightedSum / span : 0, dominantBand: dominantBand };
+  /*
+   * isDrawableCell(cell) — the one answer to "does the strip put ink on
+   * the axis for this cell?", read by the renderer, by the axis label and
+   * by every clause that counts nights or kilometres.
+   *
+   * It exists because those used to disagree. nightsLeadIn summed
+   * `nights` over every cell while the draw loop skipped cells with no
+   * moon, so a schedule whose dark window never closes drew a captioned,
+   * empty strip reading "3 nights from 21 June" — correct arithmetic,
+   * nothing a reader could see, the defect class this page has now
+   * shipped six times.
+   *
+   * A cell with no moon has no band to paint (nightMoonLux returns null
+   * above roughly 48.5°N near midsummer); a cell with no width has
+   * nowhere to paint it.
+   */
+  function isDrawableCell(cell) {
+    return Boolean(cell) && cell.moon !== null && cell.moonBand !== null
+      && cell.hiKm > cell.loKm;
   }
 
   // How much darkness spread a walk needs before naming one night the
@@ -198,8 +211,9 @@
    * wrong place. The lantern night is simply the most moonlit.
    *
    * Suppression, each verified against a real route:
-   *   - no lantern unless some night reaches 0.05 lux — camino-ingles
-   *     peaks at 0.0067 over its six nights, a fifth of a lunation
+   *   - no lantern unless some night reaches 0.05 lux — camino-ingles's
+   *     brightest instant across its six nights is 0.0380 lux (its highest
+   *     nightly mean is 0.0067), a fifth of a lunation and never usable
    *   - no sky night unless the darkness spread reaches one full band —
    *     kumano-kodo is a flat band 4.00 on all four of its nights
    *   - a one-night walk compares nothing, so it names nothing
@@ -208,7 +222,7 @@
    * bug at the call site; an absence is a decision.
    */
   function selectNotableNights(cells) {
-    var usable = cells.filter(function (c) { return c.moon !== null; });
+    var usable = cells.filter(isDrawableCell);
     if (usable.length < 2) return { sky: null, lantern: null };
 
     var darks = usable.map(function (c) { return c.darkMean; });
@@ -251,23 +265,103 @@
     return 'for part of the night';
   }
 
+  // Nights the strip actually draws, never nights the schedule merely
+  // holds — a total that counted undrawable cells would caption an
+  // emptier strip than it describes (isDrawableCell above).
   function nightsLeadIn(cells, startDate) {
-    var total = cells.reduce(function (a, c) { return a + c.nights; }, 0);
+    var total = cells.filter(isDrawableCell)
+      .reduce(function (a, c) { return a + c.nights; }, 0);
     return total + (total === 1 ? ' night from ' : ' nights from ')
       + startDate.getUTCDate() + ' ' + MONTH_NAMES[startDate.getUTCMonth()] + '.';
   }
 
-  function skyClause(sky) {
+  /*
+   * The sky clause's moon is READ OFF THE BAND THE STRIP PAINTS, never
+   * asked of the moon a second time.
+   *
+   * Selection gates on usableFrac === 0; the strip draws
+   * moonBandForLux(mean). Those are two different questions, and they
+   * disagreed: swept over 475 real route/date cases in
+   * js/daylight-math.test.js, only 27.6% of the old unconditional "with
+   * no moon" sat on a band-0 cell. 49.9% sat on band 1 and 22.5% on
+   * band 2 — luxBracketFor's own "barely usable; carry a headlamp"
+   * territory. css/daylight.css promises that "the strip and the prose
+   * can never describe a night differently"; deriving the words from the
+   * band is what makes that true by construction instead of by luck.
+   *
+   * Bands 3 and 4 have no wording here, deliberately. A sky night is
+   * chosen among nights where every one of the 25 samples came in under
+   * 0.05 lux, so its mean is under 0.05 lux, so its band is at most 2 —
+   * copy for a band that cannot arrive is copy nothing can ever check.
+   * If the selection above ever widens, this says so out loud rather
+   * than writing `undefined` into the sentence.
+   */
+  var SKY_MOON_PHRASES = ['with no moon',
+                          'with barely a trace of moon',
+                          'with only a dim moon'];
+
+  function skyMoonPhrase(band) {
+    var phrase = SKY_MOON_PHRASES[band];
+    if (!phrase) {
+      throw new Error('night-math: sky night on moon band ' + band
+        + ', which selectNotableNights cannot produce (usableFrac === 0 caps it at band 2)');
+    }
+    return phrase;
+  }
+
+  /*
+   * phaseRangePhrase(cell) — D5 and AC #6: a block stands for several
+   * nights, so it states the stretch of the lunation those nights span
+   * rather than one phase. Until now phaseFirst/phaseLast were computed
+   * on every cell and read by nothing, so the only thing a reader ever
+   * got from a block was the shorter stroke.
+   *
+   * Only a NAMED night says its range. D7 caps the sentence at two
+   * nights; a range on every block would name all ten of shikoku's and
+   * turn a quiet close into a table.
+   *
+   * Moon.getMoonPhaseName supplies the wording, lowercased into the
+   * sentence's voice. A block whose first and last night fall in the
+   * same eighth of the lunation states that one name rather than
+   * "waxing crescent to waxing crescent".
+   */
+  function phaseRangePhrase(cell) {
+    if (!Moon || !cell.isBlock) return '';
+    var first = Moon.getMoonPhaseName(cell.phaseFirst).toLowerCase();
+    var last  = Moon.getMoonPhaseName(cell.phaseLast).toLowerCase();
+    return first === last ? first : first + ' to ' + last;
+  }
+
+  /*
+   * The sky clause carries the validation caveat; the lantern clause
+   * does not. "Darkest sky" ranks one stretch of a route against another
+   * from the interpolated darkness artifact, and on shikoku and kumano
+   * that artifact has never been checked against a ground reading — the
+   * ribbon one section above says so about the very same numbers, while
+   * this comparative claim went out bare. Moonlight is pure astronomy
+   * and needs no such caveat.
+   *
+   * `!== true`, not `=== false`: a missing or malformed field must read
+   * as unvalidated, the distinction the ribbon failed open on once.
+   */
+  function skyClause(sky, heldOutValidation) {
     if (!sky) return '';
-    return ' Darkest sky on ' + nightLabel(sky) + ', ' + sky.stageName + ', with no moon.';
+    var phases = phaseRangePhrase(sky);
+    return ' Darkest sky on ' + nightLabel(sky) + ', ' + sky.stageName + ','
+      + (phases ? ' ' + phases + ',' : '')
+      + ' ' + skyMoonPhrase(sky.moonBand)
+      + (heldOutValidation === true ? '' : ', on darkness no ground reading has checked')
+      + '.';
   }
 
   function lanternClause(lantern) {
     if (!lantern) return '';
-    var label = nightLabel(lantern);
+    var label  = nightLabel(lantern);
     // "Night 15 holds", but "Nights 11 to 16 hold" — a block is plural.
-    var verb = lantern.nights > 1 ? ' hold ' : ' holds ';
+    var verb   = lantern.nights > 1 ? ' hold ' : ' holds ';
+    var phases = phaseRangePhrase(lantern);
     return ' ' + label.charAt(0).toUpperCase() + label.slice(1)
+      + (phases ? ', ' + phases + ',' : '')
       + verb + 'usable moonlight ' + usableFracPhrase(lantern.moon.usableFrac) + '.';
   }
 
@@ -276,8 +370,9 @@
   // empty. Saying so is cheaper than letting a reader read the gaps as a
   // rendering fault — and this is the only route it fires on.
   function unplacedClause(cells, coveredKm) {
-    if (!cells.length || !(coveredKm > 0)) return '';
-    var placed = cells.reduce(function (a, c) { return a + (c.hiKm - c.loKm); }, 0);
+    var drawn = cells.filter(isDrawableCell);
+    if (!drawn.length || !(coveredKm > 0)) return '';
+    var placed = drawn.reduce(function (a, c) { return a + (c.hiKm - c.loKm); }, 0);
     var unplacedFrac = 1 - (placed / coveredKm);
     if (unplacedFrac < 0.05) return '';
     return ' The stretches between temple clusters, '
@@ -285,21 +380,27 @@
   }
 
   /*
-   * nightSummarySentence(cells, notable, startDate, coveredKm) — the
-   * strip's text equivalent (D10) and its quiet close (D7).
+   * nightSummarySentence(cells, notable, startDate, coveredKm,
+   * heldOutValidation) — the strip's text equivalent (D10) and its quiet
+   * close (D7).
    *
    * Assembled from clauses that each return '' when they have nothing
    * true to say, the same shape darknessSummarySentence uses. The
    * suppressed clauses simply do not appear; nothing hedges.
+   *
+   * heldOutValidation is the darkness artifact's own field, passed
+   * through untouched so the caveat's `!== true` test happens in one
+   * place. Omitting it reads as unvalidated — the safe direction.
    */
-  function nightSummarySentence(cells, notable, startDate, coveredKm) {
-    if (!cells || !cells.length) return '';
+  function nightSummarySentence(cells, notable, startDate, coveredKm, heldOutValidation) {
+    if (!cells || !cells.filter(isDrawableCell).length) return '';
     var span = coveredKm;
     if (!(span > 0)) {
-      span = cells.reduce(function (a, c) { return Math.max(a, c.hiKm); }, 0);
+      span = cells.filter(isDrawableCell)
+        .reduce(function (a, c) { return Math.max(a, c.hiKm); }, 0);
     }
     return nightsLeadIn(cells, startDate)
-      + skyClause(notable.sky)
+      + skyClause(notable.sky, heldOutValidation)
       + lanternClause(notable.lantern)
       + unplacedClause(cells, span);
   }
@@ -312,6 +413,7 @@
     nightMoonLux:          nightMoonLux,
     moonBandForLux:        moonBandForLux,
     buildNightCells:       buildNightCells,
+    isDrawableCell:        isDrawableCell,
     selectNotableNights:   selectNotableNights,
     nightSummarySentence:  nightSummarySentence
   };

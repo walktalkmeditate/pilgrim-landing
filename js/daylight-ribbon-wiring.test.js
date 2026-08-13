@@ -98,10 +98,31 @@ function fireEvent(node, type) {
 }
 
 var elementsById = {};
-// Ids the app queries but this harness deliberately leaves absent, to skip
-// the optional preferences-panel wiring block (dl-prefs radios) — nothing
-// in Finding 1/Finding 4's path touches it.
-var ABSENT_IDS = { 'dl-prefs-toggle': true, 'dl-prefs-panel': true };
+// Ids this harness answers null for. Empty at load; the Finding 9 section
+// at the very bottom adds one deliberately.
+var ABSENT_IDS = {};
+
+// The preferences panel is wired for real, unlike the rest of this
+// harness's optional furniture. It used to be skipped as "nothing in
+// Finding 1/Finding 4's path touches it" — but the km/mi radio lives
+// there, and D9 says the moon strip must not react to it. A radio whose
+// listener was never registered cannot demonstrate what it does or does
+// not repaint, so the finding was untestable while these were absent.
+function makeRadio(name, value) {
+  var radio = makeNode('input');
+  radio.attrs.name = name;
+  radio.value = value;
+  return radio;
+}
+var unitRadios  = [makeRadio('dl-unit', 'km'), makeRadio('dl-unit', 'mi')];
+var clockRadios = [makeRadio('dl-clock', '24h'), makeRadio('dl-clock', '12h')];
+elementsById['dl-prefs-toggle'] = makeNode('button');
+elementsById['dl-prefs-panel']  = makeNode('div');
+elementsById['dl-prefs-panel'].querySelectorAll = function (selector) {
+  if (selector.indexOf('dl-unit')  !== -1) return unitRadios;
+  if (selector.indexOf('dl-clock') !== -1) return clockRadios;
+  return [];
+};
 
 global.document = {
   addEventListener: function (type, fn) {
@@ -516,7 +537,10 @@ equal(moonLines().length, 0, 'no cells drawn while only one source has landed');
 
 resolveStages(MOON_ROUTE, assetText('daylight', MOON_ROUTE));
 ok(moonWrap.hidden === false, 'once both sources land, the strip appears');
-equal(moonLines().length, 11, MOON_ROUTE + ' draws 11 cells, one per stage');
+// Four spans, not eleven cells: seven of the ten abutting pairs share a
+// moon band and are drawn as one <line> so no seam is painted where the
+// data has no boundary (F1).
+equal(moonLines().length, 4, MOON_ROUTE + ' draws its 11 cells as 4 coalesced spans');
 ok(moonSummary.textContent.indexOf('11 nights from 12 October') === 0,
   'the summary states the walk length and start date');
 
@@ -524,6 +548,7 @@ ok(moonSummary.textContent.indexOf('11 nights from 12 October') === 0,
 var ribbonSvgEl  = elementsById['dl-ribbon-svg'];
 var ribbonBefore = ribbonSvgEl.children.map(function (c) { return c.tag + ':' + JSON.stringify(c.attrs); }).join('|');
 var moonBefore   = moonSummary.textContent;
+var bandsBeforeDate = moonLines().map(function (l) { return l.attrs.class; }).join(',');
 
 dateInput.value = '2026-11-20';
 fireEvent(dateInput, 'change');
@@ -533,24 +558,155 @@ ok(moonSummary.textContent !== moonBefore, 'changing the date re-renders the moo
 ok(moonSummary.textContent.indexOf('20 November') !== -1, 'the strip reports the new start date');
 equal(ribbonAfter, ribbonBefore, 'changing the date leaves the darkness ribbon byte-identical');
 
-// A different start date must move the moon bands, not merely the
-// lead-in text — otherwise the strip is relabelling, not recomputing.
+// A different start date must move the moon BANDS, not merely the lead-in
+// text — otherwise the strip is relabelling, not recomputing, and every
+// assertion above would still pass. This capture existed but was never
+// asserted against anything: the review caught it sitting unused, which
+// is its own small lesson about how a test can look like it covers
+// something it never reads.
 var bandsAfterDate = moonLines().map(function (l) { return l.attrs.class; }).join(',');
+ok(bandsAfterDate !== bandsBeforeDate,
+  'sliding the date moves the moon bands themselves, not just the sentence');
 
-// --- AC #8: pace and stage must not touch it ---
+/* --- AC #8 and D9: pace, stage and the km/mi toggle must not touch it.
+
+   Counting REPAINTS, not comparing output. These assertions used to
+   compare the rendered bands before and after — but the strip's output
+   is invariant to pace and stage anyway, so the comparison passed even
+   with the listener wrongly bound to onFieldChange, which is the exact
+   mistake AC #8 exists to prevent. What discriminates is whether the
+   strip was redrawn at all. The counter watches the one element every
+   redraw writes: clearRibbonDisplay blanks the summary, renderMoonStrip
+   fills it, hideMoonStrip blanks it. */
+var moonRepaints = 0;
+(function spyOnMoonSummary() {
+  var text = moonSummary.textContent;
+  Object.defineProperty(moonSummary, 'textContent', {
+    get: function () { return text; },
+    set: function (value) { text = value; moonRepaints++; },
+    configurable: true
+  });
+})();
+
+function repaintsDuring(fn) {
+  var before = moonRepaints;
+  fn();
+  return moonRepaints - before;
+}
+
+// The positive control. Without it, every "0 repaints" below could be
+// measuring a counter that never counts anything.
+var dateRepaints = repaintsDuring(function () {
+  dateInput.value = '2026-12-04';
+  fireEvent(dateInput, 'change');
+});
+ok(dateRepaints > 0, 'the repaint counter is not blind — the date does repaint the strip ('
+  + dateRepaints + ' writes)');
+ok(moonSummary.textContent.indexOf('4 December') !== -1, 'the strip followed the date again');
+
 var beforePace = moonSummary.textContent;
-var beforeBands = bandsAfterDate;
-paceInput.value = 'brisk';
-fireEvent(paceInput, 'change');
+var beforeBands = moonLines().map(function (l) { return l.attrs.class; }).join(',');
+
+equal(repaintsDuring(function () {
+  paceInput.value = 'brisk';
+  fireEvent(paceInput, 'change');
+}), 0, 'changing pace does not repaint the moon strip at all');
 equal(moonSummary.textContent, beforePace, 'changing pace does not change the moon strip');
 equal(moonLines().map(function (l) { return l.attrs.class; }).join(','), beforeBands,
   'changing pace does not change a single moon band');
 
-stageSel.value = '5';
-fireEvent(stageSel, 'change');
+equal(repaintsDuring(function () {
+  stageSel.value = '5';
+  fireEvent(stageSel, 'change');
+}), 0, 'changing stage does not repaint the moon strip at all');
 equal(moonSummary.textContent, beforePace, 'changing stage does not change the moon strip');
 equal(moonLines().map(function (l) { return l.attrs.class; }).join(','), beforeBands,
   'changing stage does not change a single moon band');
+
+/* --- D9: the km/mi toggle repaints the ribbon and nothing else.
+
+   The unit radio has to repaint the ribbon — its edge labels and its
+   summary sentence both carry the unit — and the moon strip used to
+   cascade off that same repaint, costing 5.2 ms (norte) and 14.5 ms
+   (shikoku) of astronomy per click for a strip whose labels are
+   "night 1"/"night N" and which reads unitSystem nowhere.
+
+   Byte-identical output alone would not catch it: the recomputed strip
+   is identical, which is precisely why the waste was invisible. The
+   repaint count is what discriminates. */
+var moonSvgBeforeUnits = moonSvg.children.map(function (c) {
+  return c.tag + ':' + JSON.stringify(c.attrs) + ':' + c.textContent;
+}).join('|');
+var ribbonBeforeUnits = ribbonSvgEl.children.map(function (c) { return c.textContent; }).join('|');
+
+equal(repaintsDuring(function () {
+  fireEvent(unitRadios[1], 'change');
+}), 0, 'switching km -> mi does not repaint the moon strip at all (D9)');
+equal(moonSvg.children.map(function (c) {
+  return c.tag + ':' + JSON.stringify(c.attrs) + ':' + c.textContent;
+}).join('|'), moonSvgBeforeUnits, 'the moon strip\'s svg children are byte-identical across a km/mi toggle');
+equal(moonSummary.textContent, beforePace, 'the moon strip\'s summary is byte-identical across a km/mi toggle');
+
+// Fixture sanity: the toggle really did fire, and really did repaint the
+// thing it is supposed to repaint.
+var ribbonAfterUnits = ribbonSvgEl.children.map(function (c) { return c.textContent; }).join('|');
+ok(ribbonAfterUnits !== ribbonBeforeUnits, 'the darkness ribbon DID repaint for the unit toggle');
+ok(ribbonAfterUnits.indexOf('mi') !== -1, 'the ribbon\'s edge labels are now in miles');
+
+fireEvent(unitRadios[0], 'change');
+ok(ribbonSvgEl.children.map(function (c) { return c.textContent; }).join('|').indexOf('km') !== -1,
+  'switched back to km for the assertions that follow');
+
+/* --- A date outside the years this page accepts draws nothing.
+
+   #dl-date carries no min/max in a browser that ignores them, and a
+   stray keystroke makes the year 20261. The strip used to render the
+   full walk for it and pushURL wrote it into the share link, where the
+   recipient's coerceParams silently reset it to today — the same URL,
+   two different strips. Both edges now read the same two years. */
+var beforeBadDate = moonSummary.textContent;
+
+dateInput.value = '2101-06-15';
+fireEvent(dateInput, 'change');
+ok(moonWrap.hidden === true, 'a year past 2100 hides the strip instead of drawing a walk the URL will not carry');
+equal(moonLines().length, 0, 'a year past 2100 draws no spans');
+
+dateInput.value = '0050-06-15';
+fireEvent(dateInput, 'change');
+ok(moonWrap.hidden === true,
+  'a year under 1900 hides the strip too — Date.UTC would silently have mapped 0050 to 1950');
+equal(moonLines().length, 0, 'a year under 1900 draws no spans');
+
+/* The five-digit year from the finding needs its own firing.
+
+   A real browser invokes each change listener independently and reports
+   a throw from one to window.onerror without skipping the rest; this
+   harness's fireEvent propagates instead. That difference matters for
+   exactly one input: "20261-06-15" makes
+   `new Date('20261-06-15T06:00:00Z')` an Invalid Date — ISO 8601 wants a
+   sign on years past four digits — and the BAR's own
+   wallTimeToUTC -> Intl.formatToParts throws RangeError on it, from the
+   listener registered just before the strip's. That is a pre-existing
+   defect in the walk-budget path, older than this branch and not what
+   this fix is about; the strip's listener still runs in a browser, and
+   this is what it now does when it does. */
+function fireDateChangePastTheBar(value) {
+  dateInput.value = value;
+  (dateInput._listeners['change'] || []).forEach(function (fn) {
+    try { fn.call(dateInput); } catch (e) { /* the bar's own RangeError, see above */ }
+  });
+}
+
+fireDateChangePastTheBar('20261-06-15');
+ok(moonWrap.hidden === true,
+  'a five-digit year hides the strip rather than drawing a walk 18,000 years out');
+equal(moonLines().length, 0, 'a five-digit year draws no spans');
+
+dateInput.value = '2026-12-04';
+fireEvent(dateInput, 'change');
+ok(moonWrap.hidden === false, 'a date back inside the bounds draws the strip again');
+equal(moonSummary.textContent, beforeBadDate,
+  'and draws exactly what it drew before the out-of-range excursion');
 
 // --- AC #14: a custom route hides it ---
 routeSel.value = 'custom';
@@ -567,6 +723,164 @@ resolveDarkness('camino-portugues', JSON.stringify(brokenArtifact));
 resolveStages('camino-portugues', assetText('daylight', 'camino-portugues'));
 ok(moonWrap.hidden === true, 'a shape-invalid artifact hides the moon strip');
 equal(moonLines().length, 0, 'a shape-invalid artifact draws no cells');
+
+/* ==========================================
+   The both-sources race, the OTHER way round.
+
+   Every scenario above lands darkness first, so loadDarknessData's own
+   call to renderMoonStripForRoute was dead code to this suite — deleting
+   it left every assertion green. camino-norte is the one route whose
+   darkness fetch failed earlier in this file and whose stage fetch was
+   never resolved, so neither cache is warm and both orders are real.
+   ========================================== */
+
+console.log('\n=== the both-sources race — stages first, darkness second ===\n');
+
+var RACE_ROUTE = 'camino-norte';
+dateInput.value = '2026-10-12';
+selectRoute(RACE_ROUTE);
+
+resolveStages(RACE_ROUTE, assetText('daylight', RACE_ROUTE));
+ok(moonWrap.hidden === true,
+  'stages alone do not draw the strip — nothing yet says how dark those kilometres are');
+equal(moonLines().length, 0, 'no spans drawn while only the stage list has landed');
+
+resolveDarkness(RACE_ROUTE, darknessFixtureText(RACE_ROUTE));
+ok(moonWrap.hidden === false, 'darkness landing second draws the strip');
+ok(moonLines().length > 0, RACE_ROUTE + ' draws its spans once the second source lands ('
+  + moonLines().length + ')');
+ok(moonSummary.textContent.indexOf('34 nights from 12 October') === 0,
+  'the strip states camino-norte\'s own 34 nights: ' + JSON.stringify(moonSummary.textContent));
+
+/* ==========================================
+   AC #14, the branch the nominal case cannot reach: a route whose stages
+   neither tile the darkness axis nor carry waypoints to place them by.
+   stagePlacements throws there by design (D4 — a wrong axis is worse
+   than no axis), and renderMoonStripForRoute's try/catch turns that into
+   an absent section plus one warning. The shape-invalid artifact above
+   trips ribbonSectionHidden first and never reaches it, so this catch
+   was never once exercised.
+   ========================================== */
+
+console.log('\n=== an unplaceable route hides the strip and says why, exactly once ===\n');
+
+var UNPLACEABLE = 'route-unplaceable';
+var unplaceableWarnings = [];
+var warnBeforeUnplaceable = console.warn;
+console.warn = function () {
+  unplaceableWarnings.push(Array.prototype.join.call(arguments, ' '));
+};
+
+var unplaceableThrew = false;
+try {
+  selectRoute(UNPLACEABLE);
+  // Two stages summing to 10 km against a 100 km darkness axis, and not
+  // a waypoint between them: neither placement method fits.
+  resolveStages(UNPLACEABLE, JSON.stringify([
+    { index: 0, nameEn: 'Nowhere', distanceKm: 5, startLat: 42.34, startLon: -3.70 },
+    { index: 1, nameEn: 'Nowhere else', distanceKm: 5, startLat: 42.34, startLon: -3.70 }
+  ]));
+  resolveDarkness(UNPLACEABLE, JSON.stringify({
+    route: UNPLACEABLE,
+    unit: 'mag/arcsec2',
+    coveredKm: 100,
+    stepKm: 10,
+    heldOutValidation: true,
+    positionalConfidence: { withinInterpolationLimit: true },
+    values: [21.1, 21.2, 21.3, 21.4, 21.5, 21.4, 21.3, 21.2, 21.1, 21.0, 20.9]
+  }));
+} catch (e) {
+  unplaceableThrew = true;
+  unplaceableWarnings.push('THREW: ' + (e && e.message));
+}
+console.warn = warnBeforeUnplaceable;
+
+ok(!unplaceableThrew, 'an unplaceable route does not throw out of the route-change handler');
+ok(ribbonWrap.hidden === false, 'fixture sanity: the artifact itself is sound, so the ribbon still draws');
+ok(moonWrap.hidden === true, 'an unplaceable route hides the moon strip');
+equal(moonLines().length, 0, 'an unplaceable route draws no spans');
+equal(unplaceableWarnings.length, 1,
+  'exactly one warning reaches the console: ' + JSON.stringify(unplaceableWarnings));
+ok(unplaceableWarnings[0].indexOf(UNPLACEABLE) !== -1,
+  'the warning names the route it could not place');
+ok(unplaceableWarnings[0].indexOf('darkness axis') !== -1,
+  'the warning says what it could not do: ' + JSON.stringify(unplaceableWarnings[0]));
+
+/* ==========================================
+   AC #11 through the wiring, not through renderMoonStrip alone: a
+   schedule whose nights have no astronomical night at all.
+
+   nightMoonLux returns null above roughly 48.5°N near midsummer. The
+   sentence used to count every cell while the draw loop skipped the ones
+   with no moon, and renderMoonStripForRoute revealed the section
+   unconditionally — a captioned, empty strip reading "4 nights from
+   21 June". Dormant on the shipped routes; reachable by design.
+   ========================================== */
+
+console.log('\n=== a schedule with no drawable night stays hidden; a partial one states only what it drew ===\n');
+
+function polarDarknessArtifact(routeId) {
+  return JSON.stringify({
+    route: routeId,
+    unit: 'mag/arcsec2',
+    coveredKm: 100,
+    stepKm: 10,
+    heldOutValidation: true,
+    positionalConfidence: { withinInterpolationLimit: true },
+    values: [21.1, 21.2, 21.3, 21.4, 21.5, 21.4, 21.3, 21.2, 21.1, 21.0, 20.9]
+  });
+}
+
+var TROMSO = { lat: 69.65, lon: 18.96 };   // no astronomical night at midsummer
+var BURGOS = { lat: 42.34, lon: -3.70 };   // -24.2 deg at local midnight, so it has one
+
+dateInput.value = '2026-06-21';
+
+var ALL_NULL = 'route-polar';
+selectRoute(ALL_NULL);
+resolveStages(ALL_NULL, JSON.stringify([0, 1, 2, 3].map(function (i) {
+  return { index: i, nameEn: 'Polar stage ' + i, distanceKm: 25,
+           startLat: TROMSO.lat, startLon: TROMSO.lon };
+})));
+resolveDarkness(ALL_NULL, polarDarknessArtifact(ALL_NULL));
+
+ok(moonWrap.hidden === true,
+  'four nights with no astronomical night at all leave the section hidden, not captioned and empty');
+equal(moonLines().length, 0, 'nothing is drawn for a schedule with no drawable night');
+equal(moonSummary.textContent, '', 'and no sentence counts nights the strip never drew');
+
+var PART_NULL = 'route-part-polar';
+selectRoute(PART_NULL);
+// The undrawable stage sits in the MIDDLE, so the two drawable ones
+// cannot abut and coalesce — the span count stays a fact about
+// drawability rather than about banding. It is also only 4 km of 100, so
+// the unplaced clause (>= 5%) stays out of the sentence.
+resolveStages(PART_NULL, JSON.stringify([
+  { index: 0, nameEn: 'Walkable one', distanceKm: 48, startLat: BURGOS.lat, startLon: BURGOS.lon },
+  { index: 1, nameEn: 'Midnight sun',  distanceKm: 4,  startLat: TROMSO.lat, startLon: TROMSO.lon },
+  { index: 2, nameEn: 'Walkable two', distanceKm: 48, startLat: BURGOS.lat, startLon: BURGOS.lon }
+]));
+resolveDarkness(PART_NULL, polarDarknessArtifact(PART_NULL));
+
+ok(moonWrap.hidden === false, 'a partly drawable schedule still shows the section');
+equal(moonLines().length, 2, 'only the two drawable cells are drawn');
+ok(moonSummary.textContent.indexOf('2 nights from 21 June') === 0,
+  'the sentence states the two nights it drew, not the three the schedule holds: '
+    + JSON.stringify(moonSummary.textContent));
+function moonAxisLabel(anchor) {
+  var label = moonSvg.children.filter(function (c) {
+    return c.tag === 'text' && c.attrs['text-anchor'] === anchor;
+  })[0];
+  return label && label.textContent;
+}
+// The lead-in counts the nights DRAWN (two); the axis names the nights at
+// the strip's two ends (one and three). Both are true of what they name,
+// and neither contradicts the interior clause, which calls the last cell
+// night 3 — a right label reading "night 2" would have.
+equal(moonAxisLabel('start'), 'night 1', 'the left axis label names the first night drawn');
+equal(moonAxisLabel('end'), 'night 3', 'the right axis label names the last night drawn, not a count of drawn nights');
+ok(moonSummary.textContent.indexOf('Night 3') !== -1,
+  'and the prose names that same night 3, so the axis and the sentence agree');
 
 /* ==========================================
    Finding 9 — the two hide paths disagreed about which nodes have to

@@ -1514,17 +1514,29 @@ ok(kumanoSpread < 1.0, 'kumano-kodo: darkness spread is under one band (' + kuma
 equal(kumanoNotable.sky, null, 'kumano-kodo: the sky clause is suppressed — no night is darker than another');
 
 // A one-night walk can make no comparison at all.
-var oneNight = N.selectNotableNights([francesCells[0]]);
+//
+// Deliberately night 15, not night 1: night 1's moon.peak is exactly 0,
+// so the lantern gate (peak >= 0.05) would suppress the clause on its
+// own and the one-night rule underneath it was never tested. Verified by
+// mutation — with `usable.length < 2` loosened to `< 1`, night 1 stayed
+// green and night 15 goes red.
+var oneNightCell = francesCells[14];
+ok(oneNightCell.moon.peak >= N.USABLE_LUX,
+  'fixture sanity: the one-night fixture has real moonlight (peak ' + oneNightCell.moon.peak.toFixed(4)
+    + ' lux), so only the one-night rule can suppress its lantern clause');
+var oneNight = N.selectNotableNights([oneNightCell]);
 equal(oneNight.sky, null, 'a one-night walk names no sky night');
 equal(oneNight.lantern, null, 'a one-night walk names no lantern night');
 
-// Shikoku's blocks carry a phase range, which is what D5 states instead
-// of a single phase.
+// Shikoku's blocks carry the phase at their first and last night, which
+// is what D5 states instead of a single phase. Asserted through the
+// PROSE below rather than here: two `typeof === 'number'` checks used to
+// stand in for AC #6, and they were the reason phaseFirst/phaseLast were
+// computed on every cell for three commits and read by nothing a reader
+// could see.
 var shikokuCells = cellsFor('shikoku-88', WALK_START);
 var block = shikokuCells[3];
 ok(block.isBlock, 'shikoku-88: cell 3 is a block');
-ok(typeof block.phaseFirst === 'number' && typeof block.phaseLast === 'number',
-  'shikoku-88: a block carries the phase at its first and last night');
 ok(Math.abs(block.phaseLast - block.phaseFirst) > 0.1,
   'shikoku-88: the 6-night block spans a real stretch of the lunation');
 
@@ -1541,10 +1553,14 @@ ok(Math.abs(block.phaseLast - block.phaseFirst) > 0.1,
 console.log('\n=== nightSummarySentence — and the nights it names are the nights drawn ===\n');
 
 function sentenceFor(routeId, startDate) {
-  var cells = cellsFor(routeId, startDate);
+  var cells    = cellsFor(routeId, startDate);
+  var artifact = loadDarknessArtifact(routeId);
+  var notable  = N.selectNotableNights(cells);
   return {
-    cells: cells,
-    text:  N.nightSummarySentence(cells, N.selectNotableNights(cells), startDate)
+    cells:   cells,
+    notable: notable,
+    text:    N.nightSummarySentence(cells, notable, startDate,
+                                    artifact.coveredKm, artifact.heldOutValidation)
   };
 }
 
@@ -1590,7 +1606,13 @@ ALL_ROUTES.forEach(function (routeId) {
     routeId + ': states its own night count (' + totalNights + ')');
 
   // Every night named must start a real cell, and must be inside the walk.
-  var named = namedNights(s.text).filter(function (n) { return n !== totalNights; });
+  // No filter: one used to drop `n === totalNights`, meant to skip the
+  // lead-in count — but the regex needs the word BEFORE the digits, so
+  // "11 nights from" never matched it in the first place. All it removed
+  // were legitimately named nights, and on camino-portugues and
+  // camino-primitivo the lantern night IS night 11 of 11, so this check
+  // had never once run on those two routes.
+  var named = namedNights(s.text);
   var starts = {}, spans = {};
   s.cells.forEach(function (c) {
     starts[c.firstNight] = true;
@@ -1600,6 +1622,20 @@ ALL_ROUTES.forEach(function (routeId) {
   ok(allDrawn, routeId + ': every night named in the prose is a night the strip draws');
   ok(named.every(function (n) { return n >= 1 && n <= totalNights; }),
     routeId + ': every night named is inside the walk');
+  // The check has to have something to check. A filter that emptied
+  // `named` would leave every assertion above vacuously true.
+  // kumano-kodo is the one route that legitimately names nothing: its
+  // sky clause is suppressed by AC #10 and its lantern by AC #9.
+  if (routeId === 'kumano-kodo') {
+    equal(named.length, 0, routeId + ': names no night at all — both clauses are suppressed');
+  } else {
+    ok(named.length > 0, routeId + ': the parse-back examined at least one named night');
+  }
+  if (routeId === 'camino-portugues' || routeId === 'camino-primitivo') {
+    ok(named.indexOf(totalNights) !== -1,
+      routeId + ': night ' + totalNights + ' of ' + totalNights + ' is among the nights checked — '
+        + 'this route\'s lantern night is the last one, and the old filter dropped exactly it');
+  }
 });
 
 // kumano-kodo: flat band, so no sky clause may appear in the prose —
@@ -1628,6 +1664,156 @@ ok(shikokuSent.text.indexOf('32 nights') !== -1, 'shikoku-88: states 32 nights')
 var t1 = sentenceFor('camino-frances', WALK_START).text;
 var t2 = sentenceFor('camino-frances', WALK_START).text;
 ok(t1 === t2, 'nightSummarySentence is pure (identical args -> identical result)');
+
+/* =============================================
+   AC #6 — a named block STATES the phase range its nights span.
+
+   D5 and AC #6 both require this and only the shorter stroke shipped;
+   phaseFirst/phaseLast were computed on every cell and read by nothing
+   but two `typeof === 'number'` assertions. Correct arithmetic, nothing
+   a reader or a screen reader could reach.
+   ============================================= */
+
+console.log('\n=== a named block states the phase its nights span (D5, AC #6) ===\n');
+
+var PHASE_WORDS = /(new moon|waxing crescent|first quarter|waxing gibbous|full moon|waning gibbous|last quarter|waning crescent)/;
+
+ok(PHASE_WORDS.test(shikokuSent.text),
+  'shikoku-88: the sentence names a moon phase for its blocks: ' + JSON.stringify(shikokuSent.text));
+ok(/Nights 11 to 16, waxing gibbous to full moon, hold/.test(shikokuSent.text),
+  'shikoku-88: the lantern block states the stretch of lunation it spans, inside its own clause');
+ok(/Darkest sky on nights 3 to 5, [^,]+, waxing crescent, with/.test(shikokuSent.text),
+  'shikoku-88: the sky block states its phase too — a block whose first and last night share an eighth states that one name');
+
+// The invariant, not one pinned date: a named night states a phase when
+// and only when it is a block. A single night is one phase, and saying
+// so would be noise D7 does not spend.
+var PHASE_START_DATES = ['2026-01-16', '2026-03-02', '2026-04-19', '2026-06-21',
+                         '2026-08-08', '2026-10-12', '2026-11-30'];
+var blocksNamed = 0, singlesNamed = 0, blocksSilent = 0;
+ALL_ROUTES.forEach(function (routeId) {
+  PHASE_START_DATES.forEach(function (iso) {
+    var s = sentenceFor(routeId, new Date(iso + 'T12:00:00Z'));
+    [s.notable.sky, s.notable.lantern].forEach(function (cell) {
+      if (!cell) return;
+      // The clause for THIS night, sliced out of the sentence by the
+      // night label it opens with, so a phase in the other clause cannot
+      // stand in for a missing one here.
+      var label  = cell.nights > 1
+        ? 'ights ' + cell.firstNight + ' to ' + (cell.firstNight + cell.nights - 1)
+        : 'ight ' + cell.firstNight;
+      var at     = s.text.toLowerCase().indexOf(label.toLowerCase());
+      var clause = at === -1 ? '' : s.text.slice(at, s.text.indexOf('.', at));
+      ok(at !== -1, routeId + ' ' + iso + ': the named night appears in the prose');
+      if (cell.isBlock) {
+        if (PHASE_WORDS.test(clause.toLowerCase())) blocksNamed++; else blocksSilent++;
+        ok(PHASE_WORDS.test(clause.toLowerCase()),
+          routeId + ' ' + iso + ': the named block states its phase — ' + JSON.stringify(clause));
+      } else {
+        if (PHASE_WORDS.test(clause.toLowerCase())) singlesNamed++;
+        ok(!PHASE_WORDS.test(clause.toLowerCase()),
+          routeId + ' ' + iso + ': a single night states no phase range — ' + JSON.stringify(clause));
+      }
+    });
+  });
+});
+ok(blocksNamed > 0, 'the block branch was actually exercised (' + blocksNamed + ' named blocks across the sweep)');
+equal(blocksSilent, 0, 'no named block went out without stating a phase');
+equal(singlesNamed, 0, 'no single night was given a phase range it does not span');
+
+/* =============================================
+   F3 — the sky clause's words and the band the strip paints are the
+   same reading.
+
+   Selection gates on usableFrac === 0; the strip draws
+   moonBandForLux(mean). Those are different questions, and the prose
+   asked the first while the strip answered the second: over 475 real
+   sky clauses swept below, only 27.6% of the old unconditional "with no
+   moon" landed on a band-0 cell. Half landed on band 1 and 22.5% on
+   band 2 — which luxBracketFor itself calls "barely usable; carry a
+   headlamp".
+   ============================================= */
+
+console.log('\n=== the sky clause says what the strip paints (F3) ===\n');
+
+var SKY_PHRASE_BY_BAND = ['with no moon', 'with barely a trace of moon', 'with only a dim moon'];
+
+var sweptClauses = 0, sweptMismatch = 0, sweptWrongPhrase = 0;
+var bandTally = [0, 0, 0, 0, 0];
+ALL_ROUTES.forEach(function (routeId) {
+  for (var day = 0; day < 366; day += 4) {
+    var start = new Date(Date.UTC(2026, 0, 1, 12) + day * 86400000);
+    var s = sentenceFor(routeId, start);
+    if (!s.notable.sky) continue;
+    sweptClauses++;
+    bandTally[s.notable.sky.moonBand]++;
+    var expected = SKY_PHRASE_BY_BAND[s.notable.sky.moonBand];
+    if (!expected || s.text.indexOf(expected) === -1) sweptMismatch++;
+    SKY_PHRASE_BY_BAND.forEach(function (phrase, band) {
+      if (band !== s.notable.sky.moonBand && s.text.indexOf(phrase) !== -1) sweptWrongPhrase++;
+    });
+  }
+});
+
+ok(sweptClauses > 400, 'the sweep produced a real population of sky clauses (' + sweptClauses + ')');
+equal(sweptMismatch, 0,
+  'every sky clause across 7 routes x 92 start dates states the phrase for its own moon band');
+equal(sweptWrongPhrase, 0, 'no sky clause states a phrase belonging to a band it is not on');
+ok(bandTally[0] > 0 && bandTally[1] > 0 && bandTally[2] > 0,
+  'all three reachable bands occur in the sweep (0: ' + bandTally[0] + ', 1: ' + bandTally[1]
+    + ', 2: ' + bandTally[2] + ') — the wording is discriminating, not one branch');
+equal(bandTally[3] + bandTally[4], 0,
+  'bands 3 and 4 never occur for a sky night, so no wording is written for them '
+    + '(usableFrac === 0 caps every sample under 0.05 lux, so the mean is too)');
+
+/* =============================================
+   F9 — the sky clause carries the ribbon's own validation caveat.
+
+   "Darkest sky on nights 3 to 5" ranks one stretch of shikoku against
+   another from data that is 49.8% interpolated and has never been
+   checked against a ground reading. The ribbon one section above says
+   exactly that about the same numbers; this comparative claim went out
+   bare. The lantern clause is pure astronomy and needs no caveat.
+   ============================================= */
+
+console.log('\n=== the sky superlative carries a validation caveat where the ribbon does (F9) ===\n');
+
+var CAVEAT = 'on darkness no ground reading has checked';
+
+ok(shikokuSent.text.indexOf(CAVEAT) !== -1,
+  'shikoku-88: the sky clause is qualified — its darkness has no held-out validation');
+ok(shikokuSent.text.indexOf('Not checked against a ground reading here') === -1,
+  'shikoku-88: one clause, not a second copy of the ribbon\'s whole sentence');
+
+CUMULATIVE_ROUTES.filter(function (r) { return r !== 'kumano-kodo'; }).forEach(function (routeId) {
+  var s = sentenceFor(routeId, WALK_START);
+  ok(s.notable.sky !== null, routeId + ': fixture sanity — this route does name a sky night');
+  ok(s.text.indexOf(CAVEAT) === -1,
+    routeId + ': a validated route carries no caveat — the five Caminos have ground readings');
+});
+
+// kumano-kodo is the other unvalidated artifact, and it can never carry
+// the caveat: its darkness spread is under one band on every date, so
+// AC #10 suppresses the sky clause outright and there is nothing to
+// qualify. Asserted rather than left as a silent gap in the sweep above.
+var kumanoArtifact = loadDarknessArtifact('kumano-kodo');
+equal(kumanoArtifact.heldOutValidation, false, 'kumano-kodo: fixture sanity — unvalidated artifact');
+ok(kumanoSent.notable.sky === null && kumanoSent.text.indexOf(CAVEAT) === -1,
+  'kumano-kodo: no sky clause on an unvalidated route means no caveat either — there is no claim to qualify');
+
+// The distinction the ribbon once failed open on: `!== true`, not
+// `=== false`. A missing or malformed field must read as unvalidated.
+var francesCellsForCaveat = cellsFor('camino-frances', WALK_START);
+var francesNotableForCaveat = N.selectNotableNights(francesCellsForCaveat);
+[undefined, null, false, 'true', 1].forEach(function (value) {
+  var text = N.nightSummarySentence(francesCellsForCaveat, francesNotableForCaveat,
+                                    WALK_START, 763.7, value);
+  ok(text.indexOf(CAVEAT) !== -1,
+    'heldOutValidation ' + JSON.stringify(value) + ' reads as unvalidated and carries the caveat');
+});
+ok(N.nightSummarySentence(francesCellsForCaveat, francesNotableForCaveat, WALK_START, 763.7, true)
+   .indexOf(CAVEAT) === -1,
+  'only the literal boolean true drops the caveat');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

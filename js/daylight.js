@@ -1205,60 +1205,143 @@
   var MOON_Y = 16;
   var MOON_LABEL_Y = 36;
 
+  // Two cells abut when the end of one is the start of the next. The
+  // tolerance is there because both numbers arrive from stagePlacements'
+  // own cumulative sums, so exact float equality is not something the
+  // drawing layer should depend on; 1e-6 km is a millimetre.
+  var MOON_ABUT_TOLERANCE_KM = 1e-6;
+
   /*
-   * renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl)
+   * coalesceMoonCells(cells) — merge abutting cells the strip would paint
+   * identically, so no <line> boundary is drawn where the data has none.
+   * The direct precedent is absorbNarrowDarknessRuns (js/daylight-math.js),
+   * which exists for this same reason one strip above: two abutting
+   * semi-transparent <line>s composite their antialiased edges in
+   * sequence, and the shared fractional pixel lands lighter than either —
+   * measured here at up to 0.235 alpha, against the 0.10 that was already
+   * treated as a defect on the ribbon. 72% of camino-frances's abutting
+   * cell pairs share a band (23 of 32; norte 24 of 33, portugues and
+   * primitivo 7 of 10 each, kumano 2 of 3), and the false seams they drew
+   * read STRONGER — 1.687:1 seam-against-fill on band 4 — than the
+   * tightest step between two real bands (1.355:1, css/daylight.css).
    *
-   * One line per cell, placed by the kilometres that cell covers — NOT by
-   * night index. A night is drawn where it is walked, which is the whole
-   * point of sharing the ribbon's axis.
+   * Three conditions, all necessary:
+   *   - they abut. Shikoku's 288 km of gaps between temple clusters are
+   *     real absences and must survive as gaps.
+   *   - they share moonBand. Different bands are a boundary the data has.
+   *   - they share isBlock. A block strokes at width 10 against a single
+   *     night's 16, so merging the two would paint one of them wrong.
+   *
+   * Drawing only. The cells keep their own identity, their own night
+   * numbering and their own place in the prose; this is the geometry the
+   * reader can actually distinguish, and it carries no other field so it
+   * cannot be mistaken for one.
+   */
+  function coalesceMoonCells(cells) {
+    var out = [];
+    cells.forEach(function (cell) {
+      var previous = out.length ? out[out.length - 1] : null;
+      if (previous
+        && previous.moonBand === cell.moonBand
+        && previous.isBlock === cell.isBlock
+        && Math.abs(cell.loKm - previous.hiKm) < MOON_ABUT_TOLERANCE_KM) {
+        previous.hiKm = cell.hiKm;
+        return;
+      }
+      out.push({
+        loKm: cell.loKm, hiKm: cell.hiKm,
+        moonBand: cell.moonBand, isBlock: cell.isBlock
+      });
+    });
+    return out;
+  }
+
+  /*
+   * renderMoonStrip(cells, notable, startDate, coveredKm, svgEl,
+   * summaryEl, heldOutValidation)
+   *
+   * One line per drawable span, placed by the kilometres it covers — NOT
+   * by night index. A night is drawn where it is walked, which is the
+   * whole point of sharing the ribbon's axis.
    *
    * Cells the schedule did not place (shikoku's 288 km between temple
    * clusters) are simply absent. Emitting a zero-width line instead would
    * still paint an antialiased hairline and draw a boundary exactly where
    * the instrument is deliberately saying nothing — the same defect class
    * as the ribbon's same-band adjacencies.
+   *
+   * NightMathRef is required, not optional: without it there is no
+   * sentence, and a strip with bands but no text equivalent is a strip a
+   * screen-reader user cannot read at all (D10).
+   *
+   * heldOutValidation is the darkness artifact's own field, carried
+   * through to the sentence's sky clause — that clause ranks one stretch
+   * of the route against another from the same unvalidated data the
+   * ribbon disclaims one section above. Omitted, it reads as unvalidated.
    */
-  function renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl) {
+  function renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl, heldOutValidation) {
     clearRibbonDisplay(svgEl, summaryEl);
-    if (!cells || !cells.length || !(coveredKm > 0)) return;
+    if (!cells || !cells.length || !(coveredKm > 0) || !NightMathRef) return;
 
-    cells.forEach(function (cell) {
-      if (cell.moon === null || cell.moonBand === null) return;
-      var x1 = kmToRibbonX(cell.loKm, coveredKm);
-      var x2 = kmToRibbonX(cell.hiKm, coveredKm);
-      if (!isFinite(x1) || !isFinite(x2) || !(x2 > x1)) return;
+    // One shared verdict on what gets ink, so the lines, the axis label
+    // and every clause in the sentence below are counting the same cells
+    // (js/night-math.js's isDrawableCell). A strip with nothing drawable
+    // renders nothing at all rather than a caption over empty space.
+    var drawable = cells.filter(NightMathRef.isDrawableCell);
+    if (!drawable.length) return;
+
+    coalesceMoonCells(drawable).forEach(function (span) {
+      var x1 = kmToRibbonX(span.loKm, coveredKm);
+      var x2 = kmToRibbonX(span.hiKm, coveredKm);
+      // A span with km width can still have no DRAWN width: kmToRibbonX
+      // clamps to [RIBBON_X1, RIBBON_X2], so a placement lying entirely
+      // past the end of the darkness axis collapses onto one edge. A
+      // zero-width <line> still paints an antialiased hairline, which is
+      // a boundary drawn where nothing was placed. `x2 > x1` also covers
+      // a NaN coordinate, since every comparison against NaN is false —
+      // an explicit isFinite() pair here was pure decoration, unreachable
+      // for any input this guard could still see.
+      if (!(x2 > x1)) return;
 
       svgEl.appendChild(makeSVGEl('line', {
-        class: 'dl-moon-band-' + cell.moonBand + (cell.isBlock ? ' dl-moon-block' : ''),
+        class: 'dl-moon-band-' + span.moonBand + (span.isBlock ? ' dl-moon-block' : ''),
         x1: x1, y1: MOON_Y,
         x2: x2, y2: MOON_Y
       }));
     });
 
-    var sentence = NightMathRef
-      ? NightMathRef.nightSummarySentence(cells, notable, startDate, coveredKm)
-      : '';
+    var sentence = NightMathRef.nightSummarySentence(cells, notable, startDate,
+                                                     coveredKm, heldOutValidation);
     svgEl.setAttribute('aria-label', sentence);
     var titleEl = document.createElementNS(SVG_NS, 'title');
     titleEl.textContent = sentence;
     svgEl.appendChild(titleEl);
     if (summaryEl) summaryEl.textContent = sentence;
 
+    // The two edge labels name the nights actually AT those edges, taken
+    // from the drawn cells rather than from a count of the schedule. On
+    // every shipped route the two are the same number; they part company
+    // exactly when a cell cannot be drawn, and then a count would put the
+    // right-hand label on a lower night than the prose names inside the
+    // strip — the axis and the sentence contradicting each other about
+    // the same walk.
+    var firstDrawn = drawable[0];
+    var lastDrawn  = drawable[drawable.length - 1];
+
     var leftLbl = makeSVGEl('text', {
       class: 'dl-moon-label',
       x: RIBBON_X1, y: MOON_LABEL_Y,
       'text-anchor': 'start'
     });
-    leftLbl.textContent = 'night 1';
+    leftLbl.textContent = 'night ' + firstDrawn.firstNight;
     svgEl.appendChild(leftLbl);
 
-    var totalNights = cells.reduce(function (a, c) { return a + c.nights; }, 0);
     var rightLbl = makeSVGEl('text', {
       class: 'dl-moon-label',
       x: RIBBON_X2, y: MOON_LABEL_Y,
       'text-anchor': 'end'
     });
-    rightLbl.textContent = 'night ' + totalNights;
+    rightLbl.textContent = 'night ' + (lastDrawn.firstNight + lastDrawn.nights - 1);
     svgEl.appendChild(rightLbl);
   }
 
@@ -1575,6 +1658,22 @@
     return (!isNaN(n) && n >= 0) ? n : 60;
   }
 
+  // The years this page will accept a walk in, stated once.
+  //
+  // coerceParams (the URL half) and moonStartDate (the DOM half) each
+  // used to answer this separately, and they disagreed: a stray
+  // keystroke making the year 20261 drew a full moon strip for a walk
+  // 18,000 years out and wrote that date into the share link, while the
+  // recipient's coerceParams silently reset it to today — one URL, two
+  // different strips. daylight/index.html's own min/max on #dl-date
+  // carry these same two numbers, asserted in js/daylight-render.test.js
+  // so the input and the code cannot drift apart.
+  //
+  // The lower bound also closes a quieter trap: Date.UTC maps years
+  // 0-99 onto 1900-1999, so "0050-06-15" would silently compute 1950.
+  var MIN_WALK_YEAR = 1900;
+  var MAX_WALK_YEAR = 2100;
+
   function coerceParams(params) {
     params = Object.assign({}, params);
     var validPaces = ['slow', 'standard', 'brisk'];
@@ -1591,7 +1690,7 @@
     if (params.date) {
       var d = new Date(params.date);
       var yr = parseInt(params.date.split('-')[0], 10);
-      if (isNaN(d.getTime()) || yr < 1900 || yr > 2100) {
+      if (isNaN(d.getTime()) || yr < MIN_WALK_YEAR || yr > MAX_WALK_YEAR) {
         params.date = todayString();
       }
     }
@@ -1818,7 +1917,14 @@
 
     renderRibbon(data, dom.ribbonSvg, _prefs.unitSystem, statedDistanceForRoute(routeId), dom.ribbonSummary);
     dom.ribbonWrap.hidden = false;
-    renderMoonStripForRoute(routeId);
+    // The moon strip is deliberately NOT cascaded from here. This
+    // function is the ribbon's repaint, and the ribbon repaints for
+    // reasons the strip does not share — the km/mi toggle among them,
+    // which cost 5.2 ms (norte) and 14.5 ms (shikoku) of astronomy per
+    // click for a strip whose only labels are "night 1" and "night N"
+    // and which reads unitSystem nowhere (D9). The strip is driven from
+    // loadDarknessData and loadStageData instead, where its two sources
+    // actually arrive.
   }
 
   // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
@@ -1838,6 +1944,7 @@
   function loadDarknessData(routeId) {
     if (_darknessData[routeId]) {
       renderDarknessRibbon(routeId, _darknessData[routeId]);
+      renderMoonStripForRoute(routeId);
       return;
     }
 
@@ -1864,6 +1971,11 @@
       // the ribbon if it's still the route on screen.
       if (routeId !== _currentRoute) return;
       renderDarknessRibbon(routeId, data);
+      // Darkness is one of the strip's two sources; this is where it
+      // arrives, so this is where the strip is asked to redraw. The other
+      // source calls it from loadStageData, and whichever lands second
+      // is the one that draws.
+      renderMoonStripForRoute(routeId);
     };
     xhr.onerror = function () {
       // Secondary, route-scoped content (D12's own framing): warn to the
@@ -1916,7 +2028,12 @@
     if (!raw) return null;
     var parts = raw.split('-');
     if (parts.length !== 3) return null;
-    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
+    // The same bounds coerceParams applies to a date arriving by URL, so
+    // the strip a reader draws and the strip their share link produces
+    // are the same strip.
+    var year = Number(parts[0]);
+    if (!(year >= MIN_WALK_YEAR && year <= MAX_WALK_YEAR)) return null;
+    var d = new Date(Date.UTC(year, Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
     return isNaN(d.getTime()) ? null : d;
   }
 
@@ -1965,14 +2082,28 @@
       return;
     }
 
+    // The reveal is gated on there being something to reveal. A schedule
+    // whose every cell is undrawable (no astronomical night, or no width)
+    // used to leave the caption and an empty svg on screen under a
+    // sentence counting nights nothing drew — AC #11's own violation,
+    // dormant on the shipped routes but reachable by design.
+    if (!cells.some(NightMathRef.isDrawableCell)) { hideMoonStrip(); return; }
+
     renderMoonStrip(cells, NightMathRef.selectNotableNights(cells), startDate,
-                    data.coveredKm, dom.moonSvg, dom.moonSummary);
+                    data.coveredKm, dom.moonSvg, dom.moonSummary, data.heldOutValidation);
     dom.moonWrap.hidden = false;
   }
 
   function loadStageData(routeId, requestedStageStr) {
     if (_stageData[routeId]) {
       populateStageSelect(_stageData[routeId], requestedStageStr);
+      // The cache-hit path answers for itself, exactly as the onload path
+      // below does. Leaving it out worked only because every caller of
+      // loadStageData happens to call updateRibbonForRoute immediately
+      // afterwards — an ordering invariant two frames up that nothing
+      // states and one refactor could break, leaving a cached route with
+      // no strip and no error.
+      renderMoonStripForRoute(routeId);
       return;
     }
 
