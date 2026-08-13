@@ -1,0 +1,222 @@
+# After the Sun — night comes to `/sunpath`
+
+**Spec written 2026-08-13, before implementation.**
+
+Follows the night instrument on `/daylight` (Gate 0 `#15`, night bar `#16`, darkness ribbon
+`#17`, moon strip `#18`) and replaces that roadmap's cancelled Slice 4
+(`docs/specs/2026-08-11-darkness-data-audit.md`, Update 2026-08-13).
+
+---
+
+## Problem
+
+`/sunpath` has seven sections and every one asks the same question: **what does the sun do,
+by latitude and season?** Deep-time drift of the turnings, the analemma, the widening swing
+of sunrise azimuth, the rate of change near a solstice.
+
+It never asks that question with the sign flipped. The page is silent on what the sun's
+absence gives you — and that silence hides the most surprising fact available to it:
+
+| latitude (the page's own picker) | Jun 21 | Sep 23 | Dec 21 | year's range | nights with **no** true dark |
+|---|---|---|---|---|---|
+| Equator (0°) | 9.4 h | 9.6 h | 9.4 h | **0.2 h** | 0 |
+| Tropic (23.5°N) | 7.5 h | 9.4 h | 10.6 h | 3.1 h | 0 |
+| Mid-latitude (45°N) | 3.3 h | 8.5 h | 11.7 h | 8.4 h | 0 |
+| High-latitude (60°N) | 0.0 h | 6.9 h | 12.6 h | 12.6 h | **123** |
+| Arctic (70°N) | 0.0 h | 3.3 h | 13.6 h | 13.6 h | **177** |
+
+At the equator every night of the year is the same length. At 45° it nearly quadruples
+across the year. At 70° true dark does not come at all for nearly half of it.
+
+That is the same latitude story "Where dawn comes from" already tells about sunrise — told
+after sunset, using the same picker, the same five latitudes, and the same default.
+
+### What we already have
+
+Nothing here needs new astronomy or new libraries:
+
+| Need | Source | Already loaded on `/sunpath`? |
+|---|---|---|
+| astronomical dusk/dawn (sun −18°) | `SunPathMath.astronomicalDuskUTC` / `astronomicalDawnUTC` | **yes** |
+| the four turnings, Meeus-accurate | `window.Turnings.getTurningsForYear(year)` | **yes** |
+| the latitude picker (0 / 23.5 / 45 / 60 / 70) | `js/sunpath-tools.js` `DAWN_LATITUDES` | **yes** |
+| geolocation, "your sky" | `js/sunpath.js` `getCurrentPosition` / `yourSky` | **yes** |
+| moon illuminance across a night | `MoonLux` + `js/night-math.js` `nightMoonLux` | no — 16 KB to add |
+| measured sky brightness, 7 routes | `assets/darkness/*.json` | no — 52 KB, and only §3 needs it |
+
+---
+
+## Decisions
+
+### D1 — Three changes, not four sections
+
+The four ideas collapse. `/sunpath` already has seven sections; four more would make it
+eleven, and this site's aesthetic is restraint.
+
+- **§A The dark hours** — one new section. Ideas 1 and 4 are the same instrument: a curve of
+  true dark across the year, driven by the latitude picker, with "your sky" as its
+  personalisation rather than a separate feature.
+- **§B The turnings, after dark** — an **extension** of the existing "A calendar of
+  turnings" section, not a new one.
+- **§C Two drifts** — one new section, beside the existing deep-time opener. **Gated** (D7).
+
+### D2 — §A reuses the existing picker, latitudes and default
+
+Same `DAWN_LATITUDES` ladder (0 / 23.5 / 45 / 60 / 70), same 45° default, same button
+idiom. A reader who has parsed "Where dawn comes from" transfers everything. Introducing a
+second latitude vocabulary on one page would be the change that makes the page feel long.
+
+### D3 — "Your sky" extends what exists; it does not become a control
+
+`js/sunpath.js` already geolocates. §A adds one thing to it: given your latitude, your
+longest night, and — above ~48.5° — the dates true dark does not come. If geolocation is
+refused or unavailable, §A works exactly as before on the picker. Never a blocking prompt.
+
+### D4 — "True dark" means astronomical night, and the page says so once
+
+Sun below −18°. Not civil (−6°) or nautical (−12°). The bar on `/daylight` already draws
+this boundary and calls it true dark; using a second definition across two pages of one
+almanac would be worse than using a stricter one.
+
+**Consequence that must be stated, not hidden:** above ~48.5° astronomical night does not
+occur near midsummer. That is not a gap in the data — it is the fact. It is *why* 60° and
+70° show zero.
+
+### D5 — A night with no true dark is drawn as an absence, never a zero
+
+This is the binding lesson from `/daylight`, which shipped **seven** bugs of one family:
+correct arithmetic rendering to something no reader can see, or prose contradicting the
+pixels beside it. Two of the seven were introduced by fix waves.
+
+A zero-height bar, a zero-width segment, or a line at y=baseline all *look* like a very
+short night. They are not: they are no night. §A must draw the zero-dark stretch as a
+visibly different thing — a break in the curve, a band, an explicit marker — and the prose
+must name it.
+
+**And the assertions must read the emitted elements, not the model that produced them.**
+The mechanism behind those seven bugs, established by research across the whole history:
+*a fix gets verified against the metric it was written to move, while the property it broke
+was covered only by a test asserting against an upstream proxy for the rendered output.*
+
+### D6 — §B says, per turning, what the night is like
+
+The existing section already frames the four hinges as "marked across cultures by walks,
+processions, and gatherings" — most of which happen at night or before dawn. For each
+turning, at the reader's latitude: how long true dark lasts, and whether a moon is up in it
+(`nightMoonLux`, the honest quantity — illuminance across the dark window, not phase).
+
+This is the one place the moon math earns its 16 KB on this page. If §B is cut, the moon
+modules come out with it.
+
+### D7 — §C is gated on its own data audit, exactly as Gate 0 gated the ribbon
+
+The 2012→2025 drift story needs a second baked epoch. `assets/darkness/` holds 2025 only.
+
+- Gate 0's **Q5 is already answered**: the whole 2012–2025 series was reprocessed under
+  version 002, so year-over-year comparison is valid. That is the expensive question,
+  settled.
+- A **difference is more defensible than an absolute value** — systematic calibration error
+  partly cancels. This is why drift survived the Slice 4 cancellation when star counts did
+  not.
+- But the epoch must still be baked and gated. §C **ships when its data does**, and the
+  spec is written in full so that work is unblocked, not so the section can be faked.
+
+**Critical path.** The equinox is 2026-09-23, 41 days out, and all four are wanted by then.
+The bake is therefore the long pole and starts first. The Earthdata token **expires
+~10 Oct 2026 and appeared in a session transcript — rotate it before any bake.**
+
+### D8 — No star counts, no Milky Way. Carried forward, not re-litigated
+
+Measured against Gate 0's own ±0.32 mag, **1,899 of 3,288 samples (57.8%) sit within one
+error bar of a naked-eye Milky Way threshold**. The claim would flip on our own calibration
+error for most of the route. Cancelled on 2026-08-13; not deferred, not revisited here.
+
+### D9 — A page-weight budget, because `/daylight` never got one
+
+`/sunpath` is **90.9 KB gzipped** today, of which **59.3 KB is vendor** (d3-geo 35.5,
+d3-array 16.8, topojson 7.0) serving the hero globe alone.
+
+`/daylight` went 52.1 → 106.0 KB across three slices with no budget, and every slice
+argued its own increase was small. This spec sets one up front: **+12 KB gzipped, total.**
+
+Consequences that follow from it, not the other way round:
+- §A costs ~0 — it is arithmetic over modules already loaded.
+- §B's moon modules (`moon-lux.js`, `night-math.js`) are the main spend. If they will not
+  fit, §B is cut before the budget is raised.
+- §C must not load `assets/darkness/*.json` (52 KB) into the page. It ships a **small
+  pre-computed drift summary**, baked at build time — not the raw artifacts.
+
+### D10 — The text equivalent is the sentence, and it carries what the picture carries
+
+Same discipline as the ribbon and the moon strip: `role="img"` flattens an SVG subtree, so
+per-element titles are inert. One accessible name, mirrored into real DOM text outside the
+SVG, stating the same facts a sighted reader gets — including the zero-dark stretch (D5),
+which is the one a curve conveys most cheaply and prose most easily omits.
+
+**Known debt carried in deliberately:** the moon strip's marks are a spatial affordance with
+no textual analogue. Do not repeat that here — if §A marks the turnings on the curve, the
+sentence names them.
+
+### D11 — What this must never claim
+
+- Not a darkness *forecast*. Sky brightness is not visibility; there is no cloud model.
+- No "best night to see X" ranking. `/daylight` answers per-walk questions; this page
+  teaches how the sky works.
+- No per-kilometre or per-site claim from §C. Shikoku remains 49.8% interpolated with no
+  held-out validation; the drift is a route-scale statement or it is nothing.
+
+---
+
+## Non-goals
+
+- No change to the hero globe, the analemma, or the archive tabs.
+- No second latitude vocabulary (D2).
+- No new vendor dependency. Nothing here needs d3.
+- No ongoing Earthdata dependency. One bake for §C, behind its gate, then done.
+
+---
+
+## Acceptance criteria
+
+1. §A uses `DAWN_LATITUDES` unchanged — same five latitudes, same 45° default.
+2. §A's curve reproduces the table above at all five latitudes, ±0.1 h.
+3. A zero-dark night renders as a visible absence, distinguishable from a short night, and
+   the prose names it (D5).
+4. 60° shows 123 zero-nights and 70° shows 177, both stated and drawn.
+5. The equator's flatness (0.2 h range) is legible — it is the section's punchline.
+6. `/sunpath` works with geolocation refused, and never blocks on a prompt (D3).
+7. §B states, per turning and per latitude, the dark duration and whether a moon is up.
+8. §B's moon figure is `nightMoonLux`'s illuminance across the dark window, not phase.
+9. `role="img"` + one mirrored accessible name + outside-SVG text; no per-element titles.
+10. The text equivalent names the zero-dark stretch and any marked turning (D10).
+11. **`/sunpath` grows by no more than 12 KB gzipped**, measured per-file (not
+    concatenated — that understates it), and the figure is recorded with the commit it was
+    measured at.
+12. §C is absent from the page until its gate passes; no placeholder, no stub.
+13. Every assertion about what is drawn reads emitted elements, not the model (D5).
+14. No spec figure is stated without a test that recomputes it — extend the pattern in
+    `js/muted-contrast.test.js`, which parses this repo's specs and recomputes from source.
+
+---
+
+## Verification plan
+
+- Recompute the D-table at all five latitudes from `sunpath-math.js` and assert against the
+  drawn output, not the intermediate values.
+- Assert the zero-dark case at 60° and 70° specifically — it is the case a curve renders
+  most plausibly wrong.
+- Mutation-check every guard: one that survives deletion with the suite green is not a
+  guard. Thirteen vacuous assertions were found across three review rounds on the moon
+  strip alone.
+- Page weight measured before and after, per-file gzip, against AC #11.
+- `/ce-code-review` before the PR, as with `#15`–`#18`.
+
+## Open questions
+
+- **§C's shape.** Whether the drift reads as a number, a small paired strip, or a sentence
+  is deliberately unresolved until the 2012 epoch is baked and its spread is known. Deciding
+  the presentation before seeing the data is how the ribbon's first band ramp went wrong.
+
+## Result
+
+_To be completed when it ships._
