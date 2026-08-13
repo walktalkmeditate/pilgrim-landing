@@ -48,8 +48,16 @@ in `css/daylight.css`. No new page, no new dependency, no change to `assets/`.
 
 | file | responsibility |
 |---|---|
-| `js/daylight-math.js` | export `darknessBandStatsInRange` (exists, unexported); add `stagePlacements`, `nightSchedule`, `nightMoonLux`, `moonBandForLux`, `selectNotableNights`, `nightSummarySentence` |
+| `js/daylight-math.js` | export `darknessBandStatsInRange` (exists, unexported); add `stagePlacements`, `nightSchedule` — both pure |
+| `js/night-math.js` | **new.** The astronomy-composing math: `nightMoonLux`, `moonBandForLux`, `selectNotableNights`, `nightSummarySentence` |
 | `js/daylight-math.test.js` | pure-math coverage incl. the two suppression routes |
+
+**Why a new module.** `js/daylight-math.js` states "No external dependencies" in its
+header and owns the pure walking and placement math; `nightMoonLux` needs
+`SunPathMath`, `MoonLux` and `Moon`. Diluting the pure module or burying testable math in
+the render module are both worse than one small new file — the same reasoning that
+produced `js/moon-lux.js` in Slice 1. Its `<script>` tag is added in Task 5, when the page
+first uses it, not before.
 | `js/daylight.js` | `renderMoonStrip`, wiring into the route/date path |
 | `js/daylight-render.test.js` | SVG geometry assertions against the fake DOM |
 | `js/daylight-ribbon-wiring.test.js` | date-slide and no-react-to-stage/pace wiring |

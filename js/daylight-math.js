@@ -866,6 +866,36 @@
     return placements;
   }
 
+  var MS_PER_DAY = 86400000;
+
+  // nightSchedule(placements, startDate) — the cells the moon strip
+  // draws. One per placement, carrying the dates of the nights it spans:
+  // a day-sized stage carries one, a shikoku block carries several, which
+  // is what lets a block state a phase range (D5) instead of a phase.
+  //
+  // Night numbering is 1-based and runs continuously across blocks, so
+  // "night 27" means the twenty-seventh night of the walk on every route.
+  function nightSchedule(placements, startDate) {
+    var night = 0;
+    return placements.map(function (p) {
+      var dates = [];
+      for (var i = 0; i < p.nights; i++) {
+        dates.push(new Date(startDate.getTime() + (night + i) * MS_PER_DAY));
+      }
+      var firstNight = night + 1;
+      night += p.nights;
+      return {
+        index:      p.index,
+        loKm:       p.loKm,
+        hiKm:       p.hiKm,
+        nights:     p.nights,
+        isBlock:    p.isBlock,
+        firstNight: firstNight,
+        dates:      dates
+      };
+    });
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
@@ -889,7 +919,8 @@
     darknessBandStatsInRange:    darknessBandStatsInRange,
 
     BLOCK_KM_PER_NIGHT: BLOCK_KM_PER_NIGHT,
-    stagePlacements:    stagePlacements
+    stagePlacements:    stagePlacements,
+    nightSchedule:      nightSchedule
   };
 
   if (typeof module !== 'undefined' && module.exports) {

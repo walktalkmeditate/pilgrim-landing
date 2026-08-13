@@ -14,6 +14,7 @@ var fs   = require('fs');
 var path = require('path');
 var D = require('./daylight-math.js');
 var Daylight = require('./daylight.js');
+var N = require('./night-math.js');
 
 var passed = 0;
 var failed = 0;
@@ -1300,6 +1301,116 @@ var francesPlaced = D.stagePlacements(loadStages('camino-frances'),
                                       loadDarknessArtifact('camino-frances').coveredKm);
 approx(francesPlaced[0].hiKm, 24.2, 0.05,
   'camino-frances: cumulative placement wins even though some stages carry waypoints');
+
+/* =============================================
+   Slice 3, Task 2 — nightSchedule and nightMoonLux (spec D2, D3, D6)
+
+   nightSchedule turns placements plus a start date into the cells the
+   strip draws: one per placement, carrying the dates of the nights it
+   spans. Six routes give one date per cell; shikoku's blocks give
+   several, which is what lets D5 state a phase range instead of a phase.
+
+   nightMoonLux is the honest quantity (D2): mean moon illuminance across
+   astronomical night, not phase. A full moon that never rises gives no
+   light, and encoding phase would say otherwise.
+   ============================================= */
+
+console.log('\n=== nightSchedule — cells, dates and night counts (D3, D6) ===\n');
+
+var WALK_START = new Date('2026-10-12T12:00:00Z');
+
+var francesStages   = loadStages('camino-frances');
+var francesCovered  = loadDarknessArtifact('camino-frances').coveredKm;
+var francesSchedule = D.nightSchedule(D.stagePlacements(francesStages, francesCovered), WALK_START);
+
+equal(francesSchedule.length, 33, 'camino-frances: 33 cells, one per stage');
+equal(francesSchedule.reduce(function (a, c) { return a + c.nights; }, 0), 33,
+  'camino-frances: 33 nights in total');
+equal(francesSchedule[0].firstNight, 1, 'camino-frances: first cell is night 1 (1-based)');
+equal(francesSchedule[32].firstNight, 33, 'camino-frances: last cell is night 33');
+equal(francesSchedule[0].dates.length, 1, 'camino-frances: a day-sized stage carries exactly one date');
+ok(francesSchedule.every(function (c) { return c.isBlock === false; }),
+  'camino-frances: no cell is a block');
+
+// Dates advance one calendar day per night, from the start date.
+var dayApart = true;
+for (var ns = 1; ns < francesSchedule.length; ns++) {
+  var delta = francesSchedule[ns].dates[0] - francesSchedule[ns - 1].dates[0];
+  if (Math.abs(delta - 86400000) > 1000) dayApart = false;
+}
+ok(dayApart, 'camino-frances: each cell is one day after the last');
+equal(francesSchedule[0].dates[0].toISOString().slice(0, 10), '2026-10-12',
+  'camino-frances: night 1 is the start date');
+equal(francesSchedule[14].dates[0].toISOString().slice(0, 10), '2026-10-26',
+  'camino-frances: night 15 is 14 days after the start');
+
+// Shikoku: blocks, and the night index accumulates across them.
+var shikokuSchedule = D.nightSchedule(
+  D.stagePlacements(loadStages('shikoku-88'), loadDarknessArtifact('shikoku-88').coveredKm),
+  WALK_START);
+
+equal(shikokuSchedule.length, 10, 'shikoku-88: ten cells');
+equal(shikokuSchedule.reduce(function (a, c) { return a + c.nights; }, 0), 32,
+  'shikoku-88: 32 nights across ten cells');
+equal(shikokuSchedule[3].nights, 6, 'shikoku-88: the Temples 36-38 block is 6 nights');
+equal(shikokuSchedule[3].dates.length, 6, 'shikoku-88: a 6-night block carries 6 dates');
+ok(shikokuSchedule[3].isBlock, 'shikoku-88: a multi-night cell is flagged as a block');
+ok(shikokuSchedule[5].isBlock === false, 'shikoku-88: a 1-night cell is not a block');
+
+// Night numbering runs continuously through the blocks: 2,3,5,6,7,1,2,1,1,4
+// nights per cell means the cells start at nights 1,3,6,11,17,24,25,27,28,29.
+var EXPECTED_FIRST_NIGHT = [1, 3, 6, 11, 17, 24, 25, 27, 28, 29];
+var firstNightsOk = shikokuSchedule.every(function (c, i) {
+  return c.firstNight === EXPECTED_FIRST_NIGHT[i];
+});
+ok(firstNightsOk, 'shikoku-88: night numbering accumulates continuously across blocks');
+
+console.log('\n=== nightMoonLux — moonlight across astronomical night, not phase (D2) ===\n');
+
+// Night 15 of camino-frances: the meseta under a bright moon. Measured
+// from the committed artifacts when this slice was specced.
+var night15 = francesSchedule[14];
+var stage15 = francesStages[14];
+var moon15  = N.nightMoonLux(night15.dates[0], stage15.startLat, stage15.startLon);
+
+approx(moon15.mean, 0.2333, 0.002, 'frances night 15: mean lux across the dark window');
+approx(moon15.usableFrac, 1.0, 0.001, 'frances night 15: usable moonlight for the whole night');
+ok(moon15.peak >= moon15.mean, 'frances night 15: peak lux is at least the mean');
+approx(moon15.hours, 10.3, 0.5, 'frances night 15: the dark window is about ten hours');
+
+// Night 27, O Cebreiro: the darkest sky of the route, and no moon at all.
+var night27 = francesSchedule[26];
+var stage27 = francesStages[26];
+var moon27  = N.nightMoonLux(night27.dates[0], stage27.startLat, stage27.startLon);
+ok(moon27.mean < 0.0005, 'frances night 27: effectively no moonlight (the best sky of the walk)');
+equal(moon27.usableFrac, 0, 'frances night 27: no part of the night has usable moonlight');
+
+// The whole walk spans a full lunation, which is what makes sliding the
+// start date (D6) worth doing.
+var means = francesSchedule.map(function (c, i) {
+  return N.nightMoonLux(c.dates[0], francesStages[i].startLat, francesStages[i].startLon).mean;
+});
+var meanMin = Math.min.apply(null, means);
+var meanMax = Math.max.apply(null, means);
+ok(meanMin < 0.0005, 'camino-frances: the walk contains a night with no moon');
+approx(meanMax, 0.2333, 0.002, 'camino-frances: the walk contains a night at full lantern');
+ok(meanMax - meanMin > 0.2, 'camino-frances: 33 nights span a full lunation of moonlight');
+
+// No astronomical night -> null, not NaN. Real routes never reach this
+// (Camino Norte's northernmost point still gets 3.8h at midsummer), but
+// the function is general and a NaN would render as a blank cell
+// indistinguishable from shikoku's real unplaced gaps.
+var noNight = N.nightMoonLux(new Date('2026-06-21T12:00:00Z'), 65.0, 25.7);
+equal(noNight, null, 'nightMoonLux returns null where astronomical night never closes (65°N, midsummer)');
+
+var shortNight = N.nightMoonLux(new Date('2026-06-21T12:00:00Z'), 43.5, -5.0);
+ok(shortNight !== null && shortNight.hours > 3 && shortNight.hours < 5,
+  'nightMoonLux still reports a short window (Camino Norte northernmost, midsummer, 3.8h)');
+
+var m1 = N.nightMoonLux(night15.dates[0], stage15.startLat, stage15.startLon);
+var m2 = N.nightMoonLux(night15.dates[0], stage15.startLat, stage15.startLon);
+ok(m1.mean === m2.mean && m1.peak === m2.peak && m1.usableFrac === m2.usableFrac,
+  'nightMoonLux is pure (identical args -> identical result)');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
