@@ -173,7 +173,7 @@ does not react to pace either.
 As with the ribbon, the SVG carries `role="img"` with a label stating the walk length in
 nights and the two named nights. Colour is never the only signal — the sky and lantern
 nights are marked positionally in the strip, not by hue alone. Contrast floors match the
-ribbon's: 1.25:1 adjacent, 3:1 extremes, across parchment, dark and `#0a0a12`.
+ribbon's: 1.25:1 adjacent, 2:1 extremes, across parchment, dark and `#0a0a12`.
 
 ### D11 — Custom routes and missing data show nothing
 
@@ -203,15 +203,24 @@ too — one malformed-artifact path, not two.
 4. Six routes place stages by cumulative distance; shikoku places by waypoint span; a route
    matching neither within 1.0 km fails loudly.
 5. Shikoku's inter-cluster gaps render blank, never interpolated.
-6. Shikoku's multi-night blocks state a phase range and are visually distinct from a night.
+6. Shikoku's multi-night blocks are visually distinct from a night, and a block **that the
+   sentence names** states the phase range it spans. *Narrowed during the review:* the
+   original wording said every block states a range. Shikoku has ten cells, seven of them
+   blocks, and this sentence is also the `role="img"` label — ten phase clauses would break
+   D7's two-clause cap and bury the reading. Consequence, stated rather than hidden: on a
+   start date where neither named night is a block, shikoku states no range at all.
 7. Changing `dl-date` slides the moon strip; the darkness ribbon does not move.
 8. Changing the stage picker or the pace picker changes neither strip.
 9. The lantern clause is absent when no night reaches 0.05 lux (verify on camino-ingles).
 10. The sky clause is absent when darkest and brightest differ by under one band (verify on
     kumano-kodo).
 11. Stated nights in the sentence match the nights the strip draws, on all seven routes.
-12. Contrast: 1.25:1 adjacent, 3:1 extremes, over parchment, dark, and `#0a0a12`, measured
-    at the duty the renderer actually produces (ribbon F6's lesson).
+12. Contrast: 1.25:1 adjacent, **2:1** extremes, over parchment, dark, and `#0a0a12`,
+    measured at the duty the renderer actually produces (ribbon F6's lesson).
+    *Corrected during the review:* this said 3:1, which `js/muted-contrast.test.js` has
+    never enforced — `RIBBON_BAND_EXTREMES_MIN` is 2.0, and it cannot be raised, because
+    the darkness ribbon's own solid extremes measure 2.853:1 and 2.874:1 on two of the
+    three backgrounds. The moon ramp clears either bar (4.9 / 7.3 / 8.6:1).
 13. `role="img"` label states walk length in nights and names the same nights as the prose.
 14. Custom routes and shape-invalid artifacts hide the section without a console error.
 
