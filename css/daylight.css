@@ -455,6 +455,44 @@ body.constellation .dl-bar-waypoint {
   line-height: 1.5;
 }
 
+/* The moon strip's own frame. It sits directly beneath the ribbon and
+   shares its axis, so it is pulled up tighter than the ribbon's own
+   3rem tail — the two read as one instrument, not two stacked ones. */
+.dl-moon-wrap {
+  margin: -2rem 0 3rem;
+}
+
+.dl-moon-wrap[hidden] { display: none; }
+
+.dl-moon-caption,
+.dl-moon-summary {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  /* Same --stone trap as .dl-ribbon-caption: --ink-fog is the token that
+     clears AA on its own. */
+  color: var(--ink-fog);
+}
+
+.dl-moon-caption { margin: 0 0 0.8rem; }
+.dl-moon-summary { margin: 0.6rem 0 0; line-height: 1.5; }
+
+.dl-moon-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.dl-moon-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  fill: var(--ink-fog);
+}
+
 /* Five bands, warm to cool (D1, D9) — the same warm-stone-toward-cool-
    blue-grey direction .dl-bar-daylight through .dl-bar-truedark already
    establish above, so a reader who has parsed the bar transfers that
@@ -572,6 +610,119 @@ body.constellation .dl-bar-waypoint {
 .dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(120, 121, 125, 0.76); }
 .dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(87, 93, 107, 0.84); }
 .dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(55, 66, 88, 0.91); }
+
+/* The moon strip (slice 3, D8).
+
+   A deliberately different visual language from the darkness ribbon: warm
+   silver against the ribbon's cool blue, so the two strips sitting on one
+   axis can never be misread for each other. The five steps sit on
+   MoonLux.luxBracketFor's own boundaries (0 / 0.005 / 0.05 / 0.2 lux),
+   not on new ones, so the strip and the prose can never describe a night
+   differently.
+
+   Unlike the ribbon's, this ramp runs BRIGHT-UP: band 0 is no moon at
+   all, band 4 is enough to walk a known path. Moon lux is precisely
+   computable — the coarseness here is for visual rhythm with the ribbon
+   above, NOT because the underlying number is uncertain the way the
+   darkness values are (ribbon D7). No copy may imply otherwise either
+   way.
+
+   js/muted-contrast.test.js sweeps this ramp over all three real
+   backgrounds and holds it to the same floors as the ribbon:
+   RIBBON_BAND_ADJACENT_MIN 1.25:1 between neighbours,
+   RIBBON_BAND_EXTREMES_MIN 2:1 across them. This said 3:1, which nothing
+   has ever enforced and nothing can: the darkness ribbon's own solid
+   extremes measure 2.853:1 and 2.874:1 on two of the three backgrounds,
+   so raising the shared constant would fail the strip above before it
+   tested this one. AC #12 records the same correction, twice. This ramp
+   clears either bar with room — 4.506 / 7.278 / 8.593:1, checked back
+   against the spec's stated figures by that same file. */
+.dl-moon-band-0,
+.dl-moon-band-1,
+.dl-moon-band-2,
+.dl-moon-band-3,
+.dl-moon-band-4 {
+  stroke-width: 16;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+/* On light parchment the ramp DARKENS with moonlight, the same ink
+   direction the darkness ribbon's light ramp uses — more ink means more
+   of the thing on a light page. A brightening ramp was tried first and
+   put band 0 at 1.067:1 against the background: correct arithmetic,
+   invisible strip, the defect this page has now shipped five times.
+   Amber throughout, against the ribbon's cool blue.
+
+   Band 0 is measured against the PAGE, not only against band 1. This
+   strip has real gaps in it — shikoku's 288 km between temple clusters —
+   so bare parchment is a state the reader has to tell "no moon" apart
+   from, which makes the background band 0's true neighbour and the
+   1.25:1 adjacent floor its true floor. The first version of this ramp
+   put band 0 at 1.247:1 and missed by 0.003: on shikoku a real band-0
+   cell (9.00 units) is narrower than a real gap (9.70 units), and 44% of
+   2026 start dates give shikoku at least one; on kumano 24% of start
+   dates render the whole strip as four band-0 cells whose entire
+   sentence is "4 nights from 16 January."
+
+   Retuned by measurement, not by eye: the five alphas below are the
+   ladder that puts every step — background to band 0 included — at
+   1.354:1 or better, where the tightest step used to be 1.247:1. The
+   declared colours are unchanged, so the hue separation from the
+   darkness ramp is exactly what it was. */
+.dl-moon-band-0 { stroke: rgba(186, 178, 160, 0.52); }
+.dl-moon-band-1 { stroke: rgba(172, 150, 104, 0.69); }
+.dl-moon-band-2 { stroke: rgba(158, 130, 74,  0.81); }
+.dl-moon-band-3 { stroke: rgba(134, 104, 46,  0.87); }
+.dl-moon-band-4 { stroke: rgba(110, 80,  24,  0.97); }
+
+/* Shikoku's stages are temple clusters spanning several nights each, so
+   its cells stand for a stretch of the lunation rather than one night.
+   The shorter bar — 10 against the bands' 16 — marks them as a block
+   without changing the band colour that carries the reading. */
+.dl-moon-block {
+  stroke-width: 10;
+}
+
+/* The two nights the closing sentence names, marked at the kilometre
+   they are walked at (D10).
+
+   The mark hangs BELOW the strip, in the axis-label row, and touches no
+   band. It used to cross one, and there it could not be read at any
+   colour. It is 2.5 units of stroke over a 504-unit fill, and against
+   band 4 — the band a lantern night is by definition on — it measured
+   1.550:1, where WCAG 1.4.11 asks 3:1 of a graphical object carrying
+   essential information. Nor was that a tuning failure: against the dark
+   ramp's composited extremes the best worst-case any single grey reaches
+   is 2.681:1, so no colour on this ramp clears 3:1 at both ends.
+
+   Off the band there is one colour behind it per theme, and the floor is
+   arithmetic: 6.110 / 5.130 / 5.773:1 over light parchment, dark
+   parchment and #0a0a12. js/muted-contrast.test.js sweeps all three at a
+   3:1 floor; js/daylight-render.test.js reads the band's stroke-width
+   above against the emitted y attributes, so "off the band" is measured
+   rather than asserted here.
+
+   --ink-fog is the ink .dl-moon-label already uses two rules down. Moving
+   the mark into the label row must not make it louder than the labels
+   already sitting there, and one token means no second rule can fall
+   through in a theme the first did not cover — the drift that put the
+   ribbon's own bands out at 1.02:1.
+
+   Off the band it also cannot draw a seam. The old mark was 8 units tall
+   against a block's stroke-width of 10, leaving one unit of band each
+   side (0.467 device px on the narrowest column this page renders at),
+   and 89% of shikoku's marks land on a block: it read as exactly the
+   boundary coalesceMoonCells exists to remove.
+
+   Still the house idiom of .dl-bar-tick-adapt and .dl-bar-moon-tick on
+   the time bar above — a short vertical stroke under the thing it
+   marks. */
+.dl-moon-tick {
+  stroke: var(--ink-fog);
+  stroke-width: 2.5;
+  stroke-linecap: butt;
+}
 
 .dl-ribbon-label {
   font-family: 'Lato', sans-serif;
@@ -1139,6 +1290,17 @@ html[data-theme="dark"] .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.19); }
 html[data-theme="dark"] .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
 html[data-theme="dark"] .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
 html[data-theme="dark"] .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
+
+/* Moon strip, dark themes. Selector is html[data-theme="dark"], not
+   body.constellation — that covers plain dark AND star mode, which is the
+   fix the ribbon's own ramp needed when its bands shipped invisible in
+   plain dark. Warm silver against the ribbon's cool violet, so the two
+   strips stay distinguishable in every theme. */
+html[data-theme="dark"] .dl-moon-band-0 { stroke: rgba(255, 248, 224, 0.14); }
+html[data-theme="dark"] .dl-moon-band-1 { stroke: rgba(255, 246, 214, 0.26); }
+html[data-theme="dark"] .dl-moon-band-2 { stroke: rgba(255, 244, 204, 0.41); }
+html[data-theme="dark"] .dl-moon-band-3 { stroke: rgba(255, 241, 192, 0.60); }
+html[data-theme="dark"] .dl-moon-band-4 { stroke: rgba(255, 238, 180, 0.84); }
 
 /* Dashed/unvalidated colour, dark theme — same duty-cycle compensation
    as the light-mode .dl-ribbon-band-N.dl-ribbon-unvalidated rules

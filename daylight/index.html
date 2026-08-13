@@ -130,7 +130,7 @@
 
       <div class="daylight-field">
         <label class="daylight-label" id="dl-date-label" for="dl-date">Date</label>
-        <input class="daylight-input" type="date" id="dl-date" aria-label="Walk date">
+        <input class="daylight-input" type="date" id="dl-date" min="1900-01-01" max="2100-12-31" aria-label="Walk date">
       </div>
 
       <div class="daylight-field">
@@ -235,6 +235,27 @@
       <p class="dl-ribbon-summary" id="dl-ribbon-summary"></p>
     </section>
 
+    <!-- The moon over the walk's nights, on the ribbon's own kilometre
+         axis (D1). Hidden until both the route's stages and its darkness
+         data have loaded — it needs both to place a night on a
+         kilometre. -->
+    <section class="dl-moon-wrap" id="dl-moon-wrap" aria-label="Moonlight over the walk's nights" hidden>
+      <p class="dl-moon-caption">And the moon you would walk under, night after night.</p>
+      <!-- 46 units tall, not the ribbon's 40: the mark on a named night
+           hangs below the band in its own row, above the axis labels,
+           because on the band it cleared no honest contrast floor. The
+           WIDTH is still 600 and the strip is still `width: 100%`, so one
+           viewBox unit is the same number of device pixels here as in the
+           ribbon above and the two share their kilometre axis exactly as
+           D1 requires. -->
+      <svg class="dl-moon-svg" id="dl-moon-svg"
+           viewBox="0 0 600 46" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-label="Moon strip">
+        <title>Moon strip</title>
+      </svg>
+      <p class="dl-moon-summary" id="dl-moon-summary"></p>
+    </section>
+
     <noscript>
       <p class="daylight-noscript">The walk-budget calculator needs JavaScript to run.</p>
     </noscript>
@@ -268,6 +289,7 @@
   <script src="/js/sunpath-math.js"></script>
   <script src="/js/moon-lux.js"></script>
   <script src="/js/daylight-math.js"></script>
+  <script src="/js/night-math.js"></script>
   <script src="/js/daylight.js"></script>
 </body>
 </html>

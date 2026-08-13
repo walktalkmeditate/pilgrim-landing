@@ -854,6 +854,25 @@ ok(indexHtml.indexOf('id="dl-ribbon-svg"') !== -1, 'daylight/index.html: a dl-ri
 ok(indexHtml.indexOf('id="dl-ribbon-svg"') !== indexHtml.indexOf('id="dl-bar-svg"'),
   'dl-ribbon-svg is a distinct element id from dl-bar-svg');
 
+/* The date input's own bounds, and the fact that they are the SAME two
+   numbers js/daylight.js enforces. Without min/max a stray keystroke
+   makes the year 20261, the moon strip renders a walk 18,000 years out,
+   and that date goes into the share URL — where the recipient's
+   coerceParams silently resets it to today, so one link produces two
+   different strips. The cross-file assertion is the point: an input that
+   allowed a year the code rejects would fail to hidden with no
+   explanation. */
+var dateInputTag = indexHtml.slice(indexHtml.indexOf('id="dl-date"') - 200,
+                                   indexHtml.indexOf('id="dl-date"') + 200);
+var daylightJsSrc = fs.readFileSync(path.join(__dirname, 'daylight.js'), 'utf8');
+var minYearInJs = daylightJsSrc.match(/var MIN_WALK_YEAR = (\d+)/);
+var maxYearInJs = daylightJsSrc.match(/var MAX_WALK_YEAR = (\d+)/);
+ok(minYearInJs && maxYearInJs, 'js/daylight.js states MIN_WALK_YEAR and MAX_WALK_YEAR');
+ok(dateInputTag.indexOf('min="' + minYearInJs[1] + '-01-01"') !== -1,
+  'daylight/index.html: #dl-date carries min="' + minYearInJs[1] + '-01-01", the same lower bound the code enforces');
+ok(dateInputTag.indexOf('max="' + maxYearInJs[1] + '-12-31"') !== -1,
+  'daylight/index.html: #dl-date carries max="' + maxYearInJs[1] + '-12-31", the same upper bound the code enforces');
+
 var outputOpenIdx = indexHtml.indexOf('id="dl-output"');
 ok(outputOpenIdx !== -1, 'daylight/index.html: #dl-output exists');
 var outputCloseIdx = indexHtml.indexOf('</section>', outputOpenIdx);
@@ -1044,6 +1063,652 @@ malformedFixtures.forEach(function (spec) {
 });
 
 console.warn = realConsoleWarn;
+
+/* =============================================
+   Slice 3, Task 5 — renderMoonStrip geometry (spec D1, D5; AC #1, #5, #6)
+
+   The strip shares the ribbon's axis exactly, so the two can be read
+   against each other. Shikoku's unplaced quarter must be ABSENT
+   elements, not zero-width ones — a zero-width line still paints an
+   antialiased hairline, which would draw a boundary where the
+   instrument is deliberately saying nothing.
+   ============================================= */
+
+console.log('\n=== renderMoonStrip — geometry on the ribbon\'s axis (D1, AC #1) ===\n');
+
+var NightMath = require('./night-math.js');
+
+var MOON_START = new Date('2026-10-12T12:00:00Z');
+var DAYLIGHT_STAGE_DIR = path.join(__dirname, '..', 'assets', 'daylight');
+
+function stagesFor(routeId) {
+  var raw = JSON.parse(fs.readFileSync(path.join(DAYLIGHT_STAGE_DIR, routeId + '.json'), 'utf8'));
+  return Object.keys(raw).map(function (k) { return raw[k]; });
+}
+
+function moonCellsFor(routeId, startDate) {
+  var artifact = loadDarknessArtifact(routeId);
+  var stages   = stagesFor(routeId);
+  var runs     = DaylightMath.mergeDarknessRuns(
+    artifact.values, artifact.stepKm, artifact.coveredKm,
+    DaylightMath.darknessAggregateWindowKm(artifact.positionalConfidence));
+  var schedule = DaylightMath.nightSchedule(
+    DaylightMath.stagePlacements(stages, artifact.coveredKm), startDate || MOON_START);
+  return {
+    cells:     NightMath.buildNightCells(schedule, stages, runs),
+    coveredKm: artifact.coveredKm,
+    // Carried through exactly as the page carries it, so the render path
+    // exercises the same `!== true` reading the prose tests pin (F9).
+    heldOutValidation: artifact.heldOutValidation
+  };
+}
+
+function renderMoonInto(routeId, startDate) {
+  var when = startDate || MOON_START;
+  var built = moonCellsFor(routeId, when);
+  var svg = makeNode('svg');
+  var summary = makeNode('p');
+  var notable = NightMath.selectNotableNights(built.cells, built.coveredKm);
+  Daylight.renderMoonStrip(built.cells, notable,
+                           when, built.coveredKm, svg, summary,
+                           built.heldOutValidation);
+  return { svg: svg, summary: summary, cells: built.cells,
+           coveredKm: built.coveredKm, notable: notable };
+}
+
+// Band spans only. The two named nights are marked with <line>s of their
+// own (G1), so "every line" and "every band" stopped being the same set.
+function moonLinesOf(svg) {
+  return svg.children.filter(function (c) {
+    return c.tag === 'line' && /dl-moon-band-/.test(c.attrs.class || '');
+  });
+}
+
+function moonTicksOf(svg) {
+  return svg.children.filter(function (c) {
+    return c.tag === 'line' && /(^|\s)dl-moon-tick(\s|$)/.test(c.attrs.class || '');
+  });
+}
+
+var moonFrances = renderMoonInto('camino-frances');
+var francesLines = moonLinesOf(moonFrances.svg);
+
+// Ten spans, not 33 cells: 23 of camino-frances's 32 abutting cell pairs
+// share a moon band, and each one used to emit two abutting
+// semi-transparent <line>s whose antialiased edges composited to a seam
+// brighter than the real band steps around it (F1). The cells are
+// unchanged — this is what gets DRAWN.
+equal(francesLines.length, 10, 'camino-frances: 33 cells coalesce into 10 drawn spans');
+
+/* Both halves of the claim the finding was written from (H4). "33 nights
+   drew as 7 lines" was true of the day it was measured and not of the day
+   this file pins, and it carried no date — so it read as a constant while
+   the count actually moves with the start date (6 to 11 across 2026). The
+   two dates are pinned together here so the prose quoting either of them
+   cannot drift from what ships. */
+var francesOnFindingDate = renderMoonInto('camino-frances', new Date('2026-08-13T12:00:00Z'));
+equal(francesOnFindingDate.cells.length, 33,
+  'camino-frances: the same 33 cells on the date the finding was measured');
+equal(moonLinesOf(francesOnFindingDate.svg).length, 7,
+  'camino-frances: they coalesce into 7 spans from a 2026-08-13 start — the count the '
+    + 'finding quoted, which is not the count this file\'s own 12 October start gives');
+equal(Number(francesLines[0].attrs.x1), 48, 'camino-frances: first span starts at the ribbon inset x=48');
+equal(Number(francesLines[francesLines.length - 1].attrs.x2), 552,
+  'camino-frances: last span ends at the ribbon inset x=552');
+
+var moonTiles = true;
+for (var mi = 1; mi < francesLines.length; mi++) {
+  if (Math.abs(Number(francesLines[mi].attrs.x1) - Number(francesLines[mi - 1].attrs.x2)) > 1e-6) moonTiles = false;
+}
+ok(moonTiles, 'camino-frances: spans tile with no gaps');
+
+var allBanded = francesLines.every(function (l) { return /dl-moon-band-[0-4]/.test(l.attrs.class); });
+ok(allBanded, 'camino-frances: every cell carries a moon band class 0-4');
+
+// The strip must not reuse the ribbon's class names, or a CSS change to
+// one would silently restyle the other.
+ok(francesLines.every(function (l) { return l.attrs.class.indexOf('dl-ribbon-band') === -1; }),
+  'camino-frances: no cell carries a darkness-ribbon class');
+
+// Shikoku: the unplaced quarter is absent, not zero-width. Its cells
+// never abut (the 288 km of gaps between temple clusters sit between
+// every pair), so coalescing has nothing to merge and all ten survive —
+// which is the point: the merge closes false seams without closing a
+// single real gap.
+var moonShikoku = renderMoonInto('shikoku-88');
+var shikokuLines = moonLinesOf(moonShikoku.svg);
+equal(shikokuLines.length, 10, 'shikoku-88: ten spans, one per placed stage — no real gap was merged away');
+
+var zeroWidth = shikokuLines.filter(function (l) {
+  return Math.abs(Number(l.attrs.x2) - Number(l.attrs.x1)) < 1e-9;
+}).length;
+equal(zeroWidth, 0, 'shikoku-88: no zero-width cell — a gap is an absent element, not a hairline');
+
+// The gaps are not merely present, they are the whole 288.1 km spec D4
+// audited — measured back off the drawn geometry, so a coalescer that
+// quietly swallowed one would show up as a shortfall here rather than as
+// a strip nobody re-counted.
+function xToKm(x, coveredKm) { return (Number(x) - 48) / (552 - 48) * coveredKm; }
+
+var shikokuGapDrawnKm = 0;
+for (var si = 1; si < shikokuLines.length; si++) {
+  shikokuGapDrawnKm += Math.max(0,
+    xToKm(shikokuLines[si].attrs.x1, moonShikoku.coveredKm)
+    - xToKm(shikokuLines[si - 1].attrs.x2, moonShikoku.coveredKm));
+}
+ok(Math.abs(shikokuGapDrawnKm - 288.1) < 0.5,
+  'shikoku-88: 288.1 km of real gaps between temple clusters survive the merge (drawn: '
+    + shikokuGapDrawnKm.toFixed(1) + ' km)');
+
+// Blocks are visually distinct from single nights (D5, AC #6).
+var blockLines = shikokuLines.filter(function (l) { return /dl-moon-block/.test(l.attrs.class); });
+ok(blockLines.length > 0, 'shikoku-88: multi-night blocks carry a distinguishing class');
+equal(blockLines.length,
+  moonShikoku.cells.filter(function (c) { return c.isBlock; }).length,
+  'shikoku-88: exactly the block cells are marked as blocks');
+ok(francesLines.every(function (l) { return /dl-moon-block/.test(l.attrs.class) === false; }),
+  'camino-frances: no cell is marked a block — every stage is one night');
+
+// Text equivalence (D10, AC #13): the label must be the same prose the
+// summary carries, so a screen reader and a sighted reader get the same
+// nights named.
+var moonLabel = moonFrances.svg.attrs['aria-label'];
+ok(moonLabel && moonLabel.indexOf('33 nights') !== -1,
+  'camino-frances: the aria-label states the walk length');
+equal(moonLabel, moonFrances.summary.textContent,
+  'camino-frances: aria-label and visible summary are the same sentence');
+ok(moonLabel.indexOf('night 27') !== -1 && moonLabel.indexOf('Night 15') !== -1,
+  'camino-frances: the label names the same two nights as the prose');
+
+// The axis labels name the nights at the strip's two ends. On a route
+// where every cell is drawable that is night 1 and the last night, which
+// is what the reader sees on all seven shipped routes.
+var francesMoonLabels = byClass(moonFrances.svg, 'dl-moon-label');
+equal(francesMoonLabels.length, 2, 'camino-frances: exactly two moon-axis labels');
+equal(francesMoonLabels[0].textContent, 'night 1', 'camino-frances: left label is night 1');
+equal(francesMoonLabels[1].textContent, 'night 33', 'camino-frances: right label is night 33, the last night of the walk');
+
+var shikokuMoonLabels = byClass(moonShikoku.svg, 'dl-moon-label');
+equal(shikokuMoonLabels[1].textContent, 'night 32',
+  'shikoku-88: the right label is night 32 — the last night of its last block, not its cell count');
+
+// The validation caveat reaches the aria-label too, not just the pure
+// sentence — a screen-reader user hears the same qualification a sighted
+// reader sees (F9, D10).
+var shikokuLabel = moonShikoku.svg.attrs['aria-label'];
+ok(shikokuLabel.indexOf('on darkness no ground reading has checked') !== -1,
+  'shikoku-88: the aria-label carries the sky clause\'s validation caveat');
+ok(moonLabel.indexOf('on darkness no ground reading has checked') === -1,
+  'camino-frances: a validated route\'s label carries no caveat');
+equal(shikokuLabel, moonShikoku.summary.textContent,
+  'shikoku-88: aria-label and visible summary are still the same sentence, caveat included');
+
+/* =============================================
+   F1 — no seam is drawn where the data has no boundary.
+
+   Two abutting semi-transparent <line>s composite their antialiased
+   edges in sequence, so a shared band drawn as two elements paints a
+   hairline up to 0.235 alpha lighter than either — measured stronger
+   (1.687:1 seam-vs-fill) than the real band-1-to-2 step (1.313:1). The
+   ribbon closed exactly this defect in absorbNarrowDarknessRuns; the
+   strip shipped without the equivalent pass.
+
+   Asserted on the EMITTED elements, not on a model of them: the seam is
+   a property of what the browser paints.
+   ============================================= */
+
+console.log('\n=== renderMoonStrip — abutting spans never share a band (F1) ===\n');
+
+var ALL_MOON_ROUTES = ['camino-frances', 'camino-ingles', 'camino-norte',
+                       'camino-portugues', 'camino-primitivo', 'kumano-kodo',
+                       'shikoku-88'];
+
+ALL_MOON_ROUTES.forEach(function (routeId) {
+  var drawn  = renderMoonInto(routeId);
+  var lines  = moonLinesOf(drawn.svg);
+  ok(lines.length > 0, routeId + ': the strip draws something (fixture is non-vacuous)');
+
+  var sameBandAbutting = 0;
+  for (var i = 1; i < lines.length; i++) {
+    var abuts = Math.abs(Number(lines[i].attrs.x1) - Number(lines[i - 1].attrs.x2)) < 1e-6;
+    if (abuts && lines[i].attrs.class === lines[i - 1].attrs.class) sameBandAbutting++;
+  }
+  equal(sameBandAbutting, 0,
+    routeId + ': no two abutting drawn spans share a band — no false boundary is painted');
+
+  // Merging may not change which kilometres are covered. Measured back
+  // off the drawn x-coordinates against the cells' own extents, so a
+  // merge that swallowed or invented a kilometre fails here.
+  var cellKm = NightMath.drawableCells(drawn.cells, drawn.coveredKm)
+    .reduce(function (a, c) { return a + (c.hiKm - c.loKm); }, 0);
+  var drawnKm = lines.reduce(function (a, l) {
+    return a + xToKm(l.attrs.x2, drawn.coveredKm) - xToKm(l.attrs.x1, drawn.coveredKm);
+  }, 0);
+  ok(Math.abs(drawnKm - cellKm) < 0.01,
+    routeId + ': the merge covers exactly the kilometres its cells do ('
+      + drawnKm.toFixed(2) + ' vs ' + cellKm.toFixed(2) + ' km)');
+});
+
+/* =============================================
+   G1 — the strip can point at the night it names again.
+
+   Coalescing was right about the false seams and wrong about everything
+   else it erased: with 33 cells drawn as 7 lines from a 2026-08-13 start,
+   77% of named nights ended up inside a wider merged span, and the prose
+   named "night 17" over a bar covering a third of a kilometre axis on
+   which 17 of 33 cannot be interpolated. The count moves with the start
+   date, so it is pinned below alongside this file's own.
+
+   So the two named nights carry a mark of their own, at the centre of
+   their OWN cell's extent — not the merged span's — and nothing else
+   does. Asserted off the emitted elements, because a tick computed
+   correctly and drawn nowhere is this page's oldest defect.
+
+   H1 moved that mark off the band and into the axis-label row beneath
+   it. The x — the whole of the claim — is unchanged and still checked
+   here. The y is now checked against the band's real drawn extent.
+   ============================================= */
+
+console.log('\n=== renderMoonStrip — the two named nights are marked where they are walked (G1, D10, H1) ===\n');
+
+/* The stylesheet's own numbers, read rather than restated (H1).
+
+   "The mark clears the band" is a relationship between what
+   renderMoonStrip emits and what css/daylight.css strokes, so neither
+   side of it can be pinned from one file alone. The assertion this
+   replaces tried and failed at exactly that: it compared a test-local
+   copy of MOON_TICK_HALF against a literal 8, so it read neither the
+   implementation nor the stylesheet, and setting the real constant to 20
+   left it green. */
+var daylightCssSrc = fs.readFileSync(path.join(__dirname, '..', 'css/daylight.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+
+function cssNumberFor(selector, prop) {
+  var escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  var re = new RegExp(escaped + '[^{}]*\\{([^}]*)\\}', 'g');
+  var m, value = null;
+  while ((m = re.exec(daylightCssSrc)) !== null) {
+    var v = m[1].match(new RegExp(prop + ':\\s*([\\d.]+)'));
+    if (v) value = parseFloat(v[1]);
+  }
+  return value;
+}
+
+var MOON_BAND_STROKE  = cssNumberFor('.dl-moon-band-0', 'stroke-width');
+var MOON_BLOCK_STROKE = cssNumberFor('.dl-moon-block', 'stroke-width');
+var MOON_LABEL_FONT   = cssNumberFor('.dl-moon-label', 'font-size');
+ok(MOON_BAND_STROKE > 0,
+  'css/daylight.css declares a stroke-width for the moon bands (read ' + MOON_BAND_STROKE + ')');
+ok(MOON_BLOCK_STROKE > 0,
+  'css/daylight.css declares a stroke-width for a multi-night block (read ' + MOON_BLOCK_STROKE + ')');
+ok(MOON_LABEL_FONT > 0,
+  'css/daylight.css declares a font-size for the moon axis labels (read ' + MOON_LABEL_FONT + ')');
+
+// 600 is the strip's viewBox width; 280 the narrowest content column this
+// page renders at (a 320px phone less the layout's own padding). The pair
+// js/muted-contrast.test.js applies to the mark's stroke-width, applied
+// here to its HEIGHT — which is an emitted attribute, so the stylesheet
+// cannot answer for it.
+var VIEWBOX_UNITS = 600;
+var NARROWEST_CONTENT_PX = 280;
+
+// The y-range a band really covers: its emitted row, plus half whichever
+// stroke-width the stylesheet gives it. A block strokes narrower than a
+// single night, so the widest of them is what the mark has to clear.
+function bandYRangeOf(bandLines) {
+  var top = Infinity, bottom = -Infinity;
+  bandLines.forEach(function (l) {
+    var half = (/(^|\s)dl-moon-block(\s|$)/.test(l.attrs.class || '')
+      ? MOON_BLOCK_STROKE : MOON_BAND_STROKE) / 2;
+    top    = Math.min(top,    Number(l.attrs.y1) - half);
+    bottom = Math.max(bottom, Number(l.attrs.y2) + half);
+  });
+  return { top: top, bottom: bottom };
+}
+
+function tickXFor(cell, coveredKm) {
+  return expectedRibbonX((cell.loKm + cell.hiKm) / 2, coveredKm);
+}
+
+var totalTicksAcrossRoutes = 0;
+ALL_MOON_ROUTES.forEach(function (routeId) {
+  var drawn = renderMoonInto(routeId);
+  var ticks = moonTicksOf(drawn.svg);
+  var named = [drawn.notable.sky, drawn.notable.lantern].filter(Boolean);
+  totalTicksAcrossRoutes += ticks.length;
+
+  equal(ticks.length, named.length,
+    routeId + ': one tick per night the sentence names, and not one more');
+
+  // The x each tick must sit at, from the CELL, so a tick placed at the
+  // merged span's centre (the defect this fixes) lands somewhere else.
+  var expectedXs = named.map(function (c) { return tickXFor(c, drawn.coveredKm); });
+  var actualXs   = ticks.map(function (t) { return Number(t.attrs.x1); });
+  arrEqual(actualXs, expectedXs,
+    routeId + ': each tick sits at the centre of its own night\'s kilometres');
+
+  // The band's own drawn extent on this route, from the emitted rows and
+  // the stylesheet's real stroke-widths.
+  var bandY = bandYRangeOf(moonLinesOf(drawn.svg));
+
+  ticks.forEach(function (t, i) {
+    equal(Number(t.attrs.x2), Number(t.attrs.x1), routeId + ' tick ' + i + ': is vertical');
+
+    var top = Number(t.attrs.y1), bottom = Number(t.attrs.y2);
+    ok(bottom > top, routeId + ' tick ' + i + ': runs downward, top ' + top + ' to bottom ' + bottom);
+
+    // No overlap with the band at all (H1) — not "shorter than it", which
+    // is what the old assertion claimed to check and did not. On the band
+    // the mark cleared 1.550:1 against band 4 where WCAG 1.4.11 asks 3:1,
+    // and no colour existed that would have cleared it at both ends of
+    // the ramp. It is measured against 3:1 on the page background in
+    // js/muted-contrast.test.js, and that measurement is only the right
+    // one while this holds.
+    ok(top > bandY.bottom,
+      routeId + ' tick ' + i + ': starts at y=' + top + ', below the band\'s own lower edge ('
+        + bandY.bottom + ') — a mark that touches the band is measured against the wrong thing');
+
+    // A mark that cleared the band by shrinking to nothing would satisfy
+    // the line above and be this page's oldest defect again.
+    var heightPx = (bottom - top) * (NARROWEST_CONTENT_PX / VIEWBOX_UNITS);
+    ok(heightPx >= 1,
+      routeId + ' tick ' + i + ': is ' + heightPx.toFixed(3) + ' device px tall on the narrowest '
+        + 'column this page renders at — under one pixel it is painted at partial coverage, and '
+        + 'every contrast figure measured for it is a fiction');
+  });
+
+  // A tick names a kilometre, so the kilometre it names must have ink on
+  // it: every mark must land inside some drawn band's x-range, or it
+  // points at bare page.
+  ticks.forEach(function (t, i) {
+    var x = Number(t.attrs.x1);
+    var covering = moonLinesOf(drawn.svg).filter(function (l) {
+      return Number(l.attrs.x1) <= x && x <= Number(l.attrs.x2);
+    });
+    ok(covering.length > 0, routeId + ' tick ' + i + ': falls on a span that was actually drawn');
+  });
+});
+ok(totalTicksAcrossRoutes > 0, 'the tick sweep was non-vacuous (' + totalTicksAcrossRoutes + ' marks across seven routes)');
+
+// A tick belongs to a clause, so a suppressed clause draws none.
+// kumano-kodo on the pinned date suppresses both (AC #9 and AC #10): a
+// flat darkness band leaves no darkest night, and no night reaches usable
+// moonlight.
+var moonKumano = renderMoonInto('kumano-kodo');
+equal(moonKumano.notable.sky, null, 'kumano-kodo: fixture sanity — the sky clause is suppressed');
+equal(moonKumano.notable.lantern, null, 'kumano-kodo: fixture sanity — the lantern clause is suppressed');
+equal(moonTicksOf(moonKumano.svg).length, 0,
+  'kumano-kodo: a walk naming no night is marked nowhere');
+ok(moonLinesOf(moonKumano.svg).length > 0,
+  'kumano-kodo: but the strip itself still draws — only the superlative is withheld');
+
+// One clause suppressed, one not: camino-ingles never reaches usable
+// moonlight (AC #9), so it names a sky night and no lantern night.
+var moonIngles = renderMoonInto('camino-ingles');
+equal(moonIngles.notable.lantern, null, 'camino-ingles: fixture sanity — no lantern night exists');
+ok(moonIngles.notable.sky !== null, 'camino-ingles: fixture sanity — but a sky night does');
+equal(moonTicksOf(moonIngles.svg).length, 1,
+  'camino-ingles: one clause, one mark — the marks and the sentence name the same nights');
+
+// The mark shares its row with the axis labels, so the third thing it
+// has to clear is the labels themselves: a named night can be night 1 of
+// a 33-night walk, and its mark then lands a few units from the left
+// label's own anchor. Measured against the emitted baseline and the
+// stylesheet's real font-size, at 0.75em above the baseline — a bound on
+// any Lato glyph's height (its cap height is 0.7165em, and the ascenders
+// in "night" reach no higher).
+var LABEL_ASCENDER_EM = 0.75;
+var francesMark = moonTicksOf(moonFrances.svg)[0];
+var francesLabelBaseline = Number(byClass(moonFrances.svg, 'dl-moon-label')[0].attrs.y);
+ok(Number(francesMark.attrs.y2) <= francesLabelBaseline - MOON_LABEL_FONT * LABEL_ASCENDER_EM,
+  'camino-frances: the mark ends at y=' + francesMark.attrs.y2 + ', clear of the axis labels\' own '
+    + 'glyphs (baseline ' + francesLabelBaseline + ', font-size ' + MOON_LABEL_FONT + ')');
+
+// The ticks are emitted after the bands. They no longer overlap one, so
+// this is no longer about paint order covering a mark — it is the DOM
+// order the AC #11 read-back below walks, and the one thing that would
+// still put a mark under a band if the band ever grew into its row.
+var francesTickIdx = moonFrances.svg.children.indexOf(moonTicksOf(moonFrances.svg)[0]);
+var francesLastBandIdx = moonFrances.svg.children.indexOf(
+  moonLinesOf(moonFrances.svg)[moonLinesOf(moonFrances.svg).length - 1]);
+ok(francesTickIdx > francesLastBandIdx,
+  'camino-frances: the marks are emitted after every band, so nothing paints over them');
+
+// The tick must not reintroduce a seam. The band count is unchanged by
+// the marks: a tick that split a span would raise it.
+equal(moonLinesOf(moonFrances.svg).length, 10,
+  'camino-frances: still ten spans — marking a night does not split the span it sits on');
+
+/* =============================================
+   AC #11, measured on the DRAWN strip.
+
+   The version in js/daylight-math.test.js builds its night set from
+   CELLS. Cells and emitted <line>s became different populations the
+   moment coalescing landed, so that check stopped measuring what its
+   label claims — it is kept there as the prose-vs-schedule invariant it
+   really is, and the acceptance criterion is checked here, against what
+   the browser would paint.
+
+   Every night the sentence names must have ink at its own place on the
+   axis, and a mark saying which place that is.
+   ============================================= */
+
+console.log('\n=== AC #11 — every night the sentence names has ink, and a mark, at its own place ===\n');
+
+function namedNightNumbers(text) {
+  var out = [], m, re = /nights? (\d+)(?: to (\d+))?/gi;
+  while ((m = re.exec(text)) !== null) {
+    out.push(parseInt(m[1], 10));
+    if (m[2]) out.push(parseInt(m[2], 10));
+  }
+  return out;
+}
+
+var acElevenNightsChecked = 0;
+ALL_MOON_ROUTES.forEach(function (routeId) {
+  var drawn = renderMoonInto(routeId);
+  // The sentence as the strip actually carries it, not as the pure math
+  // returns it: aria-label, <title> and the visible summary are the
+  // three surfaces a reader can reach, and all three must agree.
+  var label = drawn.svg.attrs['aria-label'];
+  var titleEl = drawn.svg.children.filter(function (c) { return c.tag === 'title'; })[0];
+  equal(label, drawn.summary.textContent, routeId + ': aria-label and the visible summary are one sentence');
+  equal(titleEl.textContent, label, routeId + ': the <title> carries it too');
+
+  var labels = byClass(drawn.svg, 'dl-moon-label');
+  var edgeNights = labels.map(function (l) { return parseInt(l.textContent.replace('night ', ''), 10); });
+  equal(labels.length, 2, routeId + ': two axis labels');
+
+  var spans = moonLinesOf(drawn.svg);
+  var ticks = moonTicksOf(drawn.svg);
+
+  namedNightNumbers(label).forEach(function (n) {
+    acElevenNightsChecked++;
+    ok(n >= edgeNights[0] && n <= edgeNights[1],
+      routeId + ': night ' + n + ' named in the prose lies between the axis labels ('
+        + edgeNights[0] + '..' + edgeNights[1] + ')');
+  });
+
+  // One mark per clause that names a night, read out of the prose rather
+  // than out of the model that produced it.
+  var clausesNamingANight = (/Darkest sky on night/.test(label) ? 1 : 0)
+                          + (/holds? usable moonlight/.test(label) ? 1 : 0);
+  equal(ticks.length, clausesNamingANight,
+    routeId + ': the strip carries exactly as many marks as the sentence has clauses naming a night');
+
+  ticks.forEach(function (t) {
+    var x = Number(t.attrs.x1);
+    var inked = spans.some(function (s) {
+      return Number(s.attrs.x1) <= x && x <= Number(s.attrs.x2);
+    });
+    ok(inked, routeId + ': the place the sentence points at has ink on it');
+  });
+
+  if (routeId === 'kumano-kodo') {
+    equal(namedNightNumbers(label).length, 0,
+      routeId + ': names no night at all — both clauses are suppressed, so nothing above is vacuously true elsewhere');
+  } else {
+    ok(namedNightNumbers(label).length > 0, routeId + ': the parse-back examined at least one named night');
+  }
+});
+ok(acElevenNightsChecked > 0, 'AC #11 examined a real population of named nights (' + acElevenNightsChecked + ')');
+
+/* =============================================
+   The two guards inside renderMoonStrip, exercised so that deleting
+   either one goes red. Both used to be covered only by a
+   "never emits a NaN coordinate" assertion that could not fail —
+   kmToRibbonX clamps and returns finite for every finite kilometre, so
+   the assertion held with the guards deleted (verified by mutation).
+   ============================================= */
+
+console.log('\n=== renderMoonStrip — undrawable cells are skipped, and the skip is observable ===\n');
+
+function moonCellFixture(overrides) {
+  var cell = {
+    index: 0, loKm: 0, hiKm: 10, nights: 1, isBlock: false, firstNight: 1,
+    dates: [MOON_START], stageName: 'Fixture stage',
+    moon: { mean: 0.10, peak: 0.30, usableFrac: 1, hours: 9 },
+    moonBand: 3, darkMean: 3, darkBand: 3, phaseFirst: 0.5, phaseLast: 0.5
+  };
+  Object.keys(overrides).forEach(function (k) { cell[k] = overrides[k]; });
+  return cell;
+}
+
+function renderFixtureCells(cells, coveredKm) {
+  var svg = makeNode('svg');
+  Daylight.renderMoonStrip(cells, { sky: null, lantern: null }, MOON_START,
+                           coveredKm, svg, makeNode('p'));
+  return svg;
+}
+
+// A cell whose dark window never closes (nightMoonLux -> null) has no
+// band to paint. It sits BETWEEN two drawable cells that do not abut
+// each other, so if it were drawn the count would rise to three.
+var nullMoonSvg = renderFixtureCells([
+  moonCellFixture({ loKm: 0,  hiKm: 10 }),
+  moonCellFixture({ loKm: 10, hiKm: 20, moon: null, moonBand: null }),
+  moonCellFixture({ loKm: 20, hiKm: 30 })
+], 30);
+var nullMoonLines = moonLinesOf(nullMoonSvg);
+equal(nullMoonLines.length, 2, 'a cell with no resolvable dark window draws no line of its own');
+ok(nullMoonLines.every(function (l) { return l.attrs.class.indexOf('band-null') === -1; }),
+  'no line is emitted with a null band in its class name');
+ok(Number(nullMoonLines[1].attrs.x1) - Number(nullMoonLines[0].attrs.x2) > 1,
+  'the unresolvable night leaves a real blank between the two spans around it');
+
+// A cell placed entirely past the end of the darkness axis has km width
+// but no DRAWN width: kmToRibbonX clamps both ends onto x=552. A
+// zero-width <line> still paints a hairline, so it must not be emitted.
+var pastAxisSvg = renderFixtureCells([
+  moonCellFixture({ loKm: 0,  hiKm: 10 }),
+  moonCellFixture({ loKm: 40, hiKm: 50, moonBand: 1 })
+], 30);
+var pastAxisLines = moonLinesOf(pastAxisSvg);
+equal(pastAxisLines.length, 1, 'a cell lying entirely past coveredKm draws nothing');
+equal(Number(pastAxisLines[0].attrs.x2), 216,
+  'the in-axis span is still drawn at its own extent (10 of 30 km), not stretched to the edge');
+
+// Every cell undrawable: no bands, and no caption over empty space
+// either — the strip renders nothing at all rather than a sentence
+// counting nights it did not draw (F5).
+var allNullSvg = makeNode('svg');
+var allNullSummary = makeNode('p');
+Daylight.renderMoonStrip([
+  moonCellFixture({ loKm: 0,  hiKm: 10, moon: null, moonBand: null }),
+  moonCellFixture({ loKm: 10, hiKm: 20, moon: null, moonBand: null })
+], { sky: null, lantern: null }, MOON_START, 30, allNullSvg, allNullSummary);
+equal(moonLinesOf(allNullSvg).length, 0, 'an all-undrawable schedule draws no bands');
+equal(allNullSummary.textContent, '', 'an all-undrawable schedule writes no summary sentence');
+equal(allNullSvg.children.length, 0, 'an all-undrawable schedule emits no axis labels or <title> either');
+
+/* =============================================
+   G5 — the drawable predicate answers the RENDERER's question.
+
+   isDrawableCell used to test km width; the renderer additionally
+   dropped any span whose clamped x-coordinates collapsed onto one edge.
+   A cell placed past the end of the darkness axis therefore counted as
+   drawable — named in the prose, counted on the axis, drawing nothing.
+   Unreachable on the seven shipped routes today, and one re-bake with a
+   shorter coveredKm than its own waypoints away.
+   ============================================= */
+
+console.log('\n=== a cell with kilometres but no axis is not drawable, in both layers (G5) ===\n');
+
+var pastAxisCell = moonCellFixture({ loKm: 40, hiKm: 50, moonBand: 1 });
+ok(pastAxisCell.hiKm > pastAxisCell.loKm, 'fixture sanity: the cell has real kilometres');
+equal(NightMath.isDrawableCell(pastAxisCell, 30), false,
+  'a cell lying wholly past coveredKm is not drawable — the axis, not the kilometre, decides');
+equal(NightMath.isDrawableCell(pastAxisCell, 100), true,
+  'and the same cell IS drawable on an axis long enough to hold it');
+
+// The predicate and the renderer now agree by construction, which is the
+// point: what the sentence counts is what the strip draws.
+var pastAxisSentence = NightMath.nightSummarySentence(
+  [moonCellFixture({ loKm: 0, hiKm: 10 }), pastAxisCell],
+  { sky: null, lantern: null }, MOON_START, 30);
+equal(pastAxisSentence.indexOf('2 nights from') === 0, true,
+  'the sentence still states the walk\'s own length (2 nights)');
+ok(pastAxisSentence.indexOf('The strip draws 1 of them.') !== -1,
+  'and says how many it drew, rather than counting a night with no ink: '
+    + JSON.stringify(pastAxisSentence));
+
+/* And the blank it reports is the blank the reader sees (H2). This
+   fixture places 10 of 30 axis kilometres, so two thirds of the strip
+   carries no ink. unplacedClause used to sum hiKm - loKm unclamped, so
+   the 40-50 km cell contributed ten kilometres the axis does not have
+   and the sentence said 33% — the same number this file used to print
+   in the message above and never assert, which is how it survived. */
+ok(pastAxisSentence.indexOf('No stage is placed on 67% of the route') !== -1,
+  'and the blank it reports is the blank the axis really has (67%, not the 33% an '
+    + 'unclamped sum gives): ' + JSON.stringify(pastAxisSentence));
+
+/* =============================================
+   G9 — the NightMathRef guard, built rather than assumed.
+
+   `!NightMathRef` in renderMoonStrip is unreachable through node's own
+   require (it always succeeds), so deleting it cost nothing and the
+   guard was decoration. It is real on a page that loads daylight.js
+   without js/night-math.js — a script tag away — and that is what this
+   constructs: a second instance of the module resolved against a
+   null night-math.
+
+   Runs last in this file, and restores the cache, so nothing above it
+   ever sees the stubbed instance.
+   ============================================= */
+
+console.log('\n=== a page loaded without night-math.js draws nothing rather than throwing (G9) ===\n');
+
+var nightMathPath = require.resolve('./night-math.js');
+var daylightPath  = require.resolve('./daylight.js');
+var savedNightMathModule = require.cache[nightMathPath];
+
+require.cache[nightMathPath] = {
+  id: nightMathPath, filename: nightMathPath, loaded: true, exports: null
+};
+delete require.cache[daylightPath];
+var DaylightWithoutNightMath = require('./daylight.js');
+
+var nightlessSvg = makeNode('svg');
+var nightlessSummary = makeNode('p');
+var nightlessThrew = false;
+try {
+  DaylightWithoutNightMath.renderMoonStrip(
+    moonCellsFor('camino-frances').cells, { sky: null, lantern: null },
+    MOON_START, 763.7, nightlessSvg, nightlessSummary, true);
+} catch (e) {
+  nightlessThrew = true;
+}
+
+require.cache[nightMathPath] = savedNightMathModule;
+delete require.cache[daylightPath];
+require('./daylight.js');
+
+ok(!nightlessThrew, 'renderMoonStrip on a page without night-math.js does not throw');
+equal(nightlessSvg.children.length, 0, 'and draws no bands, no marks and no labels');
+equal(nightlessSummary.textContent, '',
+  'and writes no sentence — a strip with bands but no text equivalent is unreadable to a screen reader (D10)');
+ok(NightMath.isDrawableCell(moonCellFixture({}), 30) === true,
+  'fixture sanity: the real night-math is back in place for anything after this');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

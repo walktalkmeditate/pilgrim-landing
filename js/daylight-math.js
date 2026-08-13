@@ -244,6 +244,24 @@
   // computation rather than two that happen to match most of the time.
   var DARKNESS_RIBBON_WIDTH = 504;
 
+  /*
+   * ribbonFracForKm(kmFromStart, coveredKm) — where a kilometre lands on
+   * the ribbon's axis, as a clamped 0..1 fraction of its drawable width.
+   *
+   * js/daylight.js's kmToRibbonX is this plus the inset, and
+   * js/night-math.js's isDrawableCell asks the same question of a cell's
+   * two ends. They used to answer it separately: isDrawableCell tested
+   * `hiKm > loKm` in KILOMETRES while the renderer additionally dropped
+   * any span whose CLAMPED ends collapsed onto one edge. A cell placed
+   * past the end of the darkness axis therefore counted as drawable — it
+   * was named in the prose, labelled on the axis, and drew nothing.
+   * One function, so "drawable" means the same thing in both places.
+   */
+  function ribbonFracForKm(kmFromStart, coveredKm) {
+    if (!(coveredKm > 0)) return 0;
+    return Math.max(0, Math.min(1, kmFromStart / coveredKm));
+  }
+
   // darknessBandForValue(mag) — a direct index into DARKNESS_BAND_BOUNDS.
   // Half-open, left-inclusive (mirrors js/moon-lux.js's luxBracketFor
   // discipline): a value exactly on a boundary belongs to the darker band
@@ -798,6 +816,109 @@
     return leadIn + sentence + positional + trailing;
   }
 
+  // Nights per stage on a route whose stages are too coarse to be days.
+  // 25 km is a stated assumption, not a measurement — spec D3 records it
+  // here rather than leaving it as an unexplained constant, because it is
+  // the one place this slice asserts something the data does not give.
+  var BLOCK_KM_PER_NIGHT = 25;
+
+  // How close the stage distances must sum to the darkness axis before
+  // cumulative placement is trusted. Kumano is the tightest real case at
+  // 0.5 km of slack; shikoku misses by 173.2 km.
+  var TILING_TOLERANCE_KM = 1.0;
+
+  // stagePlacements(stages, coveredKm) — put each stage on the darkness
+  // artifact's kilometre axis and say how many nights it is.
+  //
+  // Two methods, chosen by measuring rather than by a hardcoded route
+  // list: if the stage distances sum to coveredKm they are consecutive
+  // spans of the same line, so placement is cumulative and each stage is
+  // one night (their stages are 11-40 km, which is how those routes are
+  // published and how the rest of this page already treats a stage).
+  //
+  // Shikoku's do not sum — distanceKm is an editorial per-stage estimate
+  // that under-counts the axis by 173.2 km — but its waypoints carry true
+  // route-cumulative positions spanning 0 to 1080.5. It places by those,
+  // and because its stages run 19-200 km they become blocks of several
+  // nights. Its clusters do not tile: 288.1 km, 27% of the route, falls
+  // between them and is deliberately left unplaced rather than
+  // interpolated over.
+  //
+  // Throws when neither method fits. A wrong axis would draw a strip that
+  // looks right and means nothing, which is the failure this whole
+  // instrument has spent three slices learning to refuse.
+  function stagePlacements(stages, coveredKm) {
+    var sum = 0, i;
+    for (i = 0; i < stages.length; i++) sum += stages[i].distanceKm;
+
+    if (Math.abs(sum - coveredKm) <= TILING_TOLERANCE_KM) {
+      var cursor = 0;
+      var last = stages.length - 1;
+      return stages.map(function (s, idx) {
+        var lo = Math.min(cursor, coveredKm);
+        cursor += s.distanceKm;
+        // The last stage ends exactly at coveredKm, and the rest are
+        // clamped to it. "Tiles" is a 1 km tolerance, not an identity,
+        // and it misses in both directions: kumano's stages sum to 38.5
+        // against a 38.0 km axis (so an unclamped last stage would draw
+        // past the strip's right edge), while camino-frances sums to
+        // 763.6999999999998 against 763.7 (so it would stop a hair short
+        // of the ribbon's own final pixel, and two strips that share an
+        // axis would visibly disagree about where the route ends).
+        var hi = (idx === last) ? coveredKm : Math.min(cursor, coveredKm);
+        return { index: idx, loKm: lo, hiKm: hi, nights: 1, isBlock: false };
+      });
+    }
+
+    var placements = [];
+    for (i = 0; i < stages.length; i++) {
+      var wp = stages[i].waypoints;
+      if (!wp || wp.length < 2) continue;
+      var lo = wp[0].kmFromStart;
+      var hi = wp[wp.length - 1].kmFromStart;
+      if (!(hi > lo)) continue;
+      var nights = Math.max(1, Math.round((hi - lo) / BLOCK_KM_PER_NIGHT));
+      placements.push({ index: i, loKm: lo, hiKm: hi, nights: nights, isBlock: nights > 1 });
+    }
+
+    if (!placements.length) {
+      throw new Error('stagePlacements: stage distances sum to ' + sum.toFixed(1)
+        + ' km against a ' + coveredKm.toFixed(1) + ' km darkness axis, and no stage '
+        + 'carries two waypoints to place it by — refusing to guess an axis.');
+    }
+    return placements;
+  }
+
+  var MS_PER_DAY = 86400000;
+
+  // nightSchedule(placements, startDate) — the cells the moon strip
+  // draws. One per placement, carrying the dates of the nights it spans:
+  // a day-sized stage carries one, a shikoku block carries several, which
+  // is what lets a block state a phase range (D5) instead of a phase.
+  //
+  // Night numbering is 1-based and runs continuously across blocks, so
+  // "night 27" means the twenty-seventh night of the walk on every route.
+  function nightSchedule(placements, startDate) {
+    var night = 0;
+    return placements.map(function (p) {
+      var dates = [];
+      for (var i = 0; i < p.nights; i++) {
+        dates.push(new Date(startDate.getTime() + (night + i) * MS_PER_DAY));
+      }
+      var firstNight = night + 1;
+      night += p.nights;
+      return {
+        index:      p.index,
+        loKm:       p.loKm,
+        hiKm:       p.hiKm,
+        nights:     p.nights,
+        isBlock:    p.isBlock,
+        firstNight: firstNight,
+        dates:      dates
+      };
+    });
+  }
+
   var api = {
     PACE_PRESETS:    PACE_PRESETS,
     walkingMinutes:  walkingMinutes,
@@ -807,6 +928,7 @@
     DARKNESS_BAND_BOUNDS:        DARKNESS_BAND_BOUNDS,
     DARKNESS_BAND_NAMES:         DARKNESS_BAND_NAMES,
     DARKNESS_RIBBON_WIDTH:       DARKNESS_RIBBON_WIDTH,
+    ribbonFracForKm:             ribbonFracForKm,
     darknessBandForValue:        darknessBandForValue,
     darknessBandCounts:          darknessBandCounts,
     darknessBandKmShares:        darknessBandKmShares,
@@ -817,7 +939,12 @@
     selectNamedDarknessBands:    selectNamedDarknessBands,
     darknessCompositionSentence: darknessCompositionSentence,
     darknessPositionalClause:    darknessPositionalClause,
-    darknessSummarySentence:     darknessSummarySentence
+    darknessSummarySentence:     darknessSummarySentence,
+    darknessBandStatsInRange:    darknessBandStatsInRange,
+
+    BLOCK_KM_PER_NIGHT: BLOCK_KM_PER_NIGHT,
+    stagePlacements:    stagePlacements,
+    nightSchedule:      nightSchedule
   };
 
   if (typeof module !== 'undefined' && module.exports) {

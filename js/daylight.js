@@ -108,6 +108,10 @@
     ? root.DaylightMath
     : (typeof require === 'function' ? require('./daylight-math.js') : null);
 
+  var NightMathRef = (typeof root !== 'undefined' && root.NightMath)
+    ? root.NightMath
+    : (typeof require === 'function' ? require('./night-math.js') : null);
+
   var MoonLux = (typeof root !== 'undefined' && root.MoonLux)
     ? root.MoonLux
     : (typeof require === 'function' ? require('./moon-lux.js') : null);
@@ -1013,11 +1017,11 @@
   var RIBBON_LABEL_Y = 36;
 
   // kmToRibbonX(kmFromStart, coveredKm) — the ribbon's own distance axis.
-  // Never touches a Date or a bar domain object.
+  // Never touches a Date or a bar domain object. The clamped fraction
+  // comes from js/daylight-math.js so that night-math's isDrawableCell
+  // asks the axis the same question this does (see ribbonFracForKm).
   function kmToRibbonX(kmFromStart, coveredKm) {
-    if (coveredKm <= 0) return RIBBON_X1;
-    var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
-    return RIBBON_X1 + frac * RIBBON_W;
+    return RIBBON_X1 + DaylightMath.ribbonFracForKm(kmFromStart, coveredKm) * RIBBON_W;
   }
 
   // darknessArtifactShapeIssue(darknessData) — the fields renderRibbon's
@@ -1195,6 +1199,229 @@
     svgEl.appendChild(rightLbl);
   }
 
+  // The moon strip sits on the ribbon's own x-axis (D1) so the two can be
+  // read against each other — same inset, same km-to-x mapping. Only y
+  // differs, and it is the strip's own SVG anyway.
+  var MOON_Y = 16;
+
+  // Half the band's drawn height, from .dl-moon-band-N's stroke-width: 16
+  // in css/daylight.css. Named here because the mark below has to clear
+  // it; js/daylight-render.test.js reads the stylesheet's real
+  // stroke-width against the emitted y attributes, so the two cannot
+  // quietly disagree.
+  var MOON_BAND_HALF = 8;
+
+  // A named night's mark hangs BELOW the strip, in the axis-label row,
+  // with only the page behind it.
+  //
+  // It used to cross the band, and there it could not be read. The mark
+  // is 2.5 units of stroke over a 504-unit fill, and against the ramp's
+  // bright steps — the ones a lantern night is by definition on — it
+  // measured 1.550:1, where WCAG 1.4.11 asks 3:1 of a graphical object
+  // carrying essential information, and locating the named night is the
+  // mark's whole purpose. No colour fixes that: against the dark ramp's
+  // composited extremes the best worst-case any grey reaches is 2.681:1.
+  // Asking for separation from every step of a full-range ramp is asking
+  // for something that does not exist.
+  //
+  // Off the band there is one colour behind the mark per theme, so the
+  // floor is arithmetic rather than a compromise. It also ends the seam
+  // question outright: the mark was 8 units tall against a block's
+  // stroke-width of 10, leaving one unit of band each side — 0.467 device
+  // px on the narrowest column this page renders at — and 89% of
+  // shikoku's marks land on a block. A mark that touches no band cannot
+  // read as a boundary.
+  var MOON_MARK_Y1 = MOON_Y + MOON_BAND_HALF + 3;
+  var MOON_MARK_Y2 = MOON_MARK_Y1 + 5;
+
+  // The axis labels drop below the mark rather than sharing its row: a
+  // named night can be night 1 of a 33-night walk, and its mark would
+  // then land inside the left label's own glyphs. The strip's viewBox
+  // grew to 46 to hold the extra row (daylight/index.html), keeping the
+  // same four units of descender tail the labels had at 36 in a 40-unit
+  // box.
+  var MOON_LABEL_Y = 42;
+
+  // Two cells abut when the end of one is the start of the next. The
+  // tolerance is there because both numbers arrive from stagePlacements'
+  // own cumulative sums, so exact float equality is not something the
+  // drawing layer should depend on; 1e-6 km is a millimetre.
+  var MOON_ABUT_TOLERANCE_KM = 1e-6;
+
+  /*
+   * coalesceMoonCells(cells) — merge abutting cells the strip would paint
+   * identically, so no <line> boundary is drawn where the data has none.
+   * The direct precedent is absorbNarrowDarknessRuns (js/daylight-math.js),
+   * which exists for this same reason one strip above: two abutting
+   * semi-transparent <line>s composite their antialiased edges in
+   * sequence, and the shared fractional pixel lands lighter than either —
+   * measured here at up to 0.235 alpha, against the 0.10 that was already
+   * treated as a defect on the ribbon. 72% of camino-frances's abutting
+   * cell pairs share a band (23 of 32; norte 24 of 33, portugues and
+   * primitivo 7 of 10 each, kumano 2 of 3), and the false seams they drew
+   * read STRONGER — 1.687:1 seam-against-fill on band 4 — than the
+   * tightest step between two real bands (1.355:1, css/daylight.css).
+   *
+   * Three conditions, all necessary:
+   *   - they abut. Shikoku's 288 km of gaps between temple clusters are
+   *     real absences and must survive as gaps.
+   *   - they share moonBand. Different bands are a boundary the data has.
+   *   - they share isBlock. A block strokes at width 10 against a single
+   *     night's 16, so merging the two would paint one of them wrong.
+   *
+   * Drawing only. The cells keep their own identity, their own night
+   * numbering and their own place in the prose; this is the geometry the
+   * reader can actually distinguish, and it carries no other field so it
+   * cannot be mistaken for one.
+   */
+  function coalesceMoonCells(cells) {
+    var out = [];
+    cells.forEach(function (cell) {
+      var previous = out.length ? out[out.length - 1] : null;
+      if (previous
+        && previous.moonBand === cell.moonBand
+        && previous.isBlock === cell.isBlock
+        && Math.abs(cell.loKm - previous.hiKm) < MOON_ABUT_TOLERANCE_KM) {
+        previous.hiKm = cell.hiKm;
+        return;
+      }
+      out.push({
+        loKm: cell.loKm, hiKm: cell.hiKm,
+        moonBand: cell.moonBand, isBlock: cell.isBlock
+      });
+    });
+    return out;
+  }
+
+  /*
+   * renderMoonStrip(cells, notable, startDate, coveredKm, svgEl,
+   * summaryEl, heldOutValidation)
+   *
+   * One line per drawable span, placed by the kilometres it covers — NOT
+   * by night index. A night is drawn where it is walked, which is the
+   * whole point of sharing the ribbon's axis.
+   *
+   * Cells the schedule did not place (shikoku's 288 km between temple
+   * clusters) are simply absent. Emitting a zero-width line instead would
+   * still paint an antialiased hairline and draw a boundary exactly where
+   * the instrument is deliberately saying nothing — the same defect class
+   * as the ribbon's same-band adjacencies.
+   *
+   * NightMathRef is required, not optional: without it there is no
+   * sentence, and a strip with bands but no text equivalent is a strip a
+   * screen-reader user cannot read at all (D10). That guard is reachable
+   * only on a page that loaded this file without js/night-math.js, which
+   * node's own require can never produce — js/daylight-render.test.js
+   * therefore builds it, by loading a second instance of this module
+   * against a stubbed-null night-math, rather than leaving a guard
+   * standing that deleting would cost nothing.
+   *
+   * heldOutValidation is the darkness artifact's own field, carried
+   * through to the sentence's sky clause — that clause ranks one stretch
+   * of the route against another from the same unvalidated data the
+   * ribbon disclaims one section above. Omitted, it reads as unvalidated.
+   */
+  function renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl, heldOutValidation) {
+    clearRibbonDisplay(svgEl, summaryEl);
+    if (!cells || !cells.length || !(coveredKm > 0) || !NightMathRef) return;
+
+    // One shared verdict on what gets ink, so the lines, the axis label
+    // and every clause in the sentence below are counting the same cells
+    // (js/night-math.js's isDrawableCell). A strip with nothing drawable
+    // renders nothing at all rather than a caption over empty space.
+    var drawable = NightMathRef.drawableCells(cells, coveredKm);
+    if (!drawable.length) return;
+
+    coalesceMoonCells(drawable).forEach(function (span) {
+      var x1 = kmToRibbonX(span.loKm, coveredKm);
+      var x2 = kmToRibbonX(span.hiKm, coveredKm);
+      // A span with km width can still have no DRAWN width: kmToRibbonX
+      // clamps to [RIBBON_X1, RIBBON_X2], so a placement lying entirely
+      // past the end of the darkness axis collapses onto one edge. A
+      // zero-width <line> still paints an antialiased hairline, which is
+      // a boundary drawn where nothing was placed. `x2 > x1` also covers
+      // a NaN coordinate, since every comparison against NaN is false —
+      // an explicit isFinite() pair here was pure decoration, unreachable
+      // for any input this guard could still see.
+      if (!(x2 > x1)) return;
+
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-moon-band-' + span.moonBand + (span.isBlock ? ' dl-moon-block' : ''),
+        x1: x1, y1: MOON_Y,
+        x2: x2, y2: MOON_Y
+      }));
+    });
+
+    /* The two nights the sentence names get a mark where they are walked
+     * (D10). Coalescing was right — it stopped the strip asserting
+     * boundaries the data does not have — but it also erased every true
+     * per-night boundary along with the false ones, and 77% of named
+     * nights ended up inside a wider merged span. On camino-frances from
+     * a 2026-08-13 start the prose named "night 17" while 33 nights drew
+     * as 7 lines and night 17 sat somewhere inside a bar covering a third
+     * of the axis; the axis is kilometres, so 17 of 33 could not be
+     * interpolated either. The span count moves with the start date — the
+     * 12 October start this repo's tests pin gives 10 — so the date is
+     * stated rather than left to be read as a constant.
+     *
+     * Showing the lunation's shape and locating a night are separable
+     * jobs. The spans do the first; these two marks do the second.
+     *
+     * Placed at the centre of that night's OWN cell extent, not the merged
+     * span's — the span is a drawing convenience, the cell is the night.
+     * A suppressed clause draws no tick, so the marks and the sentence
+     * always name the same nights: both read `notable`, nothing else.
+     *
+     * The x is the whole claim and it is unchanged. What moved is the y:
+     * the mark hangs under the strip rather than crossing it, because on
+     * the band it cleared no honest contrast floor and could not be made
+     * to (MOON_MARK_Y1 above).
+     */
+    [notable && notable.sky, notable && notable.lantern].forEach(function (cell) {
+      if (!cell) return;
+      var tickX = kmToRibbonX((cell.loKm + cell.hiKm) / 2, coveredKm);
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-moon-tick',
+        x1: tickX, y1: MOON_MARK_Y1,
+        x2: tickX, y2: MOON_MARK_Y2
+      }));
+    });
+
+    var sentence = NightMathRef.nightSummarySentence(cells, notable, startDate,
+                                                     coveredKm, heldOutValidation);
+    svgEl.setAttribute('aria-label', sentence);
+    var titleEl = document.createElementNS(SVG_NS, 'title');
+    titleEl.textContent = sentence;
+    svgEl.appendChild(titleEl);
+    if (summaryEl) summaryEl.textContent = sentence;
+
+    // The two edge labels name the nights actually AT those edges, taken
+    // from the drawn cells rather than from a count of the schedule. On
+    // every shipped route the two are the same number; they part company
+    // exactly when a cell cannot be drawn, and then a count would put the
+    // right-hand label on a lower night than the prose names inside the
+    // strip — the axis and the sentence contradicting each other about
+    // the same walk.
+    var firstDrawn = drawable[0];
+    var lastDrawn  = drawable[drawable.length - 1];
+
+    var leftLbl = makeSVGEl('text', {
+      class: 'dl-moon-label',
+      x: RIBBON_X1, y: MOON_LABEL_Y,
+      'text-anchor': 'start'
+    });
+    leftLbl.textContent = 'night ' + firstDrawn.firstNight;
+    svgEl.appendChild(leftLbl);
+
+    var rightLbl = makeSVGEl('text', {
+      class: 'dl-moon-label',
+      x: RIBBON_X2, y: MOON_LABEL_Y,
+      'text-anchor': 'end'
+    });
+    rightLbl.textContent = 'night ' + (lastDrawn.firstNight + lastDrawn.nights - 1);
+    svgEl.appendChild(rightLbl);
+  }
+
   /* ==========================================
      Exports
      ========================================== */
@@ -1204,7 +1431,8 @@
     renderSVG:           renderSVG,
     fmtDuration:         fmtDuration,
     renderRibbon:        renderRibbon,
-    ribbonSectionHidden: ribbonSectionHidden
+    ribbonSectionHidden: ribbonSectionHidden,
+    renderMoonStrip:     renderMoonStrip
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -1266,6 +1494,9 @@
     dom.ribbonWrap        = document.getElementById('dl-ribbon-wrap');
     dom.ribbonSvg         = document.getElementById('dl-ribbon-svg');
     dom.ribbonSummary     = document.getElementById('dl-ribbon-summary');
+    dom.moonWrap          = document.getElementById('dl-moon-wrap');
+    dom.moonSvg           = document.getElementById('dl-moon-svg');
+    dom.moonSummary       = document.getElementById('dl-moon-summary');
 
     if (!dom.routeSel) return;
 
@@ -1275,7 +1506,20 @@
 
     dom.routeSel.addEventListener('change', onRouteChange);
     dom.stageSel.addEventListener('change', onFieldChange);
+    // Registered FIRST, before either of the two handlers below, so the
+    // bar, the strip and the share link all read one date that is inside
+    // the years this page accepts (clampWalkDate). Out of order, the bar
+    // would compute a walk for a year the strip refuses to draw.
+    dom.dateInput.addEventListener('change', pullWalkDateIntoRange);
     dom.dateInput.addEventListener('change', onFieldChange);
+    // The moon strip listens to the DATE specifically, not to
+    // onFieldChange (D9, AC #8). Stage and pace run through that same
+    // handler, and neither changes which nights the walk contains — a
+    // listener on onFieldChange would slide the strip when a reader
+    // merely inspected a different stage's timings.
+    dom.dateInput.addEventListener('change', function () {
+      renderMoonStripForRoute(_currentRoute);
+    });
     dom.paceInput.addEventListener('change', onFieldChange);
     dom.startInput.addEventListener('change', onFieldChange);
     dom.bufferInput.addEventListener('input', onFieldChange);
@@ -1496,6 +1740,54 @@
     return (!isNaN(n) && n >= 0) ? n : 60;
   }
 
+  // The years this page will accept a walk in, stated once.
+  //
+  // coerceParams (the URL half) and moonStartDate (the DOM half) each
+  // used to answer this separately, and they disagreed: a stray
+  // keystroke making the year 20261 drew a full moon strip for a walk
+  // 18,000 years out and wrote that date into the share link, while the
+  // recipient's coerceParams silently reset it to today — one URL, two
+  // different strips. daylight/index.html's own min/max on #dl-date
+  // carry these same two numbers, asserted in js/daylight-render.test.js
+  // so the input and the code cannot drift apart.
+  //
+  // The lower bound also closes a quieter trap: Date.UTC maps years
+  // 0-99 onto 1900-1999, so "0050-06-15" would silently compute 1950.
+  var MIN_WALK_YEAR = 1900;
+  var MAX_WALK_YEAR = 2100;
+
+  /*
+   * clampWalkDate(raw) — the accepted-range answer for a yyyy-mm-dd
+   * string: the string itself when it is in range, the nearest bound when
+   * it is not, and null when there is nothing to clamp (empty or
+   * unparseable).
+   *
+   * Range-checking alone was not enough. A date outside these years made
+   * moonStartDate return null, so the moon strip vanished with no
+   * explanation while the walk-budget bar above it carried on rendering —
+   * and pushURL still wrote that date into the share link, where the
+   * recipient's coerceParams reset it to today. One URL, two different
+   * pages, which is the exact failure the bounds were added to prevent.
+   *
+   * Clamping instead of rejecting, because this page has no validation
+   * UI to reject into: daylight/index.html carries no <form> and the CSS
+   * no :invalid rule, so #dl-date's min/max produce no visible message
+   * and an out-of-range value would just sit there silently doing
+   * nothing. The input's min/max carry these same two years, so a native
+   * date picker cannot reach this at all; it closes the typed and
+   * programmatic paths.
+   */
+  function clampWalkDate(raw) {
+    if (!raw) return null;
+    var parts = String(raw).split('-');
+    if (parts.length !== 3) return null;
+    var year = parseInt(parts[0], 10);
+    if (isNaN(year)) return null;
+    if (year < MIN_WALK_YEAR) return MIN_WALK_YEAR + '-01-01';
+    if (year > MAX_WALK_YEAR) return MAX_WALK_YEAR + '-12-31';
+    return raw;
+  }
+
   function coerceParams(params) {
     params = Object.assign({}, params);
     var validPaces = ['slow', 'standard', 'brisk'];
@@ -1509,12 +1801,26 @@
       params.pace = 'standard';
     }
 
+    /* One policy, one function (H3). This used to answer the
+       out-of-range question with todayString() while a typed edit
+       answered it with the nearest bound and the moon strip answered it
+       by hiding — so a hand-edited link like ?date=2101-06-15 showed the
+       recipient TODAY's walk while the address bar still read 2101. That
+       is the one-URL-two-pages failure the bounds exist to prevent,
+       surviving in the entry point the fix did not reach.
+
+       Clamp first, then check the clamped value parses: a five-digit
+       year is out of range AND unparseable by `new Date`, and asking
+       about the raw string first would send it to today instead of to
+       the bound. todayString() is kept for what it is really for —
+       nothing to clamp (junk like "2026-13-45" or an unparseable
+       string), where there is no nearest bound to move to. */
     if (params.date) {
-      var d = new Date(params.date);
-      var yr = parseInt(params.date.split('-')[0], 10);
-      if (isNaN(d.getTime()) || yr < 1900 || yr > 2100) {
-        params.date = todayString();
-      }
+      var clampedDate = clampWalkDate(params.date);
+      var parsedDate  = clampedDate === null ? null : new Date(clampedDate);
+      params.date = (parsedDate === null || isNaN(parsedDate.getTime()))
+        ? todayString()
+        : clampedDate;
     }
 
     if (params.start) {
@@ -1739,6 +2045,14 @@
 
     renderRibbon(data, dom.ribbonSvg, _prefs.unitSystem, statedDistanceForRoute(routeId), dom.ribbonSummary);
     dom.ribbonWrap.hidden = false;
+    // The moon strip is deliberately NOT cascaded from here. This
+    // function is the ribbon's repaint, and the ribbon repaints for
+    // reasons the strip does not share — the km/mi toggle among them,
+    // which cost 5.2 ms (norte) and 14.5 ms (shikoku) of astronomy per
+    // click for a strip whose only labels are "night 1" and "night N"
+    // and which reads unitSystem nowhere (D9). The strip is driven from
+    // loadDarknessData and loadStageData instead, where its two sources
+    // actually arrive.
   }
 
   // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
@@ -1757,6 +2071,11 @@
   // absence a reader (or a future engineer) has no way to account for.
   function loadDarknessData(routeId) {
     if (_darknessData[routeId]) {
+      // No strip render here. A cache hit is synchronous, so the caller
+      // is still on the stack and updateRibbonForRoute draws the strip
+      // once when it returns — see the comment there. Rendering here as
+      // well is what made a warm re-selection draw the whole strip twice
+      // and warn twice about an unplaceable route.
       renderDarknessRibbon(routeId, _darknessData[routeId]);
       return;
     }
@@ -1784,6 +2103,11 @@
       // the ribbon if it's still the route on screen.
       if (routeId !== _currentRoute) return;
       renderDarknessRibbon(routeId, data);
+      // Darkness is one of the strip's two sources; this is where it
+      // arrives, so this is where the strip is asked to redraw. The other
+      // source calls it from loadStageData, and whichever lands second
+      // is the one that draws.
+      renderMoonStripForRoute(routeId);
     };
     xhr.onerror = function () {
       // Secondary, route-scoped content (D12's own framing): warn to the
@@ -1800,29 +2124,149 @@
     xhr.send();
   }
 
-  // updateRibbonForRoute(routeId) — the single call site onRouteChange
-  // and the URL-restored-route path both use. Hides and clears
-  // unconditionally, before deciding anything else, so a route switch
-  // never leaves the previous route's ribbon on screen while the next
-  // one loads (or fails to). Custom routes and no selection stop there,
-  // no fetch (D12); anything else then loads (or, once cached,
-  // re-renders) that route's darkness data.
-  // Guards both nodes, not just the wrap: it goes on to call
-  // clearRibbonDisplay(dom.ribbonSvg, …), which dereferences the svg
-  // immediately (clearSVG reads .firstChild). renderDarknessRibbon above
-  // already guards both — a page that ever shipped the wrap without the
-  // svg would have thrown here and survived there, which is two different
-  // answers to one question.
+  /*
+   * updateRibbonForRoute(routeId) — the single call site onRouteChange
+   * and the URL-restored-route path both use. Hides and clears
+   * unconditionally, before deciding anything else, so a route switch
+   * never leaves the previous route's ribbon on screen while the next
+   * one loads (or fails to). Custom routes and no selection stop there,
+   * no fetch (D12); anything else then loads (or, once cached,
+   * re-renders) that route's darkness data.
+   *
+   * Guards both nodes, not just the wrap: it goes on to call
+   * clearRibbonDisplay(dom.ribbonSvg, …), which dereferences the svg
+   * immediately (clearSVG reads .firstChild). renderDarknessRibbon above
+   * already guards both — a page that ever shipped the wrap without the
+   * svg would have thrown here and survived there, which is two different
+   * answers to one question.
+   *
+   * It is also the ONE synchronous entry point for the moon strip on a
+   * route change, and the last line is why. Both of the strip's sources
+   * can be cached, and both load functions used to draw it on their cache
+   * hit; a warm re-selection then ran the whole night's astronomy twice
+   * (23.6 ms on norte, 33.6 ms on shikoku) with a hideMoonStrip between,
+   * so half of it was thrown away before a frame, and an unplaceable
+   * route warned twice about the same failure. Now the cache-hit paths
+   * only fill their caches and the strip is drawn once, here, after both
+   * of them have had their chance. The XHR paths keep their own calls:
+   * those arrive after this function has returned, and whichever lands
+   * second is the one that draws.
+   *
+   * The invariant this rests on, stated rather than assumed: every caller
+   * of loadStageData calls this function in the same tick, immediately
+   * afterwards.
+   */
   function updateRibbonForRoute(routeId) {
     if (!dom.ribbonWrap || !dom.ribbonSvg) return;
     dom.ribbonWrap.hidden = true;
     clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+    hideMoonStrip();
     if (!routeId || routeId === 'custom') return;
     loadDarknessData(routeId);
+    renderMoonStripForRoute(routeId);
+  }
+
+  function hideMoonStrip() {
+    if (!dom.moonWrap || !dom.moonSvg) return;
+    dom.moonWrap.hidden = true;
+    clearRibbonDisplay(dom.moonSvg, dom.moonSummary);
+  }
+
+  // pullWalkDateIntoRange() — the DOM half of clampWalkDate, run before
+  // anything else reads #dl-date on a change. An empty or unparseable
+  // value is left alone: there is nothing to clamp it to, and the strip's
+  // own guard already treats it as "no date chosen".
+  function pullWalkDateIntoRange() {
+    if (!dom.dateInput) return;
+    var clamped = clampWalkDate(dom.dateInput.value);
+    if (clamped !== null && clamped !== dom.dateInput.value) {
+      dom.dateInput.value = clamped;
+    }
+  }
+
+  // The walk's start date, as night 1 (D6). Parsed as UTC noon so a
+  // timezone offset can never roll it onto the previous or next day —
+  // the same trap wallTimeToUTC exists to avoid elsewhere on this page.
+  function moonStartDate() {
+    // Through clampWalkDate, not a range check of its own (H3). This was
+    // the third of three answers to one question: the typed edit moved to
+    // the nearest bound, the URL restore jumped to today, and this hid
+    // the strip — so which walk a reader saw depended on which door they
+    // came in by. It now draws the same clamped date the bar computes and
+    // the share link carries. null survives only for a value there is
+    // nothing to clamp: empty, or not a yyyy-mm-dd shape at all.
+    var clamped = clampWalkDate(dom.dateInput && dom.dateInput.value);
+    if (clamped === null) return null;
+    var parts = clamped.split('-');
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  /*
+   * renderMoonStripForRoute(routeId) — draw the strip if, and only if,
+   * everything it needs is present and current.
+   *
+   * It needs BOTH async sources: the stage list places a night on a
+   * kilometre, the darkness artifact says how dark that kilometre is.
+   * Either one alone draws nothing rather than half a strip, so this is
+   * called from both load paths and simply returns until the second
+   * arrives.
+   *
+   * stagePlacements throws when it can place neither way (D4). That is
+   * deliberate there — a wrong axis is worse than no axis — so it is
+   * caught here and rendered as an absent section, which is what every
+   * other unusable-data path on this page already does.
+   */
+  function renderMoonStripForRoute(routeId) {
+    if (!dom.moonWrap || !dom.moonSvg) return;
+    if (routeId !== _currentRoute) return;
+
+    if (!routeId || routeId === 'custom' || !NightMathRef) { hideMoonStrip(); return; }
+
+    var stages = _stageData[routeId];
+    var data   = _darknessData[routeId];
+    if (!stages || !data) { hideMoonStrip(); return; }
+
+    if (ribbonSectionHidden(routeId, data)) { hideMoonStrip(); return; }
+
+    var startDate = moonStartDate();
+    if (!startDate) { hideMoonStrip(); return; }
+
+    var stageList = Object.keys(stages).map(function (k) { return stages[k]; });
+
+    var cells;
+    try {
+      var windowKm = DaylightMath.darknessAggregateWindowKm(data.positionalConfidence);
+      var runs     = DaylightMath.mergeDarknessRuns(data.values, data.stepKm, data.coveredKm, windowKm);
+      var schedule = DaylightMath.nightSchedule(
+        DaylightMath.stagePlacements(stageList, data.coveredKm), startDate);
+      cells = NightMathRef.buildNightCells(schedule, stageList, runs);
+    } catch (e) {
+      console.warn('Moon strip: cannot place "' + routeId + '" on its darkness axis — ' + e.message);
+      hideMoonStrip();
+      return;
+    }
+
+    // The reveal is gated on there being something to reveal. A schedule
+    // whose every cell is undrawable (no astronomical night, or no width)
+    // used to leave the caption and an empty svg on screen under a
+    // sentence counting nights nothing drew — AC #11's own violation,
+    // dormant on the shipped routes but reachable by design.
+    if (!NightMathRef.drawableCells(cells, data.coveredKm).length) { hideMoonStrip(); return; }
+
+    renderMoonStrip(cells, NightMathRef.selectNotableNights(cells, data.coveredKm), startDate,
+                    data.coveredKm, dom.moonSvg, dom.moonSummary, data.heldOutValidation);
+    dom.moonWrap.hidden = false;
   }
 
   function loadStageData(routeId, requestedStageStr) {
     if (_stageData[routeId]) {
+      // Cache hit: fill the picker and stop. The strip is drawn by
+      // updateRibbonForRoute, which every caller of this function runs in
+      // the same tick — an invariant that function now states in its own
+      // comment instead of leaving it two frames up for a reader to
+      // reconstruct. Drawing here as well only produced a strip that
+      // updateRibbonForRoute's hideMoonStrip erased a moment later.
       populateStageSelect(_stageData[routeId], requestedStageStr);
       return;
     }
@@ -1840,6 +2284,9 @@
       // let the bar and the ribbon settle on two different stale routes.
       if (routeId !== _currentRoute) return;
       populateStageSelect(stages, requestedStageStr);
+      // The moon strip needs this source as well as the darkness one, and
+      // the two race. Whichever lands second is the one that draws.
+      renderMoonStripForRoute(routeId);
     };
     xhr.onerror = function () {
       if (routeId !== _currentRoute) return;
@@ -1900,7 +2347,19 @@
   function buildState() {
     var routeId  = dom.routeSel.value;
     var paceKey  = dom.paceInput.value || 'standard';
-    var dateStr  = dom.dateInput.value;
+    // Clamped, like every other reader of this input (H3). The bar used
+    // to take the raw value, so any runAndRender() triggered by a
+    // NON-date field — pace, stage, start time, the km/mi toggle —
+    // painted a walk for a year pushURL was simultaneously refusing to
+    // write. Worse, a five-digit year makes wallTimeToUTC build an
+    // Invalid Date, on which Intl.DateTimeFormat.formatToParts throws
+    // RangeError: fired during a warm route reselection that aborts
+    // onRouteChange after _currentRoute is reassigned but before pushURL
+    // and updateRibbonForRoute run, leaving the variable and the visible
+    // strip permanently out of sync. The fallback keeps an empty or
+    // unparseable value exactly as it was — recompute's own guards
+    // already answer for that, and there is no bound to clamp it to.
+    var dateStr  = clampWalkDate(dom.dateInput.value) || dom.dateInput.value;
     var startStr = dom.startInput.value;
 
     var startMin = null;
@@ -2215,7 +2674,13 @@
       if (dom.elevInput.value) params.push('elevGain='   + encodeURIComponent(dom.elevInput.value));
     }
 
-    if (dom.dateInput.value)  params.push('date='  + encodeURIComponent(dom.dateInput.value));
+    // The clamped date, never the raw one. pullWalkDateIntoRange has
+    // normally already written it back into the input; this is the second
+    // edge of the same rule, so a value set programmatically without a
+    // change event still cannot put a year into the share link that the
+    // recipient's coerceParams would silently replace with today.
+    var dateParam = clampWalkDate(dom.dateInput.value);
+    if (dateParam) params.push('date=' + encodeURIComponent(dateParam));
     if (dom.paceInput.value && dom.paceInput.value !== 'standard') {
       params.push('pace=' + encodeURIComponent(dom.paceInput.value));
     }

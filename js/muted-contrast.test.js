@@ -683,4 +683,361 @@ test('constellation renders the ribbon bands through the same html[data-theme="d
   );
 });
 
+/* =============================================
+   Slice 3, Task 7 — the moon strip's silver ramp (spec D8; AC #12)
+
+   Same floors as the darkness ribbon, over the same three real
+   backgrounds. The strip is solid on every route — it carries no
+   validation claim of its own, so there is no dashed variant and no duty
+   correction to make.
+
+   The extra requirement here is that the two ramps stay TELLABLE APART.
+   They sit on one shared axis, a few pixels apart; if a moon band and a
+   darkness band composite to the same colour on some background, a
+   reader has two strips they cannot separate at a glance.
+   ============================================= */
+
+function moonBandColor(index, mode) {
+  const sel = RIBBON_MODE_SELECTOR_PREFIX[mode] + '.dl-moon-band-' + index;
+  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}', 'g');
+  let m, decls = null;
+  while ((m = re.exec(daylightCss)) !== null) {
+    if (/stroke:\s*[^;]+;/.test(m[2])) decls = m[2];
+  }
+  assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
+  return resolveFillColor(decls.match(/stroke:\s*([^;]+);/)[1].trim(), mode);
+}
+
+test('moon strip bands stay pairwise distinguishable on every background each theme really paints (D8, AC #12)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const colors = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) colors.push(moonBandColor(i, mode));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const composited = colors.map(function (c) { return composite(c.rgb, c.alpha, bg); });
+
+      const label = mode + ' moon strip over ' + background.label;
+      console.log('\n  moon strip band separation — ' + label);
+
+      composited.forEach(function (c, i) {
+        const ratio = contrast(c, bg);
+        console.log('    moon-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
+        assert.ok(
+          ratio >= RIBBON_BAND_VS_BG_MIN,
+          label + ' .dl-moon-band-' + i + ' is ' + ratio.toFixed(3) + ':1 against its page background, below the '
+            + RIBBON_BAND_VS_BG_MIN + ':1 floor'
+        );
+      });
+
+      /* Band 0 is held to the ADJACENT floor against the background, not
+         the weaker vs-background one the other four get.
+
+         This strip is the one thing on the page with real holes in it —
+         shikoku's 288 km between temple clusters draw as bare parchment
+         — so "no moon" and "nothing drawn" are two readings a reader has
+         to separate, which makes the page background band 0's neighbour
+         and 1.25:1 its floor. It shipped at 1.247:1, missing by 0.003,
+         while a real band-0 cell on shikoku (9.00 units) is narrower
+         than a real gap (9.70 units) and 24% of kumano's start dates
+         render the entire strip as band 0. */
+      const gapRatio = contrast(composited[0], bg);
+      console.log('    moon-0 vs a GAP (bare background) = ' + gapRatio.toFixed(3) + ':1');
+      assert.ok(
+        gapRatio >= RIBBON_BAND_ADJACENT_MIN,
+        label + ' .dl-moon-band-0 is ' + gapRatio.toFixed(3) + ':1 against bare background, below the '
+          + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor — "no moon" and "nothing drawn" are '
+          + 'not tellable apart, and this strip really does draw gaps'
+      );
+
+      let minAdjacent = Infinity;
+      for (let i = 0; i < composited.length - 1; i++) {
+        const ratio = contrast(composited[i], composited[i + 1]);
+        console.log('    moon-' + i + ' -> moon-' + (i + 1) + '  = ' + ratio.toFixed(3) + ':1');
+        minAdjacent = Math.min(minAdjacent, ratio);
+        assert.ok(
+          ratio >= RIBBON_BAND_ADJACENT_MIN,
+          label + ' moon-' + i + '->moon-' + (i + 1) + ' is ' + ratio.toFixed(3) + ':1, below the '
+            + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+        );
+      }
+
+      const extremes = contrast(composited[0], composited[RIBBON_BAND_COUNT - 1]);
+      console.log('    moon-0 -> moon-4 (extremes) = ' + extremes.toFixed(3) + ':1   (min adjacent '
+        + minAdjacent.toFixed(3) + ':1)');
+      assert.ok(
+        extremes >= RIBBON_BAND_EXTREMES_MIN,
+        label + ' moon-0->moon-4 is ' + extremes.toFixed(3) + ':1, below the '
+          + RIBBON_BAND_EXTREMES_MIN + ':1 extremes floor'
+      );
+    });
+  });
+});
+
+/* The mark on a named night (H1, D10).
+
+   The two nights the closing sentence names carry a short vertical
+   stroke. It hangs BELOW the strip, in the axis-label row, so the thing
+   it has to be tellable apart from is the page — one known colour per
+   theme — and not whichever of five ramp steps happens to lie under it.
+
+   That is why it moved. The sweep this replaces measured the mark
+   against every band, and the mark could not clear an honest floor on
+   any of them: 1.550:1 on band 4 in dark themes, and a lantern night is
+   by definition on the ramp's bright end, so the worst case was the
+   common case (89% of shikoku's marks land on a block, and on the pinned
+   date both named nights are blocks). Nor was that a tuning failure —
+   against the dark ramp's composited extremes, band 0 rgb(60,56,49) and
+   band 4 rgb(219,204,154), the best achievable worst-case for any grey
+   is 2.681:1, at value 122. No colour on the band clears 3:1 at both
+   ends, and the earlier 1.45 floor was the number that relationship
+   could reach, not the number the reader needs.
+
+   Off the band, WCAG 1.4.11's 3:1 for a graphical object carrying
+   essential information is simply reachable — and locating the named
+   night is this mark's whole purpose, so 3:1 is the right bar.
+
+   This measurement is only the right one while the mark really is off
+   the band. That is not asserted here, where the CSS is: it is measured
+   in js/daylight-render.test.js, from the emitted y attributes against
+   this stylesheet's own band stroke-width. */
+const MOON_MARK_VS_BG_MIN = 3.0;
+
+/* Resolves .dl-moon-tick's stroke the way a browser would, base rule
+   plus any dark-theme override. The mark ships as one rule painted in
+   var(--ink-fog) — a token that flips itself between themes, so no
+   second rule can fall through in a theme the first did not cover, which
+   is how the ribbon's own bands once shipped at 1.02:1. If a dark
+   override is ever added back, this measures it rather than the base. */
+function moonMarkColor(mode) {
+  const base = ruleDeclarations(daylightCss, '.dl-moon-tick');
+  assert.ok(base, 'expected .dl-moon-tick in css/daylight.css');
+  const dark = mode === 'dark'
+    ? ruleDeclarations(daylightCss, RIBBON_MODE_SELECTOR_PREFIX.dark + '.dl-moon-tick')
+    : null;
+  const src = (dark && /stroke:\s*[^;]+;/.test(dark)) ? dark : base;
+  const m = src.match(/stroke:\s*([^;]+);/);
+  assert.ok(m, '.dl-moon-tick has no stroke colour declaration');
+  return resolveFillColor(m[1].trim(), mode);
+}
+
+const NIGHT_SPEC_PATH = path.join(ROOT, 'docs/specs/2026-08-13-night-worth-walking.md');
+
+function markVsBackgroundRatios() {
+  const out = [];
+  ['light', 'dark'].forEach(function (mode) {
+    const mark = moonMarkColor(mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      out.push({
+        label: background.label,
+        mode: mode,
+        painted: composite(mark.rgb, mark.alpha, background.rgb),
+        ratio: contrast(composite(mark.rgb, mark.alpha, background.rgb), background.rgb)
+      });
+    });
+  });
+  return out;
+}
+
+test('a named night\'s mark clears 3:1 against the page it sits on, on all three backgrounds (H1, D10, AC #12)', function () {
+  markVsBackgroundRatios().forEach(function (r) {
+    console.log('\n  named-night mark over ' + r.label + '  ' + r.painted
+      + ' = ' + r.ratio.toFixed(3) + ':1');
+    assert.ok(
+      r.ratio >= MOON_MARK_VS_BG_MIN,
+      r.mode + ' .dl-moon-tick is ' + r.ratio.toFixed(3) + ':1 against ' + r.label
+        + ', below the ' + MOON_MARK_VS_BG_MIN + ':1 floor WCAG 1.4.11 asks of a graphical '
+        + 'object carrying essential information — a mark nobody can find names nothing'
+    );
+  });
+});
+
+test('every figure the spec states for the mark is the figure the mark measures (H1, AC #12)', function () {
+  /* The same guard AC #12's ramp triple already has, applied to the
+     number this wave introduced — and applied to EVERY occurrence of it,
+     because the mark's figure is stated twice (D10 and AC #12) and a
+     correction that lands in one place and not the other is how the ramp
+     figure came to be wrong the second time. */
+  const spec = fs.readFileSync(NIGHT_SPEC_PATH, 'utf8');
+  const measured = markVsBackgroundRatios().map(function (r) { return r.ratio; });
+
+  const re = /the mark measures\s+\*\*([\d.]+)\s*\/\s*([\d.]+)\s*\/\s*([\d.]+):1\*\*/g;
+  let m, occurrences = 0;
+  while ((m = re.exec(spec)) !== null) {
+    occurrences++;
+    const stated = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+    console.log('  spec occurrence ' + occurrences + ' states '
+      + stated.map(function (v) { return v.toFixed(3); }).join(' / ')
+      + '  measured ' + measured.map(function (v) { return v.toFixed(3); }).join(' / '));
+    assert.strictEqual(stated.length, measured.length,
+      'the spec states ' + stated.length + ' figures for the mark but it has '
+        + measured.length + ' real backgrounds');
+    measured.forEach(function (value, i) {
+      assert.ok(
+        Math.abs(value - stated[i]) < 0.001,
+        'the spec states ' + stated[i] + ':1 for the mark on background ' + i
+          + ', but the shipped stylesheet measures ' + value.toFixed(3) + ':1'
+      );
+    });
+  }
+  assert.strictEqual(occurrences, 2,
+    'the spec states the mark\'s measured contrast in ' + occurrences + ' places, expected 2 '
+      + '(D10 and AC #12) — a figure this file cannot find is a figure that can drift');
+});
+
+test('a named night\'s mark is no louder than the axis labels it now sits beside (H1)', function () {
+  /* The mark moved into the label row of a deliberately restrained
+     instrument. "Off the band" bought the contrast; it must not also buy
+     a new loudest mark on the strip. Painting it in the labels' own ink
+     is the whole of the answer, and this is what holds it there. */
+  ['light', 'dark'].forEach(function (mode) {
+    const mark = moonMarkColor(mode);
+    const labelDecls = ruleDeclarations(daylightCss, '.dl-moon-label');
+    assert.ok(labelDecls, 'expected .dl-moon-label in css/daylight.css');
+    const labelFill = resolveFillColor(labelDecls.match(/fill:\s*([^;]+);/)[1].trim(), mode);
+    const labelOpacityM = labelDecls.match(/fill-opacity:\s*([\d.]+)/);
+    const labelAlpha = labelFill.alpha * (labelOpacityM ? parseFloat(labelOpacityM[1]) : 1);
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const markRatio = contrast(composite(mark.rgb, mark.alpha, bg), bg);
+      const labelRatio = contrast(composite(labelFill.rgb, labelAlpha, bg), bg);
+      console.log('  ' + background.label + ': mark ' + markRatio.toFixed(3)
+        + ':1, axis label ' + labelRatio.toFixed(3) + ':1');
+      assert.ok(
+        markRatio <= labelRatio + 0.001,
+        mode + ' .dl-moon-tick is ' + markRatio.toFixed(3) + ':1 against ' + background.label
+          + ' while .dl-moon-label beside it is ' + labelRatio.toFixed(3)
+          + ':1 — the mark has become the loudest thing under the strip'
+      );
+    });
+  });
+});
+
+test('a named night\'s mark is wide enough to survive the narrowest viewport this page renders at (G1)', function () {
+  /* The F6 lesson, in the one place it applies to a solid stroke. The
+     strip is an SVG with a 600-unit viewBox and `width: 100%`, so one
+     unit is one CSS pixel only at full width; on a phone the whole
+     drawing is scaled down. A stroke narrower than one device pixel is
+     painted by antialiasing at partial coverage, which is an alpha
+     multiplier the sweep above does not model — and the measured
+     contrast would then be a fiction, exactly as a flat dash duty was
+     for the ribbon.
+
+     600 is the viewBox width; 280 is the narrowest content column this
+     page renders at (a 320px phone less the layout's own padding). */
+  const VIEWBOX_UNITS = 600;
+  const NARROWEST_CONTENT_PX = 280;
+
+  const decls = ruleDeclarations(daylightCss, '.dl-moon-tick');
+  assert.ok(decls, 'expected .dl-moon-tick in css/daylight.css');
+  const m = decls.match(/stroke-width:\s*([\d.]+)/);
+  assert.ok(m, '.dl-moon-tick has no stroke-width declaration');
+  const devicePx = parseFloat(m[1]) * (NARROWEST_CONTENT_PX / VIEWBOX_UNITS);
+  console.log('\n  named-night mark: stroke-width ' + m[1] + ' units renders at '
+    + devicePx.toFixed(3) + ' px on a ' + NARROWEST_CONTENT_PX + 'px column');
+  assert.ok(
+    devicePx >= 1,
+    '.dl-moon-tick is ' + devicePx.toFixed(3) + ' device px wide on the narrowest column this page '
+      + 'renders at — under one pixel it is painted at partial coverage, and every contrast figure '
+      + 'measured for it above is optimistic'
+  );
+});
+
+test('the moon ramp is warm where the darkness ramp is cool, so two strips on one axis stay tellable apart (D8)', function () {
+  // Deliberately a HUE test, not a luminance one. Two five-step ramps
+  // that each span their theme's usable luminance range must overlap in
+  // luminance somewhere — a contrast() floor between them would demand
+  // the impossible and force bad colour choices to satisfy a requirement
+  // that was never the real one. What D8 actually asks is that the two
+  // read as different instruments, and that is carried by hue.
+  //
+  // Checked over bands 2-4, where each ramp's identity lives: band 0 of
+  // both ramps is near-neutral by design (an absence, in both cases).
+  const MIN_MOON_WARMTH = 30;   // R - B
+  function warmth(c) { return c.rgb[0] - c.rgb[2]; }
+
+  ['light', 'dark'].forEach(function (mode) {
+    for (let i = 2; i < RIBBON_BAND_COUNT; i++) {
+      const moonW = warmth(moonBandColor(i, mode));
+      const darkW = warmth(ribbonBandColor(i, mode, false));
+      console.log('  ' + mode + ' band ' + i + ': moon R-B ' + moonW + ', darkness R-B ' + darkW);
+      assert.ok(moonW >= MIN_MOON_WARMTH,
+        mode + ' .dl-moon-band-' + i + ' has R-B of ' + moonW + ', not warm enough to read as the moon strip');
+      assert.ok(darkW < 0,
+        mode + ' .dl-ribbon-band-' + i + ' has R-B of ' + darkW + ', no longer cool — the two ramps would converge');
+      assert.ok(moonW - darkW >= MIN_MOON_WARMTH,
+        mode + ' band ' + i + ': the two ramps are only ' + (moonW - darkW) + ' apart in R-B');
+    }
+  });
+});
+
+test('the spec\'s stated moon-ramp extremes are the ramp\'s actual extremes (AC #12)', function () {
+  /* Twice now the spec has carried a contrast figure the CSS did not
+     produce. The second time it was written into the very commit whose
+     purpose was correcting a misstated number, quoting the ramp's
+     pre-retune extremes (4.9 / 7.3 / 8.6) after the alphas had already
+     moved. A number in a spec that nothing checks is a number that
+     drifts, so this reads the three figures back out of the document and
+     recomputes them from what ships. */
+  const spec = fs.readFileSync(NIGHT_SPEC_PATH, 'utf8');
+  /* Anchored on its own sentence, not on "the first triple in the
+     document". The unanchored version broke the moment the spec gained a
+     SECOND figure of the same shape — the mark's, checked below — and
+     silently measured the ramp against it. A regex that matches two
+     different claims is not checking either. */
+  // \s+ rather than literal spaces: the spec is hand-wrapped prose, and a
+  // reflow that puts the anchor and the figure on two lines is a legitimate
+  // edit that must not silently switch this guard off.
+  const m = spec.match(/its extremes measure\s+\*\*([\d.]+)\s*\/\s*([\d.]+)\s*\/\s*([\d.]+):1\*\*/);
+  assert.ok(m, 'the spec no longer states the moon ramp\'s three extremes as '
+    + '"its extremes measure **a / b / c:1**"');
+  const stated = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+
+  const measured = [];
+  ['light', 'dark'].forEach(function (mode) {
+    const first = moonBandColor(0, mode);
+    const last = moonBandColor(RIBBON_BAND_COUNT - 1, mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      measured.push(contrast(composite(first.rgb, first.alpha, bg),
+                             composite(last.rgb, last.alpha, bg)));
+    });
+  });
+
+  console.log('\n  spec extremes stated ' + stated.map(function (v) { return v.toFixed(3); }).join(' / ')
+    + '  measured ' + measured.map(function (v) { return v.toFixed(3); }).join(' / '));
+  assert.strictEqual(measured.length, stated.length,
+    'the spec states ' + stated.length + ' extremes but the ramp has ' + measured.length + ' real backgrounds');
+  measured.forEach(function (value, i) {
+    assert.ok(
+      Math.abs(value - stated[i]) < 0.001,
+      'the spec states ' + stated[i] + ':1 for the moon ramp\'s extremes on background ' + i
+        + ', but the shipped alphas measure ' + value.toFixed(3) + ':1'
+    );
+  });
+});
+
+test('the moon ramp is defined for both themes and never scoped to body.constellation (D8)', function () {
+  // moonBandColor, not ruleDeclarations: .dl-moon-band-4 is also the last
+  // name in the shared band-0..4 geometry selector, so a first-match
+  // lookup finds stroke-width/fill and no colour at all — the same trap
+  // ribbonBandColor documents above.
+  for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
+    const c = moonBandColor(i, 'light');
+    assert.ok(c && c.rgb && c.rgb.length === 3,
+      '.dl-moon-band-' + i + ' has no light-theme stroke colour');
+  }
+  assert.ok(
+    !/body\.constellation\s+\.dl-moon-band-\d/.test(daylightCss),
+    'css/daylight.css scopes a moon band to body.constellation — star mode and plain dark can diverge, '
+      + 'which is exactly how the ribbon shipped invisible in plain dark'
+  );
+  assert.ok(
+    /html\[data-theme="dark"\]\s+\.dl-moon-band-4/.test(daylightCss),
+    'the moon ramp has no html[data-theme="dark"] rule — it would render at light-theme alpha on dark backgrounds'
+  );
+});
+
 console.log(count + ' passed');
