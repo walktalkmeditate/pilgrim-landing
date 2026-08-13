@@ -1528,6 +1528,107 @@ ok(typeof block.phaseFirst === 'number' && typeof block.phaseLast === 'number',
 ok(Math.abs(block.phaseLast - block.phaseFirst) > 0.1,
   'shikoku-88: the 6-night block spans a real stretch of the lunation');
 
+/* =============================================
+   Slice 3, Task 4 — nightSummarySentence (spec D5, D7, D10; AC #11, #13)
+
+   The sentence is the strip's text equivalent, so its hardest
+   requirement is the one the ribbon learned the expensive way: every
+   night it names must be a night the strip actually draws. The parse-back
+   check below reads the night numbers back out of the finished prose and
+   demands a cell for each.
+   ============================================= */
+
+console.log('\n=== nightSummarySentence — and the nights it names are the nights drawn ===\n');
+
+function sentenceFor(routeId, startDate) {
+  var cells = cellsFor(routeId, startDate);
+  return {
+    cells: cells,
+    text:  N.nightSummarySentence(cells, N.selectNotableNights(cells), startDate)
+  };
+}
+
+var francesSent = sentenceFor('camino-frances', WALK_START);
+
+ok(francesSent.text.indexOf('33 nights from 12 October') === 0,
+  'camino-frances: opens with the walk length and start date');
+ok(francesSent.text.indexOf('night 27') !== -1, 'camino-frances: names night 27 as the sky night');
+ok(francesSent.text.indexOf('O Cebreiro') !== -1, 'camino-frances: names where night 27 is');
+ok(francesSent.text.indexOf('Night 15 holds') !== -1,
+  'camino-frances: names night 15 as the lantern night, with singular agreement');
+
+// A block is plural, and the prose has to agree with itself.
+var shikokuLanternSent = sentenceFor('shikoku-88', WALK_START).text;
+ok(shikokuLanternSent.indexOf('hold usable moonlight') !== -1,
+  'shikoku-88: a multi-night block reads "Nights 11 to 16 hold", not "holds"');
+ok(shikokuLanternSent.indexOf('holds usable') === -1,
+  'shikoku-88: no singular verb on a plural block');
+
+// AC #11 — the stated-vs-drawn check. Read every night number back out
+// of the prose and demand a cell that starts on it. The ribbon shipped a
+// sentence whose percentages disagreed with its own strip; this is the
+// same class of defect one layer up.
+// Case-INSENSITIVE deliberately. The lantern clause starts a sentence, so
+// it reads "Night 15 holds..." — a case-sensitive regex silently skipped
+// it and this whole check passed while only ever examining the sky night.
+function namedNights(text) {
+  var out = [], m, re = /nights? (\d+)(?: to (\d+))?/gi;
+  while ((m = re.exec(text)) !== null) {
+    out.push(parseInt(m[1], 10));
+    if (m[2]) out.push(parseInt(m[2], 10));
+  }
+  return out;
+}
+
+var ALL_ROUTES = CUMULATIVE_ROUTES.concat(['shikoku-88']);
+ALL_ROUTES.forEach(function (routeId) {
+  var s = sentenceFor(routeId, WALK_START);
+  ok(s.text.length > 0, routeId + ': produces a sentence');
+
+  var totalNights = s.cells.reduce(function (a, c) { return a + c.nights; }, 0);
+  ok(s.text.indexOf(totalNights + ' nights') !== -1 || totalNights === 1,
+    routeId + ': states its own night count (' + totalNights + ')');
+
+  // Every night named must start a real cell, and must be inside the walk.
+  var named = namedNights(s.text).filter(function (n) { return n !== totalNights; });
+  var starts = {}, spans = {};
+  s.cells.forEach(function (c) {
+    starts[c.firstNight] = true;
+    for (var k = 0; k < c.nights; k++) spans[c.firstNight + k] = true;
+  });
+  var allDrawn = named.every(function (n) { return spans[n] === true; });
+  ok(allDrawn, routeId + ': every night named in the prose is a night the strip draws');
+  ok(named.every(function (n) { return n >= 1 && n <= totalNights; }),
+    routeId + ': every night named is inside the walk');
+});
+
+// kumano-kodo: flat band, so no sky clause may appear in the prose —
+// not merely a null in the selection.
+var kumanoSent = sentenceFor('kumano-kodo', WALK_START);
+ok(kumanoSent.text.indexOf('Darkest sky') === -1,
+  'kumano-kodo: the prose contains no darkest-sky claim');
+ok(kumanoSent.text.indexOf('4 nights') !== -1, 'kumano-kodo: still states its length');
+
+// camino-ingles: no lantern clause in the prose.
+var inglesSent = sentenceFor('camino-ingles', WALK_START);
+ok(inglesSent.text.indexOf('moonlight') === -1,
+  'camino-ingles: the prose promises no moonlight it cannot deliver');
+ok(inglesSent.text.indexOf('Darkest sky') !== -1,
+  'camino-ingles: but it does still name a darkest sky');
+
+// shikoku-88: blocks read as ranges, and the unplaced quarter is stated
+// rather than left for the reader to notice as a gap-riddled strip.
+var shikokuSent = sentenceFor('shikoku-88', WALK_START);
+ok(/nights \d+ to \d+/.test(shikokuSent.text),
+  'shikoku-88: a multi-night block is named as a range, not a single night');
+ok(shikokuSent.text.indexOf('between temple clusters') !== -1,
+  'shikoku-88: the prose says why a quarter of the strip is empty');
+ok(shikokuSent.text.indexOf('32 nights') !== -1, 'shikoku-88: states 32 nights');
+
+var t1 = sentenceFor('camino-frances', WALK_START).text;
+var t2 = sentenceFor('camino-frances', WALK_START).text;
+ok(t1 === t2, 'nightSummarySentence is pure (identical args -> identical result)');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

@@ -233,6 +233,77 @@
     return { sky: sky, lantern: lantern };
   }
 
+  var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+                     'July', 'August', 'September', 'October', 'November', 'December'];
+
+  // "night 27", or "nights 11 to 16" for one of shikoku's blocks. The
+  // strip draws one cell either way; the prose has to say which nights
+  // that cell stands for, or a reader counting forward from their start
+  // date lands on the wrong day.
+  function nightLabel(cell) {
+    if (cell.nights <= 1) return 'night ' + cell.firstNight;
+    return 'nights ' + cell.firstNight + ' to ' + (cell.firstNight + cell.nights - 1);
+  }
+
+  function usableFracPhrase(frac) {
+    if (frac >= 0.95) return 'the whole night through';
+    if (frac >= 0.5)  return 'for most of the night';
+    return 'for part of the night';
+  }
+
+  function nightsLeadIn(cells, startDate) {
+    var total = cells.reduce(function (a, c) { return a + c.nights; }, 0);
+    return total + (total === 1 ? ' night from ' : ' nights from ')
+      + startDate.getUTCDate() + ' ' + MONTH_NAMES[startDate.getUTCMonth()] + '.';
+  }
+
+  function skyClause(sky) {
+    if (!sky) return '';
+    return ' Darkest sky on ' + nightLabel(sky) + ', ' + sky.stageName + ', with no moon.';
+  }
+
+  function lanternClause(lantern) {
+    if (!lantern) return '';
+    var label = nightLabel(lantern);
+    // "Night 15 holds", but "Nights 11 to 16 hold" — a block is plural.
+    var verb = lantern.nights > 1 ? ' hold ' : ' holds ';
+    return ' ' + label.charAt(0).toUpperCase() + label.slice(1)
+      + verb + 'usable moonlight ' + usableFracPhrase(lantern.moon.usableFrac) + '.';
+  }
+
+  // Shikoku's stages are temple clusters with long unwalked stretches
+  // between them, so more than a quarter of its strip is deliberately
+  // empty. Saying so is cheaper than letting a reader read the gaps as a
+  // rendering fault — and this is the only route it fires on.
+  function unplacedClause(cells, coveredKm) {
+    if (!cells.length || !(coveredKm > 0)) return '';
+    var placed = cells.reduce(function (a, c) { return a + (c.hiKm - c.loKm); }, 0);
+    var unplacedFrac = 1 - (placed / coveredKm);
+    if (unplacedFrac < 0.05) return '';
+    return ' The stretches between temple clusters, '
+      + Math.round(unplacedFrac * 100) + '% of the route, are not placed.';
+  }
+
+  /*
+   * nightSummarySentence(cells, notable, startDate, coveredKm) — the
+   * strip's text equivalent (D10) and its quiet close (D7).
+   *
+   * Assembled from clauses that each return '' when they have nothing
+   * true to say, the same shape darknessSummarySentence uses. The
+   * suppressed clauses simply do not appear; nothing hedges.
+   */
+  function nightSummarySentence(cells, notable, startDate, coveredKm) {
+    if (!cells || !cells.length) return '';
+    var span = coveredKm;
+    if (!(span > 0)) {
+      span = cells.reduce(function (a, c) { return Math.max(a, c.hiKm); }, 0);
+    }
+    return nightsLeadIn(cells, startDate)
+      + skyClause(notable.sky)
+      + lanternClause(notable.lantern)
+      + unplacedClause(cells, span);
+  }
+
   var api = {
     NIGHT_SAMPLES:         NIGHT_SAMPLES,
     USABLE_LUX:            USABLE_LUX,
@@ -241,7 +312,8 @@
     nightMoonLux:          nightMoonLux,
     moonBandForLux:        moonBandForLux,
     buildNightCells:       buildNightCells,
-    selectNotableNights:   selectNotableNights
+    selectNotableNights:   selectNotableNights,
+    nightSummarySentence:  nightSummarySentence
   };
 
   if (typeof module !== 'undefined' && module.exports) {
