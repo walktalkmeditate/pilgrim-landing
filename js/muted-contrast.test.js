@@ -364,14 +364,34 @@ test('daylight ribbon caption/summary (outside-SVG text) clear AA for small text
    body.constellation colour selector is gone rather than trusting two
    themes to coincide by luck.
 
-   Each mode is also swept solid and dashed (Finding 3): the dash
-   pattern's own gaps let the background show through, so a stroke
-   that's only painted a fraction `d` of the time (stroke-dasharray's
-   own on/off pair, parsed below rather than hand-restated) composites
-   the same as a solid stroke at `d` times the alpha — a shipped route
-   (Shikoku, the only multi-band unvalidated route) fell under both
-   floors once that dilution was accounted for, while this file asserted
-   nothing about .dl-ribbon-unvalidated at all. */
+   Every mode is composited over EVERY background it really renders on,
+   not just one per mode. Star mode paints #0a0a12 (css/styles.css,
+   body.constellation) while plain dark paints --parchment #1C1914, and
+   both resolve the same html[data-theme="dark"] ramp — sweeping only
+   #1C1914 left the star background untested. It happens to clear every
+   floor today, which is exactly the shape of the blind spot that let
+   plain dark ship at 1.09:1: not a live defect, but nothing was holding
+   it true either.
+
+   The dashed sweep (Finding 3, then Finding 6) runs on REAL merged runs,
+   not an abstract five-step ramp. The dash pattern's gaps let the
+   background through, so a stroke painted a fraction `d` of the time
+   composites the same as a solid stroke at `d` times the alpha — but `d`
+   is not the flat on/(on+off) this file used to assume. stroke-dasharray
+   restarts its phase at every <line> and stroke-dashoffset is never set,
+   so each run starts painted and ends wherever its own length lands
+   inside the period: d = (floor(L/p)×on + min(L mod p, on)) / L, which
+   equals on/(on+off) only when L is a whole number of periods and rises
+   toward 1.0 otherwise. Modelling a flat duty on an abstract ramp
+   reported 1.318:1 for the darkest pair while the pair Shikoku actually
+   draws — band 3's short runs at duty 0.786 against band 4's long ones
+   at 0.754 — sat at 1.239:1, under this file's own floor. So the sweep
+   below reads each dashed route's real merged runs (the same
+   DaylightMath.mergeDarknessRuns output renderRibbon draws), gives every
+   run its own length's duty, and asserts the floors on the pairs the
+   ribbon genuinely puts next to each other. */
+
+const DaylightMath = require('./daylight-math.js');
 
 const RIBBON_BAND_VS_BG_MIN = 1.1;
 const RIBBON_BAND_ADJACENT_MIN = 1.25;
@@ -380,16 +400,55 @@ const RIBBON_BAND_COUNT = 5;
 
 const RIBBON_MODE_SELECTOR_PREFIX = { light: '', dark: 'html[data-theme="dark"] ' };
 
-// The dashed composite's dilution factor, read from the stylesheet's own
-// stroke-dasharray rather than hardcoded — so a future retuning of the
-// dash pattern can't silently desync this test's math from what ships.
-function ribbonUnvalidatedDuty() {
+// Star mode's background is a `background:` on body.constellation in
+// css/styles.css, not a --parchment token, so it needs its own lookup.
+// The rule is written as a two-selector group (html:has(body.constellation),
+// body.constellation) and body.constellation appears again further down
+// for `color:`, so this scans every match and keeps the one that actually
+// declares a background.
+function constellationBackground() {
+  const re = /(^|\n)body\.constellation\s*\{([^}]*)\}/g;
+  let m, found = null;
+  while ((m = re.exec(styles)) !== null) {
+    const bg = m[2].match(/background:\s*(#[0-9A-Fa-f]{6})/);
+    if (bg) found = bg[1];
+  }
+  assert.ok(found, 'expected a body.constellation background colour in css/styles.css');
+  return found;
+}
+
+// Every background each mode's one ramp is really painted onto. js/main.js
+// setTheme puts data-theme="dark" on <html> for BOTH plain dark and star,
+// so the dark ramp has two real backgrounds, not one.
+const RIBBON_BACKGROUNDS = {
+  light: [{ label: STATIC_PARCHMENT.light + ' (light parchment)', rgb: hexToRgb(STATIC_PARCHMENT.light) }],
+  dark: [
+    { label: STATIC_PARCHMENT.dark + ' (dark parchment)', rgb: hexToRgb(STATIC_PARCHMENT.dark) },
+    { label: constellationBackground() + ' (star mode)', rgb: hexToRgb(constellationBackground()) }
+  ]
+};
+
+// The dash pattern, read from the stylesheet's own stroke-dasharray rather
+// than hardcoded — so a future retuning of the dash can't silently desync
+// this test's math from what ships.
+function ribbonDashPattern() {
   const decls = ruleDeclarations(daylightCss, '.dl-ribbon-unvalidated');
   assert.ok(decls, 'expected .dl-ribbon-unvalidated in css/daylight.css');
   const m = decls.match(/stroke-dasharray:\s*([\d.]+)\s+([\d.]+)/);
   assert.ok(m, '.dl-ribbon-unvalidated has no stroke-dasharray: <on> <off> declaration');
   const on = parseFloat(m[1]), off = parseFloat(m[2]);
-  return on / (on + off);
+  return { on: on, off: off, period: on + off };
+}
+
+const DASH = ribbonDashPattern();
+
+// The fraction of a run of length `lengthUnits` that is actually painted.
+// Phase restarts per <line> (one element per run, and stroke-dashoffset is
+// never set), so every run opens on a dash and closes on a partial period.
+function dashDutyFor(lengthUnits) {
+  const wholePeriods = Math.floor(lengthUnits / DASH.period);
+  const remainder = lengthUnits - wholePeriods * DASH.period;
+  return (wholePeriods * DASH.on + Math.min(remainder, DASH.on)) / lengthUnits;
 }
 
 function ribbonBandColor(index, mode, dashed) {
@@ -410,23 +469,55 @@ function ribbonBandColor(index, mode, dashed) {
   }
   assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
   const strokeM = decls.match(/stroke:\s*([^;]+);/);
-  const color = resolveFillColor(strokeM[1].trim(), mode);
-  if (!dashed) return color;
-  return { rgb: color.rgb, alpha: color.alpha * ribbonUnvalidatedDuty() };
+  return resolveFillColor(strokeM[1].trim(), mode);
 }
 
-test('darkness ribbon bands stay pairwise distinguishable in both themes, solid and dashed (D11, Finding 2, Finding 3)', function () {
-  ['light', 'dark'].forEach(function (mode) {
-    [false, true].forEach(function (dashed) {
-      const bg = hexToRgb(STATIC_PARCHMENT[mode]);
-      const composited = [];
-      for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
-        const color = ribbonBandColor(i, mode, dashed);
-        composited.push(composite(color.rgb, color.alpha, bg));
-      }
+/* The real runs, per route: the same mergeDarknessRuns output renderRibbon
+   turns into <line> elements, converted to the ribbon's own drawing units
+   with the same kmToRibbonX arithmetic (fraction of coveredKm across
+   DARKNESS_RIBBON_WIDTH). Read from assets/darkness/ so a re-bake changes
+   what this test measures instead of leaving it asserting a shape that no
+   longer ships. `dashed` mirrors renderRibbon exactly: heldOutValidation
+   !== true, not === false. */
+const DARKNESS_DIR = path.join(ROOT, 'assets/darkness');
 
-      const label = mode + (dashed ? ' dashed (unvalidated)' : ' solid');
-      console.log('\n  darkness ribbon band separation — ' + label + ' (bg ' + STATIC_PARCHMENT[mode] + ')');
+const DARKNESS_ROUTES = fs.readdirSync(DARKNESS_DIR)
+  .filter(function (f) { return /\.json$/.test(f) && f !== 'meta.json'; })
+  .map(function (f) {
+    const artifact = JSON.parse(fs.readFileSync(path.join(DARKNESS_DIR, f), 'utf8'));
+    const windowKm = DaylightMath.darknessAggregateWindowKm(artifact.positionalConfidence);
+    const runs = DaylightMath.mergeDarknessRuns(
+      artifact.values, artifact.stepKm, artifact.coveredKm, windowKm);
+    return {
+      id: f.replace(/\.json$/, ''),
+      dashed: artifact.heldOutValidation !== true,
+      runs: runs.map(function (r) {
+        const lengthUnits = (r.endKm - r.startKm) / artifact.coveredKm * DaylightMath.DARKNESS_RIBBON_WIDTH;
+        return { band: r.band, lengthUnits: lengthUnits, duty: dashDutyFor(lengthUnits) };
+      })
+    };
+  });
+
+const DASHED_ROUTES = DARKNESS_ROUTES.filter(function (r) { return r.dashed; });
+
+test('the dashed sweep has real unvalidated routes to measure (fixture sanity)', function () {
+  assert.ok(DASHED_ROUTES.length > 0,
+    'no artifact in assets/darkness/ renders dashed — the dashed floors below would pass vacuously');
+  assert.ok(DASHED_ROUTES.some(function (r) { return r.runs.length > 1; }),
+    'no dashed route has more than one run — the adjacent-pair floor below would pass vacuously');
+});
+
+test('darkness ribbon bands stay pairwise distinguishable, solid, on every background each theme really paints (D11, Finding 2)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const colors = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) colors.push(ribbonBandColor(i, mode, false));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const composited = colors.map(function (c) { return composite(c.rgb, c.alpha, bg); });
+
+      const label = mode + ' solid over ' + background.label;
+      console.log('\n  darkness ribbon band separation — ' + label);
       composited.forEach(function (c, i) {
         const ratio = contrast(c, bg);
         console.log('    band-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
@@ -456,6 +547,123 @@ test('darkness ribbon bands stay pairwise distinguishable in both themes, solid 
         extremes >= RIBBON_BAND_EXTREMES_MIN,
         label + ' band-0 vs band-4 is ' + extremes.toFixed(3) + ':1, below the ' + RIBBON_BAND_EXTREMES_MIN
           + ':1 extremes floor'
+      );
+    });
+  });
+});
+
+test('dashed bands stay distinguishable on the runs the ribbon actually draws, each at its own length\'s duty (Finding 3, Finding 6)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const colors = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) colors.push(ribbonBandColor(i, mode, true));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+
+      DASHED_ROUTES.forEach(function (route) {
+        const label = mode + ' dashed ' + route.id + ' over ' + background.label;
+        console.log('\n  darkness ribbon band separation — ' + label);
+
+        const composited = route.runs.map(function (run) {
+          return composite(colors[run.band].rgb, colors[run.band].alpha * run.duty, bg);
+        });
+
+        route.runs.forEach(function (run, i) {
+          const ratio = contrast(composited[i], bg);
+          console.log('    run ' + i + '  band-' + run.band + '  L=' + run.lengthUnits.toFixed(2)
+            + 'u  duty=' + run.duty.toFixed(4) + '  effective alpha '
+            + (colors[run.band].alpha * run.duty).toFixed(4) + '  vs bg = ' + ratio.toFixed(3) + ':1');
+          assert.ok(
+            ratio >= RIBBON_BAND_VS_BG_MIN,
+            label + ' run ' + i + ' (band-' + run.band + ') is ' + ratio.toFixed(3)
+              + ':1 against its page background, below the ' + RIBBON_BAND_VS_BG_MIN + ':1 floor'
+          );
+        });
+
+        for (let i = 0; i < composited.length - 1; i++) {
+          const ratio = contrast(composited[i], composited[i + 1]);
+          console.log('    run ' + i + ' (band-' + route.runs[i].band + ') -> run ' + (i + 1)
+            + ' (band-' + route.runs[i + 1].band + ')  = ' + ratio.toFixed(3) + ':1');
+          assert.ok(
+            ratio >= RIBBON_BAND_ADJACENT_MIN,
+            label + ' run ' + i + ' (band-' + route.runs[i].band + ', duty ' + route.runs[i].duty.toFixed(4)
+              + ') against run ' + (i + 1) + ' (band-' + route.runs[i + 1].band + ', duty '
+              + route.runs[i + 1].duty.toFixed(4) + ') is ' + ratio.toFixed(3) + ':1, below the '
+              + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+          );
+        }
+      });
+    });
+  });
+});
+
+/* A run shorter than one dash renders fully painted — duty 1.0 — because
+   the phase starts on a dash. Nothing ships that short today (Shikoku's
+   narrowest is 18.66u), but it is one re-bake away, and it inverts bands
+   rather than merely dimming them: a short dashed band-1 run at full duty
+   composites darker than a long dashed band-2 run at 0.75, so the reader
+   reads the wrong band entirely. The sweep above would catch it only if
+   the two happened to end up adjacent; this catches the shape itself. */
+test('no dashed run is short enough to render fully solid (Finding 6)', function () {
+  DASHED_ROUTES.forEach(function (route) {
+    route.runs.forEach(function (run, i) {
+      assert.ok(
+        run.lengthUnits > DASH.on,
+        route.id + ' run ' + i + ' (band-' + run.band + ') is ' + run.lengthUnits.toFixed(2)
+          + ' units long, not longer than the ' + DASH.on + '-unit dash — it renders fully solid (duty '
+          + run.duty.toFixed(3) + ') and can read as a darker band than it is'
+      );
+    });
+  });
+});
+
+/* The sweep above can only measure band pairs that some shipped route
+   actually draws next to each other — today that is bands 2, 3 and 4.
+   This closes the rest of the ramp against the duty spread those real
+   runs establish: every adjacent pair is measured with the brighter band
+   at the highest duty any real run reaches and the darker band at the
+   dash's nominal floor, which is the worst pairing the spread permits.
+   The duty numbers are the real ones, not a flat model — that flat model
+   is precisely what reported 1.318:1 for a pair sitting at 1.239:1. */
+test('the whole dashed ramp holds its floors across the duty spread the real runs exhibit (Finding 6)', function () {
+  const duties = DASHED_ROUTES.reduce(function (all, route) {
+    return all.concat(route.runs.map(function (run) { return run.duty; }));
+  }, []);
+  const dutyCeiling = Math.max.apply(null, duties);
+  const dutyFloor = DASH.on / DASH.period;
+  assert.ok(dutyCeiling >= dutyFloor, 'a real run cannot be painted less than the nominal duty');
+
+  ['light', 'dark'].forEach(function (mode) {
+    const colors = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) colors.push(ribbonBandColor(i, mode, true));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const label = mode + ' dashed ramp over ' + background.label;
+      console.log('\n  darkness ribbon dashed ramp, worst duty pairing — ' + label
+        + '  (duty ' + dutyFloor.toFixed(4) + '..' + dutyCeiling.toFixed(4) + ')');
+
+      const brightest = colors.map(function (c) { return composite(c.rgb, c.alpha * dutyCeiling, bg); });
+      const darkest = colors.map(function (c) { return composite(c.rgb, c.alpha * dutyFloor, bg); });
+
+      for (let i = 0; i < RIBBON_BAND_COUNT - 1; i++) {
+        const ratio = contrast(brightest[i], darkest[i + 1]);
+        console.log('    band-' + i + ' at duty ' + dutyCeiling.toFixed(4) + ' -> band-' + (i + 1)
+          + ' at duty ' + dutyFloor.toFixed(4) + '  = ' + ratio.toFixed(3) + ':1');
+        assert.ok(
+          ratio >= RIBBON_BAND_ADJACENT_MIN,
+          label + ' band-' + i + '->band-' + (i + 1) + ' is ' + ratio.toFixed(3)
+            + ':1 at the worst duty pairing the real runs permit, below the '
+            + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+        );
+      }
+
+      const extremes = contrast(brightest[0], darkest[RIBBON_BAND_COUNT - 1]);
+      console.log('    band-0 -> band-4 (extremes, worst duty pairing) = ' + extremes.toFixed(3) + ':1');
+      assert.ok(
+        extremes >= RIBBON_BAND_EXTREMES_MIN,
+        label + ' band-0 vs band-4 is ' + extremes.toFixed(3) + ':1 at the worst duty pairing, below the '
+          + RIBBON_BAND_EXTREMES_MIN + ':1 extremes floor'
       );
     });
   });

@@ -519,18 +519,50 @@ body.constellation .dl-bar-waypoint {
    multi-band unvalidated route (Finding 3). js/muted-contrast.test.js
    never rendered the dashed variant, so nothing caught it.
 
-   Fix, in two parts: the dasharray widens to 6-2 (d = 0.75 — still
-   unmistakably dashed against a solid run) and each band gets its own
-   alpha for the unvalidated case specifically, chosen so that
-   solid_alpha = unvalidated_alpha × 0.75 exactly — the dashed composite
-   reproduces the already-verified solid ramp's own numbers once its
-   own dilution is accounted for, rather than a separately-guessed one.
+   Fix, in two parts: the dasharray widens to 6-2 (still unmistakably
+   dashed against a solid run) and each band gets its own alpha for the
+   unvalidated case specifically, so the dashed composite is tuned
+   against the already-verified solid ramp's own numbers rather than
+   separately guessed.
    (The alternative — carrying "unvalidated" on a channel that removes
    no paint at all, e.g. a second overlaid mark instead of a dasharray —
    would dodge the dilution question entirely, but costs an extra
    element per run for a signal the reader only needs to notice once per
    ribbon, not per band; re-tuning the existing channel is the smaller
-   change for the same guarantee.) */
+   change for the same guarantee.)
+
+   `d` is NOT a flat 0.75. stroke-dasharray's phase restarts at every
+   <line> and stroke-dashoffset is never set, so every run begins on a
+   painted dash and ends wherever its own length happens to fall inside
+   the 8-unit period. A run of length L is painted
+   (floor(L/8)×6 + min(L mod 8, 6)) / L of the time — 0.75 only when L is
+   a whole number of periods, and up to 1.0 otherwise. The four run
+   lengths Shikoku actually draws (18.66 / 37.32 / 74.63 / 186.58 user
+   units — it is the only multi-band unvalidated route) come out at
+   0.786 / 0.786 / 0.759 / 0.754.
+
+   That spread is why bands 3 and 4 sit ABOVE the ×0.75 line rather than
+   on it. At the flat-0.75 alphas the error is as large as the step
+   between the two darkest bands, and it points the wrong way: band 3's
+   runs are the short ones (duty 0.786) and band 4's the long ones (duty
+   0.754), so band 3 composited DARKER than band 4 and the pair measured
+   1.239:1 — under this file's own 1.25:1 adjacent floor, on the one
+   route that renders dashed. Bands 3 and 4 are raised until a ~5% duty
+   error can no longer close the gap. What the two ramps hold now:
+
+     band 0-2: unvalidated_alpha × 0.75 == solid_alpha to the nearest
+               0.01 (deviation at most 0.0025 alpha)
+     band 3-4: deliberately above that line (light +0.02 and +0.0525,
+               dark +0.01 and +0.0325 of composited alpha), which is the
+               separation headroom the duty spread costs
+
+   js/muted-contrast.test.js measures this against the REAL merged runs
+   of every dashed route, each at its own length's duty, and asserts the
+   floor on the pairs the ribbon actually draws — the previous version
+   modelled a flat 0.75 on an abstract five-step ramp, reported
+   1.318:1, and passed while the real pair sat at 1.239:1. It also fails
+   if any dashed run is ≤ 6 units long, since such a run renders fully
+   solid (duty 1.0) and could read a whole band darker than it is. */
 .dl-ribbon-unvalidated {
   stroke-dasharray: 6 2;
 }
@@ -538,8 +570,8 @@ body.constellation .dl-bar-waypoint {
 .dl-ribbon-band-0.dl-ribbon-unvalidated { stroke: rgba(184, 175, 162, 0.40); }
 .dl-ribbon-band-1.dl-ribbon-unvalidated { stroke: rgba(152, 148, 144, 0.65); }
 .dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(120, 121, 125, 0.76); }
-.dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(87, 93, 107, 0.81); }
-.dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(55, 66, 88, 0.84); }
+.dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(87, 93, 107, 0.84); }
+.dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(55, 66, 88, 0.91); }
 
 .dl-ribbon-label {
   font-family: 'Lato', sans-serif;
@@ -1108,16 +1140,22 @@ html[data-theme="dark"] .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
 html[data-theme="dark"] .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
 html[data-theme="dark"] .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
 
-/* Dashed/unvalidated colour, dark theme — same duty-cycle-compensation
+/* Dashed/unvalidated colour, dark theme — same duty-cycle compensation
    as the light-mode .dl-ribbon-band-N.dl-ribbon-unvalidated rules
-   above, same reasoning (Finding 3): solid_alpha = unvalidated_alpha ×
-   0.75 exactly, so the dashed composite reproduces the solid ramp two
-   rules up once its own 6-2 dasharray dilution is accounted for. */
+   above, same reasoning (Finding 3), and the same two-part relationship
+   to the solid ramp two rules up: bands 0-2 hold
+   unvalidated_alpha × 0.75 == solid_alpha to the nearest 0.01
+   (deviation at most 0.0025 alpha); bands 3 and 4 sit above that line
+   (+0.01 and +0.0325 of composited alpha) because the dash's real duty
+   is not a flat 0.75 — see the full derivation on the light-mode rules.
+   Without that headroom the darkest pair measured 1.254:1 here, close
+   enough to the 1.25:1 floor that a re-baked run length could push it
+   under. */
 html[data-theme="dark"] .dl-ribbon-band-0.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.13); }
 html[data-theme="dark"] .dl-ribbon-band-1.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.25); }
 html[data-theme="dark"] .dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.36); }
-html[data-theme="dark"] .dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.47); }
-html[data-theme="dark"] .dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.59); }
+html[data-theme="dark"] .dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.48); }
+html[data-theme="dark"] .dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(232, 224, 255, 0.63); }
 
 body.constellation .dl-ribbon-label {
   /* fill-opacity: 0.75 carries over from the light-mode rule above unless

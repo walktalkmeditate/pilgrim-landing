@@ -160,6 +160,12 @@ function failDarkness(routeId) {
   xhr.onerror();
 }
 
+function failStage(routeId) {
+  var xhr = pendingXHR('/assets/daylight/' + routeId + '.json');
+  ok(xhr !== null, 'fixture sanity: a pending stage XHR exists for ' + routeId + '.json (to fail)');
+  xhr.onerror();
+}
+
 var warnings = [];
 var realWarn = console.warn;
 console.warn = function () {
@@ -301,6 +307,69 @@ equal(ribbonSummary.textContent, '', 'after a failed fetch: summary paragraph st
 ok(warnings.length > warningsBefore, 'a console.warn was logged naming the failed route');
 ok(warnings[warnings.length - 1].indexOf('camino-norte') !== -1, 'the warning names the route that failed (camino-norte)');
 
+/* ==========================================
+   The malformed-artifact warning has to be reachable FROM THE PAGE.
+   js/daylight-render.test.js already proves renderRibbon warns — but it
+   calls renderRibbon directly, and on the real page ribbonSectionHidden
+   runs the same shape check first and short-circuits, so renderRibbon was
+   never reached for a malformed artifact and its warning could not fire.
+   Verified through this harness with stepKm deleted before the fix: wrap
+   hidden, zero bands, no throw, and console.warn captured exactly [].
+   ========================================== */
+
+console.log('\n=== A shape-malformed artifact warns through the real wiring, not only through renderRibbon ===\n');
+
+var malformedBody = JSON.parse(darknessFixtureText('camino-portugues'));
+delete malformedBody.stepKm;
+
+var warningsBeforeMalformed = warnings.length;
+selectRoute('camino-portugues');
+resolveDarkness('camino-portugues', JSON.stringify(malformedBody));
+
+equal(ribbonWrap.hidden, true, 'a shape-malformed artifact leaves the ribbon section hidden');
+equal(bandCount(), 0, 'a shape-malformed artifact draws no band geometry');
+equal(ribbonSummary.textContent, '', 'a shape-malformed artifact leaves the summary paragraph empty');
+equal(warnings.length - warningsBeforeMalformed, 1,
+  'exactly one console.warn reaches the console from the page for a shape-malformed artifact (it used to be zero — the warning was unreachable)');
+var malformedWarning = warnings[warnings.length - 1];
+ok(malformedWarning.indexOf('camino-portugues') !== -1,
+  'the malformed-artifact warning names the route (camino-portugues)');
+ok(malformedWarning.indexOf('stepKm') !== -1,
+  'the malformed-artifact warning names the offending field (stepKm): ' + JSON.stringify(malformedWarning));
+
+/* ==========================================
+   Finding 1, the other half of the darkness guard — xhr.onerror's own
+   currency check. The scenario above only ever fails the route that is
+   still current, where `if (routeId !== _currentRoute) return;` is a
+   no-op: deleting that line left this suite at 38 passed / 0 failed.
+   This is the sequence that actually needs it — a route the reader has
+   LEFT failing while a different, valid ribbon is on screen. Without the
+   guard, the stale failure hides and clears the ribbon belonging to the
+   route the reader is actually looking at.
+   ========================================== */
+
+console.log('\n=== Finding 1 (darkness onerror) — a stale fetch failure does not clear the ribbon of the route now on screen ===\n');
+
+// camino-ingles is fresh (never fetched in this file before now), so
+// selecting it issues a real XHR and leaves it in flight.
+selectRoute('camino-ingles');
+ok(pendingXHR('/assets/darkness/camino-ingles.json') !== null, 'camino-ingles’ darkness fetch is in flight');
+
+// camino-frances was cached back in the Finding 4 section, so this renders
+// synchronously while camino-ingles’ request is still outstanding.
+selectRoute('camino-frances');
+var francesBandsOnScreen = bandCount();
+var francesSentenceOnScreen = ribbonSummary.textContent;
+ok(francesBandsOnScreen > 1, 'camino-frances renders instantly from cache while camino-ingles is still in flight');
+equal(ribbonWrap.hidden, false, 'camino-frances’ ribbon is visible before the stale failure lands');
+ok(francesSentenceOnScreen.indexOf('763.7') !== -1, 'the visible summary is camino-frances’ own');
+
+failDarkness('camino-ingles');
+
+equal(bandCount(), francesBandsOnScreen, 'after camino-ingles’ stale failure: camino-frances’ bands are all still drawn');
+equal(ribbonWrap.hidden, false, 'after camino-ingles’ stale failure: the ribbon is still visible — the failure did not hide a route it has nothing to do with');
+equal(ribbonSummary.textContent, francesSentenceOnScreen, 'after camino-ingles’ stale failure: camino-frances’ summary sentence is untouched, byte for byte');
+
 console.warn = realWarn;
 
 /* ==========================================
@@ -352,6 +421,89 @@ alphaXhr.onload();
 
 arrEqualStageTexts(['Choose a stage…', 'Beta stage 0', 'Beta stage 1'], stageOptionTexts(),
   'route-alpha’s stale stage response does NOT repopulate the picker — route-beta’s options are untouched');
+
+/* ==========================================
+   Finding 1 (loadStageData onerror) — the same currency guard on the
+   stage fetch's FAILURE path, which had exactly the same hole as the
+   darkness one: every existing scenario failed the route that was still
+   current, so `if (routeId !== _currentRoute) return;` was a no-op and
+   deleting it changed nothing this suite could see. dom.result had zero
+   references anywhere in the repo's tests.
+
+   Both halves are asserted, so the guard and the behaviour it guards each
+   get real coverage: a STALE failure must not write over the bar, and a
+   CURRENT failure must still tell the reader what went wrong.
+   ========================================== */
+
+console.log('\n=== Finding 1 (stage onerror) — a stale stage failure does not overwrite the bar, a current one still reports ===\n');
+
+var resultEl = elementsById['dl-result'];
+ok(resultEl !== undefined, 'fixture sanity: dl-result element was looked up during setup');
+
+selectRoute('route-gamma');
+ok(pendingXHR('/assets/daylight/route-gamma.json') !== null, 'route-gamma’s stage fetch is in flight');
+
+selectRoute('route-delta');
+ok(pendingXHR('/assets/daylight/route-delta.json') !== null, 'route-delta’s stage fetch is in flight');
+
+// Written after the last route change, because a route change clears the
+// result paragraph itself — this stands in for whatever the bar had
+// computed for the route the reader is actually on.
+var barOutputOnScreen = 'Set out 06:12 — the bar’s own output for route-delta.';
+resultEl.textContent = barOutputOnScreen;
+
+failStage('route-gamma');
+equal(resultEl.textContent, barOutputOnScreen,
+  'route-gamma’s stale stage failure leaves the bar’s own output untouched — no "Couldn’t load stage data for route-gamma" over the top of a different route’s reading');
+
+failStage('route-delta');
+ok(resultEl.textContent.indexOf("Couldn't load stage data") !== -1,
+  'route-delta’s own stage failure DOES report — the guard suppresses stale failures, not the message itself');
+ok(resultEl.textContent.indexOf('route-delta') !== -1,
+  'the reported stage failure names the route that actually failed (route-delta): ' + JSON.stringify(resultEl.textContent));
+
+/* ==========================================
+   Finding 9 — the two hide paths disagreed about which nodes have to
+   exist. renderDarknessRibbon guards both dl-ribbon-wrap and
+   dl-ribbon-svg; updateRibbonForRoute guarded only the wrap, then handed
+   the missing svg straight to clearRibbonDisplay -> clearSVG, which
+   dereferences .firstChild. A page shipping the wrap without the svg
+   would have thrown on every route change and been fine on every
+   re-render — two answers to one question.
+
+   Loaded as a SECOND instance of the module, against a document that now
+   answers null for dl-ribbon-svg alone. The instance driving everything
+   above cached its own (present) nodes back at DOMContentLoaded, so it
+   keeps working; both instances' change handlers fire on the shared
+   dl-route element, which is exactly what makes this a real test — the
+   throw would come out of the second one and propagate through the
+   event. This runs last for that reason.
+   ========================================== */
+
+console.log('\n=== Finding 9 — a page with the ribbon wrap but no ribbon svg hides quietly instead of throwing ===\n');
+
+ABSENT_IDS['dl-ribbon-svg'] = true;
+delete require.cache[require.resolve('./daylight.js')];
+require('./daylight.js');
+
+var readyListeners = document._listeners['DOMContentLoaded'];
+equal(readyListeners.length, 2, 'fixture sanity: the second module instance registered its own DOMContentLoaded listener');
+ok(document.getElementById('dl-ribbon-svg') === null, 'fixture sanity: dl-ribbon-svg is now absent from the document');
+
+var svgLessThrew = false;
+var svgLessError = '';
+try {
+  readyListeners[1]();
+  var secondMetaXhr = pendingXHR('/assets/daylight/route-meta.json');
+  secondMetaXhr.status = 200;
+  secondMetaXhr.responseText = fs.readFileSync(path.join(__dirname, '..', 'assets', 'daylight', 'route-meta.json'), 'utf8');
+  secondMetaXhr.onload();
+  selectRoute('camino-primitivo');
+} catch (e) {
+  svgLessThrew = true;
+  svgLessError = e && e.message;
+}
+ok(!svgLessThrew, 'selecting a route on a page whose ribbon svg is missing does not throw' + (svgLessThrew ? ' — threw: ' + svgLessError : ''));
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

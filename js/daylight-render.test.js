@@ -656,7 +656,7 @@ var svgFrancesRibbon = makeNode('svg');
 var summaryFrances   = makeNode('p');
 Daylight.renderRibbon(francesArtifact, svgFrancesRibbon, 'km', STATED_DISTANCE_KM['camino-frances'], summaryFrances);
 var francesRuns = elementsWithClassPrefix(svgFrancesRibbon, 'dl-ribbon-band-');
-equal(francesRuns.length, 108, 'real camino-frances (withinInterpolationLimit true): 108 runs after sub-pixel absorption (128 raw band-change points, 20 narrower than one drawn pixel at desktop) — matches js/daylight-math.test.js exactly');
+equal(francesRuns.length, 94, 'real camino-frances (withinInterpolationLimit true): 94 runs after sub-pixel absorption and the same-band coalescing it makes necessary (128 raw band-change points, 20 narrower than one drawn pixel at desktop, then 14 same-band adjacencies merged) — matches js/daylight-math.test.js exactly');
 ok(francesRuns.every(onRibbonRow), 'camino-frances: every run sits on the ribbon\'s own y row (y1=y2=' + RIBBON_Y + '), not just correct on x');
 
 var svgKumanoRibbon = makeNode('svg');
@@ -943,18 +943,68 @@ function malformedArtifactFixture(mutate) {
   return fixture;
 }
 
+// The first cut of this guard only checked that the CONTAINER each field
+// arrives in exists — positionalConfidence being an object, values being a
+// non-empty array — not the values the math then dereferences out of them.
+// Everything from "positionalConfidence: {}" down was reachable through the
+// real page wiring with the guard already in place: a missing p90GapKm made
+// darknessAggregateWindowKm return NaN and `buckets[NaN].push` throw a
+// TypeError straight out of xhr.onload; a p90GapKm of 0 made numWindows
+// Infinity and the bucket loop ran node out of 4 GB (a frozen tab, in a
+// browser); a non-finite coveredKm slipped past isNaN() and produced the
+// `<line x2="NaN">` geometry this guard was added to stop; and a
+// non-numeric values[] entry classified as band 0 — the BRIGHTEST band, a
+// darkness instrument failing toward "less dark", the one direction it
+// must never fail in. `field` below is the exact substring the warning has
+// to name, so a fixture that starts hiding for a DIFFERENT reason than the
+// one it was written for goes red instead of passing quietly.
 var malformedFixtures = [
   { field: 'positionalConfidence', build: function () { return malformedArtifactFixture(function (f) { delete f.positionalConfidence; }); } },
   { field: 'coveredKm',            build: function () { return malformedArtifactFixture(function (f) { delete f.coveredKm; }); } },
   { field: 'stepKm',               build: function () { return malformedArtifactFixture(function (f) { delete f.stepKm; }); } },
-  { field: 'values',               build: function () { return malformedArtifactFixture(function (f) { f.values = []; }); } }
+  { field: 'values',               build: function () { return malformedArtifactFixture(function (f) { f.values = []; }); } },
+
+  { label: 'positionalConfidence: {} (present, but empty)',
+    field: 'positionalConfidence.withinInterpolationLimit',
+    build: function () { return malformedArtifactFixture(function (f) { f.positionalConfidence = {}; }); } },
+  { label: 'withinInterpolationLimit non-boolean (the string "true")',
+    field: 'positionalConfidence.withinInterpolationLimit',
+    build: function () { return malformedArtifactFixture(function (f) { f.positionalConfidence.withinInterpolationLimit = 'true'; }); } },
+  { label: 'withinInterpolationLimit false with no p90GapKm (NaN window -> buckets[NaN].push)',
+    field: 'positionalConfidence.p90GapKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.positionalConfidence = { interpolatedFraction: 0.006, maxGapKm: 13, withinInterpolationLimit: false }; }); } },
+  { label: 'p90GapKm 0 (Infinity windows -> unbounded allocation)',
+    field: 'positionalConfidence.p90GapKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.positionalConfidence.withinInterpolationLimit = false; f.positionalConfidence.p90GapKm = 0; }); } },
+  { label: 'p90GapKm null (same unbounded allocation, different shape)',
+    field: 'positionalConfidence.p90GapKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.positionalConfidence.withinInterpolationLimit = false; f.positionalConfidence.p90GapKm = null; }); } },
+  { label: 'coveredKm 0 (a zero-length axis, every run at x1 === x2)',
+    field: 'coveredKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.coveredKm = 0; }); } },
+  { label: 'coveredKm non-finite (isNaN alone lets Infinity through)',
+    field: 'coveredKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.coveredKm = Infinity; }); } },
+  { label: 'stepKm 0 (every sample lands at km 0)',
+    field: 'stepKm',
+    build: function () { return malformedArtifactFixture(function (f) { f.stepKm = 0; }); } },
+  { label: 'a non-numeric values[] entry (would classify as band 0, the brightest)',
+    field: 'values[400]',
+    build: function () { return malformedArtifactFixture(function (f) { f.values[400] = null; }); } },
+  { label: 'a NaN values[] entry (same brightest-band misclassification)',
+    field: 'values[12]',
+    build: function () { return malformedArtifactFixture(function (f) { f.values[12] = NaN; }); } },
+  { label: 'values.length vs coveredKm mismatch (the producer\'s own invariant, emit.py)',
+    field: 'values.length',
+    build: function () { return malformedArtifactFixture(function (f) { f.values = f.values.slice(0, f.values.length - 1); }); } }
 ];
 
 malformedFixtures.forEach(function (spec) {
   var fixture = spec.build();
+  var label = spec.label || ('missing/malformed "' + spec.field + '"');
 
   equal(Daylight.ribbonSectionHidden('camino-frances', fixture), true,
-    'missing/malformed "' + spec.field + '": ribbonSectionHidden reports hidden, consistent with renderRibbon\'s own refusal to draw');
+    label + ': ribbonSectionHidden reports hidden, consistent with renderRibbon\'s own refusal to draw');
 
   warnLog.length = 0;
   var svgMalformed = makeNode('svg');
@@ -966,20 +1016,31 @@ malformedFixtures.forEach(function (spec) {
     threw = true;
   }
 
-  ok(!threw, 'missing/malformed "' + spec.field + '": renderRibbon does not throw');
+  ok(!threw, label + ': renderRibbon does not throw');
   ok(elementsWithClassPrefix(svgMalformed, 'dl-ribbon-band-').length === 0,
-    'missing/malformed "' + spec.field + '": no band elements are drawn (no NaN geometry, no partial render)');
+    label + ': no band elements are drawn (no NaN geometry, no partial render)');
   equal(svgMalformed.attrs['aria-label'], '',
-    'missing/malformed "' + spec.field + '": aria-label is cleared, not left describing a route that failed to render');
+    label + ': aria-label is cleared, not left describing a route that failed to render');
   equal(summaryMalformed.textContent, '',
-    'missing/malformed "' + spec.field + '": summary paragraph is cleared, not a bare leading space or a partial sentence');
-  ok(warnLog.length === 1, 'missing/malformed "' + spec.field + '": exactly one console.warn was logged');
+    label + ': summary paragraph is cleared, not a bare leading space or a partial sentence');
+  ok(warnLog.length === 1, label + ': exactly one console.warn was logged');
   if (warnLog.length) {
     ok(warnLog[0].indexOf('camino-frances') !== -1,
-      'missing/malformed "' + spec.field + '": the warning names the route (camino-frances)');
+      label + ': the warning names the route (camino-frances)');
     ok(warnLog[0].indexOf(spec.field) !== -1,
-      'missing/malformed "' + spec.field + '": the warning names the offending field');
+      label + ': the warning names the offending field ("' + spec.field + '")');
   }
+});
+
+// The real artifacts must all still pass the tightened guard — otherwise
+// this whole section would be proving a strictness that also hides the
+// seven routes the page actually ships.
+['camino-frances', 'camino-ingles', 'camino-norte', 'camino-portugues',
+ 'camino-primitivo', 'shikoku-88', 'kumano-kodo'].forEach(function (routeId) {
+  warnLog.length = 0;
+  equal(Daylight.ribbonSectionHidden(routeId, loadDarknessArtifact(routeId)), false,
+    routeId + ': the real shipped artifact still clears the tightened shape guard (including emit.py\'s floor(coveredKm / stepKm) + 1 === values.length invariant)');
+  equal(warnLog.length, 0, routeId + ': no shape warning for a real artifact');
 });
 
 console.warn = realConsoleWarn;

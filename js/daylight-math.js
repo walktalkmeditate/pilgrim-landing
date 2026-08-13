@@ -342,12 +342,27 @@
     var out = [];
     for (var i = 0; i < runs.length; i++) {
       var r = { startKm: runs[i].startKm, endKm: runs[i].endKm, band: runs[i].band };
-      if (out.length && (r.endKm - r.startKm) < minRunKm) {
+      var previous = out.length ? out[out.length - 1] : null;
+      if (previous && (r.endKm - r.startKm) < minRunKm) {
         // Too narrow to draw: folds into whatever precedes it, so the
         // predecessor's band — not this run's — covers the span. This is
         // "into its predecessor" for every run except one with nothing
         // emitted before it yet, handled below.
-        out[out.length - 1].endKm = r.endKm;
+        previous.endKm = r.endKm;
+      } else if (previous && previous.band === r.band) {
+        // Absorbing a narrow run leaves its predecessor and its successor
+        // adjacent, and those two can share a band — mergeDarknessRuns
+        // guarantees consecutive runs differ, and absorption used to break
+        // that guarantee (camino-frances shipped 14 such adjacencies,
+        // camino-norte 6). Two abutting semi-transparent <line>s composite
+        // their antialiased edges in sequence, so the shared fractional
+        // pixel lands up to ~0.10 alpha lighter than either run: a visible
+        // hairline boundary drawn where the data has none, wider than the
+        // 0.02 alpha step that separates bands 3 and 4. On a dashed route
+        // the per-element dash-phase restart shows the same seam. Merging
+        // them back into one run restores the invariant the rest of this
+        // module (and darknessBandKmShares' own accounting) assumes.
+        previous.endKm = r.endKm;
       } else {
         out.push(r);
       }
@@ -412,6 +427,16 @@
       });
     } else {
       var numWindows = Math.ceil(coveredKm / aggregateWindowKm);
+      // Defence in depth behind js/daylight.js's own artifact shape guard:
+      // a p90GapKm of 0 (or null) makes aggregateWindowKm 0, numWindows
+      // Infinity, and the allocation loop below runs until the tab dies —
+      // a frozen browser is a worse failure than a thrown error, and the
+      // caller that reaches this without a shape check deserves the error
+      // rather than the hang.
+      if (!isFinite(numWindows) || numWindows < 1) {
+        throw new Error('mergeDarknessRuns: coveredKm ' + coveredKm + ' over aggregateWindowKm '
+          + aggregateWindowKm + ' yields ' + numWindows + ' windows — refusing to allocate.');
+      }
       var buckets = [];
       for (var w = 0; w < numWindows; w++) buckets.push([]);
       for (var i = 0; i < n; i++) {
@@ -640,7 +665,18 @@
     var weightedSum  = 0;
     for (var b = 0; b < 5; b++) {
       weightedSum += kmByBand[b] * b;
-      if (kmByBand[b] > kmByBand[dominantBand]) dominantBand = b;
+      // >=, not >: an exact tie between two bands' km totals goes to the
+      // DARKER of them, the same rule darknessBandForValue already applies
+      // to a value sitting exactly on a band boundary. A strict > would
+      // hand every tie to the brighter band purely because this loop
+      // ascends, which is not a decision anyone made — and it silently
+      // deleted a real clause: camino-frances's last third comes out at
+      // kmByBand[3] === kmByBand[4] === 100 exactly (sub-pixel absorption
+      // moved one kilometre from band 2 into band 3), so the brighter
+      // band 3 won the tie, matched the first third's dominant band, and
+      // Gate 2 below silenced "Darkest near the end." — against a
+      // last-third mean of 3.136 vs 2.664 and 100 km of "as it was".
+      if (kmByBand[b] >= kmByBand[dominantBand]) dominantBand = b;
     }
     return { mean: span > 0 ? weightedSum / span : 0, dominantBand: dominantBand };
   }

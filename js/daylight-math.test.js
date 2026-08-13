@@ -663,6 +663,34 @@ ok(emptyFirstWindowThrew, 'values: [] with an aggregation window: mergeDarknessR
 ok(emptyFirstWindowMessage.indexOf('window 0') !== -1,
   'the thrown error names the offending window (window 0): ' + JSON.stringify(emptyFirstWindowMessage));
 
+console.log('\n=== mergeDarknessRuns — an unbounded window count throws rather than allocating (defence in depth) ===\n');
+
+// js/daylight.js's artifact shape guard is the real gate: an artifact whose
+// p90GapKm is 0 or null hides the ribbon section long before this function
+// is reached. This is the second line — the one that matters if any other
+// caller ever computes an aggregation window itself. numWindows comes out
+// Infinity for a zero window, and the bucket-allocation loop below it runs
+// until the process dies: an adversarial reviewer took node to 4 GB this
+// way, which in a browser is a frozen tab, the one failure mode strictly
+// worse than a thrown error nobody can read.
+[
+  { windowKm: 0,        label: 'aggregateWindowKm 0 (p90GapKm 0 -> ceil(0/10)*10)' },
+  { windowKm: -10,      label: 'aggregateWindowKm negative' },
+  { windowKm: NaN,      label: 'aggregateWindowKm NaN (p90GapKm missing -> ceil(NaN/10)*10)' }
+].forEach(function (spec) {
+  var threw = false;
+  var message = '';
+  try {
+    D.mergeDarknessRuns([20, 20, 20], 1, 30, spec.windowKm);
+  } catch (e) {
+    threw = true;
+    message = e.message;
+  }
+  ok(threw, spec.label + ': mergeDarknessRuns throws rather than allocating an unbounded bucket array');
+  ok(message.indexOf('refusing to allocate') !== -1,
+    spec.label + ': the thrown error says why: ' + JSON.stringify(message));
+});
+
 console.log('\n=== mergeDarknessRuns — trailing zero-width run is absorbed, not emitted (adversarial) ===\n');
 
 // coveredKm=3 is an EXACT multiple of stepKm=1, so the last raw sample's
@@ -756,6 +784,20 @@ Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
     return true;
   });
   ok(tilesCleanly, routeId + ': every run has positive width, and each run\'s start meets the previous run\'s end exactly (' + runs.length + ' runs)');
+
+  // mergeDarknessRuns emits consecutive runs that differ in band by
+  // construction; sub-pixel absorption used to break that afterwards, by
+  // deleting the run that separated two same-band neighbours and leaving
+  // them abutting. Two adjacent <line>s of the SAME band still composite
+  // their antialiased edges in sequence, so the shared fractional pixel
+  // draws a hairline boundary the data does not contain (and, on a dashed
+  // route, a dash-phase restart mid-band). Asserted on the real artifacts,
+  // not a hand-built fixture: camino-frances shipped 14 of these and
+  // camino-norte 6, and nothing in the suite noticed.
+  var sameBandNeighbours = runs.filter(function (r, i) {
+    return i > 0 && runs[i - 1].band === r.band;
+  }).length;
+  equal(sameBandNeighbours, 0, routeId + ': no two adjacent runs share a band — absorption coalesces rather than leaving a false hairline boundary');
 });
 
 console.log('\n=== mergeDarknessRuns — pinned shapes, real data (D3, D6) ===\n');
@@ -782,7 +824,7 @@ arrEqual(shikokuRuns[shikokuRuns.length - 1], { startKm: 1040, endKm: 1080.5, ba
 var francesArtifact = loadDarknessArtifact('camino-frances');
 var francesRuns = D.mergeDarknessRuns(francesArtifact.values, francesArtifact.stepKm, francesArtifact.coveredKm,
   D.darknessAggregateWindowKm(francesArtifact.positionalConfidence));
-equal(francesRuns.length, 108, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 band-change points, 108 runs once the 20 narrower than one drawn pixel (coveredKm/504 = 1.52 km) at desktop width absorb into their predecessors');
+equal(francesRuns.length, 94, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 band-change points, then 94 runs — 20 narrower than one drawn pixel (coveredKm/504 = 1.52 km) at desktop width absorb into their predecessors, and the 14 same-band adjacencies that absorption leaves behind coalesce into their neighbours');
 var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
 ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
 
@@ -937,22 +979,38 @@ equal(
 var francesArtifactForSentence = loadDarknessArtifact('camino-frances');
 equal(
   D.darknessSummarySentence(francesArtifactForSentence, STATED_DISTANCE_KM['camino-frances'], 'km'),
-  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
-  // No positional clause here, and correctly so: before the sub-pixel
-  // absorption guard, the final third's dominant band (4, "as it was")
-  // beat the third before it by exactly 1 km of merged-run width — a
-  // margin entirely inside the single kilometre this guard now folds
-  // into a neighbour. All three thirds share dominant band 3 ("open
-  // dark") once that km moves, so darknessPositionalClause's own Gate 2
-  // (the darkest and brightest thirds must have DIFFERENT dominant
-  // bands) correctly stays silent rather than naming a "darkest near the
-  // end" that rested on evidence too thin to draw.
-  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name — no positional clause (verified below, not merely absent)'
+  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%). Darkest near the end.',
+  // This route's positional clause was silenced for a while by an exact
+  // tie, not by a thin margin. Sub-pixel absorption moved exactly 1 km
+  // out of band 2 and into band 3 within the final third, landing
+  // kmByBand[3] and kmByBand[4] on 100.000000000000000 each.
+  // darknessBandStatsInRange's ascending scan then awarded that tie to
+  // the BRIGHTER band 3 purely because it reached it first; band 3 also
+  // dominates the first third, so Gate 2 (the darkest and brightest
+  // thirds must have DIFFERENT dominant bands) fell silent. The evidence
+  // the clause rests on is not thin at all — the final third's mean band
+  // index is 3.136 against the first third's 2.664, and the tied 100 km
+  // of "as it was" at the end stands against 51.6 km of it at the start.
+  // With ties resolved toward the darker band (the same rule
+  // darknessBandForValue applies to a value sitting exactly on a band
+  // boundary), the clause returns.
+  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name — plus the positional clause its final third earns (verified below, not merely present)'
 );
 equal(
-  D.darknessPositionalClause(francesRuns, francesArtifactForSentence.coveredKm), '',
-  'camino-frances: darknessPositionalClause itself returns empty on the real, absorbed runs — the sentence above isn\'t just missing the clause by omission'
+  D.darknessPositionalClause(francesRuns, francesArtifactForSentence.coveredKm), ' Darkest near the end.',
+  'camino-frances: darknessPositionalClause itself returns the clause on the real, absorbed runs — the sentence above isn\'t carrying it by accident'
 );
+// The tie itself, pinned directly against the real runs: if a re-bake or a
+// change to the absorption threshold moves that kilometre back, this goes
+// red and names the cause, rather than the clause quietly vanishing again
+// while the two assertions above blame a margin that was never the issue.
+var francesFinalThirdKm = D.darknessBandKmShares(francesRuns.map(function (r) {
+  var lo = Math.max(r.startKm, 2 * francesArtifactForSentence.coveredKm / 3);
+  return { startKm: lo, endKm: Math.max(lo, r.endKm), band: r.band };
+}));
+ok(francesFinalThirdKm[3] === francesFinalThirdKm[4],
+  'camino-frances: bands 3 and 4 hold an EXACT tie across the final third (' + francesFinalThirdKm[3]
+    + ' km each) — the tie-break, not a margin, is what decides this clause');
 
 var portuguesArtifactForSentence = loadDarknessArtifact('camino-portugues');
 equal(

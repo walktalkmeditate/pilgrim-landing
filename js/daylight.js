@@ -1032,11 +1032,53 @@
   // is deliberately not re-checked here — both call sites below already
   // gate on it themselves, the same duplication the unit check already
   // had before this.
+  //
+  // Every check below validates a value the math actually dereferences,
+  // not merely the container it arrives in. The first cut of this guard
+  // checked `positionalConfidence` was an object and stopped there, which
+  // let three separate malformed shapes straight through to the render:
+  //
+  //   - p90GapKm missing while withinInterpolationLimit is false —
+  //     darknessAggregateWindowKm returns NaN, `buckets[NaN].push` throws
+  //     a TypeError out of xhr.onload, no ribbon and no explanation.
+  //   - p90GapKm 0 or null — numWindows is Infinity, and the bucket
+  //     allocation loop runs until the tab (or node, at 4 GB) dies.
+  //   - a non-finite coveredKm — isNaN() alone accepts Infinity, and
+  //     kmToRibbonX then emits the exact `<line x2="NaN">` this guard
+  //     exists to have closed.
+  //
+  // A non-numeric entry in values[] is rejected for a different reason:
+  // darknessBandForValue's comparison chain falls through to `return 0`
+  // for anything that isn't a number, silently classifying it as band 0,
+  // the BRIGHTEST band. A darkness instrument must not fail toward "less
+  // dark", so a values[] this function cannot vouch for hides the section
+  // instead.
+  //
+  // The final check is the producer's own documented invariant
+  // (scripts/darkness/emit.py: "floor(coveredKm / stepKm) + 1 must equal
+  // len(values)"). Every shipped artifact satisfies it; asserting it here
+  // means a consumer holding only the file checks the same relationship
+  // its producer promised, rather than drawing a strip whose axis and
+  // whose samples disagree about how long the route is.
   function darknessArtifactShapeIssue(darknessData) {
-    if (typeof darknessData.coveredKm !== 'number' || isNaN(darknessData.coveredKm)) return 'coveredKm';
-    if (typeof darknessData.stepKm !== 'number' || isNaN(darknessData.stepKm)) return 'stepKm';
-    if (!darknessData.positionalConfidence || typeof darknessData.positionalConfidence !== 'object') return 'positionalConfidence';
+    if (typeof darknessData.coveredKm !== 'number' || !isFinite(darknessData.coveredKm) || darknessData.coveredKm <= 0) return 'coveredKm';
+    if (typeof darknessData.stepKm !== 'number' || !isFinite(darknessData.stepKm) || darknessData.stepKm <= 0) return 'stepKm';
+
+    var confidence = darknessData.positionalConfidence;
+    if (!confidence || typeof confidence !== 'object') return 'positionalConfidence';
+    if (typeof confidence.withinInterpolationLimit !== 'boolean') return 'positionalConfidence.withinInterpolationLimit';
+    if (confidence.withinInterpolationLimit !== true
+      && (typeof confidence.p90GapKm !== 'number' || !isFinite(confidence.p90GapKm) || confidence.p90GapKm <= 0)) {
+      return 'positionalConfidence.p90GapKm';
+    }
+
     if (!Array.isArray(darknessData.values) || darknessData.values.length === 0) return 'values';
+    for (var i = 0; i < darknessData.values.length; i++) {
+      var sample = darknessData.values[i];
+      if (typeof sample !== 'number' || !isFinite(sample)) return 'values[' + i + ']';
+    }
+    if (Math.floor(darknessData.coveredKm / darknessData.stepKm) + 1 !== darknessData.values.length) return 'values.length';
+
     return null;
   }
 
@@ -1047,6 +1089,19 @@
   // label when even that field is part of what's malformed.
   function darknessArtifactRouteLabel(darknessData) {
     return (darknessData && typeof darknessData.route === 'string' && darknessData.route) || '(unknown route)';
+  }
+
+  // warnMalformedDarknessArtifact(darknessData, shapeIssue) — one wording,
+  // two callers. renderRibbon warns when it is asked to draw something it
+  // can't; renderDarknessRibbon (the DOM half, below) warns on the path
+  // that actually happens on the page, where ribbonSectionHidden
+  // short-circuits before renderRibbon is ever called. Kept as one
+  // function so the two can't drift into saying different things about
+  // the same artifact.
+  function warnMalformedDarknessArtifact(darknessData, shapeIssue) {
+    console.warn('Darkness ribbon: "' + darknessArtifactRouteLabel(darknessData)
+      + '" artifact is missing or malformed at "' + shapeIssue
+      + '" — rendering nothing rather than drawing from data that isn\'t there.');
   }
 
   // ribbonSectionHidden(routeId, darknessData) — D12 (custom routes and
@@ -1095,9 +1150,7 @@
 
     var shapeIssue = darknessArtifactShapeIssue(darknessData);
     if (shapeIssue) {
-      console.warn('Darkness ribbon: "' + darknessArtifactRouteLabel(darknessData)
-        + '" artifact is missing or malformed at "' + shapeIssue
-        + '" — rendering nothing rather than drawing from data that isn\'t there.');
+      warnMalformedDarknessArtifact(darknessData, shapeIssue);
       return;
     }
 
@@ -1661,10 +1714,24 @@
   // decided there — this function doesn't re-decide either), and when
   // shown, calls the same renderRibbon the render-test harness exercises
   // directly.
+  //
+  // The malformed-artifact warning has to be issued here, not only inside
+  // renderRibbon: ribbonSectionHidden runs the same shape check and
+  // short-circuits first, so on the real page renderRibbon is never
+  // reached for a malformed artifact and its warning was unreachable —
+  // a shipped route re-baked without stepKm would have gone silently
+  // missing, with an empty console. Only a shape failure warns; a custom
+  // route, no selection, or a wrong-unit artifact are all expected,
+  // already-explained states (loadDarknessData warns about the unit
+  // itself), not malformed data.
   function renderDarknessRibbon(routeId, data) {
     if (!dom.ribbonWrap || !dom.ribbonSvg) return;
 
     if (ribbonSectionHidden(routeId, data)) {
+      if (data && data.unit === 'mag/arcsec2') {
+        var hiddenShapeIssue = darknessArtifactShapeIssue(data);
+        if (hiddenShapeIssue) warnMalformedDarknessArtifact(data, hiddenShapeIssue);
+      }
       dom.ribbonWrap.hidden = true;
       clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
       return;
@@ -1740,8 +1807,14 @@
   // one loads (or fails to). Custom routes and no selection stop there,
   // no fetch (D12); anything else then loads (or, once cached,
   // re-renders) that route's darkness data.
+  // Guards both nodes, not just the wrap: it goes on to call
+  // clearRibbonDisplay(dom.ribbonSvg, …), which dereferences the svg
+  // immediately (clearSVG reads .firstChild). renderDarknessRibbon above
+  // already guards both — a page that ever shipped the wrap without the
+  // svg would have thrown here and survived there, which is two different
+  // answers to one question.
   function updateRibbonForRoute(routeId) {
-    if (!dom.ribbonWrap) return;
+    if (!dom.ribbonWrap || !dom.ribbonSvg) return;
     dom.ribbonWrap.hidden = true;
     clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
     if (!routeId || routeId === 'custom') return;
