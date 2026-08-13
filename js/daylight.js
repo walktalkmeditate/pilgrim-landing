@@ -108,6 +108,10 @@
     ? root.DaylightMath
     : (typeof require === 'function' ? require('./daylight-math.js') : null);
 
+  var NightMathRef = (typeof root !== 'undefined' && root.NightMath)
+    ? root.NightMath
+    : (typeof require === 'function' ? require('./night-math.js') : null);
+
   var MoonLux = (typeof root !== 'undefined' && root.MoonLux)
     ? root.MoonLux
     : (typeof require === 'function' ? require('./moon-lux.js') : null);
@@ -1195,6 +1199,69 @@
     svgEl.appendChild(rightLbl);
   }
 
+  // The moon strip sits on the ribbon's own x-axis (D1) so the two can be
+  // read against each other — same inset, same km-to-x mapping. Only y
+  // differs, and it is the strip's own SVG anyway.
+  var MOON_Y = 16;
+  var MOON_LABEL_Y = 36;
+
+  /*
+   * renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl)
+   *
+   * One line per cell, placed by the kilometres that cell covers — NOT by
+   * night index. A night is drawn where it is walked, which is the whole
+   * point of sharing the ribbon's axis.
+   *
+   * Cells the schedule did not place (shikoku's 288 km between temple
+   * clusters) are simply absent. Emitting a zero-width line instead would
+   * still paint an antialiased hairline and draw a boundary exactly where
+   * the instrument is deliberately saying nothing — the same defect class
+   * as the ribbon's same-band adjacencies.
+   */
+  function renderMoonStrip(cells, notable, startDate, coveredKm, svgEl, summaryEl) {
+    clearRibbonDisplay(svgEl, summaryEl);
+    if (!cells || !cells.length || !(coveredKm > 0)) return;
+
+    cells.forEach(function (cell) {
+      if (cell.moon === null || cell.moonBand === null) return;
+      var x1 = kmToRibbonX(cell.loKm, coveredKm);
+      var x2 = kmToRibbonX(cell.hiKm, coveredKm);
+      if (!isFinite(x1) || !isFinite(x2) || !(x2 > x1)) return;
+
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-moon-band-' + cell.moonBand + (cell.isBlock ? ' dl-moon-block' : ''),
+        x1: x1, y1: MOON_Y,
+        x2: x2, y2: MOON_Y
+      }));
+    });
+
+    var sentence = NightMathRef
+      ? NightMathRef.nightSummarySentence(cells, notable, startDate, coveredKm)
+      : '';
+    svgEl.setAttribute('aria-label', sentence);
+    var titleEl = document.createElementNS(SVG_NS, 'title');
+    titleEl.textContent = sentence;
+    svgEl.appendChild(titleEl);
+    if (summaryEl) summaryEl.textContent = sentence;
+
+    var leftLbl = makeSVGEl('text', {
+      class: 'dl-moon-label',
+      x: RIBBON_X1, y: MOON_LABEL_Y,
+      'text-anchor': 'start'
+    });
+    leftLbl.textContent = 'night 1';
+    svgEl.appendChild(leftLbl);
+
+    var totalNights = cells.reduce(function (a, c) { return a + c.nights; }, 0);
+    var rightLbl = makeSVGEl('text', {
+      class: 'dl-moon-label',
+      x: RIBBON_X2, y: MOON_LABEL_Y,
+      'text-anchor': 'end'
+    });
+    rightLbl.textContent = 'night ' + totalNights;
+    svgEl.appendChild(rightLbl);
+  }
+
   /* ==========================================
      Exports
      ========================================== */
@@ -1204,7 +1271,8 @@
     renderSVG:           renderSVG,
     fmtDuration:         fmtDuration,
     renderRibbon:        renderRibbon,
-    ribbonSectionHidden: ribbonSectionHidden
+    ribbonSectionHidden: ribbonSectionHidden,
+    renderMoonStrip:     renderMoonStrip
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -1266,6 +1334,9 @@
     dom.ribbonWrap        = document.getElementById('dl-ribbon-wrap');
     dom.ribbonSvg         = document.getElementById('dl-ribbon-svg');
     dom.ribbonSummary     = document.getElementById('dl-ribbon-summary');
+    dom.moonWrap          = document.getElementById('dl-moon-wrap');
+    dom.moonSvg           = document.getElementById('dl-moon-svg');
+    dom.moonSummary       = document.getElementById('dl-moon-summary');
 
     if (!dom.routeSel) return;
 
@@ -1276,6 +1347,14 @@
     dom.routeSel.addEventListener('change', onRouteChange);
     dom.stageSel.addEventListener('change', onFieldChange);
     dom.dateInput.addEventListener('change', onFieldChange);
+    // The moon strip listens to the DATE specifically, not to
+    // onFieldChange (D9, AC #8). Stage and pace run through that same
+    // handler, and neither changes which nights the walk contains — a
+    // listener on onFieldChange would slide the strip when a reader
+    // merely inspected a different stage's timings.
+    dom.dateInput.addEventListener('change', function () {
+      renderMoonStripForRoute(_currentRoute);
+    });
     dom.paceInput.addEventListener('change', onFieldChange);
     dom.startInput.addEventListener('change', onFieldChange);
     dom.bufferInput.addEventListener('input', onFieldChange);
@@ -1739,6 +1818,7 @@
 
     renderRibbon(data, dom.ribbonSvg, _prefs.unitSystem, statedDistanceForRoute(routeId), dom.ribbonSummary);
     dom.ribbonWrap.hidden = false;
+    renderMoonStripForRoute(routeId);
   }
 
   // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
@@ -1817,8 +1897,77 @@
     if (!dom.ribbonWrap || !dom.ribbonSvg) return;
     dom.ribbonWrap.hidden = true;
     clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+    hideMoonStrip();
     if (!routeId || routeId === 'custom') return;
     loadDarknessData(routeId);
+  }
+
+  function hideMoonStrip() {
+    if (!dom.moonWrap || !dom.moonSvg) return;
+    dom.moonWrap.hidden = true;
+    clearRibbonDisplay(dom.moonSvg, dom.moonSummary);
+  }
+
+  // The walk's start date, as night 1 (D6). Parsed as UTC noon so a
+  // timezone offset can never roll it onto the previous or next day —
+  // the same trap wallTimeToUTC exists to avoid elsewhere on this page.
+  function moonStartDate() {
+    var raw = dom.dateInput && dom.dateInput.value;
+    if (!raw) return null;
+    var parts = raw.split('-');
+    if (parts.length !== 3) return null;
+    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  /*
+   * renderMoonStripForRoute(routeId) — draw the strip if, and only if,
+   * everything it needs is present and current.
+   *
+   * It needs BOTH async sources: the stage list places a night on a
+   * kilometre, the darkness artifact says how dark that kilometre is.
+   * Either one alone draws nothing rather than half a strip, so this is
+   * called from both load paths and simply returns until the second
+   * arrives.
+   *
+   * stagePlacements throws when it can place neither way (D4). That is
+   * deliberate there — a wrong axis is worse than no axis — so it is
+   * caught here and rendered as an absent section, which is what every
+   * other unusable-data path on this page already does.
+   */
+  function renderMoonStripForRoute(routeId) {
+    if (!dom.moonWrap || !dom.moonSvg) return;
+    if (routeId !== _currentRoute) return;
+
+    if (!routeId || routeId === 'custom' || !NightMathRef) { hideMoonStrip(); return; }
+
+    var stages = _stageData[routeId];
+    var data   = _darknessData[routeId];
+    if (!stages || !data) { hideMoonStrip(); return; }
+
+    if (ribbonSectionHidden(routeId, data)) { hideMoonStrip(); return; }
+
+    var startDate = moonStartDate();
+    if (!startDate) { hideMoonStrip(); return; }
+
+    var stageList = Object.keys(stages).map(function (k) { return stages[k]; });
+
+    var cells;
+    try {
+      var windowKm = DaylightMath.darknessAggregateWindowKm(data.positionalConfidence);
+      var runs     = DaylightMath.mergeDarknessRuns(data.values, data.stepKm, data.coveredKm, windowKm);
+      var schedule = DaylightMath.nightSchedule(
+        DaylightMath.stagePlacements(stageList, data.coveredKm), startDate);
+      cells = NightMathRef.buildNightCells(schedule, stageList, runs);
+    } catch (e) {
+      console.warn('Moon strip: cannot place "' + routeId + '" on its darkness axis — ' + e.message);
+      hideMoonStrip();
+      return;
+    }
+
+    renderMoonStrip(cells, NightMathRef.selectNotableNights(cells), startDate,
+                    data.coveredKm, dom.moonSvg, dom.moonSummary);
+    dom.moonWrap.hidden = false;
   }
 
   function loadStageData(routeId, requestedStageStr) {
@@ -1840,6 +1989,9 @@
       // let the bar and the ribbon settle on two different stale routes.
       if (routeId !== _currentRoute) return;
       populateStageSelect(stages, requestedStageStr);
+      // The moon strip needs this source as well as the darkness one, and
+      // the two race. Whichever lands second is the one that draws.
+      renderMoonStripForRoute(routeId);
     };
     xhr.onerror = function () {
       if (routeId !== _currentRoute) return;

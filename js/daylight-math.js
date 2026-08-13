@@ -835,15 +835,20 @@
 
     if (Math.abs(sum - coveredKm) <= TILING_TOLERANCE_KM) {
       var cursor = 0;
+      var last = stages.length - 1;
       return stages.map(function (s, idx) {
         var lo = Math.min(cursor, coveredKm);
         cursor += s.distanceKm;
-        // Clamped, because "tiles" is within a tolerance, not exactly:
-        // kumano's stages sum to 38.5 against a 38.0 km axis, so its last
-        // stage would otherwise end 0.5 km past the end of the data and
-        // draw beyond the strip's right edge.
-        return { index: idx, loKm: lo, hiKm: Math.min(cursor, coveredKm),
-                 nights: 1, isBlock: false };
+        // The last stage ends exactly at coveredKm, and the rest are
+        // clamped to it. "Tiles" is a 1 km tolerance, not an identity,
+        // and it misses in both directions: kumano's stages sum to 38.5
+        // against a 38.0 km axis (so an unclamped last stage would draw
+        // past the strip's right edge), while camino-frances sums to
+        // 763.6999999999998 against 763.7 (so it would stop a hair short
+        // of the ribbon's own final pixel, and two strips that share an
+        // axis would visibly disagree about where the route ends).
+        var hi = (idx === last) ? coveredKm : Math.min(cursor, coveredKm);
+        return { index: idx, loKm: lo, hiKm: hi, nights: 1, isBlock: false };
       });
     }
 

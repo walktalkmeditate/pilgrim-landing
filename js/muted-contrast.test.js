@@ -683,4 +683,125 @@ test('constellation renders the ribbon bands through the same html[data-theme="d
   );
 });
 
+/* =============================================
+   Slice 3, Task 7 — the moon strip's silver ramp (spec D8; AC #12)
+
+   Same floors as the darkness ribbon, over the same three real
+   backgrounds. The strip is solid on every route — it carries no
+   validation claim of its own, so there is no dashed variant and no duty
+   correction to make.
+
+   The extra requirement here is that the two ramps stay TELLABLE APART.
+   They sit on one shared axis, a few pixels apart; if a moon band and a
+   darkness band composite to the same colour on some background, a
+   reader has two strips they cannot separate at a glance.
+   ============================================= */
+
+function moonBandColor(index, mode) {
+  const sel = RIBBON_MODE_SELECTOR_PREFIX[mode] + '.dl-moon-band-' + index;
+  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}', 'g');
+  let m, decls = null;
+  while ((m = re.exec(daylightCss)) !== null) {
+    if (/stroke:\s*[^;]+;/.test(m[2])) decls = m[2];
+  }
+  assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
+  return resolveFillColor(decls.match(/stroke:\s*([^;]+);/)[1].trim(), mode);
+}
+
+test('moon strip bands stay pairwise distinguishable on every background each theme really paints (D8, AC #12)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const colors = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) colors.push(moonBandColor(i, mode));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const composited = colors.map(function (c) { return composite(c.rgb, c.alpha, bg); });
+
+      const label = mode + ' moon strip over ' + background.label;
+      console.log('\n  moon strip band separation — ' + label);
+
+      composited.forEach(function (c, i) {
+        const ratio = contrast(c, bg);
+        console.log('    moon-' + i + '  ' + c + '  vs bg = ' + ratio.toFixed(3) + ':1');
+        assert.ok(
+          ratio >= RIBBON_BAND_VS_BG_MIN,
+          label + ' .dl-moon-band-' + i + ' is ' + ratio.toFixed(3) + ':1 against its page background, below the '
+            + RIBBON_BAND_VS_BG_MIN + ':1 floor'
+        );
+      });
+
+      let minAdjacent = Infinity;
+      for (let i = 0; i < composited.length - 1; i++) {
+        const ratio = contrast(composited[i], composited[i + 1]);
+        console.log('    moon-' + i + ' -> moon-' + (i + 1) + '  = ' + ratio.toFixed(3) + ':1');
+        minAdjacent = Math.min(minAdjacent, ratio);
+        assert.ok(
+          ratio >= RIBBON_BAND_ADJACENT_MIN,
+          label + ' moon-' + i + '->moon-' + (i + 1) + ' is ' + ratio.toFixed(3) + ':1, below the '
+            + RIBBON_BAND_ADJACENT_MIN + ':1 adjacent-pair floor'
+        );
+      }
+
+      const extremes = contrast(composited[0], composited[RIBBON_BAND_COUNT - 1]);
+      console.log('    moon-0 -> moon-4 (extremes) = ' + extremes.toFixed(3) + ':1   (min adjacent '
+        + minAdjacent.toFixed(3) + ':1)');
+      assert.ok(
+        extremes >= RIBBON_BAND_EXTREMES_MIN,
+        label + ' moon-0->moon-4 is ' + extremes.toFixed(3) + ':1, below the '
+          + RIBBON_BAND_EXTREMES_MIN + ':1 extremes floor'
+      );
+    });
+  });
+});
+
+test('the moon ramp is warm where the darkness ramp is cool, so two strips on one axis stay tellable apart (D8)', function () {
+  // Deliberately a HUE test, not a luminance one. Two five-step ramps
+  // that each span their theme's usable luminance range must overlap in
+  // luminance somewhere — a contrast() floor between them would demand
+  // the impossible and force bad colour choices to satisfy a requirement
+  // that was never the real one. What D8 actually asks is that the two
+  // read as different instruments, and that is carried by hue.
+  //
+  // Checked over bands 2-4, where each ramp's identity lives: band 0 of
+  // both ramps is near-neutral by design (an absence, in both cases).
+  const MIN_MOON_WARMTH = 30;   // R - B
+  function warmth(c) { return c.rgb[0] - c.rgb[2]; }
+
+  ['light', 'dark'].forEach(function (mode) {
+    for (let i = 2; i < RIBBON_BAND_COUNT; i++) {
+      const moonW = warmth(moonBandColor(i, mode));
+      const darkW = warmth(ribbonBandColor(i, mode, false));
+      console.log('  ' + mode + ' band ' + i + ': moon R-B ' + moonW + ', darkness R-B ' + darkW);
+      assert.ok(moonW >= MIN_MOON_WARMTH,
+        mode + ' .dl-moon-band-' + i + ' has R-B of ' + moonW + ', not warm enough to read as the moon strip');
+      assert.ok(darkW < 0,
+        mode + ' .dl-ribbon-band-' + i + ' has R-B of ' + darkW + ', no longer cool — the two ramps would converge');
+      assert.ok(moonW - darkW >= MIN_MOON_WARMTH,
+        mode + ' band ' + i + ': the two ramps are only ' + (moonW - darkW) + ' apart in R-B');
+    }
+  });
+});
+
+test('the moon ramp is defined for both themes and never scoped to body.constellation (D8)', function () {
+  // moonBandColor, not ruleDeclarations: .dl-moon-band-4 is also the last
+  // name in the shared band-0..4 geometry selector, so a first-match
+  // lookup finds stroke-width/fill and no colour at all — the same trap
+  // ribbonBandColor documents above.
+  for (let i = 0; i < RIBBON_BAND_COUNT; i++) {
+    const c = moonBandColor(i, 'light');
+    assert.ok(c && c.rgb && c.rgb.length === 3,
+      '.dl-moon-band-' + i + ' has no light-theme stroke colour');
+  }
+  assert.ok(
+    !/body\.constellation\s+\.dl-moon-band-\d/.test(daylightCss),
+    'css/daylight.css scopes a moon band to body.constellation — star mode and plain dark can diverge, '
+      + 'which is exactly how the ribbon shipped invisible in plain dark'
+  );
+  assert.ok(
+    /html\[data-theme="dark"\]\s+\.dl-moon-band-4/.test(daylightCss),
+    'the moon ramp has no html[data-theme="dark"] rule — it would render at light-theme alpha on dark backgrounds'
+  );
+});
+
 console.log(count + ' passed');

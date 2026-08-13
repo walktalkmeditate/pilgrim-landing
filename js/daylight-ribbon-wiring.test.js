@@ -462,6 +462,112 @@ ok(resultEl.textContent.indexOf("Couldn't load stage data") !== -1,
 ok(resultEl.textContent.indexOf('route-delta') !== -1,
   'the reported stage failure names the route that actually failed (route-delta): ' + JSON.stringify(resultEl.textContent));
 
+/* =============================================
+   Slice 3, Task 6 — moon strip wiring (spec D6, D9, D11; AC #7, #8, #14)
+
+   The strip needs BOTH async sources — a route's stages place a night on
+   a kilometre, its darkness artifact says how dark that kilometre is —
+   so it may only draw once both have landed, and must not flash a
+   half-built strip in between.
+
+   It slides with the date and with nothing else. Stage and pace both run
+   through onFieldChange alongside the date, so "reacts to the date" is
+   not the same as "reacts to onFieldChange", and a listener on the wrong
+   one would satisfy AC #7 while violating AC #8.
+   ============================================= */
+
+console.log('\n=== moon strip wiring — both sources, the date, and nothing else ===\n');
+
+var moonWrap    = elementsById['dl-moon-wrap'];
+var moonSvg     = elementsById['dl-moon-svg'];
+var moonSummary = elementsById['dl-moon-summary'];
+var dateInput   = elementsById['dl-date'];
+var paceInput   = elementsById['dl-pace'];
+var stageSel    = elementsById['dl-stage'];
+
+function moonLines() {
+  return moonSvg.children.filter(function (c) { return c.tag === 'line'; });
+}
+
+function assetText(dir, routeId) {
+  return fs.readFileSync(path.join(__dirname, '..', 'assets', dir, routeId + '.json'), 'utf8');
+}
+
+function resolveStages(routeId, bodyText) {
+  var xhr = pendingXHR('/assets/daylight/' + routeId + '.json');
+  ok(xhr !== null, 'fixture sanity: a pending stage XHR exists for ' + routeId + '.json');
+  xhr.status = 200;
+  xhr.responseText = bodyText;
+  xhr.onload();
+}
+
+// Use a route no earlier test has touched, so neither cache is warm and
+// the both-sources race is genuinely exercised rather than short-circuited.
+var MOON_ROUTE = 'camino-primitivo';
+
+dateInput.value = '2026-10-12';
+routeSel.value = MOON_ROUTE;
+fireEvent(routeSel, 'change');
+
+resolveDarkness(MOON_ROUTE, assetText('darkness', MOON_ROUTE));
+ok(moonWrap.hidden === true,
+  'darkness alone does not draw the strip — it cannot place a night without stages');
+equal(moonLines().length, 0, 'no cells drawn while only one source has landed');
+
+resolveStages(MOON_ROUTE, assetText('daylight', MOON_ROUTE));
+ok(moonWrap.hidden === false, 'once both sources land, the strip appears');
+equal(moonLines().length, 11, MOON_ROUTE + ' draws 11 cells, one per stage');
+ok(moonSummary.textContent.indexOf('11 nights from 12 October') === 0,
+  'the summary states the walk length and start date');
+
+// --- AC #7: the date slides the moon strip, and only the moon strip ---
+var ribbonSvgEl  = elementsById['dl-ribbon-svg'];
+var ribbonBefore = ribbonSvgEl.children.map(function (c) { return c.tag + ':' + JSON.stringify(c.attrs); }).join('|');
+var moonBefore   = moonSummary.textContent;
+
+dateInput.value = '2026-11-20';
+fireEvent(dateInput, 'change');
+
+var ribbonAfter = ribbonSvgEl.children.map(function (c) { return c.tag + ':' + JSON.stringify(c.attrs); }).join('|');
+ok(moonSummary.textContent !== moonBefore, 'changing the date re-renders the moon strip');
+ok(moonSummary.textContent.indexOf('20 November') !== -1, 'the strip reports the new start date');
+equal(ribbonAfter, ribbonBefore, 'changing the date leaves the darkness ribbon byte-identical');
+
+// A different start date must move the moon bands, not merely the
+// lead-in text — otherwise the strip is relabelling, not recomputing.
+var bandsAfterDate = moonLines().map(function (l) { return l.attrs.class; }).join(',');
+
+// --- AC #8: pace and stage must not touch it ---
+var beforePace = moonSummary.textContent;
+var beforeBands = bandsAfterDate;
+paceInput.value = 'brisk';
+fireEvent(paceInput, 'change');
+equal(moonSummary.textContent, beforePace, 'changing pace does not change the moon strip');
+equal(moonLines().map(function (l) { return l.attrs.class; }).join(','), beforeBands,
+  'changing pace does not change a single moon band');
+
+stageSel.value = '5';
+fireEvent(stageSel, 'change');
+equal(moonSummary.textContent, beforePace, 'changing stage does not change the moon strip');
+equal(moonLines().map(function (l) { return l.attrs.class; }).join(','), beforeBands,
+  'changing stage does not change a single moon band');
+
+// --- AC #14: a custom route hides it ---
+routeSel.value = 'custom';
+fireEvent(routeSel, 'change');
+ok(moonWrap.hidden === true, 'a custom route hides the moon strip');
+equal(moonLines().length, 0, 'a custom route leaves no cells behind');
+
+// --- AC #14: a shape-invalid artifact hides it, without throwing ---
+var brokenArtifact = JSON.parse(assetText('darkness', 'camino-portugues'));
+delete brokenArtifact.stepKm;
+routeSel.value = 'camino-portugues';
+fireEvent(routeSel, 'change');
+resolveDarkness('camino-portugues', JSON.stringify(brokenArtifact));
+resolveStages('camino-portugues', assetText('daylight', 'camino-portugues'));
+ok(moonWrap.hidden === true, 'a shape-invalid artifact hides the moon strip');
+equal(moonLines().length, 0, 'a shape-invalid artifact draws no cells');
+
 /* ==========================================
    Finding 9 — the two hide paths disagreed about which nodes have to
    exist. renderDarknessRibbon guards both dl-ribbon-wrap and

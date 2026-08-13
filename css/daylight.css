@@ -455,6 +455,44 @@ body.constellation .dl-bar-waypoint {
   line-height: 1.5;
 }
 
+/* The moon strip's own frame. It sits directly beneath the ribbon and
+   shares its axis, so it is pulled up tighter than the ribbon's own
+   3rem tail — the two read as one instrument, not two stacked ones. */
+.dl-moon-wrap {
+  margin: -2rem 0 3rem;
+}
+
+.dl-moon-wrap[hidden] { display: none; }
+
+.dl-moon-caption,
+.dl-moon-summary {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.88rem;
+  /* Same --stone trap as .dl-ribbon-caption: --ink-fog is the token that
+     clears AA on its own. */
+  color: var(--ink-fog);
+}
+
+.dl-moon-caption { margin: 0 0 0.8rem; }
+.dl-moon-summary { margin: 0.6rem 0 0; line-height: 1.5; }
+
+.dl-moon-svg {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+}
+
+.dl-moon-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  fill: var(--ink-fog);
+}
+
 /* Five bands, warm to cool (D1, D9) — the same warm-stone-toward-cool-
    blue-grey direction .dl-bar-daylight through .dl-bar-truedark already
    establish above, so a reader who has parsed the bar transfers that
@@ -572,6 +610,55 @@ body.constellation .dl-bar-waypoint {
 .dl-ribbon-band-2.dl-ribbon-unvalidated { stroke: rgba(120, 121, 125, 0.76); }
 .dl-ribbon-band-3.dl-ribbon-unvalidated { stroke: rgba(87, 93, 107, 0.84); }
 .dl-ribbon-band-4.dl-ribbon-unvalidated { stroke: rgba(55, 66, 88, 0.91); }
+
+/* The moon strip (slice 3, D8).
+
+   A deliberately different visual language from the darkness ribbon: warm
+   silver against the ribbon's cool blue, so the two strips sitting on one
+   axis can never be misread for each other. The five steps sit on
+   MoonLux.luxBracketFor's own boundaries (0 / 0.005 / 0.05 / 0.2 lux),
+   not on new ones, so the strip and the prose can never describe a night
+   differently.
+
+   Unlike the ribbon's, this ramp runs BRIGHT-UP: band 0 is no moon at
+   all, band 4 is enough to walk a known path. Moon lux is precisely
+   computable — the coarseness here is for visual rhythm with the ribbon
+   above, NOT because the underlying number is uncertain the way the
+   darkness values are (ribbon D7). No copy may imply otherwise either
+   way.
+
+   js/muted-contrast.test.js sweeps this ramp over all three real
+   backgrounds and holds it to the same floors as the ribbon: 1.25:1
+   between neighbours, 3:1 across the extremes. */
+.dl-moon-band-0,
+.dl-moon-band-1,
+.dl-moon-band-2,
+.dl-moon-band-3,
+.dl-moon-band-4 {
+  stroke-width: 16;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+/* On light parchment the ramp DARKENS with moonlight, the same ink
+   direction the darkness ribbon's light ramp uses — more ink means more
+   of the thing on a light page. A brightening ramp was tried first and
+   put band 0 at 1.067:1 against the background: correct arithmetic,
+   invisible strip, the defect this page has now shipped five times.
+   Amber throughout, against the ribbon's cool blue. */
+.dl-moon-band-0 { stroke: rgba(186, 178, 160, 0.38); }
+.dl-moon-band-1 { stroke: rgba(172, 150, 104, 0.58); }
+.dl-moon-band-2 { stroke: rgba(158, 130, 74,  0.70); }
+.dl-moon-band-3 { stroke: rgba(134, 104, 46,  0.84); }
+.dl-moon-band-4 { stroke: rgba(110, 80,  24,  0.97); }
+
+/* Shikoku's stages are temple clusters spanning several nights each, so
+   its cells stand for a stretch of the lunation rather than one night.
+   The lighter, taller edge marks them as a block without changing the
+   band colour that carries the reading. */
+.dl-moon-block {
+  stroke-width: 10;
+}
 
 .dl-ribbon-label {
   font-family: 'Lato', sans-serif;
@@ -1139,6 +1226,17 @@ html[data-theme="dark"] .dl-ribbon-band-1 { stroke: rgba(232, 224, 255, 0.19); }
 html[data-theme="dark"] .dl-ribbon-band-2 { stroke: rgba(232, 224, 255, 0.27); }
 html[data-theme="dark"] .dl-ribbon-band-3 { stroke: rgba(232, 224, 255, 0.35); }
 html[data-theme="dark"] .dl-ribbon-band-4 { stroke: rgba(232, 224, 255, 0.44); }
+
+/* Moon strip, dark themes. Selector is html[data-theme="dark"], not
+   body.constellation — that covers plain dark AND star mode, which is the
+   fix the ribbon's own ramp needed when its bands shipped invisible in
+   plain dark. Warm silver against the ribbon's cool violet, so the two
+   strips stay distinguishable in every theme. */
+html[data-theme="dark"] .dl-moon-band-0 { stroke: rgba(255, 248, 224, 0.14); }
+html[data-theme="dark"] .dl-moon-band-1 { stroke: rgba(255, 246, 214, 0.26); }
+html[data-theme="dark"] .dl-moon-band-2 { stroke: rgba(255, 244, 204, 0.41); }
+html[data-theme="dark"] .dl-moon-band-3 { stroke: rgba(255, 241, 192, 0.60); }
+html[data-theme="dark"] .dl-moon-band-4 { stroke: rgba(255, 238, 180, 0.84); }
 
 /* Dashed/unvalidated colour, dark theme — same duty-cycle compensation
    as the light-mode .dl-ribbon-band-N.dl-ribbon-unvalidated rules

@@ -1045,6 +1045,125 @@ malformedFixtures.forEach(function (spec) {
 
 console.warn = realConsoleWarn;
 
+/* =============================================
+   Slice 3, Task 5 — renderMoonStrip geometry (spec D1, D5; AC #1, #5, #6)
+
+   The strip shares the ribbon's axis exactly, so the two can be read
+   against each other. Shikoku's unplaced quarter must be ABSENT
+   elements, not zero-width ones — a zero-width line still paints an
+   antialiased hairline, which would draw a boundary where the
+   instrument is deliberately saying nothing.
+   ============================================= */
+
+console.log('\n=== renderMoonStrip — geometry on the ribbon\'s axis (D1, AC #1) ===\n');
+
+var NightMath = require('./night-math.js');
+
+var MOON_START = new Date('2026-10-12T12:00:00Z');
+var DAYLIGHT_STAGE_DIR = path.join(__dirname, '..', 'assets', 'daylight');
+
+function stagesFor(routeId) {
+  var raw = JSON.parse(fs.readFileSync(path.join(DAYLIGHT_STAGE_DIR, routeId + '.json'), 'utf8'));
+  return Object.keys(raw).map(function (k) { return raw[k]; });
+}
+
+function moonCellsFor(routeId) {
+  var artifact = loadDarknessArtifact(routeId);
+  var stages   = stagesFor(routeId);
+  var runs     = DaylightMath.mergeDarknessRuns(
+    artifact.values, artifact.stepKm, artifact.coveredKm,
+    DaylightMath.darknessAggregateWindowKm(artifact.positionalConfidence));
+  var schedule = DaylightMath.nightSchedule(
+    DaylightMath.stagePlacements(stages, artifact.coveredKm), MOON_START);
+  return {
+    cells:     NightMath.buildNightCells(schedule, stages, runs),
+    coveredKm: artifact.coveredKm
+  };
+}
+
+function renderMoonInto(routeId) {
+  var built = moonCellsFor(routeId);
+  var svg = makeNode('svg');
+  var summary = makeNode('p');
+  Daylight.renderMoonStrip(built.cells, NightMath.selectNotableNights(built.cells),
+                           MOON_START, built.coveredKm, svg, summary);
+  return { svg: svg, summary: summary, cells: built.cells, coveredKm: built.coveredKm };
+}
+
+var moonFrances = renderMoonInto('camino-frances');
+var francesLines = moonFrances.svg.children.filter(function (c) { return c.tag === 'line'; });
+
+equal(francesLines.length, 33, 'camino-frances: one line per cell');
+equal(Number(francesLines[0].attrs.x1), 48, 'camino-frances: first cell starts at the ribbon inset x=48');
+equal(Number(francesLines[32].attrs.x2), 552, 'camino-frances: last cell ends at the ribbon inset x=552');
+
+var moonTiles = true;
+for (var mi = 1; mi < francesLines.length; mi++) {
+  if (Math.abs(Number(francesLines[mi].attrs.x1) - Number(francesLines[mi - 1].attrs.x2)) > 1e-6) moonTiles = false;
+}
+ok(moonTiles, 'camino-frances: cells tile with no gaps');
+
+var allBanded = francesLines.every(function (l) { return /dl-moon-band-[0-4]/.test(l.attrs.class); });
+ok(allBanded, 'camino-frances: every cell carries a moon band class 0-4');
+
+// The strip must not reuse the ribbon's class names, or a CSS change to
+// one would silently restyle the other.
+ok(francesLines.every(function (l) { return l.attrs.class.indexOf('dl-ribbon-band') === -1; }),
+  'camino-frances: no cell carries a darkness-ribbon class');
+
+// Shikoku: the unplaced quarter is absent, not zero-width.
+var moonShikoku = renderMoonInto('shikoku-88');
+var shikokuLines = moonShikoku.svg.children.filter(function (c) { return c.tag === 'line'; });
+equal(shikokuLines.length, 10, 'shikoku-88: ten cells, one per placed stage');
+
+var zeroWidth = shikokuLines.filter(function (l) {
+  return Math.abs(Number(l.attrs.x2) - Number(l.attrs.x1)) < 1e-9;
+}).length;
+equal(zeroWidth, 0, 'shikoku-88: no zero-width cell — a gap is an absent element, not a hairline');
+
+var hasRealGap = false;
+for (var si = 1; si < shikokuLines.length; si++) {
+  if (Number(shikokuLines[si].attrs.x1) - Number(shikokuLines[si - 1].attrs.x2) > 1) hasRealGap = true;
+}
+ok(hasRealGap, 'shikoku-88: real gaps appear between temple clusters (27% of the route)');
+
+// Blocks are visually distinct from single nights (D5, AC #6).
+var blockLines = shikokuLines.filter(function (l) { return /dl-moon-block/.test(l.attrs.class); });
+ok(blockLines.length > 0, 'shikoku-88: multi-night blocks carry a distinguishing class');
+equal(blockLines.length,
+  moonShikoku.cells.filter(function (c) { return c.isBlock; }).length,
+  'shikoku-88: exactly the block cells are marked as blocks');
+ok(francesLines.every(function (l) { return /dl-moon-block/.test(l.attrs.class) === false; }),
+  'camino-frances: no cell is marked a block — every stage is one night');
+
+// Text equivalence (D10, AC #13): the label must be the same prose the
+// summary carries, so a screen reader and a sighted reader get the same
+// nights named.
+var moonLabel = moonFrances.svg.attrs['aria-label'];
+ok(moonLabel && moonLabel.indexOf('33 nights') !== -1,
+  'camino-frances: the aria-label states the walk length');
+equal(moonLabel, moonFrances.summary.textContent,
+  'camino-frances: aria-label and visible summary are the same sentence');
+ok(moonLabel.indexOf('night 27') !== -1 && moonLabel.indexOf('Night 15') !== -1,
+  'camino-frances: the label names the same two nights as the prose');
+
+// A cell whose dark window never closes has no moon; it must not draw a
+// NaN. No shipped route reaches this, so it is forced here.
+var nullMoonCells = moonFrances.cells.slice(0, 3).map(function (c) {
+  return { index: c.index, loKm: c.loKm, hiKm: c.hiKm, nights: c.nights, isBlock: c.isBlock,
+           firstNight: c.firstNight, dates: c.dates, stageName: c.stageName,
+           moon: null, moonBand: null, darkMean: c.darkMean, darkBand: c.darkBand,
+           phaseFirst: c.phaseFirst, phaseLast: c.phaseLast };
+});
+var nullSvg = makeNode('svg');
+Daylight.renderMoonStrip(nullMoonCells, { sky: null, lantern: null }, MOON_START, 100, nullSvg, makeNode('p'));
+var nanAttrs = nullSvg.children.filter(function (c) {
+  return c.tag === 'line' && ['x1', 'x2', 'y1', 'y2'].some(function (a) {
+    return String(c.attrs[a]) === 'NaN';
+  });
+}).length;
+equal(nanAttrs, 0, 'a cell with no resolvable dark window never emits a NaN coordinate');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

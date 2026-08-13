@@ -239,6 +239,53 @@ too — one malformed-artifact path, not two.
   budget, and whether the seven local scripts finally get `defer`, is unresolved and is
   called out here so it is not decided by accident.
 
-## Result
+## Result — 2026-08-13
 
-_To be completed when the slice ships._
+Built as specced. All eight tasks landed; 16 suites green throughout.
+
+### Page weight (AC-adjacent, the open question above)
+
+`/daylight`, JS + CSS combined:
+
+| | raw | gzipped |
+|---|---|---|
+| before the night work | 215.3 KB | 52.1 KB |
+| after Slices 1–2 | 293.5 KB | 77.7 KB |
+| **after Slice 3** | **329.4 KB** | **88.7 KB** |
+
+This slice adds **11.0 KB gzipped** — `js/night-math.js` (12.7 KB raw) plus the
+strip's CSS and render code. The page is now **70% heavier gzipped than before
+the night instrument began**, and Slice 4 lands on it too.
+
+88.7 KB of gzipped JS+CSS is still within reasonable practice, and nothing here is
+render-blocking — all eight local scripts sit at the bottom of `<body>`. But the
+trend is the point: three slices, three increases, no budget. **Recorded as
+unresolved.** The cheap mitigations, in order of value: `defer` on the eight local
+scripts (they currently download serially after parse), and asking whether
+`/daylight` needs `universe.js` (12.1 KB) and `sunpath-math.js` (37.6 KB) at all.
+
+### Departures from the spec, and why
+
+- **D3's night derivation.** The spec's first version derived nights from
+  `distanceKm / paceKmPerDay`. `PACE_PRESETS` is km/**h** (3/4/5), not km/day, so
+  that needed an invented hours-per-walking-day constant on top of the 25 km one.
+  Rewritten before implementation: a stage is a night on the six day-sized routes,
+  and shikoku's blocks come from `round(spanKm / 25)`. Pace is not an input.
+- **A new module.** `js/night-math.js` rather than growing `js/daylight-math.js`,
+  whose header states "No external dependencies" and which owns the pure walking
+  and placement math. `nightMoonLux` needs `SunPathMath`, `MoonLux` and `Moon`.
+  Same reasoning that produced `js/moon-lux.js` in Slice 1.
+- **The light ramp darkens with moonlight** rather than brightening. A brightening
+  ramp put band 0 at 1.067:1 against light parchment — correct arithmetic,
+  invisible strip. On a light page more ink means more of the thing, which is what
+  the darkness ribbon's own light ramp already does.
+- **Cross-ramp separability is a hue test, not a luminance one.** Two five-step
+  ramps spanning a theme's usable luminance range must overlap somewhere; a
+  contrast floor between them would have demanded the impossible. What D8 actually
+  asks is carried by hue: moon R−B of 84/88/86 against the ribbon's −5/−20/−33.
+
+### The number that moved
+
+camino-ingles peaks at **0.0380 lux**, not the 0.0067 first written here — that
+was its highest nightly *mean*, recorded as the peak. Suppression holds either
+way, but the spec said something measurably untrue and now does not.
