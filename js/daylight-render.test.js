@@ -536,12 +536,14 @@ function ribbonBandIndex(el) {
 // Independent oracle for the ribbon's own distance axis — deliberately not
 // derived from utcToBarX/expectedBarX above (a time-domain function) or
 // from kmToBarX (the bar's own waypoint-tick helper, scoped to a walk
-// sub-range). Same shape as expectedBarX, same X1/X2 pixel values as the
-// bar purely for column alignment (D8) — restated here, not imported,
-// since the spec is explicit that sharing the numbers is a layout
-// coincidence, not a shared coordinate system.
-var RIBBON_X1 = 24;
-var RIBBON_X2 = 576;
+// sub-range). Same shape as expectedBarX. X1/X2 are deliberately NOT the
+// bar's BAR_X1/BAR_X2 (D8 correction): the ribbon insets 24 units further
+// in on each side so the two strips never share an edge — restated here,
+// not imported from js/daylight.js, so a leftover bug in the real
+// RIBBON_X1/X2 and a correct oracle disagree rather than silently
+// matching (the same reasoning expectedBarX's own header already gives).
+var RIBBON_X1 = 48;
+var RIBBON_X2 = 552;
 var RIBBON_W  = RIBBON_X2 - RIBBON_X1;
 // The ribbon's single y row for band-run lines, and the row its two
 // end-distance labels sit on — every geometry assertion below this point
@@ -654,7 +656,7 @@ var svgFrancesRibbon = makeNode('svg');
 var summaryFrances   = makeNode('p');
 Daylight.renderRibbon(francesArtifact, svgFrancesRibbon, 'km', STATED_DISTANCE_KM['camino-frances'], summaryFrances);
 var francesRuns = elementsWithClassPrefix(svgFrancesRibbon, 'dl-ribbon-band-');
-equal(francesRuns.length, 128, 'real camino-frances (withinInterpolationLimit true): 128 runs, unaggregated — matches js/daylight-math.test.js exactly');
+equal(francesRuns.length, 108, 'real camino-frances (withinInterpolationLimit true): 108 runs after sub-pixel absorption (128 raw band-change points, 20 narrower than one drawn pixel at desktop) — matches js/daylight-math.test.js exactly');
 ok(francesRuns.every(onRibbonRow), 'camino-frances: every run sits on the ribbon\'s own y row (y1=y2=' + RIBBON_Y + '), not just correct on x');
 
 var svgKumanoRibbon = makeNode('svg');
@@ -673,7 +675,7 @@ var svgShikokuRibbon = makeNode('svg');
 var summaryShikoku   = makeNode('p');
 Daylight.renderRibbon(shikokuArtifact, svgShikokuRibbon, 'km', STATED_DISTANCE_KM['shikoku-88'], summaryShikoku);
 var shikokuRuns = elementsWithClassPrefix(svgShikokuRibbon, 'dl-ribbon-band-');
-equal(shikokuRuns.length, 9, 'real shikoku-88 (withinInterpolationLimit FALSE): coarsens to 9 runs — matches js/daylight-math.test.js exactly');
+equal(shikokuRuns.length, 8, 'real shikoku-88 (withinInterpolationLimit FALSE): coarsens to 9 windows, then 8 runs after its 0.5 km trailing window is absorbed into its predecessor — matches js/daylight-math.test.js exactly');
 ok(shikokuRuns.every(onRibbonRow), 'shikoku-88: every run sits on the ribbon\'s own y row, not just correct on x');
 
 var svgCoarseRibbon = makeNode('svg');

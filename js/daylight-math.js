@@ -233,6 +233,17 @@
   // "true dark" directly above this ribbon.
   var DARKNESS_BAND_NAMES = ['town glow', 'edge of town', 'countryside', 'open dark', 'as it was'];
 
+  // The ribbon's own drawable width, in the SVG viewBox's coordinate
+  // units — RIBBON_X2 - RIBBON_X1 in js/daylight.js. That module defines
+  // its RIBBON_W *from* this constant (not the reverse), so there is
+  // exactly one number, not two that happen to agree today. Needed here,
+  // in the pure math module, because mergeDarknessRuns's minimum-
+  // drawable-run-width guard (below) has to agree with what the ribbon
+  // will actually draw — the same discipline darknessBandKmShares already
+  // applies so the summary sentence and the drawn strip read one shared
+  // computation rather than two that happen to match most of the time.
+  var DARKNESS_RIBBON_WIDTH = 504;
+
   // darknessBandForValue(mag) — a direct index into DARKNESS_BAND_BOUNDS.
   // Half-open, left-inclusive (mirrors js/moon-lux.js's luxBracketFor
   // discipline): a value exactly on a boundary belongs to the darker band
@@ -281,6 +292,83 @@
     return (sorted.length % 2) ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
+  // absorbNarrowDarknessRuns(runs, minRunKm) — DECIDED (previously an open
+  // question this file's own comment used to flag rather than answer):
+  // any run narrower than one drawn pixel is absorbed into its
+  // predecessor, not emitted. A band nobody can see is worse than a band
+  // merged into its neighbour — it still costs a <line> element, an
+  // unstable colour antialiasing will blend toward whatever sits next to
+  // it (reading as neither neighbour, a tone that maps to no band), and a
+  // share of the summary sentence's own accounting, since
+  // darknessBandKmShares reads this same output.
+  //
+  // "One pixel" is coveredKm / DARKNESS_RIBBON_WIDTH — the identical
+  // km-per-unit conversion kmToRibbonX (js/daylight.js) uses to place
+  // every run, evaluated at the ribbon's own drawable width, so the
+  // threshold means the same thing the drawing does. Applied to every
+  // run, not only the final one: at 1 km sampling resolution drawn into
+  // only DARKNESS_RIBBON_WIDTH units, a route far longer than
+  // DARKNESS_RIBBON_WIDTH km necessarily produces runs narrower than a
+  // pixel wherever the band flips within a short stretch — camino-
+  // frances alone shipped 20 such runs across its 764 km, at desktop
+  // width, before this guard existed (js/daylight-math.test.js).
+  //
+  // The threshold is one fixed, viewport-independent number rather than
+  // something recomputed per breakpoint. Two reasons: first, it is
+  // calibrated to the widest real rendering (near enough to desktop that
+  // DARKNESS_RIBBON_WIDTH units render close to 1:1 with CSS px), the
+  // most generous case, so nothing is absorbed here that could actually
+  // be seen on any screen this page renders on. Second, and just as
+  // load-bearing: mergeDarknessRuns's output is the one shared input the
+  // strip and the summary sentence both read (darknessBandKmShares, and
+  // the comment on DARKNESS_RIBBON_WIDTH above) — a threshold that varied
+  // by viewport would mean the sentence and the strip could each be
+  // looking at a different set of runs depending on which width last
+  // recomputed them, reopening the exact class of drift Finding 1 closed.
+  // The cost of one fixed threshold: a run just above it can still be
+  // sub-pixel on a narrower viewport, since the same units compress into
+  // fewer CSS px there. Closing that gap fully would mean either a
+  // second, phone-calibrated threshold (discarding real, desktop-visible
+  // detail to fix a mobile-only symptom) or a resize-reactive
+  // recomputation (the drift risk just above) — both a bigger change than
+  // this guard's job. What this guard does instead: removes every run
+  // invisible on any screen the page renders on, and narrows, without
+  // eliminating, the harder narrow-viewport case (camino-frances: 36 of
+  // 128 runs under 1 CSS px at a 375px-wide ribbon before this guard, 12
+  // of 108 after — js/daylight-math.test.js).
+  function absorbNarrowDarknessRuns(runs, minRunKm) {
+    if (runs.length <= 1) return runs;
+
+    var out = [];
+    for (var i = 0; i < runs.length; i++) {
+      var r = { startKm: runs[i].startKm, endKm: runs[i].endKm, band: runs[i].band };
+      if (out.length && (r.endKm - r.startKm) < minRunKm) {
+        // Too narrow to draw: folds into whatever precedes it, so the
+        // predecessor's band — not this run's — covers the span. This is
+        // "into its predecessor" for every run except one with nothing
+        // emitted before it yet, handled below.
+        out[out.length - 1].endKm = r.endKm;
+      } else {
+        out.push(r);
+      }
+    }
+
+    // A narrow leading run has no predecessor to absorb into when the
+    // loop above reaches it — out is still empty, so it's pushed as-is.
+    // Fold it forward into whatever comes after instead. A loop, not one
+    // check, because absorbing it can leave a new first run that is
+    // itself still narrower than minRunKm (several short runs in a row
+    // at the very start of a route) — verified not to trigger on any of
+    // the seven shipped routes, exercised only by adversarial fixtures
+    // (js/daylight-math.test.js).
+    while (out.length > 1 && (out[0].endKm - out[0].startKm) < minRunKm) {
+      out[1].startKm = out[0].startKm;
+      out.shift();
+    }
+
+    return out;
+  }
+
   // mergeDarknessRuns(values, stepKm, coveredKm, aggregateWindowKm) — D3.
   // Slice 2's prose named this helper but nothing demanded it yet, so it
   // shipped without it; the ribbon needs it to turn per-kilometre values
@@ -310,22 +398,10 @@
   // grid boundary lands there (aggregated path). If that point's band
   // disagrees with the run before it, the naive result is a
   // {startKm: coveredKm, endKm: coveredKm, band: ...} run: a real
-  // classification with EXACTLY zero width, zero pixels to draw it. It's
-  // absorbed into the run before it instead of emitted as that
-  // zero-width sliver — verified to never trigger on any of the seven
-  // shipped routes, only on adversarial input (js/daylight-math.test.js).
-  //
-  // This guard only catches exactly-zero width (endKm <= startKm) — it
-  // says nothing about a run that's merely short. Shikoku's own final
-  // run is a real, positive-width example: {startKm: 1080, endKm:
-  // 1080.5, band: 4}, 0.5 km wide, which draws at roughly 0.255 CSS px
-  // on desktop (RIBBON_W=552 px / 1080.5 km) and thinner still on a
-  // narrow viewport — well under a pixel either way, all but invisible
-  // in practice, but not the case this guard exists for or claims to
-  // handle. A general minimum-drawable-width policy (merging a run this
-  // short into a neighbour, say) is a real design question of its own —
-  // this comment used to read as if it already answered that question;
-  // it doesn't.
+  // classification with EXACTLY zero width, zero pixels to draw it — the
+  // narrowest possible case of the general absorbNarrowDarknessRuns pass
+  // below, which now handles it (and every other sub-pixel run) the same
+  // way, rather than a special case of its own.
   function mergeDarknessRuns(values, stepKm, coveredKm, aggregateWindowKm) {
     var n = values.length;
     var points;
@@ -391,13 +467,7 @@
     }
     runs.push({ startKm: runStartKm, endKm: coveredKm, band: runBand });
 
-    var lastRun = runs[runs.length - 1];
-    if (runs.length > 1 && lastRun.endKm <= lastRun.startKm) {
-      runs.pop();
-      runs[runs.length - 1].endKm = coveredKm;
-    }
-
-    return runs;
+    return absorbNarrowDarknessRuns(runs, coveredKm / DARKNESS_RIBBON_WIDTH);
   }
 
   // darknessBandKmShares(runs) — like darknessBandCounts, but weighted by
@@ -700,11 +770,13 @@
 
     DARKNESS_BAND_BOUNDS:        DARKNESS_BAND_BOUNDS,
     DARKNESS_BAND_NAMES:         DARKNESS_BAND_NAMES,
+    DARKNESS_RIBBON_WIDTH:       DARKNESS_RIBBON_WIDTH,
     darknessBandForValue:        darknessBandForValue,
     darknessBandCounts:          darknessBandCounts,
     darknessBandKmShares:        darknessBandKmShares,
     darknessMedian:              darknessMedian,
     darknessAggregateWindowKm:   darknessAggregateWindowKm,
+    absorbNarrowDarknessRuns:    absorbNarrowDarknessRuns,
     mergeDarknessRuns:           mergeDarknessRuns,
     selectNamedDarknessBands:    selectNamedDarknessBands,
     darknessCompositionSentence: darknessCompositionSentence,

@@ -406,9 +406,16 @@ body.constellation .dl-bar-waypoint {
 
    A second, independent instrument (D8) — its own <svg>, its own
    coordinate function (kmToRibbonX in js/daylight.js), never utcToBarX.
-   Shares X1/X2 pixel bounds with .daylight-bar-svg above purely so the
-   two rows keep the same left/right margins on the page; that is a
-   layout coincidence, not a shared axis.
+   Deliberately does NOT share X1/X2 pixel bounds with .daylight-bar-svg
+   above: the ribbon draws inset 24 units further in on each side
+   (RIBBON_X1=48/RIBBON_X2=552 in js/daylight.js, against the bar's
+   BAR_X1=24/BAR_X2=576) so the two strips visibly do not share edges — a
+   geometric defence against reading column-alignment between a time axis
+   and a distance axis as meaningful, on top of D8's other three
+   (separate <svg>, a plain-language caption, no shared ticks). See
+   docs/specs/2026-08-12-darkness-ribbon.md, D8, for the measured
+   misreading this replaced a "layout coincidence" claim that turned out
+   not to be harmless.
    ============================================= */
 
 .dl-ribbon-wrap {

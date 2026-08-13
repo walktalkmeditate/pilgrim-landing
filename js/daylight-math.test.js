@@ -480,6 +480,13 @@ arrEqual(D.DARKNESS_BAND_BOUNDS, [18.5, 19.5, 20.5, 21.3],
   'DARKNESS_BAND_BOUNDS is the four D1 boundaries, in order');
 arrEqual(D.DARKNESS_BAND_NAMES, ['town glow', 'edge of town', 'countryside', 'open dark', 'as it was'],
   'DARKNESS_BAND_NAMES is the five D9 names, brightest to darkest');
+// Pinned so a silent change here is caught: js/daylight.js's RIBBON_W is
+// *defined from* this constant (RIBBON_X1 + DARKNESS_RIBBON_WIDTH), and
+// mergeDarknessRuns's minimum-drawable-run-width guard divides coveredKm
+// by it — a drift here would silently change both the ribbon's drawn
+// width and its absorption threshold at once, with nothing else to catch it.
+equal(D.DARKNESS_RIBBON_WIDTH, 504,
+  'DARKNESS_RIBBON_WIDTH is 504 — the ribbon\'s drawable width in viewBox units (RIBBON_X2 552 - RIBBON_X1 48 in js/daylight.js)');
 
 console.log('\n=== darknessBandCounts — measured distribution across all 7 real artifacts (D1, AC #1) ===\n');
 
@@ -671,6 +678,63 @@ arrEqual(
   'a same-position, disagreeing final sample is absorbed into the previous run rather than emitted at zero width'
 );
 
+console.log('\n=== absorbNarrowDarknessRuns — general minimum-drawable-width absorption, any run, not only the final one ===\n');
+
+// The zero-width case above is the narrowest possible instance of this
+// general guard, not a special case of its own (mergeDarknessRuns no
+// longer special-cases it). Tested directly against hand-built runs and
+// an explicit threshold, isolated from coveredKm/DARKNESS_RIBBON_WIDTH,
+// the same way darknessMedian and darknessBandKmShares are tested
+// directly elsewhere in this file.
+
+arrEqual(
+  D.absorbNarrowDarknessRuns(
+    [{ startKm: 0, endKm: 10, band: 1 }, { startKm: 10, endKm: 11, band: 3 }, { startKm: 11, endKm: 20, band: 2 }],
+    2
+  ),
+  [{ startKm: 0, endKm: 11, band: 1 }, { startKm: 11, endKm: 20, band: 2 }],
+  'an INTERIOR run (width 1, threshold 2) is absorbed into its predecessor, which keeps its own band — not only a trailing run'
+);
+
+arrEqual(
+  D.absorbNarrowDarknessRuns(
+    [{ startKm: 0, endKm: 1, band: 4 }, { startKm: 1, endKm: 20, band: 2 }],
+    2
+  ),
+  [{ startKm: 0, endKm: 20, band: 2 }],
+  'a LEADING run (width 1, threshold 2) has no predecessor to absorb into — folds forward into its successor instead, which keeps its own band'
+);
+
+arrEqual(
+  D.absorbNarrowDarknessRuns(
+    [
+      { startKm: 0,  endKm: 10, band: 0 },
+      { startKm: 10, endKm: 11, band: 1 },
+      { startKm: 11, endKm: 12, band: 2 },
+      { startKm: 12, endKm: 13, band: 3 },
+      { startKm: 13, endKm: 20, band: 4 }
+    ],
+    2
+  ),
+  [{ startKm: 0, endKm: 13, band: 0 }, { startKm: 13, endKm: 20, band: 4 }],
+  'three consecutive sub-threshold runs in a row (width 1 each, threshold 2) all cascade into the same predecessor in one pass'
+);
+
+arrEqual(
+  D.absorbNarrowDarknessRuns(
+    [{ startKm: 0, endKm: 1, band: 0 }, { startKm: 1, endKm: 2, band: 3 }],
+    5
+  ),
+  [{ startKm: 0, endKm: 2, band: 0 }],
+  'every run narrower than the threshold: collapses to one run spanning the whole span, under the first band encountered — terminates, never throws, never returns empty'
+);
+
+arrEqual(D.absorbNarrowDarknessRuns([{ startKm: 0, endKm: 1, band: 2 }], 5),
+  [{ startKm: 0, endKm: 1, band: 2 }],
+  'a single run: returned unchanged regardless of width vs threshold — nothing to absorb into');
+arrEqual(D.absorbNarrowDarknessRuns([], 5), [],
+  'an empty array: returned unchanged');
+
 console.log('\n=== mergeDarknessRuns — tiles [0, coveredKm] with no gaps, overlaps, or zero-width runs, all 7 real artifacts ===\n');
 
 Object.keys(EXPECTED_WINDOW).forEach(function (routeId) {
@@ -705,14 +769,20 @@ arrEqual(kumanoRuns, [{ startKm: 0, endKm: 38, band: 4 }],
 var shikokuArtifact = loadDarknessArtifact('shikoku-88');
 var shikokuRuns = D.mergeDarknessRuns(shikokuArtifact.values, shikokuArtifact.stepKm, shikokuArtifact.coveredKm,
   D.darknessAggregateWindowKm(shikokuArtifact.positionalConfidence));
-equal(shikokuRuns.length, 9, 'shikoku-88: real data (40 km windows) merges to 9 runs — coarse, but not one flat bar (D3)');
-arrEqual(shikokuRuns[0], { startKm: 0, endKm: 120, band: 3 }, 'shikoku-88: first run');
-arrEqual(shikokuRuns[shikokuRuns.length - 1], { startKm: 1080, endKm: 1080.5, band: 4 }, 'shikoku-88: last run reaches coveredKm exactly (1080.5, not 1080)');
+equal(shikokuRuns.length, 8, 'shikoku-88: real data (40 km windows) merges to 9 windows, coarse but not one flat bar (D3) — then 8 runs once the trailing 0.5 km window (below one drawn pixel, coveredKm/504 = 2.14 km) absorbs into its predecessor');
+arrEqual(shikokuRuns[0], { startKm: 0, endKm: 120, band: 3 }, 'shikoku-88: first run (unaffected — well above the absorption threshold)');
+// Before absorption: {startKm: 1080, endKm: 1080.5, band: 4}, 0.5 km — 0.245 CSS px at a
+// 576px-wide desktop ribbon, 0.146 px at a 343px-wide 375px-viewport ribbon (verified via
+// a real headless-Chrome render of #dl-ribbon-svg's getBoundingClientRect().width at both
+// widths). Narrower than one drawn pixel either way, so it absorbs into its predecessor
+// (band 3, {1040, 1080}), which is what actually reaches the reader's eye: one wider,
+// visible run instead of a sliver whose colour a single sample decided.
+arrEqual(shikokuRuns[shikokuRuns.length - 1], { startKm: 1040, endKm: 1080.5, band: 3 }, 'shikoku-88: last run absorbs the former 0.5 km sub-pixel window, reaching coveredKm exactly (1080.5) under its predecessor\'s band (3)');
 
 var francesArtifact = loadDarknessArtifact('camino-frances');
 var francesRuns = D.mergeDarknessRuns(francesArtifact.values, francesArtifact.stepKm, francesArtifact.coveredKm,
   D.darknessAggregateWindowKm(francesArtifact.positionalConfidence));
-equal(francesRuns.length, 128, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 runs');
+equal(francesRuns.length, 108, 'camino-frances: real data (unaggregated, 1 km resolution) merges to 128 band-change points, 108 runs once the 20 narrower than one drawn pixel (coveredKm/504 = 1.52 km) at desktop width absorb into their predecessors');
 var francesBandsPresent = [0, 1, 2, 3, 4].every(function (b) { return francesRuns.some(function (r) { return r.band === b; }); });
 ok(francesBandsPresent, 'camino-frances: all five bands appear somewhere in the merged runs');
 
@@ -867,8 +937,21 @@ equal(
 var francesArtifactForSentence = loadDarknessArtifact('camino-frances');
 equal(
   D.darknessSummarySentence(francesArtifactForSentence, STATED_DISTANCE_KM['camino-frances'], 'km'),
-  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%). Darkest near the end.',
-  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name — + Finding 3 positional clause'
+  '763.7\u00A0km sampled. Mostly open dark (39%) and as it was (30%), with some countryside (21%) and edge of town (8%).',
+  // No positional clause here, and correctly so: before the sub-pixel
+  // absorption guard, the final third's dominant band (4, "as it was")
+  // beat the third before it by exactly 1 km of merged-run width — a
+  // margin entirely inside the single kilometre this guard now folds
+  // into a neighbour. All three thirds share dominant band 3 ("open
+  // dark") once that km moves, so darknessPositionalClause's own Gate 2
+  // (the darkest and brightest thirds must have DIFFERENT dominant
+  // bands) correctly stays silent rather than naming a "darkest near the
+  // end" that rested on evidence too thin to draw.
+  'camino-frances (validated, no gap): plain distance lead-in + four-band sentence — town glow\'s 3% is real but too small to name — no positional clause (verified below, not merely absent)'
+);
+equal(
+  D.darknessPositionalClause(francesRuns, francesArtifactForSentence.coveredKm), '',
+  'camino-frances: darknessPositionalClause itself returns empty on the real, absorbed runs — the sentence above isn\'t just missing the clause by omission'
 );
 
 var portuguesArtifactForSentence = loadDarknessArtifact('camino-portugues');

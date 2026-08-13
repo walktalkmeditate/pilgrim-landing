@@ -976,18 +976,44 @@
      utcToBarX (time) or kmToBarX (the bar's walk-subrange helper).
      ========================================== */
 
-  var RIBBON_X1 = 24;
-  var RIBBON_X2 = 576;
-  var RIBBON_W  = RIBBON_X2 - RIBBON_X1;
+  // RIBBON_X1/X2 used to equal BAR_X1/BAR_X2 exactly (24/576) — the same
+  // numbers, "purely so the two rows keep the same page margins." Measured
+  // what that actually does to a reader (real browser, 2026-08-12,
+  // reproducible against the live bar geometry — full method and two more
+  // routes in docs/specs/2026-08-12-darkness-ribbon.md, D8): camino-
+  // primitivo stage 1 (Oviedo -> Grado, 25.2 km) sits, by km-weighted
+  // share of its merged runs, at 44% countryside / 40% open dark — the
+  // stage itself dominated by "countryside." The bar's own walk-segment
+  // x-range for that same stage, reused as a ribbon x-coordinate, lands
+  // on ribbon km 32.6-120.4, which reads 40% open dark / 60% as it was —
+  // dominated by "as it was," the single darkest band this instrument
+  // draws, on the strength of nothing but matching pixel bounds.
+  // Camino-ingles and camino-portugues stage 1 misread the same
+  // direction, one to two bands darker. D8's three defences (separate
+  // <svg>, a plain-language caption, no shared ticks) are all textual or
+  // positional; sharing exact pixel bounds left the one geometric cue a
+  // reader's eye actually uses — column alignment — pointing the wrong
+  // way. This is the geometric fourth defence: inset 24 units past
+  // BAR_X1/BAR_X2 on each side (double the bar's own 24-unit margin from
+  // the SVG edge — an existing, meaningful number, not a new arbitrary
+  // one), so the ribbon's drawn extent visibly does not reach either of
+  // the bar's edges. The two strips no longer share a single x-coordinate
+  // by construction, so column-alignment between them reads as what it
+  // is — two unrelated axes — rather than as a plausible but wrong
+  // correspondence.
+  var RIBBON_X1 = 48;
+  // DARKNESS_RIBBON_WIDTH lives in js/daylight-math.js, not here, because
+  // mergeDarknessRuns's minimum-drawable-run-width guard needs the exact
+  // same number: one shared constant, so the strip's own geometry and
+  // its minimum-visible-run policy can never quietly disagree about what
+  // this ribbon's width actually is.
+  var RIBBON_W  = DaylightMath.DARKNESS_RIBBON_WIDTH;
+  var RIBBON_X2 = RIBBON_X1 + RIBBON_W;
   var RIBBON_Y  = 16;
   var RIBBON_LABEL_Y = 36;
 
   // kmToRibbonX(kmFromStart, coveredKm) — the ribbon's own distance axis.
-  // RIBBON_X1/X2 share BAR_X1/BAR_X2's numeric values purely so the two
-  // rows keep the same page margins (D8's "layout coincidence, not a
-  // shared coordinate system") — restated as its own constants above
-  // rather than reusing BAR_X1/BAR_X2 by name, so nothing here implies
-  // otherwise. Never touches a Date or a bar domain object.
+  // Never touches a Date or a bar domain object.
   function kmToRibbonX(kmFromStart, coveredKm) {
     if (coveredKm <= 0) return RIBBON_X1;
     var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
