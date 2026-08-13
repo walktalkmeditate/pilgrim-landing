@@ -1185,6 +1185,122 @@ var s2 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_K
 var s3 = D.darknessSummarySentence(shikokuArtifactForSentence, STATED_DISTANCE_KM['shikoku-88'], 'km');
 ok(s1 === s2 && s2 === s3, 'darknessSummarySentence is pure (3x identical args -> identical result)');
 
+/* =============================================
+   Slice 3, Task 1 — stagePlacements (spec D3, D4; AC #3, #4, #5)
+
+   Places each stage on the darkness artifact's kilometre axis, and says
+   how many nights it is. Two placement methods, chosen per route by
+   measurement rather than by a hardcoded route list:
+
+     cumulative  — when the stage distances sum to coveredKm within 1 km
+     span        — from the first and last waypoint's kmFromStart
+
+   Shikoku needs the second: its distanceKm sum (907.3) under-counts the
+   darkness axis (1080.5) by 173.2 km. Its stages are also 19-200 km, far
+   too coarse to be nights, so they become blocks of round(spanKm / 25).
+   ============================================= */
+
+console.log('\n=== stagePlacements — placement method, extents and nights (D3, D4) ===\n');
+
+var DAYLIGHT_DIR = path.join(__dirname, '..', 'assets', 'daylight');
+
+function loadStages(routeId) {
+  var raw = JSON.parse(fs.readFileSync(path.join(DAYLIGHT_DIR, routeId + '.json'), 'utf8'));
+  return Object.keys(raw).map(function (k) { return raw[k]; });
+}
+
+// Six routes tile the darkness axis; shikoku does not. Audited in spec D4
+// directly from the committed artifacts, and re-derived here so the
+// assertion cannot drift from what ships.
+var CUMULATIVE_ROUTES = ['camino-frances', 'camino-ingles', 'camino-norte',
+                         'camino-portugues', 'camino-primitivo', 'kumano-kodo'];
+
+CUMULATIVE_ROUTES.forEach(function (routeId) {
+  var stages = loadStages(routeId);
+  var covered = loadDarknessArtifact(routeId).coveredKm;
+  var placed = D.stagePlacements(stages, covered);
+
+  equal(placed.length, stages.length, routeId + ': one placement per stage');
+  equal(placed[0].loKm, 0, routeId + ': first stage starts at km 0');
+
+  var tiles = true, nightsAllOne = true;
+  for (var i = 0; i < placed.length; i++) {
+    if (placed[i].nights !== 1) nightsAllOne = false;
+    if (i > 0 && Math.abs(placed[i].loKm - placed[i - 1].hiKm) > 1e-6) tiles = false;
+  }
+  ok(tiles, routeId + ': stages tile contiguously — no gap between one stage and the next');
+  ok(nightsAllOne, routeId + ': every stage is exactly one night (D3, day-sized stages)');
+  approx(placed[placed.length - 1].hiKm, covered, 1.0, routeId + ': last stage ends at coveredKm');
+});
+
+// No placement may run past the end of the darkness data on ANY route.
+// "Tiles" is a tolerance, not an identity: kumano's stages sum to 38.5 km
+// against a 38.0 km axis, so an unclamped last stage would end 0.5 km
+// beyond the data and draw past the strip's right edge — the same shape
+// as every other bug this page has shipped where correct arithmetic
+// rendered somewhere a reader could not see it.
+CUMULATIVE_ROUTES.concat(['shikoku-88']).forEach(function (routeId) {
+  var covered = loadDarknessArtifact(routeId).coveredKm;
+  var placed  = D.stagePlacements(loadStages(routeId), covered);
+  var overrun = 0;
+  placed.forEach(function (p) {
+    if (p.hiKm > covered + 1e-9) overrun++;
+    if (p.loKm < -1e-9) overrun++;
+  });
+  equal(overrun, 0, routeId + ': no placement runs outside [0, coveredKm]');
+});
+
+// Shikoku: waypoint-span placement, multi-night blocks, and real gaps.
+var shikokuStages = loadStages('shikoku-88');
+var shikokuCovered = loadDarknessArtifact('shikoku-88').coveredKm;
+var shikokuPlaced = D.stagePlacements(shikokuStages, shikokuCovered);
+
+equal(shikokuPlaced.length, 10, 'shikoku-88: ten placements');
+approx(shikokuPlaced[0].loKm, 0, 0.05, 'shikoku-88: first stage starts at the first temple, km 0');
+approx(shikokuPlaced[9].hiKm, 1080.5, 0.05, 'shikoku-88: last stage ends at the darkness axis end, 1080.5');
+
+var shikokuGapKm = 0;
+for (var sp = 1; sp < shikokuPlaced.length; sp++) {
+  shikokuGapKm += Math.max(0, shikokuPlaced[sp].loKm - shikokuPlaced[sp - 1].hiKm);
+}
+approx(shikokuGapKm, 288.1, 0.2,
+  'shikoku-88: 288.1 km between temple clusters is NOT placed (27% of the route, spec D4)');
+
+var shikokuNights = shikokuPlaced.reduce(function (a, p) { return a + p.nights; }, 0);
+equal(shikokuNights, 32, 'shikoku-88: 32 nights in total at 25 km/day');
+
+var blockMin = Infinity, blockMax = 0;
+shikokuPlaced.forEach(function (p) {
+  if (p.nights < blockMin) blockMin = p.nights;
+  if (p.nights > blockMax) blockMax = p.nights;
+});
+equal(blockMin, 1, 'shikoku-88: smallest block is 1 night');
+equal(blockMax, 7, 'shikoku-88: largest block is 7 nights');
+
+// Every placement must lie inside the axis it is placed on — a stage
+// running past coveredKm would draw outside the strip.
+var allInBounds = true;
+shikokuPlaced.forEach(function (p) {
+  if (p.loKm < 0 || p.hiKm > shikokuCovered + 1e-6 || p.hiKm <= p.loKm) allInBounds = false;
+});
+ok(allInBounds, 'shikoku-88: every placement is within [0, coveredKm] and has positive width');
+
+// Neither method fits -> refuse, rather than silently drawing a wrong axis.
+var unplaceable = [
+  { index: 0, nameEn: 'A', distanceKm: 10 },
+  { index: 1, nameEn: 'B', distanceKm: 10 }
+];
+var threw = false;
+try { D.stagePlacements(unplaceable, 500); } catch (e) { threw = true; }
+ok(threw, 'stagePlacements throws when distances do not tile and there are no waypoints');
+
+// A route whose stages tile exactly must not be diverted to waypoint spans
+// just because waypoints happen to exist (camino-frances has 9 of 33).
+var francesPlaced = D.stagePlacements(loadStages('camino-frances'),
+                                      loadDarknessArtifact('camino-frances').coveredKm);
+approx(francesPlaced[0].hiKm, 24.2, 0.05,
+  'camino-frances: cumulative placement wins even though some stages carry waypoints');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
