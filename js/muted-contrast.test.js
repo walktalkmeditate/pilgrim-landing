@@ -775,6 +775,98 @@ test('moon strip bands stay pairwise distinguishable on every background each th
   });
 });
 
+/* The mark on a named night (G1, D10).
+
+   The two nights the closing sentence names carry a short vertical
+   stroke, drawn ON a band rather than beside it — so the thing it has to
+   be tellable apart from is not the page, it is whichever of the five
+   bands happens to lie under it. A mark you cannot separate from its own
+   band marks nothing, which is this page's oldest failure shape wearing
+   a new hat.
+
+   Held ABOVE the ramp's own adjacent-pair floor, deliberately. The mark
+   is a 2.5-by-8 unit stroke; a band is 504 units of fill. Separation
+   that is enough between two large adjacent areas is not enough between
+   a small mark and the area under it, and 1.25 was measurably too loose
+   here — three realistic drifts (deleting the dark-theme rule so light
+   ink falls through to it, reaching for var(--ink), or letting the mark
+   warm toward the ramp) all land between 1.27 and 1.35 and would have
+   passed. Swept over all five bands on all three real backgrounds, both
+   themes. Shipped worst case: 1.550:1, dark themes, band 4. */
+const MOON_TICK_VS_BAND_MIN = 1.45;
+function moonTickColor(mode) {
+  const sel = RIBBON_MODE_SELECTOR_PREFIX[mode] + '.dl-moon-tick';
+  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}', 'g');
+  let m, decls = null;
+  while ((m = re.exec(daylightCss)) !== null) {
+    if (/stroke:\s*[^;]+;/.test(m[2])) decls = m[2];
+  }
+  assert.ok(decls, 'expected a stroke: colour declaration for ' + sel + ' in css/daylight.css');
+  return resolveFillColor(decls.match(/stroke:\s*([^;]+);/)[1].trim(), mode);
+}
+
+test('a named night\'s mark stays tellable apart from every band it can sit on (G1, D10)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const tick = moonTickColor(mode);
+    const bands = [];
+    for (let i = 0; i < RIBBON_BAND_COUNT; i++) bands.push(moonBandColor(i, mode));
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      const label = mode + ' moon tick over ' + background.label;
+      console.log('\n  named-night mark vs the band under it — ' + label);
+
+      let worst = Infinity;
+      bands.forEach(function (band, i) {
+        const painted = composite(band.rgb, band.alpha, bg);
+        const marked = composite(tick.rgb, tick.alpha, painted);
+        const ratio = contrast(marked, painted);
+        worst = Math.min(worst, ratio);
+        console.log('    tick on moon-' + i + '  ' + marked + ' vs ' + painted
+          + ' = ' + ratio.toFixed(3) + ':1');
+        assert.ok(
+          ratio >= MOON_TICK_VS_BAND_MIN,
+          label + ' .dl-moon-tick on .dl-moon-band-' + i + ' is ' + ratio.toFixed(3)
+            + ':1, below the ' + MOON_TICK_VS_BAND_MIN + ':1 floor for a mark this small — '
+            + 'a mark that vanishes into its own band points at nothing'
+        );
+      });
+      console.log('    worst pairing = ' + worst.toFixed(3) + ':1');
+    });
+  });
+});
+
+test('a named night\'s mark is wide enough to survive the narrowest viewport this page renders at (G1)', function () {
+  /* The F6 lesson, in the one place it applies to a solid stroke. The
+     strip is an SVG with a 600-unit viewBox and `width: 100%`, so one
+     unit is one CSS pixel only at full width; on a phone the whole
+     drawing is scaled down. A stroke narrower than one device pixel is
+     painted by antialiasing at partial coverage, which is an alpha
+     multiplier the sweep above does not model — and the measured
+     contrast would then be a fiction, exactly as a flat dash duty was
+     for the ribbon.
+
+     600 is the viewBox width; 280 is the narrowest content column this
+     page renders at (a 320px phone less the layout's own padding). */
+  const VIEWBOX_UNITS = 600;
+  const NARROWEST_CONTENT_PX = 280;
+
+  const decls = ruleDeclarations(daylightCss, '.dl-moon-tick');
+  assert.ok(decls, 'expected .dl-moon-tick in css/daylight.css');
+  const m = decls.match(/stroke-width:\s*([\d.]+)/);
+  assert.ok(m, '.dl-moon-tick has no stroke-width declaration');
+  const devicePx = parseFloat(m[1]) * (NARROWEST_CONTENT_PX / VIEWBOX_UNITS);
+  console.log('\n  named-night mark: stroke-width ' + m[1] + ' units renders at '
+    + devicePx.toFixed(3) + ' px on a ' + NARROWEST_CONTENT_PX + 'px column');
+  assert.ok(
+    devicePx >= 1,
+    '.dl-moon-tick is ' + devicePx.toFixed(3) + ' device px wide on the narrowest column this page '
+      + 'renders at — under one pixel it is painted at partial coverage, and every contrast figure '
+      + 'measured for it above is optimistic'
+  );
+});
+
 test('the moon ramp is warm where the darkness ramp is cool, so two strips on one axis stay tellable apart (D8)', function () {
   // Deliberately a HUE test, not a luminance one. Two five-step ramps
   // that each span their theme's usable luminance range must overlap in
@@ -800,6 +892,44 @@ test('the moon ramp is warm where the darkness ramp is cool, so two strips on on
       assert.ok(moonW - darkW >= MIN_MOON_WARMTH,
         mode + ' band ' + i + ': the two ramps are only ' + (moonW - darkW) + ' apart in R-B');
     }
+  });
+});
+
+test('the spec\'s stated moon-ramp extremes are the ramp\'s actual extremes (AC #12)', function () {
+  /* Twice now the spec has carried a contrast figure the CSS did not
+     produce. The second time it was written into the very commit whose
+     purpose was correcting a misstated number, quoting the ramp's
+     pre-retune extremes (4.9 / 7.3 / 8.6) after the alphas had already
+     moved. A number in a spec that nothing checks is a number that
+     drifts, so this reads the three figures back out of the document and
+     recomputes them from what ships. */
+  const specPath = path.join(ROOT, 'docs/specs/2026-08-13-night-worth-walking.md');
+  const spec = fs.readFileSync(specPath, 'utf8');
+  const m = spec.match(/\*\*([\d.]+) \/ ([\d.]+) \/ ([\d.]+):1\*\*/);
+  assert.ok(m, 'the spec no longer states the moon ramp\'s three extremes in the form "a / b / c:1"');
+  const stated = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+
+  const measured = [];
+  ['light', 'dark'].forEach(function (mode) {
+    const first = moonBandColor(0, mode);
+    const last = moonBandColor(RIBBON_BAND_COUNT - 1, mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const bg = background.rgb;
+      measured.push(contrast(composite(first.rgb, first.alpha, bg),
+                             composite(last.rgb, last.alpha, bg)));
+    });
+  });
+
+  console.log('\n  spec extremes stated ' + stated.map(function (v) { return v.toFixed(3); }).join(' / ')
+    + '  measured ' + measured.map(function (v) { return v.toFixed(3); }).join(' / '));
+  assert.strictEqual(measured.length, stated.length,
+    'the spec states ' + stated.length + ' extremes but the ramp has ' + measured.length + ' real backgrounds');
+  measured.forEach(function (value, i) {
+    assert.ok(
+      Math.abs(value - stated[i]) < 0.001,
+      'the spec states ' + stated[i] + ':1 for the moon ramp\'s extremes on background ' + i
+        + ', but the shipped alphas measure ' + value.toFixed(3) + ':1'
+    );
   });
 });
 

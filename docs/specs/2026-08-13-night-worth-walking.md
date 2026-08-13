@@ -171,9 +171,39 @@ does not react to pace either.
 ### D10 — Accessibility: the sentence is the text equivalent
 
 As with the ribbon, the SVG carries `role="img"` with a label stating the walk length in
-nights and the two named nights. Colour is never the only signal — the sky and lantern
-nights are marked positionally in the strip, not by hue alone. Contrast floors match the
+nights and the two named nights. Colour is never the only signal. Contrast floors match the
 ribbon's: 1.25:1 adjacent, 2:1 extremes, across parchment, dark and `#0a0a12`.
+
+**What marks a night, and what numbers it.** *Rewritten during the second review — the first
+version of this paragraph became false when the strip started coalescing.*
+
+- **The mark.** Adjacent cells that share a moon band are drawn as one `<line>`, because two
+  abutting semi-transparent strokes composite a seam stronger than the real band steps
+  around them. That was right, and it erased every true per-night boundary along with the
+  false ones: 77% of named nights ended up inside a wider merged span, camino-frances drew
+  33 nights as 7 lines, and the prose named "night 17" over a bar covering a third of a
+  **kilometre** axis on which 17 of 33 cannot be interpolated. So the two nights the
+  sentence names — and only those — carry a `.dl-moon-tick`: a short vertical stroke at the
+  centre of that night's **own cell extent**, not the merged span's. A suppressed clause
+  draws no mark, so the marks and the sentence always name the same nights. The mark is
+  shorter than the band is tall, so band colour shows above and below it and it cannot read
+  as the boundary the coalescing exists to remove. It is measured against every band it can
+  sit on, on all three backgrounds (AC #12).
+- **The numbering.** One scheme, everywhere: a night's number is its number in the schedule,
+  counted from the start date, which is the number a reader can carry to a calendar. The
+  label states the walk's own length in nights and, when the strip cannot draw all of them,
+  says separately how many it drew — it does not renumber. The alternative produced
+  "2 nights from 21 June. Night 3 holds usable moonlight…" over an axis reading night 1 to
+  night 3: three true statements that contradict each other read left to right.
+
+**The phase range and the moon band are two different claims, and the sentence says so.**
+`getMoonPhaseName`'s "Last Quarter" bucket spans 0.6875–0.8125, so it can call a 30%-lit
+waning crescent a quarter moon while the band beside it is band 1 — 40 of 366 shikoku start
+dates read "…last quarter to new moon, with barely a trace of moon…". Both statements were
+true and they looked like one claim contradicting itself. A phase is where the moon is in
+its month; a band is how much of it was above the horizon while the sky was dark. The
+sentence now says the second as "in the dark hours", and frames the first as the moon's own
+passage ("under a moon going from last quarter to new").
 
 ### D11 — Custom routes and missing data show nothing
 
@@ -215,12 +245,28 @@ too — one malformed-artifact path, not two.
 10. The sky clause is absent when darkest and brightest differ by under one band (verify on
     kumano-kodo).
 11. Stated nights in the sentence match the nights the strip draws, on all seven routes.
+    *Corrected during the second review:* the check that carried this label built its night
+    set from **cells**, which stopped being the same population as the emitted `<line>`s the
+    moment coalescing landed. It is now measured on the drawn strip in
+    `js/daylight-render.test.js` — every night named in the emitted `aria-label` lies between
+    the two emitted axis labels, and the mark for it falls on a span that was actually drawn.
+    The cells-based version stays in `js/daylight-math.test.js` as the prose-vs-schedule
+    invariant it really is, under that name.
 12. Contrast: 1.25:1 adjacent, **2:1** extremes, over parchment, dark, and `#0a0a12`,
     measured at the duty the renderer actually produces (ribbon F6's lesson).
     *Corrected during the review:* this said 3:1, which `js/muted-contrast.test.js` has
     never enforced — `RIBBON_BAND_EXTREMES_MIN` is 2.0, and it cannot be raised, because
     the darkness ribbon's own solid extremes measure 2.853:1 and 2.874:1 on two of the
-    three backgrounds. The moon ramp clears either bar (4.9 / 7.3 / 8.6:1).
+    three backgrounds. The moon ramp clears either bar: **4.506 / 7.278 / 8.593:1** over
+    light parchment, dark parchment and `#0a0a12`.
+    *Corrected again during the second review:* this line first said 4.9 / 7.3 / 8.6, which
+    were the ramp's figures **before** `bd8530e` retuned the light alphas to lift band 0 off
+    the page — written into a commit whose whole purpose was correcting a misstated number.
+    The figures above are recomputed from the shipped alphas.
+    The `.dl-moon-tick` that marks a named night is held to **1.45:1** against every band it
+    can sit on — above the ramp's own adjacent floor, because it is a 2.5×8-unit stroke over
+    a 504-unit fill, and 1.25 was measurably too loose to catch three realistic drifts. Its
+    binding case is band 4 in dark themes, at 1.550:1.
 13. `role="img"` label states walk length in nights and names the same nights as the prose.
 14. Custom routes and shape-invalid artifacts hide the section without a console error.
 

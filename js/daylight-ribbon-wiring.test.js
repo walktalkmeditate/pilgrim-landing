@@ -142,7 +142,13 @@ global.document = {
 
 global.window = global;
 global.location = { search: '', pathname: '/daylight/', href: 'https://pilgrimapp.org/daylight/' };
-global.history = { replaceState: function () {} };
+// The share link, captured. pushURL is the one place this page decides
+// what a reader can send someone else, and G7 is about that URL and the
+// page it produces disagreeing — so the harness has to be able to read it.
+var lastPushedURL = '';
+global.history = {
+  replaceState: function (state, title, url) { lastPushedURL = url; }
+};
 global.localStorage = { getItem: function () { return null; }, setItem: function () {} };
 // navigator is left untouched: recent Node versions define it as a
 // built-in, read-only global. Nothing in the code paths this harness
@@ -506,8 +512,18 @@ var dateInput   = elementsById['dl-date'];
 var paceInput   = elementsById['dl-pace'];
 var stageSel    = elementsById['dl-stage'];
 
+// Band spans only. The two nights the sentence names carry <line> marks
+// of their own (G1), so "every line" and "every band" are two counts now.
 function moonLines() {
-  return moonSvg.children.filter(function (c) { return c.tag === 'line'; });
+  return moonSvg.children.filter(function (c) {
+    return c.tag === 'line' && /dl-moon-band-/.test(c.attrs.class || '');
+  });
+}
+
+function moonTicks() {
+  return moonSvg.children.filter(function (c) {
+    return c.tag === 'line' && /(^|\s)dl-moon-tick(\s|$)/.test(c.attrs.class || '');
+  });
 }
 
 function assetText(dir, routeId) {
@@ -579,11 +595,21 @@ ok(bandsAfterDate !== bandsBeforeDate,
    redraw writes: clearRibbonDisplay blanks the summary, renderMoonStrip
    fills it, hideMoonStrip blanks it. */
 var moonRepaints = 0;
+// Writes that put a SENTENCE there, not the blanking ones. Every full
+// render is exactly one of these (clearRibbonDisplay blanks, then
+// renderMoonStrip writes), so this counts renders where moonRepaints
+// counts touches — which is what G2 is about: the strip was rendered
+// twice per warm route change and the first one thrown away unseen.
+var moonSentenceRepaints = 0;
 (function spyOnMoonSummary() {
   var text = moonSummary.textContent;
   Object.defineProperty(moonSummary, 'textContent', {
     get: function () { return text; },
-    set: function (value) { text = value; moonRepaints++; },
+    set: function (value) {
+      text = value;
+      moonRepaints++;
+      if (value) moonSentenceRepaints++;
+    },
     configurable: true
   });
 })();
@@ -592,6 +618,12 @@ function repaintsDuring(fn) {
   var before = moonRepaints;
   fn();
   return moonRepaints - before;
+}
+
+function rendersDuring(fn) {
+  var before = moonSentenceRepaints;
+  fn();
+  return moonSentenceRepaints - before;
 }
 
 // The positive control. Without it, every "0 repaints" below could be
@@ -657,53 +689,77 @@ fireEvent(unitRadios[0], 'change');
 ok(ribbonSvgEl.children.map(function (c) { return c.textContent; }).join('|').indexOf('km') !== -1,
   'switched back to km for the assertions that follow');
 
-/* --- A date outside the years this page accepts draws nothing.
+/* --- A date outside the years this page accepts is pulled back into
+   them, on every edge at once.
 
-   #dl-date carries no min/max in a browser that ignores them, and a
-   stray keystroke makes the year 20261. The strip used to render the
-   full walk for it and pushURL wrote it into the share link, where the
-   recipient's coerceParams silently reset it to today — the same URL,
-   two different strips. Both edges now read the same two years. */
+   Hiding the strip was half a fix. The section vanished with no
+   explanation while the walk-budget bar above it carried on rendering,
+   and pushURL still wrote `date=2101-06-15` into the share link, where
+   the recipient's coerceParams reset it to today: one URL, two different
+   pages, which is the exact failure the bounds were added to prevent.
+   This page has no validation UI to reject into — no <form>, no :invalid
+   rule — so the value is clamped instead, before anything reads it. */
 var beforeBadDate = moonSummary.textContent;
 
 dateInput.value = '2101-06-15';
 fireEvent(dateInput, 'change');
-ok(moonWrap.hidden === true, 'a year past 2100 hides the strip instead of drawing a walk the URL will not carry');
-equal(moonLines().length, 0, 'a year past 2100 draws no spans');
+equal(dateInput.value, '2100-12-31', 'a year past 2100 is pulled back to the last date this page accepts');
+ok(moonWrap.hidden === false, 'and the strip draws that date rather than vanishing unexplained');
+ok(moonLines().length > 0, 'a clamped date draws spans');
+ok(moonSummary.textContent.indexOf('31 December') !== -1,
+  'the sentence reports the date actually in the input: ' + JSON.stringify(moonSummary.textContent));
 
 dateInput.value = '0050-06-15';
 fireEvent(dateInput, 'change');
-ok(moonWrap.hidden === true,
-  'a year under 1900 hides the strip too — Date.UTC would silently have mapped 0050 to 1950');
-equal(moonLines().length, 0, 'a year under 1900 draws no spans');
+equal(dateInput.value, '1900-01-01',
+  'a year under 1900 is pulled up to the first — Date.UTC would silently have mapped 0050 to 1950');
+ok(moonWrap.hidden === false, 'and the strip draws it');
+ok(moonSummary.textContent.indexOf('1 January') !== -1, 'the sentence reports 1 January');
 
-/* The five-digit year from the finding needs its own firing.
+/* The five-digit year from the finding, fired the way a browser fires it.
 
    A real browser invokes each change listener independently and reports
    a throw from one to window.onerror without skipping the rest; this
-   harness's fireEvent propagates instead. That difference matters for
-   exactly one input: "20261-06-15" makes
-   `new Date('20261-06-15T06:00:00Z')` an Invalid Date — ISO 8601 wants a
-   sign on years past four digits — and the BAR's own
-   wallTimeToUTC -> Intl.formatToParts throws RangeError on it, from the
-   listener registered just before the strip's. That is a pre-existing
-   defect in the walk-budget path, older than this branch and not what
-   this fix is about; the strip's listener still runs in a browser, and
-   this is what it now does when it does. */
+   harness's fireEvent propagates instead. That mattered for exactly one
+   input: "20261-06-15" makes `new Date('20261-06-15T06:00:00Z')` an
+   Invalid Date — ISO 8601 wants a sign on years past four digits — and
+   the BAR's own wallTimeToUTC -> Intl.formatToParts threw RangeError on
+   it. The clamp listener is registered before the bar's, so the bar now
+   never sees the five-digit value at all; this fires through the same
+   isolation helper anyway, so the assertion holds whichever order a
+   future refactor leaves the listeners in. */
 function fireDateChangePastTheBar(value) {
   dateInput.value = value;
   (dateInput._listeners['change'] || []).forEach(function (fn) {
-    try { fn.call(dateInput); } catch (e) { /* the bar's own RangeError, see above */ }
+    try { fn.call(dateInput); } catch (e) { /* see above */ }
   });
 }
 
 fireDateChangePastTheBar('20261-06-15');
-ok(moonWrap.hidden === true,
-  'a five-digit year hides the strip rather than drawing a walk 18,000 years out');
-equal(moonLines().length, 0, 'a five-digit year draws no spans');
+equal(dateInput.value, '2100-12-31', 'a five-digit year is clamped, not drawn as a walk 18,000 years out');
+ok(moonWrap.hidden === false, 'and the strip draws the clamped date');
+
+// The share link carries what the page shows.
+ok(lastPushedURL.indexOf('date=2100-12-31') !== -1,
+  'the share link carries the clamped date: ' + lastPushedURL);
+ok(lastPushedURL.indexOf('20261') === -1 && lastPushedURL.indexOf('2101') === -1,
+  'and no trace of the year the recipient\'s coerceParams would have thrown away');
+
+/* pushURL's own clamp, exercised with the input handler out of the way:
+   a value set programmatically — restored from storage, set by another
+   script, written by a future refactor that forgets to fire `change` —
+   must still not reach the URL. Fired through a route change (which
+   calls pushURL without touching the date listeners) on the empty route,
+   so nothing else on the page moves. */
+dateInput.value = '2101-06-15';
+routeSel.value = '';
+fireEvent(routeSel, 'change');
+ok(lastPushedURL.indexOf('date=2100-12-31') !== -1,
+  'pushURL clamps for itself, so an unclamped input cannot leak into a share link: ' + lastPushedURL);
+ok(lastPushedURL.indexOf('2101') === -1, 'and the rejected year appears nowhere in it');
 
 dateInput.value = '2026-12-04';
-fireEvent(dateInput, 'change');
+selectRoute(MOON_ROUTE);
 ok(moonWrap.hidden === false, 'a date back inside the bounds draws the strip again');
 equal(moonSummary.textContent, beforeBadDate,
   'and draws exactly what it drew before the out-of-range excursion');
@@ -807,6 +863,122 @@ ok(unplaceableWarnings[0].indexOf('darkness axis') !== -1,
   'the warning says what it could not do: ' + JSON.stringify(unplaceableWarnings[0]));
 
 /* ==========================================
+   G2 — one render and one warning per route change, WARM or cold.
+
+   Every scenario above resolves both XHRs cold, which is the only reason
+   "exactly one warning" passed. On a warm re-selection the strip was
+   drawn twice: loadStageData's cache hit drew it, updateRibbonForRoute's
+   hideMoonStrip erased it, and loadDarknessData's cache hit drew it
+   again — 23.6 ms (norte) / 33.6 ms (shikoku) of synchronous astronomy
+   per revisit, half of it discarded before a frame, and two identical
+   "cannot place" warnings for an unplaceable route.
+
+   Measured through this harness on ab0fa94: warm re-selection of
+   camino-primitivo = 5 writes / 2 renders; warm route-unplaceable = 2
+   warnings. The counters below are what stop either coming back.
+   ========================================== */
+
+console.log('\n=== a warm route re-selection renders once and warns once (G2) ===\n');
+
+// How many times a URL has actually been requested. A warm path must add
+// none — otherwise "warm" is a claim about the fixture, not a fact.
+function fetchCountFor(url) {
+  return (xhrByUrl[url] || []).length;
+}
+var unplaceableStageFetches  = fetchCountFor('/assets/daylight/' + UNPLACEABLE + '.json');
+var primitivoDarknessFetches = fetchCountFor('/assets/darkness/' + MOON_ROUTE + '.json');
+ok(unplaceableStageFetches > 0 && primitivoDarknessFetches > 0,
+  'fixture sanity: both routes were fetched at least once earlier in this file');
+
+// Leave the route, come back to it. Both caches are warm from the
+// unplaceable section above, so nothing is fetched.
+selectRoute('');
+var warmUnplaceableWarnings = [];
+var warnBeforeWarmRevisit = console.warn;
+console.warn = function () {
+  warmUnplaceableWarnings.push(Array.prototype.join.call(arguments, ' '));
+};
+var warmUnplaceableRenders = rendersDuring(function () {
+  selectRoute(UNPLACEABLE);
+});
+console.warn = warnBeforeWarmRevisit;
+
+equal(fetchCountFor('/assets/daylight/' + UNPLACEABLE + '.json'), unplaceableStageFetches,
+  'fixture sanity: the warm revisit issued no new stage fetch — both caches really are warm');
+equal(warmUnplaceableRenders, 0, 'an unplaceable route draws nothing on the warm path either');
+equal(warmUnplaceableWarnings.length, 1,
+  'and warns exactly once, not once per cache hit: ' + JSON.stringify(warmUnplaceableWarnings));
+
+// A route that CAN be placed, revisited warm: one render, not two.
+selectRoute('');
+var warmRenders = 0;
+var warmWrites = repaintsDuring(function () {
+  warmRenders = rendersDuring(function () { selectRoute(MOON_ROUTE); });
+});
+equal(fetchCountFor('/assets/darkness/' + MOON_ROUTE + '.json'), primitivoDarknessFetches,
+  'fixture sanity: the warm revisit issued no new darkness fetch either');
+equal(warmRenders, 1, 'a warm route re-selection runs the night astronomy exactly once ('
+  + warmWrites + ' writes in total)');
+ok(moonWrap.hidden === false, 'and the strip is on screen after it');
+equal(moonLines().length, 4, 'showing ' + MOON_ROUTE + '\'s four coalesced spans');
+equal(moonTicks().length, 2, 'and both of its named nights are marked');
+
+/* The two MIXED orderings — one source warm, one still in flight. Moving
+   the cache-hit renders into updateRibbonForRoute is only safe if these
+   still draw, and neither was exercised anywhere in this file: every
+   scenario above has both sources cold or both warm. */
+
+console.log('\n=== one source cached, one still in flight — both orders (G2) ===\n');
+
+function mixedRouteStages(routeId) {
+  return JSON.stringify([0, 1, 2, 3].map(function (i) {
+    return { index: i, nameEn: 'Mixed stage ' + i, distanceKm: 25,
+             startLat: 42.34, startLon: -3.70 };
+  }));
+}
+function mixedDarknessArtifact(routeId) {
+  return JSON.stringify({
+    route: routeId, unit: 'mag/arcsec2', coveredKm: 100, stepKm: 10,
+    heldOutValidation: true,
+    positionalConfidence: { withinInterpolationLimit: true },
+    values: [21.1, 21.2, 21.3, 21.4, 21.5, 20.4, 19.3, 21.2, 21.1, 21.0, 20.9]
+  });
+}
+
+dateInput.value = '2026-10-12';
+
+// (a) stages cached, darkness cold.
+var WARM_STAGES = 'route-warm-stages';
+selectRoute(WARM_STAGES);
+resolveStages(WARM_STAGES, mixedRouteStages(WARM_STAGES));
+selectRoute('');
+selectRoute(WARM_STAGES);
+ok(moonWrap.hidden === true, 'cached stages alone still draw nothing — the axis is not loaded yet');
+var warmStagesRenders = rendersDuring(function () {
+  resolveDarkness(WARM_STAGES, mixedDarknessArtifact(WARM_STAGES));
+});
+ok(moonWrap.hidden === false, 'cached stages plus a darkness fetch that lands second draws the strip');
+equal(warmStagesRenders, 1, 'and draws it once');
+ok(moonLines().length > 0, 'with spans on screen (' + moonLines().length + ')');
+
+// (b) darkness cached, stages cold.
+var WARM_DARK = 'route-warm-darkness';
+selectRoute(WARM_DARK);
+resolveDarkness(WARM_DARK, mixedDarknessArtifact(WARM_DARK));
+selectRoute('');
+selectRoute(WARM_DARK);
+ok(moonWrap.hidden === true, 'cached darkness alone still draws nothing — no stage places a night yet');
+var warmDarkRenders = rendersDuring(function () {
+  resolveStages(WARM_DARK, mixedRouteStages(WARM_DARK));
+});
+ok(moonWrap.hidden === false, 'cached darkness plus a stage fetch that lands second draws the strip');
+equal(warmDarkRenders, 1, 'and draws it once');
+ok(moonSummary.textContent.indexOf('4 nights from 12 October') === 0,
+  'stating its own four nights: ' + JSON.stringify(moonSummary.textContent));
+
+selectRoute(MOON_ROUTE);
+
+/* ==========================================
    AC #11 through the wiring, not through renderMoonStrip alone: a
    schedule whose nights have no astronomical night at all.
 
@@ -851,36 +1023,62 @@ equal(moonSummary.textContent, '', 'and no sentence counts nights the strip neve
 
 var PART_NULL = 'route-part-polar';
 selectRoute(PART_NULL);
-// The undrawable stage sits in the MIDDLE, so the two drawable ones
-// cannot abut and coalesce — the span count stays a fact about
-// drawability rather than about banding. It is also only 4 km of 100, so
-// the unplaced clause (>= 5%) stays out of the sentence.
+/* The reviewer's own G4 case, at the size that crosses the boundary
+   rather than stepping around it: 40 km Burgos / 20 km Tromsø / 40 km
+   Burgos, tiling a 100 km axis exactly. The middle stage is PLACED and
+   undrawable — no astronomical night on 21 June at 69.65°N — and it is
+   20% of the route, four times the unplaced clause's 5% threshold. The
+   old clause counted exactly those kilometres as unplaced and then
+   explained them with shikoku's geography: "The stretches between temple
+   clusters, 20% of the route, are not placed." There are no temple
+   clusters here, and that 20 km is placed.
+
+   It also sits in the MIDDLE, so the two drawable stages cannot abut and
+   coalesce — the span count stays a fact about drawability rather than
+   about banding. */
 resolveStages(PART_NULL, JSON.stringify([
-  { index: 0, nameEn: 'Walkable one', distanceKm: 48, startLat: BURGOS.lat, startLon: BURGOS.lon },
-  { index: 1, nameEn: 'Midnight sun',  distanceKm: 4,  startLat: TROMSO.lat, startLon: TROMSO.lon },
-  { index: 2, nameEn: 'Walkable two', distanceKm: 48, startLat: BURGOS.lat, startLon: BURGOS.lon }
+  { index: 0, nameEn: 'Walkable one', distanceKm: 40, startLat: BURGOS.lat, startLon: BURGOS.lon },
+  { index: 1, nameEn: 'Midnight sun',  distanceKm: 20, startLat: TROMSO.lat, startLon: TROMSO.lon },
+  { index: 2, nameEn: 'Walkable two', distanceKm: 40, startLat: BURGOS.lat, startLon: BURGOS.lon }
 ]));
 resolveDarkness(PART_NULL, polarDarknessArtifact(PART_NULL));
 
 ok(moonWrap.hidden === false, 'a partly drawable schedule still shows the section');
 equal(moonLines().length, 2, 'only the two drawable cells are drawn');
-ok(moonSummary.textContent.indexOf('2 nights from 21 June') === 0,
-  'the sentence states the two nights it drew, not the three the schedule holds: '
+// One numbering scheme (G3): the lead-in states the walk's own length,
+// then says how much of it the strip drew. It used to state the DRAWN
+// count while every clause and both axis labels used absolute night
+// numbers — "2 nights from 21 June. Night 3 holds…" over an axis reading
+// night 1 to night 3, three true statements contradicting each other.
+ok(moonSummary.textContent.indexOf('3 nights from 21 June.') === 0,
+  'the sentence states the walk\'s own three nights: ' + JSON.stringify(moonSummary.textContent));
+ok(moonSummary.textContent.indexOf('The strip draws 2 of them.') !== -1,
+  'and states separately how many of them it drew');
+// G4: those 20 km are placed. The clause that exists for unplaced
+// kilometres must not claim them, and must not offer shikoku's reason.
+ok(moonSummary.textContent.indexOf('% of the route') === -1,
+  'a placed-but-undrawable fifth of the route is not reported as unplaced: '
     + JSON.stringify(moonSummary.textContent));
+ok(moonSummary.textContent.indexOf('temple clusters') === -1,
+  'and no route\'s geography is offered as the reason for it');
 function moonAxisLabel(anchor) {
   var label = moonSvg.children.filter(function (c) {
     return c.tag === 'text' && c.attrs['text-anchor'] === anchor;
   })[0];
   return label && label.textContent;
 }
-// The lead-in counts the nights DRAWN (two); the axis names the nights at
-// the strip's two ends (one and three). Both are true of what they name,
-// and neither contradicts the interior clause, which calls the last cell
-// night 3 — a right label reading "night 2" would have.
+// Both axis labels name the nights at the strip's two ends, on the same
+// absolute numbering the clauses use.
 equal(moonAxisLabel('start'), 'night 1', 'the left axis label names the first night drawn');
 equal(moonAxisLabel('end'), 'night 3', 'the right axis label names the last night drawn, not a count of drawn nights');
 ok(moonSummary.textContent.indexOf('Night 3') !== -1,
   'and the prose names that same night 3, so the axis and the sentence agree');
+// And the mark for that night sits on the span that draws it.
+equal(moonTicks().length, 1, 'the one named night carries one mark');
+var partNullTickX = Number(moonTicks()[0].attrs.x1);
+ok(moonLines().some(function (l) {
+  return Number(l.attrs.x1) <= partNullTickX && partNullTickX <= Number(l.attrs.x2);
+}), 'the mark falls on a span that was actually drawn, not on the blank middle stage');
 
 /* ==========================================
    Finding 9 — the two hide paths disagreed about which nodes have to

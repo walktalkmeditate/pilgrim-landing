@@ -677,6 +677,40 @@ body.constellation .dl-bar-waypoint {
   stroke-width: 10;
 }
 
+/* The two nights the closing sentence names, marked where they are
+   walked (D10: "the sky and lantern nights are marked positionally in
+   the strip, not by hue alone").
+
+   A different visual language from the bands on purpose: the bands run
+   along the axis and carry a value, this crosses the axis and carries a
+   position. Same idiom as .dl-bar-tick-adapt and .dl-bar-moon-tick on
+   the time bar above — a short vertical stroke on the thing it marks.
+
+   Shorter than the band is tall, so band colour shows above and below
+   it: a full-height mark would read as a boundary between two spans,
+   which is precisely what coalesceMoonCells exists to stop the strip
+   drawing.
+
+   Two colours, one per theme, because the ramp runs in opposite
+   directions in the two: ink on a ramp that darkens with moonlight,
+   near-white on one that brightens. js/muted-contrast.test.js measures
+   the mark against every band on all three real backgrounds and holds it
+   to 1.45:1 — above the ramp's own 1.25:1 adjacent floor, because this
+   is a 2.5-by-8 unit stroke and that is a 504-unit fill. A mark you
+   cannot separate from the band under it marks nothing. The binding case
+   is band 4 in dark themes (1.550:1); every other pair is 2.6:1 or
+   better. Deleting the dark rule below drops star mode's band 0 to
+   1.270:1 and the sweep goes red, which is the point of the margin. */
+.dl-moon-tick {
+  stroke: #1A150E;
+  stroke-width: 2.5;
+  stroke-linecap: butt;
+}
+
+html[data-theme="dark"] .dl-moon-tick {
+  stroke: #FFFBF2;
+}
+
 .dl-ribbon-label {
   font-family: 'Lato', sans-serif;
   font-weight: 300;

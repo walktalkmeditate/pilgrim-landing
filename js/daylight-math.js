@@ -244,6 +244,24 @@
   // computation rather than two that happen to match most of the time.
   var DARKNESS_RIBBON_WIDTH = 504;
 
+  /*
+   * ribbonFracForKm(kmFromStart, coveredKm) — where a kilometre lands on
+   * the ribbon's axis, as a clamped 0..1 fraction of its drawable width.
+   *
+   * js/daylight.js's kmToRibbonX is this plus the inset, and
+   * js/night-math.js's isDrawableCell asks the same question of a cell's
+   * two ends. They used to answer it separately: isDrawableCell tested
+   * `hiKm > loKm` in KILOMETRES while the renderer additionally dropped
+   * any span whose CLAMPED ends collapsed onto one edge. A cell placed
+   * past the end of the darkness axis therefore counted as drawable — it
+   * was named in the prose, labelled on the axis, and drew nothing.
+   * One function, so "drawable" means the same thing in both places.
+   */
+  function ribbonFracForKm(kmFromStart, coveredKm) {
+    if (!(coveredKm > 0)) return 0;
+    return Math.max(0, Math.min(1, kmFromStart / coveredKm));
+  }
+
   // darknessBandForValue(mag) — a direct index into DARKNESS_BAND_BOUNDS.
   // Half-open, left-inclusive (mirrors js/moon-lux.js's luxBracketFor
   // discipline): a value exactly on a boundary belongs to the darker band
@@ -910,6 +928,7 @@
     DARKNESS_BAND_BOUNDS:        DARKNESS_BAND_BOUNDS,
     DARKNESS_BAND_NAMES:         DARKNESS_BAND_NAMES,
     DARKNESS_RIBBON_WIDTH:       DARKNESS_RIBBON_WIDTH,
+    ribbonFracForKm:             ribbonFracForKm,
     darknessBandForValue:        darknessBandForValue,
     darknessBandCounts:          darknessBandCounts,
     darknessBandKmShares:        darknessBandKmShares,

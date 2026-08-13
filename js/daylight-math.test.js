@@ -1456,6 +1456,13 @@ function cellsFor(routeId, startDate) {
   return N.buildNightCells(schedule, stages, runs);
 }
 
+// The axis every drawability question is asked against. isDrawableCell
+// takes it because the renderer clamps to it, and a cell placed past its
+// end draws nothing however many kilometres it claims (G5).
+function coveredKmFor(routeId) {
+  return loadDarknessArtifact(routeId).coveredKm;
+}
+
 var francesCells = cellsFor('camino-frances', WALK_START);
 equal(francesCells.length, 33, 'camino-frances: 33 enriched cells');
 ok(francesCells.every(function (c) { return typeof c.darkMean === 'number' && !isNaN(c.darkMean); }),
@@ -1463,7 +1470,7 @@ ok(francesCells.every(function (c) { return typeof c.darkMean === 'number' && !i
 ok(francesCells.every(function (c) { return c.moon !== null; }),
   'camino-frances: every cell has a resolvable dark window');
 
-var francesNotable = N.selectNotableNights(francesCells);
+var francesNotable = N.selectNotableNights(francesCells, coveredKmFor('camino-frances'));
 equal(francesNotable.sky.firstNight, 27,
   'camino-frances: the sky night is night 27, O Cebreiro — darkest, and no moon');
 equal(francesNotable.lantern.firstNight, 15,
@@ -1485,7 +1492,7 @@ ok(francesNotable.lantern.moon.usableFrac > 0,
 // sky night must move to the darkest night that is genuinely moonless.
 var lateStart  = new Date('2026-10-25T12:00:00Z');
 var lateCells  = cellsFor('camino-frances', lateStart);
-var lateSky    = N.selectNotableNights(lateCells).sky;
+var lateSky    = N.selectNotableNights(lateCells, coveredKmFor('camino-frances')).sky;
 var lateDarkest = lateCells.reduce(function (a, c) { return c.darkMean > a.darkMean ? c : a; });
 
 equal(lateDarkest.firstNight, 27, 'frances from 25 Oct: night 27 is still the darkest place on the route');
@@ -1498,7 +1505,7 @@ ok(lateSky.darkMean < lateDarkest.darkMean,
 // camino-ingles: six nights is a fifth of a lunation and it peaks at
 // 0.0067 lux. There is no lantern night, so there is no lantern clause.
 var inglesCells    = cellsFor('camino-ingles', WALK_START);
-var inglesNotable  = N.selectNotableNights(inglesCells);
+var inglesNotable  = N.selectNotableNights(inglesCells, coveredKmFor('camino-ingles'));
 var inglesPeak     = Math.max.apply(null, inglesCells.map(function (c) { return c.moon.peak; }));
 ok(inglesPeak < 0.05, 'camino-ingles: no night anywhere reaches usable moonlight (peak ' + inglesPeak.toFixed(4) + ')');
 equal(inglesNotable.lantern, null, 'camino-ingles: the lantern clause is suppressed, not fabricated');
@@ -1507,7 +1514,7 @@ ok(inglesNotable.sky !== null, 'camino-ingles: the sky clause still stands (1.93
 // kumano-kodo: one flat band on all four nights. There is no darkest
 // night to name.
 var kumanoCells   = cellsFor('kumano-kodo', WALK_START);
-var kumanoNotable = N.selectNotableNights(kumanoCells);
+var kumanoNotable = N.selectNotableNights(kumanoCells, coveredKmFor('kumano-kodo'));
 var kumanoSpread  = Math.max.apply(null, kumanoCells.map(function (c) { return c.darkMean; }))
                   - Math.min.apply(null, kumanoCells.map(function (c) { return c.darkMean; }));
 ok(kumanoSpread < 1.0, 'kumano-kodo: darkness spread is under one band (' + kumanoSpread.toFixed(2) + ')');
@@ -1524,7 +1531,7 @@ var oneNightCell = francesCells[14];
 ok(oneNightCell.moon.peak >= N.USABLE_LUX,
   'fixture sanity: the one-night fixture has real moonlight (peak ' + oneNightCell.moon.peak.toFixed(4)
     + ' lux), so only the one-night rule can suppress its lantern clause');
-var oneNight = N.selectNotableNights([oneNightCell]);
+var oneNight = N.selectNotableNights([oneNightCell], coveredKmFor('camino-frances'));
 equal(oneNight.sky, null, 'a one-night walk names no sky night');
 equal(oneNight.lantern, null, 'a one-night walk names no lantern night');
 
@@ -1541,21 +1548,23 @@ ok(Math.abs(block.phaseLast - block.phaseFirst) > 0.1,
   'shikoku-88: the 6-night block spans a real stretch of the lunation');
 
 /* =============================================
-   Slice 3, Task 4 — nightSummarySentence (spec D5, D7, D10; AC #11, #13)
+   Slice 3, Task 4 — nightSummarySentence (spec D5, D7, D10; AC #13)
 
    The sentence is the strip's text equivalent, so its hardest
    requirement is the one the ribbon learned the expensive way: every
-   night it names must be a night the strip actually draws. The parse-back
-   check below reads the night numbers back out of the finished prose and
-   demands a cell for each.
+   night it names must be a night the strip actually draws. That
+   requirement (AC #11) is checked against the EMITTED strip in
+   js/daylight-render.test.js. What the parse-back below checks is the
+   layer under it — that the prose's numbering agrees with the schedule
+   it was built from.
    ============================================= */
 
-console.log('\n=== nightSummarySentence — and the nights it names are the nights drawn ===\n');
+console.log('\n=== nightSummarySentence — and the nights it names are nights the schedule holds ===\n');
 
 function sentenceFor(routeId, startDate) {
   var cells    = cellsFor(routeId, startDate);
   var artifact = loadDarknessArtifact(routeId);
-  var notable  = N.selectNotableNights(cells);
+  var notable  = N.selectNotableNights(cells, artifact.coveredKm);
   return {
     cells:   cells,
     notable: notable,
@@ -1580,10 +1589,18 @@ ok(shikokuLanternSent.indexOf('hold usable moonlight') !== -1,
 ok(shikokuLanternSent.indexOf('holds usable') === -1,
   'shikoku-88: no singular verb on a plural block');
 
-// AC #11 — the stated-vs-drawn check. Read every night number back out
-// of the prose and demand a cell that starts on it. The ribbon shipped a
-// sentence whose percentages disagreed with its own strip; this is the
-// same class of defect one layer up.
+// The prose-vs-SCHEDULE check. Read every night number back out of the
+// prose and demand a cell that spans it.
+//
+// This is deliberately no longer labelled AC #11, and the difference
+// matters. It builds its night set from CELLS, and cells stopped being
+// the same population as the emitted <line>s the moment the strip began
+// coalescing adjacent same-band cells — so calling this "stated vs
+// drawn" was asserting on a model of the output while the output itself
+// went unchecked, which is the bug pattern, not a shortcut. AC #11 is
+// measured against the emitted elements in js/daylight-render.test.js;
+// what is checked here is that the sentence's numbering agrees with the
+// schedule it was built from, which is a real invariant of its own.
 // Case-INSENSITIVE deliberately. The lantern clause starts a sentence, so
 // it reads "Night 15 holds..." — a case-sensitive regex silently skipped
 // it and this whole check passed while only ever examining the sky night.
@@ -1657,8 +1674,10 @@ ok(inglesSent.text.indexOf('Darkest sky') !== -1,
 var shikokuSent = sentenceFor('shikoku-88', WALK_START);
 ok(/nights \d+ to \d+/.test(shikokuSent.text),
   'shikoku-88: a multi-night block is named as a range, not a single night');
-ok(shikokuSent.text.indexOf('between temple clusters') !== -1,
-  'shikoku-88: the prose says why a quarter of the strip is empty');
+ok(/No stage is placed on 27% of the route/.test(shikokuSent.text),
+  'shikoku-88: the prose says a quarter of the strip is empty, and states it as the placement fact it is');
+ok(shikokuSent.text.indexOf('temple clusters') === -1,
+  'shikoku-88: and no longer explains it with geography hardcoded into a clause every route shares');
 ok(shikokuSent.text.indexOf('32 nights') !== -1, 'shikoku-88: states 32 nights');
 
 var t1 = sentenceFor('camino-frances', WALK_START).text;
@@ -1680,9 +1699,9 @@ var PHASE_WORDS = /(new moon|waxing crescent|first quarter|waxing gibbous|full m
 
 ok(PHASE_WORDS.test(shikokuSent.text),
   'shikoku-88: the sentence names a moon phase for its blocks: ' + JSON.stringify(shikokuSent.text));
-ok(/Nights 11 to 16, waxing gibbous to full moon, hold/.test(shikokuSent.text),
+ok(/Nights 11 to 16 hold usable moonlight for most of the night, under a moon going from waxing gibbous to full\./.test(shikokuSent.text),
   'shikoku-88: the lantern block states the stretch of lunation it spans, inside its own clause');
-ok(/Darkest sky on nights 3 to 5, [^,]+, waxing crescent, with/.test(shikokuSent.text),
+ok(/Darkest sky on nights 3 to 5, [^,]+, under a waxing crescent moon, with/.test(shikokuSent.text),
   'shikoku-88: the sky block states its phase too — a block whose first and last night share an eighth states that one name');
 
 // The invariant, not one pinned date: a named night states a phase when
@@ -1736,7 +1755,12 @@ equal(singlesNamed, 0, 'no single night was given a phase range it does not span
 
 console.log('\n=== the sky clause says what the strip paints (F3) ===\n');
 
-var SKY_PHRASE_BY_BAND = ['with no moon', 'with barely a trace of moon', 'with only a dim moon'];
+// The phrases as they SHIP, "in the dark hours" included. Without the
+// suffix these were prefixes of the real phrases, so the sweep below
+// passed on a substring and stopped pinning the wording it exists for.
+var SKY_PHRASE_BY_BAND = ['with no moon in the dark hours',
+                          'with barely a trace of moon in the dark hours',
+                          'with only a dim moon in the dark hours'];
 
 var sweptClauses = 0, sweptMismatch = 0, sweptWrongPhrase = 0;
 var bandTally = [0, 0, 0, 0, 0];
@@ -1804,7 +1828,7 @@ ok(kumanoSent.notable.sky === null && kumanoSent.text.indexOf(CAVEAT) === -1,
 // The distinction the ribbon once failed open on: `!== true`, not
 // `=== false`. A missing or malformed field must read as unvalidated.
 var francesCellsForCaveat = cellsFor('camino-frances', WALK_START);
-var francesNotableForCaveat = N.selectNotableNights(francesCellsForCaveat);
+var francesNotableForCaveat = N.selectNotableNights(francesCellsForCaveat, coveredKmFor('camino-frances'));
 [undefined, null, false, 'true', 1].forEach(function (value) {
   var text = N.nightSummarySentence(francesCellsForCaveat, francesNotableForCaveat,
                                     WALK_START, 763.7, value);
@@ -1814,6 +1838,170 @@ var francesNotableForCaveat = N.selectNotableNights(francesCellsForCaveat);
 ok(N.nightSummarySentence(francesCellsForCaveat, francesNotableForCaveat, WALK_START, 763.7, true)
    .indexOf(CAVEAT) === -1,
   'only the literal boolean true drops the caveat');
+
+/* =============================================
+   G3 — one numbering scheme, stated once.
+
+   nightsLeadIn counted only the nights the strip draws while nightLabel
+   and both axis labels used the schedule's own numbers, so a partly
+   drawable walk read "2 nights from 21 June. Night 3 holds usable
+   moonlight…" with an axis running night 1 to night 3. Every statement
+   true of what it names; read left to right, a contradiction.
+   ============================================= */
+
+console.log('\n=== the lead-in, the clauses and the axis count the same nights (G3) ===\n');
+
+// A hand-built schedule, because no shipped route can reach the case:
+// three cells, the middle one with no resolvable dark window.
+function nightCellFixture(overrides) {
+  var cell = {
+    index: 0, loKm: 0, hiKm: 30, nights: 1, isBlock: false, firstNight: 1,
+    dates: [WALK_START], stageName: 'Fixture stage',
+    moon: { mean: 0.10, peak: 0.30, usableFrac: 1, hours: 9 },
+    moonBand: 3, darkMean: 3, darkBand: 3, phaseFirst: 0.5, phaseLast: 0.5
+  };
+  Object.keys(overrides).forEach(function (k) { cell[k] = overrides[k]; });
+  return cell;
+}
+
+var partialCells = [
+  nightCellFixture({ index: 0, loKm: 0,  hiKm: 40, firstNight: 1 }),
+  nightCellFixture({ index: 1, loKm: 40, hiKm: 60, firstNight: 2, moon: null, moonBand: null }),
+  nightCellFixture({ index: 2, loKm: 60, hiKm: 100, firstNight: 3,
+                     moon: { mean: 0.12, peak: 0.31, usableFrac: 0.6, hours: 9 } })
+];
+var partialNotable = N.selectNotableNights(partialCells, 100);
+var partialText = N.nightSummarySentence(partialCells, partialNotable, WALK_START, 100, true);
+
+ok(partialText.indexOf('3 nights from 12 October.') === 0,
+  'the lead-in states the walk\'s own length, all three nights: ' + JSON.stringify(partialText));
+ok(partialText.indexOf('The strip draws 2 of them.') !== -1,
+  'and states how many of them the strip drew, as a separate fact');
+ok(partialText.indexOf('Night 3') !== -1,
+  'the clause numbers its night from the schedule, so it can be counted forward from the start date');
+equal(partialNotable.lantern.firstNight, 3, 'fixture sanity: the named night IS the third of the walk');
+
+// And on every shipped route, where everything is drawable, the two
+// numbers are the same and the shortfall sentence never appears.
+ALL_ROUTES.forEach(function (routeId) {
+  var s = sentenceFor(routeId, WALK_START);
+  var scheduled = s.cells.reduce(function (a, c) { return a + c.nights; }, 0);
+  ok(s.text.indexOf(scheduled + ' night') === 0,
+    routeId + ': the lead-in opens with the walk\'s scheduled length (' + scheduled + ')');
+  equal(s.text.indexOf('The strip draws'), -1,
+    routeId + ': nothing is undrawable, so no shortfall is claimed');
+  namedNights(s.text).forEach(function (n) {
+    ok(n >= 1 && n <= scheduled,
+      routeId + ': night ' + n + ' is numbered inside the schedule, not inside the drawn subset');
+  });
+});
+
+/* =============================================
+   G4 — the unplaced clause counts kilometres no stage covers, and
+   nothing else.
+
+   `placed` summed only DRAWABLE cells, so a stage that was placed and
+   could not be painted had its kilometres migrate into the unplaced
+   fraction — and then be explained by wording hardcoded to shikoku's
+   geography. A 40/20/40 km Burgos/Tromsø/Burgos route read "The
+   stretches between temple clusters, 20% of the route, are not placed."
+   No temple clusters, and those 20 km are placed.
+   ============================================= */
+
+console.log('\n=== the unplaced clause measures unplaced kilometres (G4) ===\n');
+
+// The 20% placed-but-undrawable case from above: no unplaced claim at all.
+ok(partialText.indexOf('% of the route') === -1,
+  'a placed-but-undrawable fifth of the route is not called unplaced: ' + JSON.stringify(partialText));
+ok(partialText.indexOf('temple clusters') === -1,
+  'and no route\'s geography is offered as its cause');
+
+// The threshold itself, at and either side of it — the polar fixture was
+// deliberately sized at 4% to stay under it, which tests the number by
+// avoiding it. `hiKm` here is what leaves the gap: 94 of 100 km placed
+// is 6% unplaced, 96 of 100 is 4%.
+function gapSentence(placedKm) {
+  var cells = [
+    nightCellFixture({ index: 0, loKm: 0, hiKm: placedKm / 2, firstNight: 1 }),
+    nightCellFixture({ index: 1, loKm: 50, hiKm: 50 + placedKm / 2, firstNight: 2,
+                       moon: { mean: 0.12, peak: 0.31, usableFrac: 0.6, hours: 9 } })
+  ];
+  return N.nightSummarySentence(cells, N.selectNotableNights(cells, 100), WALK_START, 100, true);
+}
+ok(gapSentence(94).indexOf('No stage is placed on 6% of the route, and it stays blank.') !== -1,
+  '6% of unplaced route is stated: ' + JSON.stringify(gapSentence(94)));
+ok(gapSentence(95).indexOf('No stage is placed on 5% of the route') !== -1,
+  'exactly 5% is at the threshold and is stated');
+equal(gapSentence(96).indexOf('% of the route'), -1,
+  '4% stays below the threshold and is not worth a sentence');
+
+// Shikoku is what the clause exists for, and it is genuinely unplaced:
+// 288.1 km, 27% of the route, between temple clusters (D4).
+ok(shikokuSent.text.indexOf('No stage is placed on 27% of the route') !== -1,
+  'shikoku-88 still reports its own 27%');
+
+/* =============================================
+   G6 — the phase range and the moon band are two claims, and the
+   sentence keeps them apart.
+
+   getMoonPhaseName's "Last Quarter" bucket runs 0.6875-0.8125, so it can
+   call a 30%-lit waning crescent a quarter moon. On 40 of 366 shikoku
+   start dates the sky clause read "…last quarter to new moon, with
+   barely a trace of moon…" — both halves true, the pair reading as one
+   claim contradicting itself.
+   ============================================= */
+
+console.log('\n=== a phase name and a moon band never read as the same claim (G6) ===\n');
+
+var BRIGHT_PHASE = /(first quarter|last quarter|waxing gibbous|waning gibbous|full moon)/;
+
+var phaseClauses = 0, phasesUnframed = 0, bandsUntimed = 0, tightPairs = 0;
+ALL_ROUTES.forEach(function (routeId) {
+  for (var day = 0; day < 366; day += 2) {
+    var start = new Date(Date.UTC(2026, 0, 1, 12) + day * 86400000);
+    var s = sentenceFor(routeId, start);
+    if (!PHASE_WORDS.test(s.text)) continue;
+    phaseClauses++;
+
+    // Every phase name in the sentence is inside the moon's-own-passage
+    // construction, so it cannot be read as a statement about brightness.
+    var framed = /under a (moon going from [a-z ]+ to [a-z ]+|[a-z ]*moon)/.test(s.text);
+    if (!framed) phasesUnframed++;
+
+    // Every band phrase names the window it measured, so it can never be
+    // read as a second opinion about the phase.
+    if (/(with no moon|with barely a trace of moon|with only a dim moon)(?! in the dark hours)/.test(s.text)) {
+      bandsUntimed++;
+    }
+
+    // The exact pairing the finding measured: a phase name that suggests
+    // a half-lit moon or more, sitting beside band 0-2 wording.
+    if (s.notable.sky && s.notable.sky.isBlock && s.notable.sky.moonBand <= 2) {
+      var lower = s.text.toLowerCase();
+      if (BRIGHT_PHASE.test(lower.slice(lower.indexOf('darkest sky')))) tightPairs++;
+    }
+  }
+});
+
+ok(phaseClauses > 100, 'the sweep produced a real population of phase clauses (' + phaseClauses + ')');
+equal(phasesUnframed, 0,
+  'every phase name is framed as the moon\'s own passage, never as a bare apposition');
+equal(bandsUntimed, 0,
+  'every moon-band phrase names the window it measured ("in the dark hours")');
+ok(tightPairs > 0,
+  'the sweep really does contain the tight pairing the finding measured — a quarter-or-brighter '
+    + 'phase name beside a band-0-to-2 sky clause (' + tightPairs + ' cases)');
+
+// One of them, read in full, so the wording is judged and not merely counted.
+var tightExample = null;
+for (var g6d = 0; g6d < 366 && !tightExample; g6d++) {
+  var g6s = sentenceFor('shikoku-88', new Date(Date.UTC(2026, 0, 1, 12) + g6d * 86400000));
+  if (g6s.notable.sky && g6s.notable.sky.isBlock && g6s.notable.sky.moonBand === 1
+      && /quarter/.test(g6s.text)) tightExample = g6s.text;
+}
+ok(tightExample !== null, 'found the reviewer\'s own case to read: ' + JSON.stringify(tightExample));
+ok(/under a moon going from [a-z ]+, with barely a trace of moon in the dark hours/.test(tightExample),
+  'and it reads as a cause and its consequence, not as two names for one thing');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);

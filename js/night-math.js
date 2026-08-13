@@ -177,24 +177,49 @@
   }
 
   /*
-   * isDrawableCell(cell) — the one answer to "does the strip put ink on
-   * the axis for this cell?", read by the renderer, by the axis label and
-   * by every clause that counts nights or kilometres.
+   * isDrawableCell(cell, coveredKm) — the one answer to "does the strip
+   * put ink on the axis for this cell?", read by the renderer, by the
+   * axis label and by every clause that counts nights or kilometres.
    *
    * It exists because those used to disagree. nightsLeadIn summed
    * `nights` over every cell while the draw loop skipped cells with no
    * moon, so a schedule whose dark window never closes drew a captioned,
    * empty strip reading "3 nights from 21 June" — correct arithmetic,
    * nothing a reader could see, the defect class this page has now
-   * shipped six times.
+   * shipped seven times.
    *
    * A cell with no moon has no band to paint (nightMoonLux returns null
-   * above roughly 48.5°N near midsummer); a cell with no width has
-   * nowhere to paint it.
+   * above roughly 48.5°N near midsummer); a cell with no width on the
+   * AXIS has nowhere to paint it.
+   *
+   * The width test is the axis's, not the kilometre's. It used to be
+   * `hiKm > loKm`, which is not the question the renderer asks: the
+   * renderer clamps both ends into the ribbon's 0..1 span, so a cell
+   * placed past the end of the darkness axis has kilometres and no drawn
+   * width at all. Such a cell was counted, named and labelled while
+   * drawing nothing. Unreachable on the seven shipped routes today and
+   * one re-bake away — a shorter coveredKm than the waypoints it was
+   * baked from is exactly the drift Gate 0 exists to catch.
+   *
+   * coveredKm is required. Passing this straight to Array.prototype
+   * .filter would hand it an index instead, and a predicate that
+   * silently answered "nothing is drawable" is how this class of defect
+   * ships, so it fails loudly instead.
    */
-  function isDrawableCell(cell) {
-    return Boolean(cell) && cell.moon !== null && cell.moonBand !== null
-      && cell.hiKm > cell.loKm;
+  function isDrawableCell(cell, coveredKm) {
+    if (!(coveredKm > 0) || !isFinite(coveredKm)) {
+      throw new Error('night-math: isDrawableCell needs the axis it is drawing on — '
+        + 'coveredKm was ' + coveredKm + ' (a bare .filter(isDrawableCell) passes an index)');
+    }
+    if (!cell || cell.moon === null || cell.moonBand === null) return false;
+    return DaylightMath.ribbonFracForKm(cell.hiKm, coveredKm)
+         > DaylightMath.ribbonFracForKm(cell.loKm, coveredKm);
+  }
+
+  // drawableCells(cells, coveredKm) — the filter every caller below wants,
+  // written once so no call site can forget to pass the axis.
+  function drawableCells(cells, coveredKm) {
+    return (cells || []).filter(function (cell) { return isDrawableCell(cell, coveredKm); });
   }
 
   // How much darkness spread a walk needs before naming one night the
@@ -221,8 +246,8 @@
    * Suppression returns null. An empty string would read as a rendering
    * bug at the call site; an absence is a decision.
    */
-  function selectNotableNights(cells) {
-    var usable = cells.filter(isDrawableCell);
+  function selectNotableNights(cells, coveredKm) {
+    var usable = drawableCells(cells, coveredKm);
     if (usable.length < 2) return { sky: null, lantern: null };
 
     var darks = usable.map(function (c) { return c.darkMean; });
@@ -265,14 +290,38 @@
     return 'for part of the night';
   }
 
-  // Nights the strip actually draws, never nights the schedule merely
-  // holds — a total that counted undrawable cells would caption an
-  // emptier strip than it describes (isDrawableCell above).
-  function nightsLeadIn(cells, startDate) {
-    var total = cells.filter(isDrawableCell)
+  /*
+   * nightsLeadIn(cells, startDate, coveredKm) — the walk's length, then
+   * how much of it the strip draws.
+   *
+   * ONE numbering scheme, stated once: every night number anywhere in
+   * this module and on the strip's two axis labels is its number in the
+   * SCHEDULE, counted from the start date. That is the number a reader
+   * can carry to a calendar — night 3 is three days out — and the reason
+   * nightLabel has always used it.
+   *
+   * The lead-in briefly counted only drawable nights instead, which was
+   * right about not captioning an emptier strip than it describes and
+   * wrong about everything else: it produced "2 nights from 21 June.
+   * Night 3 holds usable moonlight…" over an axis reading night 1 to
+   * night 3. Three true statements that contradict each other read left
+   * to right. So the total is the walk's own length again (D10's
+   * "the walk length in nights"), and the shortfall is stated as the
+   * separate fact it is rather than folded into the count.
+   *
+   * No cause is offered for the shortfall. A cell can be undrawable
+   * because its nights have no astronomical night or because its
+   * placement has no width on the axis, and those are different stories;
+   * naming one of them would be inventing a reason, which is the mistake
+   * unplacedClause below used to make.
+   */
+  function nightsLeadIn(cells, startDate, coveredKm) {
+    var total = cells.reduce(function (a, c) { return a + c.nights; }, 0);
+    var drawn = drawableCells(cells, coveredKm)
       .reduce(function (a, c) { return a + c.nights; }, 0);
     return total + (total === 1 ? ' night from ' : ' nights from ')
-      + startDate.getUTCDate() + ' ' + MONTH_NAMES[startDate.getUTCMonth()] + '.';
+      + startDate.getUTCDate() + ' ' + MONTH_NAMES[startDate.getUTCMonth()] + '.'
+      + (drawn < total ? ' The strip draws ' + drawn + ' of them.' : '');
   }
 
   /*
@@ -295,10 +344,23 @@
    * copy for a band that cannot arrive is copy nothing can ever check.
    * If the selection above ever widens, this says so out loud rather
    * than writing `undefined` into the sentence.
+   *
+   * "in the dark hours" is not decoration either. It is what makes this
+   * phrase a different claim from the phase range beside it
+   * (phaseRangePhrase below), and it is exactly what the band measures:
+   * the mean moon illuminance between astronomical dusk and dawn (D2).
+   * Without it the sentence read "…last quarter to new moon, with barely
+   * a trace of moon…" on 40 of 366 shikoku start dates —
+   * getMoonPhaseName's "Last Quarter" bucket runs 0.6875-0.8125, so it
+   * can call a 30%-lit waning crescent a quarter moon while the pixel
+   * beside it is band 1. Both statements were true and they looked like
+   * one claim contradicting itself. A phase is where the moon is in its
+   * month; a band is how much of it was above the horizon while the sky
+   * was dark.
    */
-  var SKY_MOON_PHRASES = ['with no moon',
-                          'with barely a trace of moon',
-                          'with only a dim moon'];
+  var SKY_MOON_PHRASES = ['with no moon in the dark hours',
+                          'with barely a trace of moon in the dark hours',
+                          'with only a dim moon in the dark hours'];
 
   function skyMoonPhrase(band) {
     var phrase = SKY_MOON_PHRASES[band];
@@ -324,12 +386,28 @@
    * sentence's voice. A block whose first and last night fall in the
    * same eighth of the lunation states that one name rather than
    * "waxing crescent to waxing crescent".
+   *
+   * "under a moon going from X to Y" rather than a bare "X to Y": the
+   * phrase has to read as the moon's own passage through its month, so a
+   * reader cannot mistake it for a second statement about how bright
+   * those nights were. See SKY_MOON_PHRASES above for the measurement
+   * that forced this.
    */
+  function phaseNounPhrase(name) {
+    var lower = name.toLowerCase();
+    return /moon$/.test(lower) ? lower : lower + ' moon';
+  }
+
+  function phaseShortName(name) {
+    return name.toLowerCase().replace(/ moon$/, '');
+  }
+
   function phaseRangePhrase(cell) {
     if (!Moon || !cell.isBlock) return '';
-    var first = Moon.getMoonPhaseName(cell.phaseFirst).toLowerCase();
-    var last  = Moon.getMoonPhaseName(cell.phaseLast).toLowerCase();
-    return first === last ? first : first + ' to ' + last;
+    var first = Moon.getMoonPhaseName(cell.phaseFirst);
+    var last  = Moon.getMoonPhaseName(cell.phaseLast);
+    if (first === last) return 'under a ' + phaseNounPhrase(first);
+    return 'under a moon going from ' + phaseShortName(first) + ' to ' + phaseShortName(last);
   }
 
   /*
@@ -344,6 +422,11 @@
    * `!== true`, not `=== false`: a missing or malformed field must read
    * as unvalidated, the distinction the ribbon failed open on once.
    */
+  // The phase phrase sits BEFORE the band phrase on purpose: "under a
+  // moon going from last quarter to new, with barely a trace of moon in
+  // the dark hours" reads as a cause and its consequence. Reversed, the
+  // band phrase reads as a gloss on the phase name, which is how the two
+  // came to look like the same claim.
   function skyClause(sky, heldOutValidation) {
     if (!sky) return '';
     var phases = phaseRangePhrase(sky);
@@ -360,23 +443,48 @@
     // "Night 15 holds", but "Nights 11 to 16 hold" — a block is plural.
     var verb   = lantern.nights > 1 ? ' hold ' : ' holds ';
     var phases = phaseRangePhrase(lantern);
+    // The phase trails the moonlight claim rather than splitting the
+    // subject from its verb, and reads as an absolute clause about the
+    // moon — the same separation of geometry from delivered light that
+    // skyClause makes with "in the dark hours".
     return ' ' + label.charAt(0).toUpperCase() + label.slice(1)
-      + (phases ? ', ' + phases + ',' : '')
-      + verb + 'usable moonlight ' + usableFracPhrase(lantern.moon.usableFrac) + '.';
+      + verb + 'usable moonlight ' + usableFracPhrase(lantern.moon.usableFrac)
+      + (phases ? ', ' + phases : '') + '.';
   }
 
-  // Shikoku's stages are temple clusters with long unwalked stretches
-  // between them, so more than a quarter of its strip is deliberately
-  // empty. Saying so is cheaper than letting a reader read the gaps as a
-  // rendering fault — and this is the only route it fires on.
+  /*
+   * unplacedClause(cells, coveredKm) — the kilometres NO stage covers.
+   *
+   * Two facts used to be one number here. `placed` summed only drawable
+   * cells, so a stage that was placed but could not be painted — a walk
+   * north of about 48.5°N in midsummer, where no night has a dark window
+   * — had its kilometres counted as unplaced and then explained by
+   * wording hardcoded to shikoku's geography. A reviewer's 40/20/40 km
+   * Burgos/Tromsø/Burgos route read "The stretches between temple
+   * clusters, 20% of the route, are not placed": there are no temple
+   * clusters on it, and those 20 km are placed.
+   *
+   * So this now measures what its name says — coveredKm minus every
+   * cell's own extent, drawable or not — and says only that, without
+   * naming a cause. Shikoku's own 27% is genuinely unplaced (D4: 288.1 km
+   * of unwalked stretches between temple clusters) and is what this
+   * clause exists for; the wording no longer assumes it is the only route
+   * that can reach the threshold.
+   *
+   * The other half — placed but not painted — is deliberately silent
+   * here. Its honest short wording would have to name a cause, and there
+   * are two possible ones (no astronomical night, or no width on the
+   * axis). nightsLeadIn already tells the reader the strip drew fewer
+   * nights than the walk holds, which is the fact that matters; inventing
+   * a reason for it is what this clause is being fixed for.
+   */
   function unplacedClause(cells, coveredKm) {
-    var drawn = cells.filter(isDrawableCell);
-    if (!drawn.length || !(coveredKm > 0)) return '';
-    var placed = drawn.reduce(function (a, c) { return a + (c.hiKm - c.loKm); }, 0);
+    if (!cells.length || !(coveredKm > 0)) return '';
+    var placed = cells.reduce(function (a, c) { return a + Math.max(0, c.hiKm - c.loKm); }, 0);
     var unplacedFrac = 1 - (placed / coveredKm);
     if (unplacedFrac < 0.05) return '';
-    return ' The stretches between temple clusters, '
-      + Math.round(unplacedFrac * 100) + '% of the route, are not placed.';
+    return ' No stage is placed on '
+      + Math.round(unplacedFrac * 100) + '% of the route, and it stays blank.';
   }
 
   /*
@@ -393,16 +501,16 @@
    * place. Omitting it reads as unvalidated — the safe direction.
    */
   function nightSummarySentence(cells, notable, startDate, coveredKm, heldOutValidation) {
-    if (!cells || !cells.filter(isDrawableCell).length) return '';
-    var span = coveredKm;
-    if (!(span > 0)) {
-      span = cells.filter(isDrawableCell)
-        .reduce(function (a, c) { return Math.max(a, c.hiKm); }, 0);
-    }
-    return nightsLeadIn(cells, startDate)
+    // No axis means nothing is drawable, and renderMoonStrip returns on
+    // the same test one layer up. The fallback that used to guess a span
+    // from the cells themselves is gone: it asked isDrawableCell for an
+    // answer that isDrawableCell needs the axis to give.
+    if (!cells || !cells.length || !(coveredKm > 0)) return '';
+    if (!drawableCells(cells, coveredKm).length) return '';
+    return nightsLeadIn(cells, startDate, coveredKm)
       + skyClause(notable.sky, heldOutValidation)
       + lanternClause(notable.lantern)
-      + unplacedClause(cells, span);
+      + unplacedClause(cells, coveredKm);
   }
 
   var api = {
@@ -414,6 +522,7 @@
     moonBandForLux:        moonBandForLux,
     buildNightCells:       buildNightCells,
     isDrawableCell:        isDrawableCell,
+    drawableCells:         drawableCells,
     selectNotableNights:   selectNotableNights,
     nightSummarySentence:  nightSummarySentence
   };
