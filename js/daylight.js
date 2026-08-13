@@ -5,9 +5,8 @@
      Inner core   — recompute(state): pure function, no DOM, no async
      Outer shell  — DOM glue, only runs in browser
 
-   Export shape:
-     Browser → window.Daylight = { recompute, renderSVG }
-     Node    → module.exports  = { recompute, renderSVG }
+   Export shape (both browser and Node — see the `api` object below):
+     { recompute, renderSVG, fmtDuration, renderRibbon, ribbonSectionHidden }
 
    The outer shell only wires DOM listeners when
    typeof window !== 'undefined' && typeof document !== 'undefined'.
@@ -511,6 +510,20 @@
     }
   }
 
+  // clearRibbonDisplay(svgEl, summaryEl) — empties both halves of the
+  // ribbon's text equivalence (D11), not only its geometry: clearSVG
+  // alone leaves a stale aria-label attribute behind (it only removes
+  // child nodes), which would otherwise keep describing whatever route
+  // was drawn last even after that route's runs are gone. Used by
+  // renderRibbon's own early-return guards and by the route-picker
+  // wiring's hide paths (updateRibbonForRoute, renderDarknessRibbon)
+  // alike, so "hidden" and "describes nothing" always change together.
+  function clearRibbonDisplay(svgEl, summaryEl) {
+    clearSVG(svgEl);
+    svgEl.setAttribute('aria-label', '');
+    if (summaryEl) summaryEl.textContent = '';
+  }
+
   function makeSVGEl(tag, attrs) {
     var el = document.createElementNS(SVG_NS, tag);
     Object.keys(attrs).forEach(function (k) {
@@ -526,11 +539,28 @@
     return h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
   }
 
+  // fmtDistanceNumber(km) — the shared grouped-number core fmtDistance
+  // builds its unit-suffixed strings from. Adds a thousands separator at
+  // >=1,000 (D10's own side-finding): Shikoku's coveredKm (1,080.5) and
+  // stated length (1,200) are the first inputs this page has ever handed
+  // fmtDistance that cross four digits — every pre-existing call site
+  // (stage distances, route totals) tops out under 1,000, so this is
+  // invisible everywhere except the one new place that needs it (the
+  // ribbon's own Shikoku edge label).
+  function fmtDistanceNumber(km) {
+    var fixed = km.toFixed(1);
+    var dot      = fixed.indexOf('.');
+    var intPart  = fixed.slice(0, dot);
+    var fracPart = fixed.slice(dot);
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return intPart + fracPart;
+  }
+
   function fmtDistance(km, unitSystem) {
     if (unitSystem === 'mi') {
-      return (km * 0.621371).toFixed(1) + ' mi';
+      return fmtDistanceNumber(km * 0.621371) + '\u00A0mi';
     }
-    return km.toFixed(1) + ' km';
+    return fmtDistanceNumber(km) + '\u00A0km';
   }
 
   function utcToBarX(utcDate, domain) {
@@ -941,13 +971,240 @@
   }
 
   /* ==========================================
+     Darkness ribbon (D1-D13) — a second, independent instrument
+     beneath the bar above. Own <svg>, own coordinate function: never
+     utcToBarX (time) or kmToBarX (the bar's walk-subrange helper).
+     ========================================== */
+
+  // RIBBON_X1/X2 used to equal BAR_X1/BAR_X2 exactly (24/576) — the same
+  // numbers, "purely so the two rows keep the same page margins." Measured
+  // what that actually does to a reader (real browser, 2026-08-12,
+  // reproducible against the live bar geometry — full method and two more
+  // routes in docs/specs/2026-08-12-darkness-ribbon.md, D8): camino-
+  // primitivo stage 1 (Oviedo -> Grado, 25.2 km) sits, by km-weighted
+  // share of its merged runs, at 44% countryside / 40% open dark — the
+  // stage itself dominated by "countryside." The bar's own walk-segment
+  // x-range for that same stage, reused as a ribbon x-coordinate, lands
+  // on ribbon km 32.6-120.4, which reads 40% open dark / 60% as it was —
+  // dominated by "as it was," the single darkest band this instrument
+  // draws, on the strength of nothing but matching pixel bounds.
+  // Camino-ingles and camino-portugues stage 1 misread the same
+  // direction, one to two bands darker. D8's three defences (separate
+  // <svg>, a plain-language caption, no shared ticks) are all textual or
+  // positional; sharing exact pixel bounds left the one geometric cue a
+  // reader's eye actually uses — column alignment — pointing the wrong
+  // way. This is the geometric fourth defence: inset 24 units past
+  // BAR_X1/BAR_X2 on each side (double the bar's own 24-unit margin from
+  // the SVG edge — an existing, meaningful number, not a new arbitrary
+  // one), so the ribbon's drawn extent visibly does not reach either of
+  // the bar's edges. The two strips no longer share a single x-coordinate
+  // by construction, so column-alignment between them reads as what it
+  // is — two unrelated axes — rather than as a plausible but wrong
+  // correspondence.
+  var RIBBON_X1 = 48;
+  // DARKNESS_RIBBON_WIDTH lives in js/daylight-math.js, not here, because
+  // mergeDarknessRuns's minimum-drawable-run-width guard needs the exact
+  // same number: one shared constant, so the strip's own geometry and
+  // its minimum-visible-run policy can never quietly disagree about what
+  // this ribbon's width actually is.
+  var RIBBON_W  = DaylightMath.DARKNESS_RIBBON_WIDTH;
+  var RIBBON_X2 = RIBBON_X1 + RIBBON_W;
+  var RIBBON_Y  = 16;
+  var RIBBON_LABEL_Y = 36;
+
+  // kmToRibbonX(kmFromStart, coveredKm) — the ribbon's own distance axis.
+  // Never touches a Date or a bar domain object.
+  function kmToRibbonX(kmFromStart, coveredKm) {
+    if (coveredKm <= 0) return RIBBON_X1;
+    var frac = Math.max(0, Math.min(1, kmFromStart / coveredKm));
+    return RIBBON_X1 + frac * RIBBON_W;
+  }
+
+  // darknessArtifactShapeIssue(darknessData) — the fields renderRibbon's
+  // own math (mergeDarknessRuns, darknessAggregateWindowKm,
+  // darknessSummarySentence) all assume are present and correctly typed.
+  // Checked up front, alongside the existing `unit` check, so a malformed
+  // artifact fails to hidden with a named reason instead of throwing
+  // partway through a render or a computed sentence — or, worse, silently
+  // drawing something wrong (a missing stepKm used to produce
+  // `<line x1="NaN">` band elements with no error at all). Returns the
+  // offending field name, or null when the shape is sound. `unit` itself
+  // is deliberately not re-checked here — both call sites below already
+  // gate on it themselves, the same duplication the unit check already
+  // had before this.
+  //
+  // Every check below validates a value the math actually dereferences,
+  // not merely the container it arrives in. The first cut of this guard
+  // checked `positionalConfidence` was an object and stopped there, which
+  // let three separate malformed shapes straight through to the render:
+  //
+  //   - p90GapKm missing while withinInterpolationLimit is false —
+  //     darknessAggregateWindowKm returns NaN, `buckets[NaN].push` throws
+  //     a TypeError out of xhr.onload, no ribbon and no explanation.
+  //   - p90GapKm 0 or null — numWindows is Infinity, and the bucket
+  //     allocation loop runs until the tab (or node, at 4 GB) dies.
+  //   - a non-finite coveredKm — isNaN() alone accepts Infinity, and
+  //     kmToRibbonX then emits the exact `<line x2="NaN">` this guard
+  //     exists to have closed.
+  //
+  // A non-numeric entry in values[] is rejected for a different reason:
+  // darknessBandForValue's comparison chain falls through to `return 0`
+  // for anything that isn't a number, silently classifying it as band 0,
+  // the BRIGHTEST band. A darkness instrument must not fail toward "less
+  // dark", so a values[] this function cannot vouch for hides the section
+  // instead.
+  //
+  // The final check is the producer's own documented invariant
+  // (scripts/darkness/emit.py: "floor(coveredKm / stepKm) + 1 must equal
+  // len(values)"). Every shipped artifact satisfies it; asserting it here
+  // means a consumer holding only the file checks the same relationship
+  // its producer promised, rather than drawing a strip whose axis and
+  // whose samples disagree about how long the route is.
+  function darknessArtifactShapeIssue(darknessData) {
+    if (typeof darknessData.coveredKm !== 'number' || !isFinite(darknessData.coveredKm) || darknessData.coveredKm <= 0) return 'coveredKm';
+    if (typeof darknessData.stepKm !== 'number' || !isFinite(darknessData.stepKm) || darknessData.stepKm <= 0) return 'stepKm';
+
+    var confidence = darknessData.positionalConfidence;
+    if (!confidence || typeof confidence !== 'object') return 'positionalConfidence';
+    if (typeof confidence.withinInterpolationLimit !== 'boolean') return 'positionalConfidence.withinInterpolationLimit';
+    if (confidence.withinInterpolationLimit !== true
+      && (typeof confidence.p90GapKm !== 'number' || !isFinite(confidence.p90GapKm) || confidence.p90GapKm <= 0)) {
+      return 'positionalConfidence.p90GapKm';
+    }
+
+    if (!Array.isArray(darknessData.values) || darknessData.values.length === 0) return 'values';
+    for (var i = 0; i < darknessData.values.length; i++) {
+      var sample = darknessData.values[i];
+      if (typeof sample !== 'number' || !isFinite(sample)) return 'values[' + i + ']';
+    }
+    if (Math.floor(darknessData.coveredKm / darknessData.stepKm) + 1 !== darknessData.values.length) return 'values.length';
+
+    return null;
+  }
+
+  // darknessArtifactRouteLabel(darknessData) — every real artifact carries
+  // its own route id (`"route": "shikoku-88"`, etc.), so a shape-issue
+  // warning can name the route without renderRibbon needing a routeId
+  // parameter it doesn't otherwise have a use for. Falls back to a plain
+  // label when even that field is part of what's malformed.
+  function darknessArtifactRouteLabel(darknessData) {
+    return (darknessData && typeof darknessData.route === 'string' && darknessData.route) || '(unknown route)';
+  }
+
+  // warnMalformedDarknessArtifact(darknessData, shapeIssue) — one wording,
+  // two callers. renderRibbon warns when it is asked to draw something it
+  // can't; renderDarknessRibbon (the DOM half, below) warns on the path
+  // that actually happens on the page, where ribbonSectionHidden
+  // short-circuits before renderRibbon is ever called. Kept as one
+  // function so the two can't drift into saying different things about
+  // the same artifact.
+  function warnMalformedDarknessArtifact(darknessData, shapeIssue) {
+    console.warn('Darkness ribbon: "' + darknessArtifactRouteLabel(darknessData)
+      + '" artifact is missing or malformed at "' + shapeIssue
+      + '" — rendering nothing rather than drawing from data that isn\'t there.');
+  }
+
+  // ribbonSectionHidden(routeId, darknessData) — D12 (custom routes and
+  // the unselected state show no ribbon) plus the Gate 0 §7 defensive
+  // guard (a route whose artifact doesn't carry the sky-brightness unit
+  // renders nothing, rather than mislabeling a different quantity), plus
+  // the same shape check renderRibbon runs on its own input — so the
+  // wrap's own visibility and renderRibbon's decision to draw never
+  // disagree (a shape failure used to leave the caption and an empty svg
+  // visible, because ribbonSectionHidden didn't know renderRibbon was
+  // about to bail).
+  // Pure and DOM-free on purpose: the browser-only route-change wiring
+  // that calls this with real state is a later slice's concern; this
+  // slice's job is the decision itself, directly testable without it.
+  function ribbonSectionHidden(routeId, darknessData) {
+    if (!routeId || routeId === 'custom') return true;
+    if (!darknessData || darknessData.unit !== 'mag/arcsec2') return true;
+    if (darknessArtifactShapeIssue(darknessData)) return true;
+    return false;
+  }
+
+  // renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl)
+  // — one stroke segment per run from DaylightMath.mergeDarknessRuns,
+  // coloured/named by DARKNESS_BAND_NAMES[band] (D1, D9) via the
+  // dl-ribbon-band-N classes in css/daylight.css, dashed unless
+  // heldOutValidation is the literal boolean true (D4, Finding 5 — a
+  // missing or malformed field reads as unvalidated, not trustworthy),
+  // plus the two end-distance labels drawn from coveredKm — never
+  // route-meta's stated distanceKm (AC #9). Draws nothing else: no
+  // baseline track, no ticks, so nothing is ever painted over the runs
+  // after they're placed.
+  //
+  // statedDistanceKm and summaryEl are both optional (undefined is
+  // fine): statedDistanceKm feeds DaylightMath.darknessSummarySentence's
+  // own ">5 km gap" discrepancy framing (D3/D13) — omitting it just
+  // means that framing never fires, not a thrown error; the sentence
+  // still states coveredKm plainly (Finding 6). summaryEl, when given,
+  // is the real sibling <p> outside this <svg> (D8, D11) — the same
+  // sentence used for aria-label/<title> is also written there, so a
+  // screen-reader user and a sighted reader relying on plain DOM text
+  // land on identical words (AC #5).
+  function renderRibbon(darknessData, svgEl, unitSystem, statedDistanceKm, summaryEl) {
+    clearRibbonDisplay(svgEl, summaryEl);
+
+    if (!darknessData || darknessData.unit !== 'mag/arcsec2') return;
+
+    var shapeIssue = darknessArtifactShapeIssue(darknessData);
+    if (shapeIssue) {
+      warnMalformedDarknessArtifact(darknessData, shapeIssue);
+      return;
+    }
+
+    var coveredKm = darknessData.coveredKm;
+    var windowKm  = DaylightMath.darknessAggregateWindowKm(darknessData.positionalConfidence);
+    var runs      = DaylightMath.mergeDarknessRuns(darknessData.values, darknessData.stepKm, coveredKm, windowKm);
+    // !== true, not === false (Finding 5): a missing field or a malformed
+    // non-boolean value must read as unvalidated, not as trustworthy —
+    // the same fail-toward-the-safer-claim discipline the unit guard
+    // above already applies.
+    var dashed    = darknessData.heldOutValidation !== true;
+
+    runs.forEach(function (run) {
+      svgEl.appendChild(makeSVGEl('line', {
+        class: 'dl-ribbon-band-' + run.band + (dashed ? ' dl-ribbon-unvalidated' : ''),
+        x1: kmToRibbonX(run.startKm, coveredKm), y1: RIBBON_Y,
+        x2: kmToRibbonX(run.endKm,   coveredKm), y2: RIBBON_Y
+      }));
+    });
+
+    var sentence = DaylightMath.darknessSummarySentence(darknessData, statedDistanceKm, unitSystem);
+    svgEl.setAttribute('aria-label', sentence);
+    var titleEl = document.createElementNS(SVG_NS, 'title');
+    titleEl.textContent = sentence;
+    svgEl.appendChild(titleEl);
+    if (summaryEl) summaryEl.textContent = sentence;
+
+    var leftLbl = makeSVGEl('text', {
+      class: 'dl-ribbon-label',
+      x: RIBBON_X1, y: RIBBON_LABEL_Y,
+      'text-anchor': 'start'
+    });
+    leftLbl.textContent = fmtDistance(0, unitSystem);
+    svgEl.appendChild(leftLbl);
+
+    var rightLbl = makeSVGEl('text', {
+      class: 'dl-ribbon-label',
+      x: RIBBON_X2, y: RIBBON_LABEL_Y,
+      'text-anchor': 'end'
+    });
+    rightLbl.textContent = fmtDistance(coveredKm, unitSystem);
+    svgEl.appendChild(rightLbl);
+  }
+
+  /* ==========================================
      Exports
      ========================================== */
 
   var api = {
-    recompute:   recompute,
-    renderSVG:   renderSVG,
-    fmtDuration: fmtDuration
+    recompute:           recompute,
+    renderSVG:           renderSVG,
+    fmtDuration:         fmtDuration,
+    renderRibbon:        renderRibbon,
+    ribbonSectionHidden: ribbonSectionHidden
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -963,6 +1220,8 @@
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   var _stageData    = {};
+  var _darknessData = {};
+  var _routeMeta    = null;
   var _currentRoute = null;
   var _currentMode  = 'forward';
 
@@ -1004,6 +1263,9 @@
     dom.prefsPanel       = document.getElementById('dl-prefs-panel');
     dom.routesIndex      = document.getElementById('dl-routes-index');
     dom.routesIndexLinks = document.getElementById('dl-routes-index-links');
+    dom.ribbonWrap        = document.getElementById('dl-ribbon-wrap');
+    dom.ribbonSvg         = document.getElementById('dl-ribbon-svg');
+    dom.ribbonSummary     = document.getElementById('dl-ribbon-summary');
 
     if (!dom.routeSel) return;
 
@@ -1089,6 +1351,13 @@
           _prefs.unitSystem = radio.value;
           localStorage.setItem('pilgrim.prefs.unitSystem', _prefs.unitSystem);
           runAndRender();
+          // The ribbon isn't part of runAndRender's own output (D13 — it
+          // reacts to the route picker only), but its edge labels and
+          // summary sentence both carry unitSystem, so a km/mi switch
+          // still needs to repaint it — from cache, never a re-fetch.
+          if (_currentRoute && _darknessData[_currentRoute]) {
+            renderDarknessRibbon(_currentRoute, _darknessData[_currentRoute]);
+          }
         });
       });
 
@@ -1283,6 +1552,7 @@
       if (xhr.status !== 200) return;
       var meta;
       try { meta = JSON.parse(xhr.responseText); } catch (e) { return; }
+      _routeMeta = meta;
       populateRouteSelect(meta);
     };
     xhr.onerror = function () {
@@ -1357,6 +1627,7 @@
       } else if (_currentRoute) {
         loadStageData(_currentRoute, params.stage);
       }
+      updateRibbonForRoute(_currentRoute);
     }
   }
 
@@ -1394,11 +1665,160 @@
       dom.stageWrap.hidden = true;
       clearOutput();
     }
+    // pushURL before updateRibbonForRoute, not after: the two are
+    // independent side effects of a route change (URL/share-link state
+    // vs. the ribbon's own display) and neither reads state the other
+    // writes, so nothing about the URL should depend on the ribbon
+    // succeeding. renderRibbon now validates the artifact's shape before
+    // it draws anything (Finding 2), so it fails to hidden rather than
+    // throwing — but that guard is deliberately scoped to specific known
+    // fields, not a blanket try/catch, so this ordering stays the
+    // defense-in-depth it always should have been rather than the only
+    // thing standing between a bad artifact and a URL that never updates.
     pushURL();
+    updateRibbonForRoute(routeId);
   }
 
   function showCustomPanel(show) {
     dom.customPanel.hidden = !show;
+  }
+
+  /* ==========================================
+     Darkness ribbon — route-picker wiring (D12, D13)
+
+     Reacts to the route picker only: called from onRouteChange and from
+     populateRouteSelect's own URL-restored-route path, never from
+     onFieldChange (stage, date, pace, start time, buffer all route
+     through that instead, and none of them touch the ribbon). This
+     isn't a convention this code has to remember to honour —
+     renderRibbon's own signature has no stage/date parameter for a
+     caller to pass even by mistake (AC #7).
+     ========================================== */
+
+  // statedDistanceForRoute(routeId) — route-meta.json's stated
+  // distanceKm for this route, feeding darknessSummarySentence's own
+  // "N of its M km sampled" discrepancy framing (D3/D13). null when
+  // _routeMeta hasn't loaded yet or carries no matching entry — the
+  // sentence still states its own coveredKm plainly rather than
+  // throwing, it just has nothing to compare it against (see
+  // darknessDistanceLeadIn, Finding 6).
+  function statedDistanceForRoute(routeId) {
+    if (!_routeMeta) return null;
+    var match = _routeMeta.filter(function (r) { return r.id === routeId; });
+    return match.length ? match[0].distanceKm : null;
+  }
+
+  // renderDarknessRibbon(routeId, data) — the DOM half of D12: shows or
+  // hides dl-ribbon-wrap based on ribbonSectionHidden's own verdict
+  // (custom/unselected routes, and Gate 0 §7's unit guard, both already
+  // decided there — this function doesn't re-decide either), and when
+  // shown, calls the same renderRibbon the render-test harness exercises
+  // directly.
+  //
+  // The malformed-artifact warning has to be issued here, not only inside
+  // renderRibbon: ribbonSectionHidden runs the same shape check and
+  // short-circuits first, so on the real page renderRibbon is never
+  // reached for a malformed artifact and its warning was unreachable —
+  // a shipped route re-baked without stepKm would have gone silently
+  // missing, with an empty console. Only a shape failure warns; a custom
+  // route, no selection, or a wrong-unit artifact are all expected,
+  // already-explained states (loadDarknessData warns about the unit
+  // itself), not malformed data.
+  function renderDarknessRibbon(routeId, data) {
+    if (!dom.ribbonWrap || !dom.ribbonSvg) return;
+
+    if (ribbonSectionHidden(routeId, data)) {
+      if (data && data.unit === 'mag/arcsec2') {
+        var hiddenShapeIssue = darknessArtifactShapeIssue(data);
+        if (hiddenShapeIssue) warnMalformedDarknessArtifact(data, hiddenShapeIssue);
+      }
+      dom.ribbonWrap.hidden = true;
+      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+      return;
+    }
+
+    renderRibbon(data, dom.ribbonSvg, _prefs.unitSystem, statedDistanceForRoute(routeId), dom.ribbonSummary);
+    dom.ribbonWrap.hidden = false;
+  }
+
+  // loadDarknessData(routeId) — mirrors loadStageData's XHR-and-cache
+  // shape against _stageData, line for line, against a parallel
+  // _darknessData cache.
+  //
+  // Gate 0 §7 alignment: every shipped route carries unit: "mag/arcsec2"
+  // today, but a future re-bake could ship the radiance-only fallback
+  // unit instead. renderDarknessRibbon already fails safe either way —
+  // ribbonSectionHidden's own unit check (shared with renderRibbon's
+  // own guard) keeps the section hidden rather than mislabeling a
+  // radiance figure as a magnitude. The check here is this slice's own,
+  // additional contribution on top of that: failing loudly, not just
+  // quietly rendering nothing, so a future re-bake under the wrong unit
+  // is diagnosable from the console rather than a silent, unexplained
+  // absence a reader (or a future engineer) has no way to account for.
+  function loadDarknessData(routeId) {
+    if (_darknessData[routeId]) {
+      renderDarknessRibbon(routeId, _darknessData[routeId]);
+      return;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/assets/darkness/' + routeId + '.json');
+    xhr.onload = function () {
+      if (xhr.status !== 200) {
+        console.warn('Darkness ribbon: "' + routeId + '.json" fetch returned status ' + xhr.status + '.');
+        return;
+      }
+      var data;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {
+        console.warn('Darkness ribbon: "' + routeId + '.json" is not valid JSON.');
+        return;
+      }
+      if (data.unit !== 'mag/arcsec2') {
+        console.warn('Darkness ribbon: "' + routeId + '" artifact unit is "' + data.unit
+          + '", expected "mag/arcsec2" — rendering nothing rather than mislabeling radiance as brightness (Gate 0 §7).');
+      }
+      _darknessData[routeId] = data;
+      // The reader may have already picked a different route while this
+      // request was in flight (Finding 1) — cache the response either way,
+      // so coming back to this route later is instant, but only repaint
+      // the ribbon if it's still the route on screen.
+      if (routeId !== _currentRoute) return;
+      renderDarknessRibbon(routeId, data);
+    };
+    xhr.onerror = function () {
+      // Secondary, route-scoped content (D12's own framing): warn to the
+      // console, matching the wrong-unit branch above. updateRibbonForRoute
+      // already hid and cleared the section when this route was selected,
+      // so a failure just leaves it that way — guarded on _currentRoute,
+      // same as xhr.onload above, so a request for a route the reader has
+      // since left can't clear a different, valid ribbon that loaded after it.
+      console.warn('Darkness ribbon: network error fetching "' + routeId + '.json".');
+      if (routeId !== _currentRoute) return;
+      dom.ribbonWrap.hidden = true;
+      clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+    };
+    xhr.send();
+  }
+
+  // updateRibbonForRoute(routeId) — the single call site onRouteChange
+  // and the URL-restored-route path both use. Hides and clears
+  // unconditionally, before deciding anything else, so a route switch
+  // never leaves the previous route's ribbon on screen while the next
+  // one loads (or fails to). Custom routes and no selection stop there,
+  // no fetch (D12); anything else then loads (or, once cached,
+  // re-renders) that route's darkness data.
+  // Guards both nodes, not just the wrap: it goes on to call
+  // clearRibbonDisplay(dom.ribbonSvg, …), which dereferences the svg
+  // immediately (clearSVG reads .firstChild). renderDarknessRibbon above
+  // already guards both — a page that ever shipped the wrap without the
+  // svg would have thrown here and survived there, which is two different
+  // answers to one question.
+  function updateRibbonForRoute(routeId) {
+    if (!dom.ribbonWrap || !dom.ribbonSvg) return;
+    dom.ribbonWrap.hidden = true;
+    clearRibbonDisplay(dom.ribbonSvg, dom.ribbonSummary);
+    if (!routeId || routeId === 'custom') return;
+    loadDarknessData(routeId);
   }
 
   function loadStageData(routeId, requestedStageStr) {
@@ -1414,9 +1834,15 @@
       var stages;
       try { stages = JSON.parse(xhr.responseText); } catch (e) { return; }
       _stageData[routeId] = stages;
+      // Same currency guard as loadDarknessData (Finding 1): now two
+      // async sources are keyed to the route picker, not one, so caching
+      // a stale route's response without also guarding its render would
+      // let the bar and the ribbon settle on two different stale routes.
+      if (routeId !== _currentRoute) return;
       populateStageSelect(stages, requestedStageStr);
     };
     xhr.onerror = function () {
+      if (routeId !== _currentRoute) return;
       dom.result.textContent = "Couldn't load stage data for " + routeId + ". Try refreshing.";
     };
     xhr.send();
