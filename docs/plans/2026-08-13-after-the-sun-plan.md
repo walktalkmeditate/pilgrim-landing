@@ -132,11 +132,19 @@ The single most likely way this feature ships wrong is a zero drawn as a very sh
 
 ## Task 4: "Your sky" folds in
 
-**Files:** `js/sunpath-tools.js`, `js/sunpath-render.test.js`
+**Files:** `js/sunpath-tools.js`, `js/sunpath-render.test.js`, `js/sunpath.js`
 
-- [x] Write failing tests: with a supplied latitude the curve redraws for it and the summary
-      names the longest night; with geolocation refused or absent the section behaves exactly
-      as the picker case; **no path blocks on a prompt** (D3).
+> **Corrected 2026-08-14 after review.** This task shipped a *clause*, not a redraw. The
+> first bullet below said "the curve redraws for it" and was ticked; no such path was ever
+> built. `drawDarkHours` has exactly two call sites — a picker click and the 45° default —
+> and `js/sunpath.js` calls only `yourSkyDarkClause`, which returns a sentence and touches
+> no DOM. The comment in `js/sunpath-tools.js` and the spec's own departures list repeated
+> the same claim. What ships satisfies D3; what the box claimed does not exist.
+
+- [x] Write failing tests: with a supplied latitude the *your-sky clause* reports it and
+      names the longest night ~~the curve redraws for it~~; with geolocation refused or
+      absent the section behaves exactly as the picker case; **no path blocks on a
+      prompt** (D3).
 - [x] Run — expect FAIL.
 - [x] Implement against the existing `yourSky` path in `js/sunpath.js`.
 - [x] Run — expect PASS. Mutation-check the refusal path.

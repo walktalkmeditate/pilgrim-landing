@@ -674,48 +674,35 @@
   var MS_PER_HOUR = 3600000;
   var MS_PER_DAY  = 86400000;
 
-  // Sun below this elevation is "true dark" everywhere in this almanac (D4).
-  var TRUE_DARK_ELEV_DEG = -18;
-
   /*
    * modelsNightHere(lat) — does this instrument answer for this latitude?
    *
-   * It models the band where **every night ends**. Above about 84.5° some
-   * nights do not: the sun stays more than 18° below the horizon for days
-   * at a time near midwinter, so "how long did the dark last" stops having
-   * a nightly answer at all.
+   * It models the band where **every night ends**. Nearer the pole than
+   * MAX_MODELLED_LAT_DEG some nights do not: the sun stays more than 18°
+   * below the horizon for days around midwinter, so "how long did the dark
+   * last" stops having a nightly answer.
    *
-   * The instrument used to try. It returned 24 for those days, which meant
-   * darkHoursOn's own contract ("exactly 0 iff there is no astronomical
-   * night") had to carry two sentinels, and the day the polar night BEGINS
-   * broke it: dusk exists, the next dawn does not, and the disambiguator
-   * sampled declination twelve hours later than the twilight functions did.
-   * At 85°N on 11 December 2026 that landed 0.026° the wrong side of the
-   * threshold and reported 0 — "no astronomical night at all" — between a
-   * 22.4-hour night and a 24-hour one. It did that at 93% of the latitudes
-   * it was written to serve.
-   *
-   * Refusing is better than guessing. Nothing on the page loses anything:
-   * the picker offers 0–70°, and drawDarkHours has no other caller. A
-   * reader above the line is told the instrument does not model their sky,
-   * which is true, rather than shown a number that is not.
+   * Refusing is better than guessing, and the guess it replaced was wrong at
+   * 93% of the latitudes it served — D12 has the measurement. Nothing on the
+   * page loses anything: the picker offers 0–70°.
    */
   // At midwinter the sun's altitude at solar NOON is (90 − lat − declination);
   // permanent astronomical night begins where even that peak stays below −18°,
-  // at (90 − declination + 18). The mirror of the 48.56° limit at the other
-  // end, which is (lat − 66.56) reaching −18° at solar midnight.
+  // at (90 − declination + 18). The mirror of the 48.56° limit at the other end.
   //
-  // Textbook obliquity puts that at 84.56°, and the first version of this used
-  // it — but the Spencer series above peaks at 23.4556°, not 23.44°, so the
-  // real edge is 84.5444° and 84.56 sat 0.016° INSIDE the band it was meant to
-  // exclude. 84.5 is derived from the declination this file actually produces,
-  // with 0.044° to spare; the sweep in the test file re-derives it and fails if
-  // the series ever drifts past it.
+  // 84.5, not the textbook 84.56: that figure uses obliquity 23.44°, and the
+  // Spencer series above peaks at 23.4556°, putting the real edge at 84.5444°.
+  // The test file re-derives it from the series and fails if they part company.
   var MAX_MODELLED_LAT_DEG = 84.5;
 
   function modelsNightHere(lat) {
-    return typeof lat === 'number' && isFinite(lat)
-      && Math.abs(lat) <= MAX_MODELLED_LAT_DEG;
+    // Number() is too permissive on its own: Number(null), Number('') and
+    // Number([]) are all 0, so each would read as the equator. Only a
+    // number or a non-blank numeric string is a latitude.
+    if (typeof lat !== 'number' && typeof lat !== 'string') return false;
+    if (typeof lat === 'string' && lat.trim() === '') return false;
+    var n = Number(lat);
+    return isFinite(n) && Math.abs(n) <= MAX_MODELLED_LAT_DEG;
   }
 
   /*
@@ -732,14 +719,18 @@
    * Taking one would invite a caller to think it changes the answer.
    *
    * **Returns exactly 0 if and only if there is no astronomical night,
-   * and exactly 24 if and only if there is nothing but.** Above roughly
-   * 48.56° the sun never gets 18° below the horizon near midsummer;
-   * above 84.56° it never gets 18° ABOVE it near midwinter, and the
-   * night runs the whole day. Both are facts rather than gaps in the
-   * data, and the exact-0 contract is what lets zeroDarkRuns() find the
-   * first kind without guessing at a threshold. A genuinely short night
-   * returns a small positive number; 48° bottoms out under an hour and
-   * never at zero.
+   * across the band where every night ends — and null, meaning NOT
+   * MODELLED, outside it.** Above roughly 48.56° the sun never gets 18°
+   * below the horizon near midsummer; nearer the pole than
+   * MAX_MODELLED_LAT_DEG it stops getting 18° ABOVE it near midwinter,
+   * and the night stops ending. The first is a fact this reports; the
+   * second is a domain it declines (D12). The exact-0 contract is what
+   * lets zeroDarkRuns() find the first kind without guessing at a
+   * threshold. A genuinely short night returns a small positive number;
+   * 48° bottoms out under an hour and never at zero.
+   *
+   * It does NOT return 24; the largest value it can return is 22.99 h. An
+   * earlier version used 24 as a second sentinel and got it wrong — D12.
    *
    * The two cases arrive here as the same null. hourAngleHalfSpan()
    * returns null for BOTH of them — the sun's maximum below −18° and its
@@ -806,7 +797,14 @@
    * there is no night, so no threshold is guessed at here. A 0.05-hour
    * night is a night and is not part of a run.
    */
+  // Accepts the null darkHoursYear returns above the modelled edge. These
+  // two are designed to be chained, and the guard used to live only in the
+  // callers — so SunPathMath.zeroDarkRuns(SunPathMath.darkHoursYear(85, y))
+  // threw, following the documented data flow exactly. A property enforced
+  // by convention at every call site is the shape this whole feature exists
+  // to stop repeating.
   function zeroDarkRuns(series) {
+    if (!series) return null;
     var runs = [];
     var start = -1;
     for (var i = 0; i < series.length; i++) {

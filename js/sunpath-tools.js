@@ -229,14 +229,14 @@
 
   var DARK_VIEW = { w: 360, h: 200, padL: 30, padR: 10, padT: 14, padB: 22 };
 
-  // Hours. The axis every latitude the picker offers is drawn against —
-  // 70°, its highest, peaks at 13.6, so all five share one scale and the
-  // curves can be compared across latitudes. It is NOT tall enough for
-  // every latitude: values pass 14 h above ~72.7° and reach a full 24 above
-  // 84.56°, both of which drawDarkHours will accept from yourSky. So the
-  // axis grows to hold the series rather than letting the curve leave the
-  // viewBox — a mark drawn outside the box is a mark nobody can see.
-  var DARK_MAX_H = 14;
+  // Hours, and a FLOOR rather than the ceiling the name suggests. The axis
+  // every latitude the picker offers is drawn against — 70°, its highest,
+  // peaks at 13.6, so all five share one scale and compare across latitudes.
+  // It is not tall enough for every latitude the renderer accepts: values
+  // pass 14 h above ~72.7° and reach 23.0 h at the modelled edge, so the axis
+  // grows rather than letting the curve leave the viewBox. A mark drawn
+  // outside the box is a mark nobody can see.
+    var DARK_MAX_H = 14;
 
   // Half an hour: the width inside which a whole year of nights reads as
   // "the same night, every night" rather than as a swing. Shared, so the
@@ -309,6 +309,10 @@
    * on the plot is the same defect pointing the other way.
    */
   function darkHoursSentence(lat, series, runs, marked) {
+    // Same contract as zeroDarkRuns: this is the third link of a chain
+    // whose first link can answer null, so it accepts null rather than
+    // relying on every caller to check first.
+    if (!series) return darkHoursRefusal('At ' + lat + '°');
     var f = darkHoursFacts(series, runs);
     var turnings = turningClause(marked);
 
@@ -361,22 +365,13 @@
    * darkHoursRefusal(where) — the instrument's own edge, said out loud.
    *
    * Nearer the pole than MAX_MODELLED_LAT_DEG the midwinter sun stops
-   * climbing to within 18° of the horizon: no dusk opens the night, no
-   * dawn closes it, and "hours of true dark" has no span to measure. Both
-   * readouts say so rather than draw a plausible curve across the part of
-   * the year they cannot see — the failure this page keeps having to
-   * unlearn is arithmetic that renders to something confident and wrong.
+   * climbing to within 18° of the horizon: no dusk opens the night, no dawn
+   * closes it, and there is no span to measure. Both readouts say so rather
+   * than draw a plausible curve across the part of the year they cannot see.
    *
-   * The wording matters, and the first version got it wrong in exactly
-   * that way. It said "within 5.5° of the pole the midwinter sun NEVER
-   * climbs to within 18° of the horizon" — computed correctly from
-   * 90 − 84.5, and false for the first tenth of a degree it refuses. The
-   * lowest solar-noon altitude in 2026 is −17.926° at 84.5°, −17.976° at
-   * 84.55°: above −18°, so the sun does climb, a dusk/dawn pair does
-   * exist, and a real night does end. Only from about 84.6° is the
-   * sentence true. The margin is deliberate — the edge sits inside the
-   * geometric boundary on purpose — so the sentence now says the boundary
-   * is approached, not crossed, and says why the line is early.
+   * The wording is hedged on purpose. The edge sits INSIDE the geometric
+   * boundary, so any absolute claim about the refused band ("never climbs")
+   * is false across the margin — which is what the first version said. D12.
    */
   function darkHoursRefusal(where) {
     return where + ', this instrument stops. Nearer the pole than about '
@@ -401,6 +396,12 @@
     year = year || new Date().getUTCFullYear();
     clearChildren(plot);
 
+    // Not a latitude at all is a different answer from a latitude this
+    // instrument declines, and they must not share a sentence.
+    if (!isFinite(Number(lat))) {
+      if (caption) caption.textContent = '';
+      return;
+    }
     var series = M.darkHoursYear(lat, year);
     if (!series) {
       if (caption) caption.textContent = darkHoursRefusal('At ' + lat + '°');
@@ -515,7 +516,12 @@
    * January. The clause reports what its own latitude gives.
    */
   function yourSkyDarkClause(lat, year) {
-    if (lat == null || isNaN(lat)) return '';
+    // isNaN coerces, so isNaN('45') is false and a string latitude used to
+    // reach the domain check — which rejected it on type and returned the
+    // near-the-pole refusal for a latitude in the middle of the modelled
+    // band. Whether this is a latitude at all is decided here; whether it
+    // is one the instrument models is decided by modelsNightHere.
+    if (lat == null || !isFinite(Number(lat))) return '';
     year = year || new Date().getUTCFullYear();
 
     var series = M.darkHoursYear(lat, year);

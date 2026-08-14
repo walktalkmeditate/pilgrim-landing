@@ -142,12 +142,12 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 106.21 KB — **+10.64 KB** |
+| after §A, at HEAD | 106.08 KB — **+10.52 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+21.14 KB** against a **+12.00 KB** budget |
+| projected feature total | **+21.02 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +10.64 — mostly comment, and still inside
+The review fix waves have since taken §A itself to +10.52 — mostly comment, and still inside
 the budget — which only makes the verdict wider.*
 
 *That figure moved twice for reasons worth recording. The polar refusal (D12) cost +0.98 and
@@ -158,6 +158,14 @@ branch's own growth and 5.05 KB of pre-existing baseline. Three times now this g
 missed something, and all three times the miss was worth zero: an unresolvable path, a mixed
 gzip implementation, and the document. It now carries a self-test proving it responds to
 growth at all.*
+
+*The review fix wave pushed §A to **+11.82 KB** — 0.18 KB of headroom — before any comment
+was trimmed. Half the weight of both JS files is comment, and this codebase ships comments
+on purpose. But a lot of what the wave added was *archaeology*: paragraphs recording what a
+comment used to say wrongly. That belongs here, in a document nobody downloads, not in
+served bytes. Trimming five of those blocks and one CSS block returned 1.30 KB and left the
+operative reasoning in place. D9 held without being raised, which is the only outcome
+consistent with having cut §B rather than raise it.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
 — cut, as §C was.
@@ -404,9 +412,9 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **106.21 KB — +10.64 KB** |
+| **after §A** | **106.08 KB — +10.52 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.50 KB → 21.14 KB total, over |
+| §B, had it shipped | +10.50 KB → 21.02 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
 per-file from the shipped page and then reads this row back out of this document and
@@ -417,7 +425,7 @@ was a baseline measured with Apple `gzip -9` and a total computed with Node `zli
 subtraction across two implementations. One tool now, named in the table, on both sides of
 the subtraction.
 
-Of the +10.64 KB, +4.91 was §A as first written and the rest is the review fix waves —
+Of the +10.52 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
 
@@ -492,8 +500,9 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
   rest of AC #9 — outside-SVG text, no per-element titles — ships as written. Undisclosed in
   the first pass, which is the part that was wrong.
 - **`DARK_MAX_H` is a floor, not a fixed axis.** The five picker latitudes all fit under
-  14 h, and sharing one scale is what makes them comparable. `yourSky` will hand the same
-  renderer any latitude it models, and at the 84.5° edge the longest night runs 23.0 h, so
+  14 h, and sharing one scale is what makes them comparable. The renderer may be handed any
+  latitude the instrument models — the render suite draws at the edge, where the longest
+  night runs 23.0 h — so
   the axis grows to hold the series rather than drawing a curve above the top of the box.
   (Its name still says ceiling. Left as-is: renaming it touches the CSS and the render
   suite for no behaviour change, and it is on the open list below.)

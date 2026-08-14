@@ -916,6 +916,27 @@ ok(M.darkHoursYear(85, 2026) === null,
 ok(M.darkHoursYear(70, 2026).length === 365,
   'while a modelled one still yields its whole year');
 
+// The chain has to accept what its own links return. darkHoursYear can
+// answer null; zeroDarkRuns is the documented next step and used to throw
+// on it, so following the data flow instead of copying a caller's guard
+// crashed. Both are exported, so "every caller checks first" was a
+// convention, not a contract.
+ok(M.zeroDarkRuns(M.darkHoursYear(85, 2026)) === null,
+  'zeroDarkRuns accepts the null darkHoursYear returns, rather than throwing on it');
+ok(M.zeroDarkRuns(null) === null, 'and null directly');
+ok(Array.isArray(M.zeroDarkRuns(M.darkHoursYear(60, 2026))),
+  'while a modelled latitude still chains to a real list of runs');
+
+// A numeric string is a latitude. The domain check rejected it on TYPE and
+// returned the same null a polar latitude returns, so a reader at 45° could
+// be told the instrument stops near the pole. Whether the input is a
+// latitude at all is a different question, asked by the callers.
+ok(M.modelsNightHere('45') === true, 'a numeric string is a latitude the instrument models');
+ok(M.darkHoursYear('45', 2026).length === 365, 'and it yields a real year');
+ok(M.modelsNightHere('abc') === false, 'while something that is not a number is not modelled');
+ok(M.modelsNightHere(null) === false, 'nor null');
+ok(M.modelsNightHere(Infinity) === false, 'nor Infinity');
+
 // The load-bearing claim, swept rather than asserted at two dates: inside
 // the modelled domain a null from the twilight functions can ONLY mean
 // "the sun never sank to −18°". The sun's altitude at solar noon is

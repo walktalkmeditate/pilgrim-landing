@@ -1681,20 +1681,14 @@ body.constellation .sunpath-polar-circle {
    prevent. The render suite checked the polyline's points for it and the
    stylesheet drew it anyway, in a different element.
 
-   The turning marks were dashed (2 on, 3 off) to tell them from the band
-   edges, and that cost them the contrast the sweep claimed for them. At
-   the narrowest column those dashes are ~1.6 x 1.1 device px, small
-   enough that antialiasing blends them toward their 40% duty: 1.610:1
-   painted in light mode against a recorded 3.954:1, and 2.097:1 in dark.
-   Raising the duty until it cleared 3:1 needed 0.835 — a dash you cannot
-   see as a dash, so the distinction it bought was gone anyway.
-
-   So both marks are solid, and they are told apart by WEIGHT and by
-   CONTEXT: an edge is 2.2 and always stands at the boundary of a wash, a
-   turning is 1.4 and stands alone. Solid stone clears 3:1 against every
-   background this page paints on (3.954 / 6.416 / 7.220) and against the
-   wash-composited background a turning inside a band actually sits on
-   (3.301 / 4.953 / 5.843) — the case the sweep never measured.
+   Both marks are solid, and told apart by WEIGHT and CONTEXT: an edge is
+   2.2 and always stands at the boundary of a wash, a turning is 1.4 and
+   stands alone. The turnings were dashed, which cost them the contrast
+   the sweep recorded for them — 1.610:1 painted against 3.954:1 claimed —
+   and clearing 3:1 needed 0.835 duty, a dash you cannot see as a dash.
+   Solid stone clears 3:1 against every background this page paints on
+   (3.954 / 6.416 / 7.220) and against the wash-composited background a
+   turning inside a band actually sits on (3.301 / 4.953 / 5.843).
 
    All three marks are also wide enough to survive the narrowest column
    the page renders at: under one device pixel a stroke is painted by
