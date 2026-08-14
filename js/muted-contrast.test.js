@@ -1040,4 +1040,107 @@ test('the moon ramp is defined for both themes and never scoped to body.constell
   );
 });
 
+/* =============================================
+   The dark-hours curve (after-the-sun §A, Task 7)
+
+   Three elements on one plot, and the whole argument of the section is
+   that they read as different things:
+
+     .sunpath-dark-curve    the nights that have a night
+     .sunpath-dark-none     the stretch that does not
+     .sunpath-dark-turning  the four hinges
+
+   The band is the one that matters. A stretch with no night drawn as a
+   fainter shade of the curve reads as "less of this"; it is not less
+   dark, it is no dark. So it is checked against the curve, not only
+   against the page.
+   ============================================= */
+
+const sunpathCss = fs.readFileSync(path.join(ROOT, 'css', 'sunpath.css'), 'utf8');
+
+function sunpathStroke(selector, prop) {
+  const decls = ruleDeclarations(sunpathCss, selector);
+  assert.ok(decls, 'expected ' + selector + ' in css/sunpath.css');
+  const m = new RegExp(prop + ':\\s*([^;]+);').exec(decls);
+  assert.ok(m, selector + ' has no ' + prop);
+  return m[1].trim();
+}
+
+function sunpathOpacity(selector) {
+  const decls = ruleDeclarations(sunpathCss, selector);
+  const m = /opacity:\s*([\d.]+)/.exec(decls || '');
+  return m ? parseFloat(m[1]) : 1;
+}
+
+test('the dark-hours curve clears AA-large against every background it is drawn on (§A)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const curve = resolveFillColor(sunpathStroke('.sunpath-dark-curve', 'stroke'), mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const px = composite(curve.rgb, curve.alpha, background.rgb);
+      const ratio = contrast(px, background.rgb);
+      console.log('  dark-hours curve — ' + mode + ' over ' + background.label
+        + ' = ' + ratio.toFixed(3) + ':1');
+      assert.ok(ratio >= 3.0,
+        mode + ' .sunpath-dark-curve is ' + ratio.toFixed(3)
+          + ':1 against ' + background.label + ', below the 3:1 a line carrying the reading needs');
+    });
+  });
+});
+
+test('the no-night band is distinguishable from the curve, not a fainter version of it (§A, D5)', function () {
+  ['light', 'dark'].forEach(function (mode) {
+    const curve = resolveFillColor(sunpathStroke('.sunpath-dark-curve', 'stroke'), mode);
+    const band = resolveFillColor(sunpathStroke('.sunpath-dark-none', 'fill'), mode);
+    const bandAlpha = sunpathOpacity('.sunpath-dark-none');
+
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const curvePx = composite(curve.rgb, curve.alpha, background.rgb);
+      const bandPx = composite(band.rgb, band.alpha * bandAlpha, background.rgb);
+
+      const vsBg = contrast(bandPx, background.rgb);
+      const vsCurve = contrast(bandPx, curvePx);
+      console.log('  no-night band — ' + mode + ' over ' + background.label
+        + ': vs page ' + vsBg.toFixed(3) + ':1, vs curve ' + vsCurve.toFixed(3) + ':1');
+
+      // Visible at all...
+      assert.ok(vsBg >= 1.1,
+        mode + ' .sunpath-dark-none is ' + vsBg.toFixed(3)
+          + ':1 against ' + background.label + ' — the stretch would not be visible');
+      // ...and clearly not the same mark as the curve.
+      assert.ok(vsCurve >= 2.0,
+        mode + ' .sunpath-dark-none and .sunpath-dark-curve are only ' + vsCurve.toFixed(3)
+          + ':1 apart over ' + background.label + ' — the band would read as a faded curve');
+    });
+  });
+});
+
+test('/sunpath stays inside the +12 KB budget the spec set before any of this was written (D9, AC #11)', function () {
+  // The budget exists because /daylight went 52 -> 106 KB across three
+  // slices with no budget, each increase small on its own. Measured
+  // per-file, which is what a CDN actually sends — gzipping the
+  // concatenated stream understates it by about 5%.
+  const page = fs.readFileSync(path.join(ROOT, 'sunpath', 'index.html'), 'utf8');
+  const files = (page.match(/(?:src|href)="\/(?:js|css)\/[^"]+"/g) || [])
+    .map(function (m) { return m.replace(/^(?:src|href)="\//, '').replace(/"$/, ''); });
+
+  const zlib = require('zlib');
+  let total = 0;
+  files.forEach(function (f) {
+    const p = path.join(ROOT, f);
+    if (fs.existsSync(p)) total += zlib.gzipSync(fs.readFileSync(p), { level: 9 }).length;
+  });
+
+  const BASELINE_KB = 90.94;   // b270938, the spec commit, before any code
+  const BUDGET_KB = 12.0;
+  const nowKb = total / 1024;
+  const delta = nowKb - BASELINE_KB;
+
+  console.log('  /sunpath: ' + nowKb.toFixed(2) + ' KB gzipped, '
+    + (delta >= 0 ? '+' : '') + delta.toFixed(2) + ' KB against a ' + BUDGET_KB + ' KB budget');
+  assert.ok(delta <= BUDGET_KB,
+    '/sunpath has grown ' + delta.toFixed(2) + ' KB, past the ' + BUDGET_KB
+      + ' KB this feature was given. §B was cut for exactly this reason (D6) — raise the '
+      + 'budget deliberately in the spec, or cut something, but do not let it drift here.');
+});
+
 console.log(count + ' passed');

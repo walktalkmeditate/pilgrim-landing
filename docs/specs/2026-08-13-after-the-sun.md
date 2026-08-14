@@ -56,8 +56,9 @@ eleven, and this site's aesthetic is restraint.
 - **§A The dark hours** — one new section. Ideas 1 and 4 are the same instrument: a curve of
   true dark across the year, driven by the latitude picker, with "your sky" as its
   personalisation rather than a separate feature.
-- **§B The turnings, after dark** — an **extension** of the existing "A calendar of
-  turnings" section, not a new one.
+- **§B The turnings, after dark** — ~~an extension of the existing "A calendar of turnings"
+  section~~ **CUT 2026-08-13 by the budget gate (D6).** +10.52 KB for the moon half against
+  a +12.00 KB budget already 4.91 KB spent. One change ships.
 - **§C Two drifts** — ~~one new section, beside the existing deep-time opener~~
   **CANCELLED 2026-08-13 by its own audit (D7).** The effect is +0.071 mag against 0.32 mag
   of parameter slack, and points the opposite way to the story. Two changes ship, not three.
@@ -100,7 +101,33 @@ The mechanism behind those seven bugs, established by research across the whole 
 *a fix gets verified against the metric it was written to move, while the property it broke
 was covered only by a test asserting against an upstream proxy for the rendered output.*
 
-### D6 — §B says, per turning, what the night is like
+### D6 — §B is CUT. The budget gate fired on 2026-08-13.
+
+*Measured before any of §B was written, which is what D9's budget is for.*
+
+| | gzipped |
+|---|---|
+| `/sunpath` before this branch | 90.94 KB |
+| after §A (tasks 1–4) | 95.85 KB — **+4.91 KB** |
+| §B's `moon-lux.js` + `night-math.js` | **+10.52 KB** |
+| projected feature total | **+15.43 KB** against a **+12.00 KB** budget |
+
+D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
+— cut, as §C was.
+
+The measurement makes it easy rather than painful. §B's content is *"at this turning, at
+your latitude, the dark lasts N hours and there may be a moon in it."* The dark half is
+already on the page in §A, from modules already loaded. The moon half costs **more than
+twice what all of §A spent** to add one clause to four rows. `/daylight` went 52 → 106 KB by
+accepting that trade four times, each increase small on its own.
+
+If the turnings ever want their night, the cheap version is available: §A already computes
+`darkHoursOn` for any date, so the four hinges could carry a dark duration for nothing. It
+is the *moon* that does not fit, and the moon is the half that needed the modules.
+
+*Original decision retained below, for whoever revisits it.*
+
+### D6 (original) — §B says, per turning, what the night is like
 
 The existing section already frames the four hinges as "marked across cultures by walks,
 processions, and gatherings" — most of which happen at night or before dawn. For each
@@ -239,8 +266,10 @@ sentence names them.
 4. 60° shows 123 zero-nights and 70° shows 177, both stated and drawn.
 5. The equator's flatness (0.2 h range) is legible — it is the section's punchline.
 6. `/sunpath` works with geolocation refused, and never blocks on a prompt (D3).
-7. §B states, per turning and per latitude, the dark duration and whether a moon is up.
-8. §B's moon figure is `nightMoonLux`'s illuminance across the dark window, not phase.
+7. ~~§B states, per turning and per latitude, the dark duration and whether a moon is up.~~
+   **Cut by the budget gate (D6).** §B does not ship.
+8. ~~§B's moon figure is `nightMoonLux`'s illuminance across the dark window, not phase.~~
+   Cut with it.
 9. `role="img"` + one mirrored accessible name + outside-SVG text; no per-element titles.
 10. The text equivalent names the zero-dark stretch and any marked turning (D10).
 11. **`/sunpath` grows by no more than 12 KB gzipped**, measured per-file (not
@@ -271,6 +300,54 @@ sentence names them.
   data is how the ribbon's first band ramp went wrong — so the data was fetched and measured
   first, and it said no. That is the question working, not the question going unanswered.
 
-## Result
+## Result — 2026-08-13
 
-_To be completed when it ships._
+**One change shipped of the three specced, and both cuts were made by measurement.**
+
+§A, the dark hours, is on the page. §C was cancelled by its own data audit (D7) and §B by
+its own budget gate (D6) — neither by anyone's judgement in the moment, which is what the
+gates were written for.
+
+### Page weight, against the budget
+
+| | gzipped |
+|---|---|
+| `/sunpath` at `b270938` (spec only, no code) | 90.94 KB |
+| **after §A** | **95.55 KB — +4.61 KB** |
+| budget | 12.00 KB |
+| §B, had it shipped | +10.52 KB → 15.43 KB total, over |
+
+The figure is now **pinned by a test** (`js/muted-contrast.test.js`), which recomputes it
+per-file from the shipped page rather than trusting this table. Three numbers drifted in
+this repo's specs across three review rounds on the sibling page; this one cannot.
+
+### Contrast
+
+| | light parchment | dark parchment | `#0a0a12` |
+|---|---|---|---|
+| the curve | 6.110:1 | 5.130:1 | 5.773:1 |
+| the no-night band, vs the page | 1.198:1 | 1.293:1 | 1.241:1 |
+| the no-night band, **vs the curve** | 5.098:1 | 3.968:1 | 4.652:1 |
+
+The last row is the one that matters and it is asserted, not observed. A stretch with no
+night drawn as a fainter shade of the curve would read as *less of this*; it is not less
+dark, it is no dark.
+
+### What the tests hold
+
+- The spec's own latitude table, recomputed from the shipped twilight functions rather than
+  copied — the document and the code cannot drift apart quietly.
+- The boundary at 48.56° checked against its derivation (at the June solstice the sun's
+  midnight altitude is `lat − 66.56°`), not against an observed number.
+- The curve **breaks** around a zero-dark stretch: 60° draws as two segments covering 242 of
+  365 nights, 70° as two covering 188, and **no emitted point sits on the baseline**.
+- Mutation-checked: running the curve through the zeros turns 5 assertions red; a
+  zero-height band turns 1; nautical twilight instead of astronomical turns 18; clamping a
+  no-night to 0.01 instead of exact zero turns 4.
+
+### One thing found on the way
+
+The hemispheres are not mirrors. −60° loses **116** nights to the midnight sun where +60°
+loses 123, and −70° loses 170 against 177 — southern summer is the shorter season, because
+Earth moves fastest near perihelion in January. The first draft of that assertion used the
+mirrored number and would have passed anyway on a weaker branch.

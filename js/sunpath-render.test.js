@@ -215,6 +215,50 @@ ok(/never/.test(clauseS), '−60° still says the dark never fully arrives');
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
 
+console.log('\n=== Text equivalence (Task 6, D10) ===\n');
+
+// The SVG is aria-hidden, matching the idiom setupDawnSweep and
+// setupAnalemma already use on this page. That is a stronger position
+// than role="img": there is no subtree for assistive tech to flatten, and
+// no per-element <title> can be mistaken for one. The caption paragraph
+// is real DOM text and carries the whole reading.
+//
+// The sibling page's mistake is the one being avoided here: /daylight's
+// moon strip shipped positional marks with no textual analogue, so a
+// sighted reader gained a capability a screen-reader user did not. Every
+// mark this section draws is named in the sentence.
+
+var fs = require('fs');
+var page = fs.readFileSync(__dirname + '/../sunpath/index.html', 'utf8');
+
+ok(page.indexOf('id="sunpath-dark-hours"') !== -1,
+  'the page carries the section container');
+ok(/aria-label="Hours of true dark across the year"/.test(page),
+  'the section names itself for assistive tech');
+
+// Everything the picture shows must be in the sentence, because the
+// picture is hidden from anyone reading the text.
+[[0, ['0°']], [45, ['45°', '11.7']], [60, ['60°', '123']], [70, ['70°', '177']]]
+  .forEach(function (t) {
+    var text = draw(t[0]).caption.textContent;
+    t[1].forEach(function (needle) {
+      ok(text.indexOf(needle) !== -1,
+        t[0] + '°: the caption states "' + needle + '", which the curve shows for free');
+    });
+  });
+
+// A turning mark is a visual affordance. If it is drawn it must be
+// speakable, or it is the moon strip's gap all over again. §A marks the
+// four turnings, and the section's own prose names them — assert the
+// standing copy does, since the caption deliberately stays short.
+ok(/solstice/i.test(page) && /equinox/i.test(page),
+  'the page names the turnings its curve marks, in standing prose');
+
+// No per-element title may creep into an aria-hidden subtree: it would be
+// silently inert, which is worse than absent because it looks like coverage.
+var titles = d60.plot.children.filter(function (c) { return c.tag === 'title'; });
+equal(titles.length, 0, 'no <title> is emitted inside the hidden SVG — inert coverage is not coverage');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
