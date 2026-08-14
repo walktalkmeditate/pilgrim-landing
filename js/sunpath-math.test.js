@@ -673,6 +673,120 @@ if (M.azimuthToUnit(141, 90, 50) === null) {
 }
 
 // ===========================================================================
+// The dark hours — after-the-sun spec, Task 1 (D4)
+//
+// True dark is astronomical night: sun below −18°. Not civil (−6°) or
+// nautical (−12°). /daylight's bar already draws that boundary and calls
+// it true dark, and one almanac should not carry two definitions.
+//
+// The table below is the spec's own, recomputed here from the shipped
+// twilight functions rather than copied from it, so the document and the
+// code cannot drift apart silently.
+// ===========================================================================
+
+console.log('\n=== Dark hours — the picker\'s five latitudes ===\n');
+
+function ok(cond, label) {
+  if (cond) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': condition was false');
+    console.log('  ✗ ' + label);
+  }
+}
+
+// lat, Jun 21, Sep 23, Dec 21 — the spec's table, ±0.1 h.
+var DARK_TABLE = [
+  [0,    9.4,  9.6,  9.4],
+  [23.5, 7.5,  9.4,  10.6],
+  [45,   3.3,  8.5,  11.7],
+  [60,   0.0,  6.9,  12.6],
+  [70,   0.0,  3.3,  13.6]
+];
+
+DARK_TABLE.forEach(function (row) {
+  var lat = row[0];
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 5, 21, 12))), row[1], 0.1,
+    lat + '°: June solstice');
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 8, 23, 12))), row[2], 0.1,
+    lat + '°: September equinox');
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 11, 21, 12))), row[3], 0.1,
+    lat + '°: December solstice');
+});
+
+console.log('\n=== Dark hours — a whole year, and what zero means ===\n');
+
+var year0  = M.darkHoursYear(0, 2026);
+var year45 = M.darkHoursYear(45, 2026);
+var year60 = M.darkHoursYear(60, 2026);
+var year70 = M.darkHoursYear(70, 2026);
+
+ok(year45.length === 365, '2026 is not a leap year, so a year is 365 entries');
+ok(M.darkHoursYear(45, 2028).length === 366, '2028 is a leap year, so 366 entries');
+ok(year45.every(function (h) { return typeof h === 'number' && isFinite(h); }),
+  'every entry is a finite number — never null, never NaN');
+
+// Zero means "no astronomical night", not "a very short one". The
+// distinction is the whole of D5: a short night and no night look
+// identical once drawn, and only one of them is a night.
+ok(year0.every(function (h) { return h > 0; }),
+  'the equator has true dark on every night of the year');
+ok(year45.every(function (h) { return h > 0; }),
+  '45° has true dark on every night of the year');
+ok(year60.filter(function (h) { return h === 0; }).length === 123,
+  '60°: exactly 123 nights of 2026 have no astronomical night at all');
+ok(year70.filter(function (h) { return h === 0; }).length === 177,
+  '70°: exactly 177 nights of 2026 have no astronomical night at all');
+
+// Where the zeros begin is not a tuning constant — it is geometry. At the
+// June solstice the sun's altitude at solar midnight is (lat − 66.56°),
+// since declination is +23.44° and the pole of the night sky sits at
+// (90° − lat). That reaches −18° exactly at 48.56°N. Above it, no
+// astronomical night; below it, a short one.
+//
+// So the computed boundary is checked against the derivation rather than
+// against a number someone once observed. An implementation that rounded,
+// clamped, or used the wrong twilight angle would move this.
+var yearBelow = M.darkHoursYear(48, 2026);
+ok(yearBelow.every(function (h) { return h > 0; }),
+  '48° is below the boundary, so its shortest night is small but never zero');
+approx(Math.min.apply(null, yearBelow), 1.32, 0.1,
+  '48°: the shortest night is about 1.3 h — small, and positive');
+
+ok(M.darkHoursYear(48.5, 2026).every(function (h) { return h > 0; }),
+  '48.5° is still below the boundary — 0.39 h at its shortest, but never nothing');
+ok(M.darkHoursYear(48.6, 2026).some(function (h) { return h === 0; }),
+  '48.6° is above it, and the zeros begin');
+ok(M.darkHoursYear(66.56 - 18 - 0.1, 2026).every(function (h) { return h > 0; })
+   && M.darkHoursYear(66.56 - 18 + 0.1, 2026).some(function (h) { return h === 0; }),
+  'the boundary sits at 66.56° − 18° = 48.56°, which is where the geometry puts it');
+
+// The equator's flatness is the section's punchline, so it is pinned.
+var min0 = Math.min.apply(null, year0), max0 = Math.max.apply(null, year0);
+approx(max0 - min0, 0.2, 0.15,
+  'the equator varies by about 0.2 h across the whole year');
+ok(max0 - min0 < 0.5,
+  'every night at the equator is within half an hour of every other');
+
+// And the swing grows with latitude, monotonically, which is the story
+// the section tells. Measured, not assumed.
+var swings = [0, 23.5, 45, 60, 70].map(function (lat) {
+  var y = M.darkHoursYear(lat, 2026);
+  return Math.max.apply(null, y) - Math.min.apply(null, y);
+});
+var rising = true;
+for (var si = 1; si < swings.length; si++) if (swings[si] <= swings[si - 1]) rising = false;
+ok(rising, 'the year\'s swing grows with every step up the picker: '
+  + swings.map(function (s) { return s.toFixed(1); }).join(' < '));
+
+// Purity: the same question twice gives the same answer.
+ok(M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12)))
+   === M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12))),
+  'darkHoursOn is pure');
+
+// ===========================================================================
 // Summary
 // ===========================================================================
 

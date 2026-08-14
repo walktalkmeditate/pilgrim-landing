@@ -643,6 +643,54 @@
   // --- Analemma (sun's noon position over a year, at one location) ---
 
   // Returns 365 {altitude, azimuth} points for solar noon at the city's longitude.
+  var MS_PER_HOUR = 3600000;
+  var MS_PER_DAY  = 86400000;
+
+  /*
+   * darkHoursOn(lat, date) — hours of astronomical night in the night
+   * that FOLLOWS `date` at that latitude.
+   *
+   * True dark means the sun below −18° (spec D4). Not civil (−6°) or
+   * nautical (−12°): /daylight's bar already draws that boundary and
+   * calls it true dark, and one almanac carrying two definitions of its
+   * own word would be worse than carrying a strict one.
+   *
+   * Longitude is deliberately not a parameter. The *length* of a night
+   * depends on latitude and date; longitude only moves when it happens.
+   * Taking one would invite a caller to think it changes the answer.
+   *
+   * **Returns exactly 0 if and only if there is no astronomical night** —
+   * above roughly 48.5° near midsummer the sun never gets 18° below the
+   * horizon. That is the fact, not a gap in the data, and the exact-zero
+   * contract is what lets zeroDarkRuns() find those stretches without
+   * guessing at a threshold. A genuinely short night returns a small
+   * positive number; 48° bottoms out under an hour and never at zero.
+   */
+  function darkHoursOn(lat, date) {
+    var dusk = astronomicalDuskUTC(lat, 0, date);
+    var dawn = astronomicalDawnUTC(lat, 0, new Date(date.getTime() + MS_PER_DAY));
+    if (!dusk || !dawn) return 0;
+    var span = dawn.getTime() - dusk.getTime();
+    return span > 0 ? span / MS_PER_HOUR : 0;
+  }
+
+  /*
+   * darkHoursYear(lat, year) — one darkHoursOn() per night of the year,
+   * in calendar order, 365 entries or 366 in a leap year.
+   *
+   * Every entry is a finite number so a caller never has to test for
+   * null mid-loop; the zeros carry the "no night" meaning (see above).
+   */
+  function darkHoursYear(lat, year) {
+    var out = [];
+    var d = new Date(Date.UTC(year, 0, 1, 12));
+    while (d.getUTCFullYear() === year) {
+      out.push(darkHoursOn(lat, d));
+      d = new Date(d.getTime() + MS_PER_DAY);
+    }
+    return out;
+  }
+
   function analemma(lat, lon, year) {
     var year0 = year || new Date().getUTCFullYear();
     var pts = [];
@@ -931,6 +979,9 @@
     greatCircleKm: greatCircleKm,
     // analemma
     analemma: analemma,
+    // the dark hours
+    darkHoursOn: darkHoursOn,
+    darkHoursYear: darkHoursYear,
     // constants
     EARTH_R_KM: EARTH_R_KM,
     MOON_RADIUS_KM: MOON_RADIUS_KM
