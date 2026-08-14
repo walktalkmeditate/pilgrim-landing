@@ -272,16 +272,27 @@
     dom.yourskyBtn.addEventListener('click', requestYourSky);
   }
 
+  // Last request ISSUED wins, not last settled: two taps with a slow first
+  // fix let the stale answer overwrite the fresh one.
+  var yourSkyToken = 0;
+
   function requestYourSky() {
     if (!navigator.geolocation) {
       showYourSky(null, 'Your browser can’t share a location.');
       return;
     }
+    var token = ++yourSkyToken;
     dom.yourskyReadout.hidden = false;
     dom.yourskyReadout.textContent = 'locating…';
     navigator.geolocation.getCurrentPosition(
-      function (pos) { showYourSky({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
-      function () { showYourSky(null, 'Couldn’t read your location — no worries.'); },
+      function (pos) {
+        if (token !== yourSkyToken) return;
+        showYourSky({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      function () {
+        if (token !== yourSkyToken) return;
+        showYourSky(null, 'Couldn’t read your location — no worries.');
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
     );
   }
@@ -302,7 +313,16 @@
       if (renderer.setIdle) renderer.setIdle(false);
       renderer.render(buildState());
     }
-    dom.yourskyReadout.textContent = yourSkyText(altDeg, distKm, sunriseAz);
+    // The dark-hours clause (after-the-sun D3) extends this readout rather
+    // than adding a control of its own. If sunpath-tools has not loaded, or
+    // the latitude is unusable, the clause is simply absent — this path
+    // must never block and must never invent a reading.
+    var darkClause = (window.SunPathTools && window.SunPathTools.yourSkyDarkClause)
+      ? window.SunPathTools.yourSkyDarkClause(loc.lat)
+      : '';
+
+    dom.yourskyReadout.textContent =
+      yourSkyText(altDeg, distKm, sunriseAz) + (darkClause ? ' ' + darkClause : '');
   }
 
   function yourSkyText(altDeg, distKm, sunriseAz) {

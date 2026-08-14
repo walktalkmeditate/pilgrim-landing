@@ -669,6 +669,160 @@
     return pts;
   }
 
+  // --- The dark hours (how long astronomical night lasts, by latitude) ---
+
+  var MS_PER_HOUR = 3600000;
+  var MS_PER_DAY  = 86400000;
+
+  /*
+   * modelsNightHere(lat) — does this instrument answer for this latitude?
+   *
+   * It models the band where **every night ends**. Nearer the pole than
+   * MAX_MODELLED_LAT_DEG some nights do not: the sun stays more than 18°
+   * below the horizon for days around midwinter, so "how long did the dark
+   * last" stops having a nightly answer.
+   *
+   * Refusing is better than guessing, and the guess it replaced was wrong at
+   * 93% of the latitudes it served — D12 has the measurement. Nothing on the
+   * page loses anything: the picker offers 0–70°.
+   */
+  // At midwinter the sun's altitude at solar NOON is (90 − lat − declination);
+  // permanent astronomical night begins where even that peak stays below −18°,
+  // at (90 − declination + 18). The mirror of the 48.56° limit at the other end.
+  //
+  // 84.5, not the textbook 84.56: that figure uses obliquity 23.44°, and the
+  // Spencer series above peaks at 23.4556°, putting the real edge at 84.5444°.
+  // The test file re-derives it from the series and fails if they part company.
+  var MAX_MODELLED_LAT_DEG = 84.5;
+
+  function modelsNightHere(lat) {
+    // Number() is too permissive on its own: Number(null), Number('') and
+    // Number([]) are all 0, so each would read as the equator. Only a
+    // number or a non-blank numeric string is a latitude.
+    if (typeof lat !== 'number' && typeof lat !== 'string') return false;
+    if (typeof lat === 'string' && lat.trim() === '') return false;
+    var n = Number(lat);
+    return isFinite(n) && Math.abs(n) <= MAX_MODELLED_LAT_DEG;
+  }
+
+  /*
+   * darkHoursOn(lat, date) — hours of astronomical night in the night
+   * that FOLLOWS `date` at that latitude.
+   *
+   * True dark means the sun below −18° (spec D4). Not civil (−6°) or
+   * nautical (−12°): /daylight's bar already draws that boundary and
+   * calls it true dark, and one almanac carrying two definitions of its
+   * own word would be worse than carrying a strict one.
+   *
+   * Longitude is deliberately not a parameter. The *length* of a night
+   * depends on latitude and date; longitude only moves when it happens.
+   * Taking one would invite a caller to think it changes the answer.
+   *
+   * **Returns exactly 0 if and only if there is no astronomical night,
+   * across the band where every night ends — and null, meaning NOT
+   * MODELLED, outside it.** Above roughly 48.56° the sun never gets 18°
+   * below the horizon near midsummer; nearer the pole than
+   * MAX_MODELLED_LAT_DEG it stops getting 18° ABOVE it near midwinter,
+   * and the night stops ending. The first is a fact this reports; the
+   * second is a domain it declines (D12). The exact-0 contract is what
+   * lets zeroDarkRuns() find the first kind without guessing at a
+   * threshold. A genuinely short night returns a small positive number;
+   * 48° bottoms out under an hour and never at zero.
+   *
+   * It does NOT return 24; the largest value it can return is 22.99 h. An
+   * earlier version used 24 as a second sentinel and got it wrong — D12.
+   *
+   * The two cases arrive here as the same null. hourAngleHalfSpan()
+   * returns null for BOTH of them — the sun's maximum below −18° and its
+   * minimum above it — and twilightUTC() passes that through. Six
+   * exported functions and two shipped instruments on /daylight read
+   * those nulls, so the two are told apart here, additively, by asking
+   * how high the sun gets at all: below −18° at its highest and the
+   * whole night is dark; otherwise none of it is. Reading it back off
+   * the halfSpan would mean changing what null means for every other
+   * caller.
+   */
+  function darkHoursOn(lat, date) {
+    if (!modelsNightHere(lat)) return null;
+    var dusk = astronomicalDuskUTC(lat, 0, date);
+    var dawn = astronomicalDawnUTC(lat, 0, new Date(date.getTime() + MS_PER_DAY));
+    if (!dusk || !dawn) return 0;
+    var span = dawn.getTime() - dusk.getTime();
+    return span > 0 ? span / MS_PER_HOUR : 0;
+  }
+
+  /*
+   * darkHoursYear(lat, year) — one darkHoursOn() per night of the year,
+   * in calendar order, 365 entries or 366 in a leap year.
+   *
+   * Every entry is a finite number so a caller never has to test for
+   * null mid-loop; the zeros and the 24s carry their meanings (above).
+   */
+  function darkHoursYear(lat, year) {
+    if (!modelsNightHere(lat)) return null;
+    var out = [];
+    var d = new Date(Date.UTC(year, 0, 1, 12));
+    while (d.getUTCFullYear() === year) {
+      out.push(darkHoursOn(lat, d));
+      d = new Date(d.getTime() + MS_PER_DAY);
+    }
+    return out;
+  }
+
+  /*
+   * zeroDarkRuns(series) — the contiguous stretches of a darkHoursYear()
+   * that have no astronomical night at all, as objects:
+   *
+   *   [{ startIndex, endIndex, days }]   // both indices inclusive
+   *
+   * ---------------------------------------------------------------
+   * THE RATIONALE, stated once. css/sunpath.css, js/sunpath-tools.js
+   * and js/sunpath-render.test.js point here rather than restating it.
+   *
+   * This exists so a renderer is handed a THING to draw rather than a
+   * gap it has to notice. Spec D5: a zero-height bar, a zero-width
+   * segment and a line at the baseline all *look* like a very short
+   * night, and they are not — they are no night. /daylight shipped seven
+   * bugs of that family, two of them introduced by fixes, and the one
+   * that survived longest was a correct value rendered somewhere nobody
+   * could see it. The mechanism, established across that whole history:
+   * a fix is verified against the metric it was written to move, while
+   * the property it broke was covered only by a test asserting against
+   * an upstream proxy for the rendered output. So the renderer draws
+   * these runs as their own element, and the tests read the elements
+   * that were emitted rather than the series behind them.
+   * ---------------------------------------------------------------
+   *
+   * Relies on darkHoursOn's exact-zero contract: 0 appears if and only if
+   * there is no night, so no threshold is guessed at here. A 0.05-hour
+   * night is a night and is not part of a run.
+   */
+  // Accepts the null darkHoursYear returns above the modelled edge. These
+  // two are designed to be chained, and the guard used to live only in the
+  // callers — so SunPathMath.zeroDarkRuns(SunPathMath.darkHoursYear(85, y))
+  // threw, following the documented data flow exactly. A property enforced
+  // by convention at every call site is the shape this whole feature exists
+  // to stop repeating.
+  function zeroDarkRuns(series) {
+    if (!series) return null;
+    var runs = [];
+    var start = -1;
+    for (var i = 0; i < series.length; i++) {
+      if (series[i] === 0) {
+        if (start === -1) start = i;
+      } else if (start !== -1) {
+        runs.push({ startIndex: start, endIndex: i - 1, days: i - start });
+        start = -1;
+      }
+    }
+    // A run that reaches the end of the year never sees a closing value.
+    if (start !== -1) {
+      runs.push({ startIndex: start, endIndex: series.length - 1,
+                  days: series.length - start });
+    }
+    return runs;
+  }
+
   // --- Eclipse helpers (Meeus Ch. 54) ---
 
   // Moonrise azimuth at a given location on a given date.
@@ -931,6 +1085,12 @@
     greatCircleKm: greatCircleKm,
     // analemma
     analemma: analemma,
+    // the dark hours
+    darkHoursOn: darkHoursOn,
+    darkHoursYear: darkHoursYear,
+    zeroDarkRuns: zeroDarkRuns,
+    modelsNightHere: modelsNightHere,
+    MAX_MODELLED_LAT_DEG: MAX_MODELLED_LAT_DEG,
     // constants
     EARTH_R_KM: EARTH_R_KM,
     MOON_RADIUS_KM: MOON_RADIUS_KM

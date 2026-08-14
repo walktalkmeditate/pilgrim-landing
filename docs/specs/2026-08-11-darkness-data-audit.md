@@ -384,4 +384,29 @@ Explicitly not in this gate, to keep it from sprawling:
 - Any UI. No ribbon, no bar changes, no copy.
 - Arbitrary-coordinate darkness. Seven routes only; no global grid.
 - The 2012→present drift series. Gate 0 bakes **one** epoch. Q5 is recorded for Slice 4, not answered here.
+
+  **Update, 2026-08-13 — Slice 4 is cancelled as scoped.** After Slices 1–3 shipped
+  (PRs #15–#18), the four-slice roadmap's last entry was reviewed and dropped. It bundled
+  four unrelated things with very different merit:
+
+  - **Star counts / 天の川 visibility — cancelled outright, not deferred again.** Measured
+    against this gate's own ±0.32 mag uncertainty, **1,899 of 3,288 samples (57.8%) sit
+    within one error bar of a naked-eye Milky Way threshold (20.5–21.0 mag/arcsec²)**. For
+    most of the route a visible/not-visible claim would flip on our own calibration error.
+    That is the exact overclaim this gate exists to prevent, and no amount of presentation
+    care fixes it — only a better calibration would, which this project is not going to do.
+  - **The 2012→2025 drift story — kept, but relocated.** Q5 stands: the whole series is
+    version 002, so the comparison is valid, and a *difference* is more defensible than an
+    absolute value because systematic calibration error partly cancels. But its home is
+    `/sunpath`, whose opening section is already about the turnings drifting over
+    millennia — Earth's tilt on a 13,000-year scale beside our own light on a 13-year one.
+    It does not belong as a fourth strip on `/daylight`, which now carries three
+    instruments at 106 KB gzipped with no budget.
+  - **Moon-vs-town line, night goshuin seal — neither needs a slice.** Small, and separable.
+
+  The practical consequence for this gate: **no second epoch is baked, and no ongoing
+  Earthdata dependency exists.** `assets/darkness/` is a snapshot, not a feed — light
+  pollution moves a few percent a year and the 2025 epoch does not rot. If the drift story
+  is built on `/sunpath` it needs exactly one more bake (2012) behind its own gate, after
+  which the dependency ends for good.
 - Star-count translation. That is a presentation decision for Slice 2, and it depends on this gate's go/no-go.

@@ -905,6 +905,7 @@ body.constellation .sunpath-festival-heading-link[data-turning="winter-solstice"
 }
 
 .sunpath-analemma-caption,
+.sunpath-dark-caption,
 .sunpath-dawn-caption,
 .sunpath-daylight-caption,
 .sunpath-walk-caption {
@@ -917,6 +918,7 @@ body.constellation .sunpath-festival-heading-link[data-turning="winter-solstice"
 
 /* --- Dawn sweep --- */
 
+.sunpath-dark-svg,
 .sunpath-dawn-svg,
 .sunpath-daylight-svg {
   width: 100%;
@@ -1646,3 +1648,80 @@ body.constellation .sunpath-polar-circle {
   opacity: 0.8;
 }
 
+
+
+/* The dark hours (after-the-sun §A).
+
+   Three elements, and the distinction between them is the section's
+   whole argument:
+
+   .sunpath-dark-curve   the nights that HAVE a night
+   .sunpath-dark-none    the stretch that does not — a band, not a dip
+   .sunpath-dark-turning the four hinges, for reading the curve against
+                         the year the rest of the page is about
+
+   The band is deliberately not a shade of the curve's own colour. A
+   fainter version of the same ink reads as "less of this"; the stretch
+   is not less dark, it is no dark. Why that distinction is worth its own
+   element is written out once, in SunPathMath.zeroDarkRuns' doc comment.
+
+   The band carries essential information (D5), so it clears WCAG
+   1.4.11's 3:1 against every background this page paints on — and it
+   does it with EDGES at full strength rather than by darkening the wash.
+   Taking the wash itself to 3:1 would need alpha 0.84 in light mode: a
+   wall of stone across a third of the plot. The wash is redundant
+   reinforcement; the rules at the stretch's two ends are the mark.
+
+   Those rules are VERTICAL, and drawn as their own elements rather than
+   as a stroke on the rect, because a stroked rect also draws its bottom
+   edge — a horizontal stone line along y = h − padB, which is exactly
+   the baseline the curve is forbidden to touch. That line measures
+   1.251:1 against the curve's own ink in dark mode: near enough to read
+   as a flat piece of curve at zero, which is the one thing D5 exists to
+   prevent. The render suite checked the polyline's points for it and the
+   stylesheet drew it anyway, in a different element.
+
+   Both marks are solid, and told apart by WEIGHT and CONTEXT: an edge is
+   2.2 and always stands at the boundary of a wash, a turning is 1.4 and
+   stands alone. The turnings were dashed, which cost them the contrast
+   the sweep recorded for them — 1.610:1 painted against 3.954:1 claimed —
+   and clearing 3:1 needed 0.835 duty, a dash you cannot see as a dash.
+   Solid stone clears 3:1 against every background this page paints on
+   (3.954 / 6.416 / 7.220) and against the wash-composited background a
+   turning inside a band actually sits on (3.301 / 4.953 / 5.843).
+
+   All three marks are also wide enough to survive the narrowest column
+   the page renders at: under one device pixel a stroke is painted by
+   antialiasing at partial coverage, and every contrast figure measured
+   for it would be a fiction. js/muted-contrast.test.js holds every
+   property named here — the absence of the rect's stroke, the absence of
+   a dash on either mark, and both sets of ratios. */
+.sunpath-dark-curve {
+  stroke: var(--ink-fog);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.sunpath-dark-none {
+  fill: var(--stone);
+  fill-opacity: 0.16;
+  stroke: none;
+}
+
+/* A single night between two zero-runs. The curve rule sets fill: none,
+   which would make this a ring with no centre; it is a dot. */
+.sunpath-dark-lone {
+  fill: var(--ink-fog);
+  stroke: none;
+}
+
+.sunpath-dark-edge {
+  stroke: var(--stone);
+  stroke-width: 2.2;
+}
+
+.sunpath-dark-turning {
+  stroke: var(--stone);
+  stroke-width: 1.4;
+}

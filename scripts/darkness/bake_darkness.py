@@ -262,7 +262,14 @@ def raw_at_sites(epoch, site_list, alpha, cache):
     values = []
     for site in site_list:
         region = region_of(site['lat'], site['lon'])
-        key = (region, alpha)
+        # The epoch belongs in the key. Without it a caller holding one
+        # cache across two epochs gets the FIRST epoch's field back for
+        # both, silently — epoch is only read on a miss. A single-epoch
+        # bake never notices; the 2012 drift audit did, after this
+        # reported 0.0% change at all five reference sites and the
+        # radiance columns came back identical to four significant
+        # figures. Two epochs of satellite data are never byte-identical.
+        key = (epoch, region, alpha)
         if key not in cache:
             members = [s for s in S.REFERENCE_SITES
                        if region_of(s['lat'], s['lon']) == region]
@@ -599,9 +606,26 @@ def main():
     outputs.append((os.path.join(OUT_DIR, 'meta.json'), E.dumps(meta)))
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    for path, text in outputs:
-        with open(path, 'w') as handle:
-            handle.write(text)
+    # Every output is written to a sibling .tmp first and then moved into
+    # place. os.replace is atomic within a filesystem, so a failure partway
+    # through the loop leaves each file either wholly old or wholly new —
+    # never half-written. The docstring already promised assets/darkness/
+    # would not end up holding some routes from this bake and some from the
+    # last one; the compute phase enforced that by building `outputs` in
+    # full first, and the write phase did not.
+    staged = []
+    try:
+        for path, text in outputs:
+            tmp = path + '.tmp'
+            with open(tmp, 'w') as handle:
+                handle.write(text)
+            staged.append((tmp, path))
+        for tmp, path in staged:
+            os.replace(tmp, path)
+    finally:
+        for tmp, _ in staged:
+            if os.path.exists(tmp):
+                os.remove(tmp)
     print('wrote %d files to %s' % (len(outputs), os.path.relpath(OUT_DIR, REPO)))
 
 

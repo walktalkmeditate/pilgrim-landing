@@ -673,6 +673,355 @@ if (M.azimuthToUnit(141, 90, 50) === null) {
 }
 
 // ===========================================================================
+// The dark hours — after-the-sun spec, Task 1 (D4)
+//
+// True dark is astronomical night: sun below −18°. Not civil (−6°) or
+// nautical (−12°). /daylight's bar already draws that boundary and calls
+// it true dark, and one almanac should not carry two definitions.
+//
+// The table below is the spec's own, recomputed here from the shipped
+// twilight functions rather than copied from it. That keeps the document
+// honest about what the code does — and NOTHING more: a test that
+// recomputes from the thing it is testing pins the code to itself and can
+// never find an error in it. The external anchors further down are what
+// tie this section to something outside the repo, as every other section
+// of this file is tied.
+// ===========================================================================
+
+console.log('\n=== Dark hours — the picker\'s five latitudes ===\n');
+
+function ok(cond, label) {
+  if (cond) {
+    passed++;
+    console.log('  ✓ ' + label);
+  } else {
+    failed++;
+    failures.push(label + ': condition was false');
+    console.log('  ✗ ' + label);
+  }
+}
+
+// lat, Jun 21, Sep 23, Dec 21 — the spec's table, ±0.1 h.
+var DARK_TABLE = [
+  [0,    9.4,  9.6,  9.4],
+  [23.5, 7.5,  9.4,  10.6],
+  [45,   3.3,  8.5,  11.7],
+  [60,   0.0,  6.9,  12.6],
+  [70,   0.0,  3.3,  13.6]
+];
+
+DARK_TABLE.forEach(function (row) {
+  var lat = row[0];
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 5, 21, 12))), row[1], 0.1,
+    lat + '°: June solstice');
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 8, 23, 12))), row[2], 0.1,
+    lat + '°: September equinox');
+  approx(M.darkHoursOn(lat, new Date(Date.UTC(2026, 11, 21, 12))), row[3], 0.1,
+    lat + '°: December solstice');
+});
+
+console.log('\n=== Dark hours — a whole year, and what zero means ===\n');
+
+var year0  = M.darkHoursYear(0, 2026);
+var year45 = M.darkHoursYear(45, 2026);
+var year60 = M.darkHoursYear(60, 2026);
+var year70 = M.darkHoursYear(70, 2026);
+
+ok(year45.length === 365, '2026 is not a leap year, so a year is 365 entries');
+ok(M.darkHoursYear(45, 2028).length === 366, '2028 is a leap year, so 366 entries');
+ok(year45.every(function (h) { return typeof h === 'number' && isFinite(h); }),
+  'every entry is a finite number — never null, never NaN');
+
+// Zero means "no astronomical night", not "a very short one". The
+// distinction is the whole of D5: a short night and no night look
+// identical once drawn, and only one of them is a night.
+ok(year0.every(function (h) { return h > 0; }),
+  'the equator has true dark on every night of the year');
+ok(year45.every(function (h) { return h > 0; }),
+  '45° has true dark on every night of the year');
+ok(year60.filter(function (h) { return h === 0; }).length === 123,
+  '60°: exactly 123 nights of 2026 have no astronomical night at all');
+ok(year70.filter(function (h) { return h === 0; }).length === 177,
+  '70°: exactly 177 nights of 2026 have no astronomical night at all');
+
+// Where the zeros begin is not a tuning constant — it is geometry. At the
+// June solstice the sun's altitude at solar midnight is (lat − 66.56°),
+// since declination is +23.44° and the pole of the night sky sits at
+// (90° − lat). That reaches −18° exactly at 48.56°N. Above it, no
+// astronomical night; below it, a short one.
+//
+// So the computed boundary is checked against the derivation rather than
+// against a number someone once observed. An implementation that rounded,
+// clamped, or used the wrong twilight angle would move this.
+var yearBelow = M.darkHoursYear(48, 2026);
+ok(yearBelow.every(function (h) { return h > 0; }),
+  '48° is below the boundary, so its shortest night is small but never zero');
+approx(Math.min.apply(null, yearBelow), 1.32, 0.1,
+  '48°: the shortest night is about 1.3 h — small, and positive');
+
+ok(M.darkHoursYear(48.5, 2026).every(function (h) { return h > 0; }),
+  '48.5° is still below the boundary — 0.39 h at its shortest, but never nothing');
+ok(M.darkHoursYear(48.6, 2026).some(function (h) { return h === 0; }),
+  '48.6° is above it, and the zeros begin');
+ok(M.darkHoursYear(66.56 - 18 - 0.1, 2026).every(function (h) { return h > 0; })
+   && M.darkHoursYear(66.56 - 18 + 0.1, 2026).some(function (h) { return h === 0; }),
+  'the boundary sits at 66.56° − 18° = 48.56°, which is where the geometry puts it');
+
+// The equator's flatness is the section's punchline, so it is pinned.
+var min0 = Math.min.apply(null, year0), max0 = Math.max.apply(null, year0);
+approx(max0 - min0, 0.2, 0.15,
+  'the equator varies by about 0.2 h across the whole year');
+ok(max0 - min0 < 0.5,
+  'every night at the equator is within half an hour of every other');
+
+// And the swing grows with latitude, monotonically, which is the story
+// the section tells. Measured, not assumed.
+var swings = [0, 23.5, 45, 60, 70].map(function (lat) {
+  var y = M.darkHoursYear(lat, 2026);
+  return Math.max.apply(null, y) - Math.min.apply(null, y);
+});
+var rising = true;
+for (var si = 1; si < swings.length; si++) if (swings[si] <= swings[si - 1]) rising = false;
+ok(rising, 'the year\'s swing grows with every step up the picker: '
+  + swings.map(function (s) { return s.toFixed(1); }).join(' < '));
+
+// Purity: the same question twice gives the same answer.
+ok(M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12)))
+   === M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12))),
+  'darkHoursOn is pure');
+
+console.log('\n=== Zero-dark runs — the stretches with no night at all (Task 2, D5) ===\n');
+
+// The single most likely way this feature ships wrong is a zero drawn as
+// a very short night. A run is an object with a start, an end and a
+// length, so the renderer is handed a THING rather than a gap it has to
+// notice — D5 enforced by the data model instead of by discipline.
+
+var runs0  = M.zeroDarkRuns(year0);
+var runs45 = M.zeroDarkRuns(year45);
+var runs60 = M.zeroDarkRuns(year60);
+var runs70 = M.zeroDarkRuns(year70);
+
+ok(runs0.length === 0,  'the equator has no zero-dark run at all');
+ok(runs45.length === 0, '45° has no zero-dark run at all');
+ok(runs60.length === 1, '60° has exactly ONE run, not 123 separate days');
+ok(runs70.length === 1, '70° has exactly ONE run');
+
+approx(runs60[0].days, 123, 0, '60°: the run is 123 days long');
+approx(runs70[0].days, 177, 0, '70°: the run is 177 days long');
+
+ok(runs60[0].days === runs60[0].endIndex - runs60[0].startIndex + 1,
+  '60°: days agrees with the inclusive index span it reports');
+ok(runs70[0].days === runs70[0].endIndex - runs70[0].startIndex + 1,
+  '70°: days agrees with the inclusive index span it reports');
+
+// Every day inside the run must be a zero, and the days either side must
+// not be — otherwise the run's edges are wrong by one and the drawn band
+// would start or end in the wrong place.
+[[runs60, year60, '60°'], [runs70, year70, '70°']].forEach(function (t) {
+  var run = t[0][0], series = t[1], name = t[2];
+  var allZero = true;
+  for (var i = run.startIndex; i <= run.endIndex; i++) if (series[i] !== 0) allZero = false;
+  ok(allZero, name + ': every day inside the run really has no night');
+  ok(run.startIndex === 0 || series[run.startIndex - 1] > 0,
+    name + ': the day before the run has a night — the leading edge is exact');
+  ok(run.endIndex === series.length - 1 || series[run.endIndex + 1] > 0,
+    name + ': the day after the run has a night — the trailing edge is exact');
+});
+
+// The run straddles the June solstice, which is what makes it the
+// midnight-sun stretch rather than an artifact somewhere else in the year.
+var JUNE_SOLSTICE_INDEX = 171;  // 2026-06-21, zero-based from 1 January
+[[runs60, '60°'], [runs70, '70°']].forEach(function (t) {
+  var run = t[0][0];
+  ok(run.startIndex < JUNE_SOLSTICE_INDEX && run.endIndex > JUNE_SOLSTICE_INDEX,
+    t[1] + ': the run contains the June solstice, as the midnight sun must');
+});
+
+// A run at the very edge of the array must still be found. Northern
+// latitudes never produce one, so it is constructed.
+var edge = M.zeroDarkRuns([0, 0, 5, 6, 5, 0]);
+ok(edge.length === 2, 'a run touching index 0 and another touching the end are both found');
+ok(edge[0].startIndex === 0 && edge[0].endIndex === 1 && edge[0].days === 2,
+  'the leading run is reported with its real bounds');
+ok(edge[1].startIndex === 5 && edge[1].endIndex === 5 && edge[1].days === 1,
+  'a single-day run at the very end is still a run');
+
+ok(M.zeroDarkRuns([]).length === 0, 'an empty series has no runs and does not throw');
+ok(M.zeroDarkRuns([1, 2, 3]).length === 0, 'a series with no zeros has no runs');
+ok(M.zeroDarkRuns([0, 0, 0]).length === 1, 'an all-zero series is one run, not three');
+
+// "No threshold is guessed at" is a contract, and until now nothing held
+// it: relaxing `h === 0` to `h < 0.1` survives both suites, because the
+// shortest real night any latitude produces is 0.142 h (just under the
+// 48.56° boundary) and nothing in the year lands below a tenth of an
+// hour. So the case is constructed. A 0.05-hour night is three minutes of
+// true dark — a night, and not the absence of one.
+var brief = M.zeroDarkRuns([5, 0, 0, 0.05, 0, 0]);
+ok(brief.length === 2,
+  'a 0.05-hour night breaks the run in two — it is a night, not a rounding of nothing');
+ok(!!brief[1] && brief[1].startIndex === 4 && brief[1].days === 2,
+  'and the run after it starts on the far side of that night');
+
+console.log('\n=== The other pole of the same null — the modelled edge (D4) ===\n');
+
+// hourAngleHalfSpan returns null for two OPPOSITE conditions: the sun's
+// maximum below −18° (the night never ends) and its minimum above −18°
+// (it never comes). twilightUTC collapses both to null, so `!dusk` alone
+// cannot tell them apart — and a caller that reads null as "no night"
+// tells a reader at Amundsen–Scott, permanently staffed at −89.9975°,
+// that the dark never arrives on the day it does not leave.
+//
+// darkHoursOn does not disambiguate them. It declines the latitudes where
+// the ambiguity exists, and reads null as 0 everywhere else, which the
+// sweep below proves is sound. The boundary is geometry, the mirror of the
+// 48.56° check above: at midwinter the sun's greatest altitude is
+// 90° − lat − declination, reaching −18° at (90 − declination + 18).
+var TRUE_DARK = -18;
+var DEC_SOLSTICE = new Date(Date.UTC(2026, 11, 21, 12));
+var JUN_SOLSTICE = new Date(Date.UTC(2026, 5, 21, 12));
+
+// Re-derived from the declination series in use, not from textbook
+// obliquity — 23.44° would put the edge at 84.56°, and the Spencer series
+// peaks at 23.4556°, which is why the first constant sat 0.016° inside the
+// band it excluded. If the series is ever changed, this is what notices.
+var seriesPeakDec = 0;
+for (var pd = 0; pd < 366; pd++) {
+  for (var ph = 0; ph < 24; ph++) {
+    var pdec = Math.abs(M.declination(new Date(Date.UTC(2026, 0, 1 + pd, ph))));
+    if (pdec > seriesPeakDec) seriesPeakDec = pdec;
+  }
+}
+var TRUE_EDGE = 90 - seriesPeakDec + 18;
+ok(M.MAX_MODELLED_LAT_DEG <= TRUE_EDGE,
+  'the modelled edge (' + M.MAX_MODELLED_LAT_DEG + '°) is inside the geometric one ('
+    + TRUE_EDGE.toFixed(4) + '°), not past it');
+ok(M.MAX_MODELLED_LAT_DEG > TRUE_EDGE - 0.5,
+  'and within half a degree of it — refusing more sky than it must is its own defect');
+ok(M.modelsNightHere(M.MAX_MODELLED_LAT_DEG - 0.01) === true,
+  'just inside the edge is modelled');
+ok(M.modelsNightHere(M.MAX_MODELLED_LAT_DEG + 0.01) === false,
+  'just outside it is not');
+ok(M.modelsNightHere(-85) === false, 'and the southern mirror is declined too');
+
+ok(M.darkHoursOn(M.MAX_MODELLED_LAT_DEG - 0.01, DEC_SOLSTICE) > 20,
+  'just inside the edge the December night is long — 20 h and more');
+ok(M.darkHoursOn(85, DEC_SOLSTICE) === null,
+  '85°N on 21 December: declined, not a number');
+ok(M.darkHoursOn(90, DEC_SOLSTICE) === null, 'the north pole: declined');
+ok(M.darkHoursOn(-89.9975, JUN_SOLSTICE) === null,
+  'Amundsen–Scott in its own midwinter: declined, never told the dark is absent');
+ok(M.darkHoursYear(85, 2026) === null,
+  'and a declined latitude has no year to draw, not an empty one');
+ok(M.darkHoursYear(70, 2026).length === 365,
+  'while a modelled one still yields its whole year');
+
+// The chain has to accept what its own links return. darkHoursYear can
+// answer null; zeroDarkRuns is the documented next step and used to throw
+// on it, so following the data flow instead of copying a caller's guard
+// crashed. Both are exported, so "every caller checks first" was a
+// convention, not a contract.
+ok(M.zeroDarkRuns(M.darkHoursYear(85, 2026)) === null,
+  'zeroDarkRuns accepts the null darkHoursYear returns, rather than throwing on it');
+ok(M.zeroDarkRuns(null) === null, 'and null directly');
+ok(Array.isArray(M.zeroDarkRuns(M.darkHoursYear(60, 2026))),
+  'while a modelled latitude still chains to a real list of runs');
+
+// A numeric string is a latitude. The domain check rejected it on TYPE and
+// returned the same null a polar latitude returns, so a reader at 45° could
+// be told the instrument stops near the pole. Whether the input is a
+// latitude at all is a different question, asked by the callers.
+ok(M.modelsNightHere('45') === true, 'a numeric string is a latitude the instrument models');
+ok(M.darkHoursYear('45', 2026).length === 365, 'and it yields a real year');
+ok(M.modelsNightHere('abc') === false, 'while something that is not a number is not modelled');
+ok(M.modelsNightHere(null) === false, 'nor null');
+ok(M.modelsNightHere(Infinity) === false, 'nor Infinity');
+
+// The load-bearing claim, swept rather than asserted at two dates: inside
+// the modelled domain a null from the twilight functions can ONLY mean
+// "the sun never sank to −18°". The sun's altitude at solar noon is
+// 90 − |lat − dec|. If that ever fell to −18° inside the domain, reading
+// null as 0 would print "no true dark" across an unbroken night — the
+// shipped bug this replaced, which did exactly that at 85°N on 11 December.
+var EDGE = M.MAX_MODELLED_LAT_DEG;
+var STEPS = 400;
+var domainViolations = 0, sampled = 0, worstNoon = 90;
+for (var si = 0; si <= STEPS; si++) {
+  var swLat = -EDGE + (2 * EDGE * si) / STEPS;
+  for (var swDay = 0; swDay < 365; swDay += 2) {
+    var swDate = new Date(Date.UTC(2026, 0, 1 + swDay, 12));
+    var noonAlt = 90 - Math.abs(swLat - M.declination(swDate));
+    if (noonAlt < worstNoon) worstNoon = noonAlt;
+    if (noonAlt <= TRUE_DARK) domainViolations++;
+    sampled++;
+  }
+}
+ok(sampled > 60000, 'swept ' + sampled + ' latitude-days inside the modelled domain');
+ok(domainViolations === 0,
+  'nowhere inside it does the noon sun stay at or below −18° (worst: '
+    + worstNoon.toFixed(3) + '°) — so null never means unbroken night');
+
+// The same claim from the other side, over the WHOLE globe including the
+// declined band: darkHoursOn must never answer 0 on a day the sun spends
+// entirely below −18°. That sentence is the ninth bug's exact signature,
+// and this is the assertion that would have caught it.
+var globalMisreads = 0, refusedDays = 0, globalSampled = 0;
+for (var gi = 0; gi <= STEPS; gi++) {
+  var gLat = -90 + (180 * gi) / STEPS;
+  for (var gDay = 0; gDay < 365; gDay += 2) {
+    var gDate = new Date(Date.UTC(2026, 0, 1 + gDay, 12));
+    var gNoon = 90 - Math.abs(gLat - M.declination(gDate));
+    var gh = M.darkHoursOn(gLat, gDate);
+    globalSampled++;
+    if (gh === null) { refusedDays++; continue; }
+    if (gh === 0 && gNoon <= TRUE_DARK) globalMisreads++;
+  }
+}
+ok(globalSampled > 60000, 'and ' + globalSampled + ' more across the whole globe');
+ok(refusedDays > 0, 'of which ' + refusedDays + ' are declined outright rather than answered');
+ok(globalMisreads === 0,
+  'and not one answered 0 while the sun never rose to within 18° of the horizon');
+
+console.log('\n=== Dark hours — anchored outside this repo ===\n');
+
+// Every assertion above recomputes from the same twilight functions it is
+// testing, which makes it a documentation guard and not an accuracy one.
+// These four are the tie to something outside: published astronomical
+// twilight times, differenced into a night length and compared with what
+// darkHoursOn returns.
+//
+// Source: api.sunrise-sunset.org (an independent implementation of the
+// NOAA twilight equations, not this repo's Spencer series), queried
+// 2026-08-13:
+//   ?lat=42.60&lng=-5.57&date=2026-10-15 → astronomical dusk 19:14:17Z
+//   ?lat=42.60&lng=-5.57&date=2026-10-16 → astronomical dawn 05:02:55Z
+//   ?lat=64.13&lng=-21.94&date=2026-10-15 → dusk 20:48:30Z
+//   ?lat=64.13&lng=-21.94&date=2026-10-16 → dawn 05:41:30Z
+//   ?lat=0&lng=0&date=2026-10-15 → dusk 18:58:37Z
+//   ?lat=0&lng=0&date=2026-10-16 → dawn 04:32:37Z
+//   ?lat=64.13&lng=-21.94&date=2026-06-21 → no astronomical twilight
+//
+// Tolerances are wider than this file's ±2 min for a single event, and
+// deliberately: a night length differences two events twelve hours apart,
+// and darkHoursOn samples declination once at midday for both. That is
+// worth about 3 min at mid-latitude and 8 min at 64°, and it is the same
+// approximation that makes the zero-night counts good to ±1 day.
+var OCT15 = new Date(Date.UTC(2026, 9, 15, 12));
+
+approx(M.darkHoursOn(42.60, OCT15), 9.8106, 5 / 60,
+  'León (42.60°N), night of 15 Oct 2026: 9 h 49 m of true dark, published');
+approx(M.darkHoursOn(64.13, OCT15), 8.8833, 10 / 60,
+  'Reykjavík (64.13°N), same night: 8 h 53 m, published');
+approx(M.darkHoursOn(0, OCT15), 9.5667, 2 / 60,
+  'the equator (0°, 0°), same night: 9 h 34 m, published');
+
+// And the zero contract itself, against an outside source rather than
+// against our own boundary: Reykjavík gets no astronomical twilight at
+// all in late June, which is why the almanac reports no event.
+approx(M.darkHoursOn(64.13, new Date(Date.UTC(2026, 5, 21, 12))), 0, 0,
+  'Reykjavík, 21 June 2026: no astronomical night, as published — exactly 0');
+
+// ===========================================================================
 // Summary
 // ===========================================================================
 
