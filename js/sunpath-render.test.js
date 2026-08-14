@@ -61,6 +61,16 @@ function equal(a, b, label) {
          console.log('  ✗ ' + label + '  (' + a + ' vs ' + b + ')'); }
 }
 
+function approxEq(a, b, tol, label) {
+  if (Math.abs(a - b) <= tol) {
+    passed++; console.log('  ✓ ' + label + '  (' + a.toFixed(2) + ')');
+  } else {
+    failed++;
+    failures.push(label + ': expected ' + b.toFixed(2) + ' ±' + tol + ', got ' + a.toFixed(2));
+    console.log('  ✗ ' + label + '  (' + a.toFixed(2) + ' vs ' + b.toFixed(2) + ')');
+  }
+}
+
 /* Every count in this file used to be checked with indexOf, and
    '1230'.indexOf('123') is 0 — so multiplying both sentence builders'
    counts by ten left all 47 assertions green. A figure is only stated if
@@ -203,6 +213,64 @@ equal(horizontalOnBaseline.length, 0,
   '60°: nothing at all draws a horizontal rule along the baseline'
     + (horizontalOnBaseline.length ? ' — found ' + horizontalOnBaseline.join(', ') : ''));
 
+// The band is pinned to the RUN it represents, not merely to itself. The
+// edges were checked against the rect and the rect against nothing — so a
+// band covering a hundred nights that do have true dark passed every
+// assertion here. Geometry that agrees with itself is not geometry that
+// agrees with the data.
+//
+// Definition, stated once because two are possible: a run covers the point
+// indices startIndex..endIndex, and the plot draws one point per day AT
+// darkX(i). So the band spans darkX(start)..darkX(end) — point to point,
+// not day-cell to day-cell. It is one day-step narrower than a bar chart
+// would draw, and that is correct for a point plot.
+[[60, d60], [70, d70]].forEach(function (pair) {
+  var lat = pair[0], drawn = pair[1];
+  var runs = M.zeroDarkRuns(M.darkHoursYear(lat, YEAR));
+  equal(drawn.bands.length, runs.length, lat + '°: one band per zero-dark run');
+  runs.forEach(function (run, i) {
+    var band = drawn.bands[i];
+    approxEq(Number(band.attrs.x), expectedX(run.startIndex, 365), 0.01,
+      lat + '°: band ' + i + ' starts at the run\'s first no-night day (index ' + run.startIndex + ')');
+    approxEq(Number(band.attrs.x) + Number(band.attrs.width),
+      expectedX(run.endIndex, 365), 0.01,
+      lat + '°: and ends at its last (index ' + run.endIndex + ')');
+  });
+  // The complement of the same claim: no night that HAS dark may be drawn
+  // under a band. This is what would have caught a band pinned to the
+  // wrong indices while still matching its own edges.
+  var series = M.darkHoursYear(lat, YEAR);
+  var covered = 0;
+  series.forEach(function (h, i) {
+    if (h <= 0) return;
+    var x = expectedX(i, 365);
+    drawn.bands.forEach(function (b) {
+      var x1 = Number(b.attrs.x), x2 = x1 + Number(b.attrs.width);
+      if (x > x1 + 0.01 && x < x2 - 0.01) covered++;
+    });
+  });
+  equal(covered, 0,
+    lat + '°: not one night with true dark is drawn inside a no-night band');
+});
+
+// The width floor. Math.max(w, 1) exists so a stretch of one or two nights
+// still paints something a reader can see — and nothing exercised it: every
+// latitude drawn above yields either no run or a run of 100+ days, so
+// deleting the clamp left all four suites green. At 48.546° the run is two
+// days and the unclamped width is 0.879 units, under the floor.
+var SHORT_RUN_LAT = 48.546;
+var dShort = draw(SHORT_RUN_LAT);
+var shortRuns = M.zeroDarkRuns(M.darkHoursYear(SHORT_RUN_LAT, YEAR));
+ok(shortRuns.length > 0 && shortRuns[0].days <= 3,
+  SHORT_RUN_LAT + '°: has a short zero-dark run to test the floor with ('
+    + (shortRuns[0] ? shortRuns[0].days : 0) + ' days)');
+var unclamped = (shortRuns[0].endIndex - shortRuns[0].startIndex) / 364
+  * (VIEW.w - VIEW.padL - VIEW.padR);
+ok(unclamped < 1,
+  'and its unclamped width (' + unclamped.toFixed(3) + ' units) is under the floor, so the clamp is live');
+ok(Number(dShort.bands[0].attrs.width) >= 1,
+  SHORT_RUN_LAT + '°: the band is still at least one unit wide — a two-night absence a reader can see');
+
 // The band's two ends carry its 3:1, so they have to exist, be vertical,
 // and land where the stretch does. Vertical is the load-bearing word: a
 // horizontal rule in this colour is the defect above.
@@ -311,7 +379,11 @@ Object.keys(STUB_TURNINGS).forEach(function (key) {
 
 console.log('\n=== The caption carries what the picture carries (D10) ===\n');
 
-ok(d0.caption.textContent.indexOf('0°') !== -1, 'the caption names the latitude');
+// A latitude is a figure, and indexOf treats it as a substring: '70°'
+// contains '0°', so mislabelling the equator's caption "70°" left all 109
+// assertions green. The same boundary-aware helper the numeric figures
+// have used since the counts-by-ten bug applies here.
+statesIt(d0.caption.textContent, '0°', 'the caption names the latitude');
 ok(/within half an hour/.test(d0.caption.textContent),
   'the equator\'s caption states the flatness, which is the finding');
 ok(/no astronomical night at all/.test(d60.caption.textContent),
@@ -551,9 +623,9 @@ ok(/aria-label="Hours of true dark across the year"/.test(page),
   'the section names itself for assistive tech');
 
 // Everything the picture shows must be in the sentence, because the
-// picture is hidden from anyone reading the text. Latitudes match as
-// text; every figure matches as a whole number, so a count ten times too
-// large cannot satisfy it.
+// picture is hidden from anyone reading the text. Latitudes and figures
+// alike match on token boundaries, so neither a count ten times too large
+// nor a latitude that merely ends in the right digits can satisfy it.
 [[0, ['0°'], [9.4, 9.6]],
  [45, ['45°'], [3.3, 11.7, 8.4]],
  [60, ['60°'], [0.9, 12.6, 11.7, 123]],
@@ -561,7 +633,7 @@ ok(/aria-label="Hours of true dark across the year"/.test(page),
   .forEach(function (t) {
     var text = draw(t[0]).caption.textContent;
     t[1].forEach(function (needle) {
-      ok(text.indexOf(needle) !== -1,
+      statesIt(text, needle,
         t[0] + '°: the caption states "' + needle + '", which the curve shows for free');
     });
     t[2].forEach(function (figure) {
