@@ -678,18 +678,44 @@
   var TRUE_DARK_ELEV_DEG = -18;
 
   /*
-   * The sun's greatest altitude, in degrees, during the night that
-   * follows `date` at `lat`. At solar noon the sun stands at
-   * 90° − |lat − declination|, and that is the ceiling for the whole
-   * night window either side of it.
+   * modelsNightHere(lat) — does this instrument answer for this latitude?
    *
-   * Declination is sampled at the night's own midpoint (twelve hours on
-   * from the noon `date` sits at) rather than at `date` itself, so the
-   * value describes the night being asked about.
+   * It models the band where **every night ends**. Above about 84.5° some
+   * nights do not: the sun stays more than 18° below the horizon for days
+   * at a time near midwinter, so "how long did the dark last" stops having
+   * a nightly answer at all.
+   *
+   * The instrument used to try. It returned 24 for those days, which meant
+   * darkHoursOn's own contract ("exactly 0 iff there is no astronomical
+   * night") had to carry two sentinels, and the day the polar night BEGINS
+   * broke it: dusk exists, the next dawn does not, and the disambiguator
+   * sampled declination twelve hours later than the twilight functions did.
+   * At 85°N on 11 December 2026 that landed 0.026° the wrong side of the
+   * threshold and reported 0 — "no astronomical night at all" — between a
+   * 22.4-hour night and a 24-hour one. It did that at 93% of the latitudes
+   * it was written to serve.
+   *
+   * Refusing is better than guessing. Nothing on the page loses anything:
+   * the picker offers 0–70°, and drawDarkHours has no other caller. A
+   * reader above the line is told the instrument does not model their sky,
+   * which is true, rather than shown a number that is not.
    */
-  function noonSunAltitude(lat, date) {
-    var midnight = new Date(date.getTime() + MS_PER_DAY / 2);
-    return 90 - Math.abs(lat - declination(midnight));
+  // At midwinter the sun's altitude at solar NOON is (90 − lat − declination);
+  // permanent astronomical night begins where even that peak stays below −18°,
+  // at (90 − declination + 18). The mirror of the 48.56° limit at the other
+  // end, which is (lat − 66.56) reaching −18° at solar midnight.
+  //
+  // Textbook obliquity puts that at 84.56°, and the first version of this used
+  // it — but the Spencer series above peaks at 23.4556°, not 23.44°, so the
+  // real edge is 84.5444° and 84.56 sat 0.016° INSIDE the band it was meant to
+  // exclude. 84.5 is derived from the declination this file actually produces,
+  // with 0.044° to spare; the sweep in the test file re-derives it and fails if
+  // the series ever drifts past it.
+  var MAX_MODELLED_LAT_DEG = 84.5;
+
+  function modelsNightHere(lat) {
+    return typeof lat === 'number' && isFinite(lat)
+      && Math.abs(lat) <= MAX_MODELLED_LAT_DEG;
   }
 
   /*
@@ -726,11 +752,10 @@
    * caller.
    */
   function darkHoursOn(lat, date) {
+    if (!modelsNightHere(lat)) return null;
     var dusk = astronomicalDuskUTC(lat, 0, date);
     var dawn = astronomicalDawnUTC(lat, 0, new Date(date.getTime() + MS_PER_DAY));
-    if (!dusk || !dawn) {
-      return noonSunAltitude(lat, date) < TRUE_DARK_ELEV_DEG ? 24 : 0;
-    }
+    if (!dusk || !dawn) return 0;
     var span = dawn.getTime() - dusk.getTime();
     return span > 0 ? span / MS_PER_HOUR : 0;
   }
@@ -743,6 +768,7 @@
    * null mid-loop; the zeros and the 24s carry their meanings (above).
    */
   function darkHoursYear(lat, year) {
+    if (!modelsNightHere(lat)) return null;
     var out = [];
     var d = new Date(Date.UTC(year, 0, 1, 12));
     while (d.getUTCFullYear() === year) {
@@ -1065,6 +1091,8 @@
     darkHoursOn: darkHoursOn,
     darkHoursYear: darkHoursYear,
     zeroDarkRuns: zeroDarkRuns,
+    modelsNightHere: modelsNightHere,
+    MAX_MODELLED_LAT_DEG: MAX_MODELLED_LAT_DEG,
     // constants
     EARTH_R_KM: EARTH_R_KM,
     MOON_RADIUS_KM: MOON_RADIUS_KM

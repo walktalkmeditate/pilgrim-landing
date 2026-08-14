@@ -96,14 +96,17 @@ almanac would be worse than using a stricter one.
 occur near midsummer. That is not a gap in the data — it is the fact. It is *why* 60° and
 70° show zero.
 
-**And the same boundary has a far side.** Above 84.56° the sun does not climb to 18° *below*
+**And the same boundary has a far side.** Above 84.5° the sun does not climb to 18° *below*
 the horizon near midwinter, and the night lasts the whole day. Both conditions reach
 `darkHoursOn` as the same `null` from `hourAngleHalfSpan`, and reading that null as "no
-night" tells a reader at Amundsen–Scott the opposite of their sky. `darkHoursOn` therefore
-returns exactly **0** if and only if there is no astronomical night and exactly **24** if
-and only if there is nothing but — decided by the sun's own greatest altitude, additively,
-because six exported functions and two shipped instruments on `/daylight` read those nulls
-and none of them may be disturbed.
+night" tells a reader at Amundsen–Scott the opposite of their sky.
+
+`darkHoursOn` therefore returns exactly **0** if and only if there is no astronomical night,
+across the band where every night ends — and `null`, meaning *not modelled*, above it. It
+does not disambiguate the two conditions; it declines the latitudes where they are
+ambiguous. Why it stopped trying is D12. Nothing here disturbs `hourAngleHalfSpan` or
+`twilightUTC`: six exported functions and two shipped instruments on `/daylight` read those
+nulls, and the domain guard sits above them, in `darkHoursOn` alone.
 
 ### D5 — A night with no true dark is drawn as an absence, never a zero
 
@@ -133,13 +136,16 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 98.28 KB — **+7.65 KB** |
+| after §A, at HEAD | 99.27 KB — **+8.63 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+18.15 KB** against a **+12.00 KB** budget |
+| projected feature total | **+19.13 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix wave has since taken §A itself to +7.65 — mostly comment, and still inside
-the budget — which only makes the verdict wider.*
+The review fix waves have since taken §A itself to +8.63 — mostly comment, and still inside
+the budget — which only makes the verdict wider. The last 0.98 KB is the polar refusal
+(D12): 0.69 KB of it is the comment explaining why the instrument declines above 84.5°
+rather than answering. That is the trade this codebase keeps making deliberately — the
+reasoning ships with the code, because the bug it replaced was reintroduced twice.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
 — cut, as §C was.
@@ -280,6 +286,41 @@ sentence names them.
 
 ---
 
+### D12 — Above 84.5° the instrument declines, added 2026-08-14
+
+D4's first implementation tried to tell the two nulls apart by recomputing the sun's
+greatest altitude and returning 24 when it stayed below −18°. It was wrong in a way worth
+recording, because it is the ninth instance of this project's signature failure: **correct
+arithmetic rendering to something no reader can see, or prose contradicting the pixels
+beside it.**
+
+The disambiguator sampled declination at the night's midpoint; the twilight functions it
+was adjudicating sampled it twelve hours earlier. On the day a polar night *begins* — dusk
+exists, the following dawn does not — those two samples fall either side of the threshold.
+At 85°N on 11 December 2026 the gap was **0.026°**, and the function reported **0 hours**:
+"no astronomical night at all", printed between a 22.4-hour night and a 24-hour one. It did
+that at 93% of the latitudes the branch was written to serve.
+
+**The decision: refuse the domain rather than model it badly.** `modelsNightHere(lat)` is
+false above `MAX_MODELLED_LAT_DEG`; `darkHoursOn` and `darkHoursYear` return `null` there,
+and both readouts say so in prose — the plot draws nothing and the caption explains, the
+"your sky" clause states the same. A reader above the line is told the instrument does not
+model their sky, which is true, rather than shown a number that is not.
+
+Nothing on the page loses anything: the picker offers 0–70°, and `drawDarkHours` has no
+other caller.
+
+**The edge is 84.5°, not the 84.56° that geometry textbooks give.** 84.56 = 90 − 23.44 + 18
+uses textbook obliquity; the Spencer truncated series in `sunpath-math.js` peaks at
+**23.4556°**, which puts the real edge at 84.5444° and left the first constant 0.016°
+*inside* the band it was meant to exclude. `js/sunpath-math.test.js` re-derives the peak
+from the series itself and fails if the two ever part company again. The same sweep checks
+73,383 latitude-days inside the domain for a noon sun at or below −18° (worst case:
+−17.956°) and 73,383 across the whole globe for the specific sentence that was shipped —
+`darkHoursOn` answering 0 on a day the sun never rose to within 18° of the horizon.
+
+**Cost:** +0.98 KB gzipped, 0.69 KB of it comment. Recorded rather than absorbed, per D9.
+
 ## Non-goals
 
 - No change to the hero globe, the analemma, or the archive tabs.
@@ -351,7 +392,7 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **98.28 KB — +7.65 KB** |
+| **after §A** | **99.27 KB — +8.63 KB** |
 | budget | 12.00 KB |
 | §B, had it shipped | +10.50 KB → 18.15 KB total, over |
 
@@ -408,8 +449,9 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
   twilight at all and `darkHoursOn` returns exactly 0. Measuring true dark at −17° instead of
   −18° turns all four red.
 - The boundary at 48.56° checked against its derivation (at the June solstice the sun's
-  midnight altitude is `lat − 66.56°`), not against an observed number — and its far side at
-  84.56° (`90 + 18 − 23.44`) the same way, where the night stops ending.
+  midnight altitude is `lat − 66.56°`), not against an observed number — and its far side,
+  where the night stops ending, re-derived from the declination series in use rather than
+  from textbook obliquity (D12).
 - The curve **breaks** around a zero-dark stretch: 60° draws as two segments covering 242 of
   365 nights, 70° as two covering 188, and **no emitted point sits on the baseline**.
 - Mutation-checked, re-run at HEAD after the review fix wave: running the curve through the
@@ -431,8 +473,10 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
   the first pass, which is the part that was wrong.
 - **`DARK_MAX_H` is a floor, not a fixed axis.** The five picker latitudes all fit under
   14 h, and sharing one scale is what makes them comparable. `yourSky` will hand the same
-  renderer any latitude, and above 84.56° a night is 24 h long, so the axis grows to hold
-  the series rather than drawing a curve above the top of the box.
+  renderer any latitude it models, and at the 84.5° edge the longest night runs 23.0 h, so
+  the axis grows to hold the series rather than drawing a curve above the top of the box.
+  (Its name still says ceiling. Left as-is: renaming it touches the CSS and the render
+  suite for no behaviour change, and it is on the open list below.)
 
 ### The eighth instance, found in review
 

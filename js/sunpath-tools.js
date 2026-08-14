@@ -358,6 +358,23 @@
   }
 
   /*
+   * darkHoursRefusal(where) — the instrument's own edge, said out loud.
+   *
+   * Above MAX_MODELLED_LAT_DEG the midwinter sun never climbs to within
+   * 18° of the horizon: no dusk opens the night, no dawn closes it, and
+   * "hours of true dark" has no span to measure. Both readouts say so
+   * rather than draw a plausible curve across the part of the year they
+   * cannot see — the failure this page keeps having to unlearn is arithmetic
+   * that renders to something confident and wrong.
+   */
+  function darkHoursRefusal(where) {
+    return where + ', this instrument stops. Within '
+      + (90 - M.MAX_MODELLED_LAT_DEG).toFixed(1) + '° of the pole the midwinter'
+      + ' sun never climbs to within 18° of the horizon — no dusk opens the'
+      + ' night, no dawn closes it, and no span is left to measure.';
+  }
+
+  /*
    * drawDarkHours(lat, plot, caption) — emits the curve, any zero-dark
    * band, the turning marks, and writes the sentence.
    *
@@ -372,6 +389,10 @@
     clearChildren(plot);
 
     var series = M.darkHoursYear(lat, year);
+    if (!series) {
+      if (caption) caption.textContent = darkHoursRefusal('At ' + lat + '°');
+      return;
+    }
     var runs   = M.zeroDarkRuns(series);
     var days   = series.length;
     var maxH   = darkAxisMax(series);
@@ -454,6 +475,7 @@
     year = year || new Date().getUTCFullYear();
 
     var series = M.darkHoursYear(lat, year);
+    if (!series) return darkHoursRefusal('Where you are');
     if (!series.length) return '';
     var runs = M.zeroDarkRuns(series);
     var f = darkHoursFacts(series, runs);

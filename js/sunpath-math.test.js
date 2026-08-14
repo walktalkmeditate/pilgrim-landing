@@ -863,51 +863,103 @@ ok(brief.length === 2,
 ok(!!brief[1] && brief[1].startIndex === 4 && brief[1].days === 2,
   'and the run after it starts on the far side of that night');
 
-console.log('\n=== The other pole of the same null — unbroken night (D4) ===\n');
+console.log('\n=== The other pole of the same null — the modelled edge (D4) ===\n');
 
 // hourAngleHalfSpan returns null for two OPPOSITE conditions: the sun's
-// maximum below −18° (24 h of astronomical night) and its minimum above
-// −18° (none at all). twilightUTC collapses both to null, and a caller
-// that reads null as "no night" tells a reader at Amundsen–Scott —
-// permanently staffed, −89.9975° — that the dark never arrives, on the
-// day it does not leave.
+// maximum below −18° (the night never ends) and its minimum above −18°
+// (it never comes). twilightUTC collapses both to null, so `!dusk` alone
+// cannot tell them apart — and a caller that reads null as "no night"
+// tells a reader at Amundsen–Scott, permanently staffed at −89.9975°,
+// that the dark never arrives on the day it does not leave.
 //
-// Where the 24s begin is geometry again, the mirror of the 48.56° check
-// above. At the December solstice the sun's greatest altitude at a
-// northern latitude is 90° − lat − 23.44°; that reaches −18° at
-// 90 + 18 − 23.44 = 84.56°N. Above it the sun never climbs to 18° below
-// the horizon and the night runs the whole day.
+// darkHoursOn does not disambiguate them. It declines the latitudes where
+// the ambiguity exists, and reads null as 0 everywhere else, which the
+// sweep below proves is sound. The boundary is geometry, the mirror of the
+// 48.56° check above: at midwinter the sun's greatest altitude is
+// 90° − lat − declination, reaching −18° at (90 − declination + 18).
+var TRUE_DARK = -18;
 var DEC_SOLSTICE = new Date(Date.UTC(2026, 11, 21, 12));
 var JUN_SOLSTICE = new Date(Date.UTC(2026, 5, 21, 12));
-var PERMANENT_DARK_LAT = 90 + 18 - 23.44;
 
-ok(M.darkHoursOn(PERMANENT_DARK_LAT - 0.1, DEC_SOLSTICE) < 24,
-  'just below 84.56°N the December night is long but does end');
-ok(M.darkHoursOn(PERMANENT_DARK_LAT + 0.1, DEC_SOLSTICE) === 24,
-  'just above it the sun never reaches −18°, and the night is the whole day');
-approx(M.darkHoursOn(85, DEC_SOLSTICE), 24, 0,
-  '85°N on 21 December: 24 h of astronomical night, not 0');
-approx(M.darkHoursOn(90, DEC_SOLSTICE), 24, 0,
-  'the north pole on 21 December: 24 h, not 0');
-approx(M.darkHoursOn(-90, JUN_SOLSTICE), 24, 0,
-  'the south pole on 21 June: 24 h, not 0 — the mirror case');
-approx(M.darkHoursOn(-89.9975, JUN_SOLSTICE), 24, 0,
-  'Amundsen–Scott station, likewise');
+// Re-derived from the declination series in use, not from textbook
+// obliquity — 23.44° would put the edge at 84.56°, and the Spencer series
+// peaks at 23.4556°, which is why the first constant sat 0.016° inside the
+// band it excluded. If the series is ever changed, this is what notices.
+var seriesPeakDec = 0;
+for (var pd = 0; pd < 366; pd++) {
+  for (var ph = 0; ph < 24; ph++) {
+    var pdec = Math.abs(M.declination(new Date(Date.UTC(2026, 0, 1 + pd, ph))));
+    if (pdec > seriesPeakDec) seriesPeakDec = pdec;
+  }
+}
+var TRUE_EDGE = 90 - seriesPeakDec + 18;
+ok(M.MAX_MODELLED_LAT_DEG <= TRUE_EDGE,
+  'the modelled edge (' + M.MAX_MODELLED_LAT_DEG + '°) is inside the geometric one ('
+    + TRUE_EDGE.toFixed(4) + '°), not past it');
+ok(M.MAX_MODELLED_LAT_DEG > TRUE_EDGE - 0.5,
+  'and within half a degree of it — refusing more sky than it must is its own defect');
+ok(M.modelsNightHere(M.MAX_MODELLED_LAT_DEG - 0.01) === true,
+  'just inside the edge is modelled');
+ok(M.modelsNightHere(M.MAX_MODELLED_LAT_DEG + 0.01) === false,
+  'just outside it is not');
+ok(M.modelsNightHere(-85) === false, 'and the southern mirror is declined too');
 
-// 24 and 0 are the two ends of the same contract, so the run-finder must
-// never confuse them: a permanent night is the opposite of a missing one.
-[85, 90, -90].forEach(function (lat) {
-  var series = M.darkHoursYear(lat, 2026);
-  var runs = M.zeroDarkRuns(series);
-  var permanent = series.filter(function (h) { return h === 24; }).length;
-  var caught = 0;
-  runs.forEach(function (r) {
-    for (var i = r.startIndex; i <= r.endIndex; i++) if (series[i] === 24) caught++;
-  });
-  ok(permanent > 0, lat + '°: has nights that never end at all (' + permanent + ' of them)');
-  ok(caught === 0,
-    lat + '°: not one of them is inside a zero-dark run — unbroken night is not absent night');
-});
+ok(M.darkHoursOn(M.MAX_MODELLED_LAT_DEG - 0.01, DEC_SOLSTICE) > 20,
+  'just inside the edge the December night is long — 20 h and more');
+ok(M.darkHoursOn(85, DEC_SOLSTICE) === null,
+  '85°N on 21 December: declined, not a number');
+ok(M.darkHoursOn(90, DEC_SOLSTICE) === null, 'the north pole: declined');
+ok(M.darkHoursOn(-89.9975, JUN_SOLSTICE) === null,
+  'Amundsen–Scott in its own midwinter: declined, never told the dark is absent');
+ok(M.darkHoursYear(85, 2026) === null,
+  'and a declined latitude has no year to draw, not an empty one');
+ok(M.darkHoursYear(70, 2026).length === 365,
+  'while a modelled one still yields its whole year');
+
+// The load-bearing claim, swept rather than asserted at two dates: inside
+// the modelled domain a null from the twilight functions can ONLY mean
+// "the sun never sank to −18°". The sun's altitude at solar noon is
+// 90 − |lat − dec|. If that ever fell to −18° inside the domain, reading
+// null as 0 would print "no true dark" across an unbroken night — the
+// shipped bug this replaced, which did exactly that at 85°N on 11 December.
+var EDGE = M.MAX_MODELLED_LAT_DEG;
+var STEPS = 400;
+var domainViolations = 0, sampled = 0, worstNoon = 90;
+for (var si = 0; si <= STEPS; si++) {
+  var swLat = -EDGE + (2 * EDGE * si) / STEPS;
+  for (var swDay = 0; swDay < 365; swDay += 2) {
+    var swDate = new Date(Date.UTC(2026, 0, 1 + swDay, 12));
+    var noonAlt = 90 - Math.abs(swLat - M.declination(swDate));
+    if (noonAlt < worstNoon) worstNoon = noonAlt;
+    if (noonAlt <= TRUE_DARK) domainViolations++;
+    sampled++;
+  }
+}
+ok(sampled > 60000, 'swept ' + sampled + ' latitude-days inside the modelled domain');
+ok(domainViolations === 0,
+  'nowhere inside it does the noon sun stay at or below −18° (worst: '
+    + worstNoon.toFixed(3) + '°) — so null never means unbroken night');
+
+// The same claim from the other side, over the WHOLE globe including the
+// declined band: darkHoursOn must never answer 0 on a day the sun spends
+// entirely below −18°. That sentence is the ninth bug's exact signature,
+// and this is the assertion that would have caught it.
+var globalMisreads = 0, refusedDays = 0, globalSampled = 0;
+for (var gi = 0; gi <= STEPS; gi++) {
+  var gLat = -90 + (180 * gi) / STEPS;
+  for (var gDay = 0; gDay < 365; gDay += 2) {
+    var gDate = new Date(Date.UTC(2026, 0, 1 + gDay, 12));
+    var gNoon = 90 - Math.abs(gLat - M.declination(gDate));
+    var gh = M.darkHoursOn(gLat, gDate);
+    globalSampled++;
+    if (gh === null) { refusedDays++; continue; }
+    if (gh === 0 && gNoon <= TRUE_DARK) globalMisreads++;
+  }
+}
+ok(globalSampled > 60000, 'and ' + globalSampled + ' more across the whole globe');
+ok(refusedDays > 0, 'of which ' + refusedDays + ' are declined outright rather than answered');
+ok(globalMisreads === 0,
+  'and not one answered 0 while the sun never rose to within 18° of the horizon');
 
 console.log('\n=== Dark hours — anchored outside this repo ===\n');
 

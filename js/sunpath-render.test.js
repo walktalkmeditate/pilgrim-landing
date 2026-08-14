@@ -326,11 +326,40 @@ ok(/never/.test(clauseS), '−60° still says the dark never fully arrives');
 // nights of the year the dark there does not end. Told that "for 365
 // nights it never fully arrives at all" — which is what a null collapsed
 // to 0 produces — the reader is given the precise opposite of their sky.
+// The instrument no longer tries to describe that sky. It says so.
 var clausePole = Tools.yourSkyDarkClause(-89.9975, YEAR);
-statesIt(clausePole, '24.0',
-  'the south pole is told its longest night runs the full 24 hours');
+ok(/this instrument stops/.test(clausePole),
+  'the south pole is told the instrument stops, not given a number for it');
 ok(!statesNumber(clausePole, 365),
   'and is NOT told that all 365 of its nights lose the dark');
+ok(!/never comes at all/.test(clausePole),
+  'nor the opposite of its own sky');
+ok(clausePole !== '',
+  'and is not met with silence either — a blank clause is a bug a reader cannot see');
+
+// The refusal is a latitude property, so it has to hold on the picker side
+// too: nothing drawn, and a caption that says why rather than an empty plot
+// under a stale sentence.
+var refused = draw(85);
+equal(refused.curves.length, 0, '85°: no curve is drawn');
+equal(refused.bands.length, 0, '85°: and no band either');
+equal(refused.marks.length, 0, '85°: and no turning marks over an empty plot');
+ok(/this instrument stops/.test(refused.caption.textContent),
+  '85°: the caption says the instrument stops');
+statesIt(refused.caption.textContent, 85, '85°: and names the latitude asked for');
+ok(!/hours of true dark/.test(refused.caption.textContent),
+  '85°: and makes no claim about how long the dark lasts');
+
+// A redraw from a modelled latitude to a declined one must clear what the
+// first one left behind — otherwise the plot shows 70°'s curve under 85°'s
+// refusal, which is the same class of defect as any other stale render.
+var reused = makeNode('svg');
+var reusedCap = makeNode('p');
+Tools.drawDarkHours(70, reused, reusedCap, YEAR);
+ok(reused.children.length > 0, 'a modelled latitude fills the plot');
+Tools.drawDarkHours(85, reused, reusedCap, YEAR);
+equal(reused.children.length, 0,
+  'and redrawing at a declined one empties it — no curve left under the refusal');
 
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
