@@ -691,6 +691,42 @@
     return out;
   }
 
+  /*
+   * zeroDarkRuns(series) — the contiguous stretches of a darkHoursYear()
+   * that have no astronomical night at all, as objects:
+   *
+   *   [{ startIndex, endIndex, days }]   // both indices inclusive
+   *
+   * This exists so a renderer is handed a THING to draw rather than a
+   * gap it has to notice. Spec D5: a zero-height bar, a zero-width
+   * segment and a line at the baseline all *look* like a very short
+   * night, and they are not — they are no night. /daylight shipped seven
+   * bugs of that family, two of them introduced by fixes, and the one
+   * that survived longest was a correct value rendered somewhere nobody
+   * could see it.
+   *
+   * Relies on darkHoursOn's exact-zero contract: 0 appears if and only if
+   * there is no night, so no threshold is guessed at here.
+   */
+  function zeroDarkRuns(series) {
+    var runs = [];
+    var start = -1;
+    for (var i = 0; i < series.length; i++) {
+      if (series[i] === 0) {
+        if (start === -1) start = i;
+      } else if (start !== -1) {
+        runs.push({ startIndex: start, endIndex: i - 1, days: i - start });
+        start = -1;
+      }
+    }
+    // A run that reaches the end of the year never sees a closing value.
+    if (start !== -1) {
+      runs.push({ startIndex: start, endIndex: series.length - 1,
+                  days: series.length - start });
+    }
+    return runs;
+  }
+
   function analemma(lat, lon, year) {
     var year0 = year || new Date().getUTCFullYear();
     var pts = [];
@@ -982,6 +1018,7 @@
     // the dark hours
     darkHoursOn: darkHoursOn,
     darkHoursYear: darkHoursYear,
+    zeroDarkRuns: zeroDarkRuns,
     // constants
     EARTH_R_KM: EARTH_R_KM,
     MOON_RADIUS_KM: MOON_RADIUS_KM

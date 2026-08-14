@@ -786,6 +786,67 @@ ok(M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12)))
    === M.darkHoursOn(45, new Date(Date.UTC(2026, 8, 23, 12))),
   'darkHoursOn is pure');
 
+console.log('\n=== Zero-dark runs — the stretches with no night at all (Task 2, D5) ===\n');
+
+// The single most likely way this feature ships wrong is a zero drawn as
+// a very short night. A run is an object with a start, an end and a
+// length, so the renderer is handed a THING rather than a gap it has to
+// notice — D5 enforced by the data model instead of by discipline.
+
+var runs0  = M.zeroDarkRuns(year0);
+var runs45 = M.zeroDarkRuns(year45);
+var runs60 = M.zeroDarkRuns(year60);
+var runs70 = M.zeroDarkRuns(year70);
+
+ok(runs0.length === 0,  'the equator has no zero-dark run at all');
+ok(runs45.length === 0, '45° has no zero-dark run at all');
+ok(runs60.length === 1, '60° has exactly ONE run, not 123 separate days');
+ok(runs70.length === 1, '70° has exactly ONE run');
+
+approx(runs60[0].days, 123, 0, '60°: the run is 123 days long');
+approx(runs70[0].days, 177, 0, '70°: the run is 177 days long');
+
+ok(runs60[0].days === runs60[0].endIndex - runs60[0].startIndex + 1,
+  '60°: days agrees with the inclusive index span it reports');
+ok(runs70[0].days === runs70[0].endIndex - runs70[0].startIndex + 1,
+  '70°: days agrees with the inclusive index span it reports');
+
+// Every day inside the run must be a zero, and the days either side must
+// not be — otherwise the run's edges are wrong by one and the drawn band
+// would start or end in the wrong place.
+[[runs60, year60, '60°'], [runs70, year70, '70°']].forEach(function (t) {
+  var run = t[0][0], series = t[1], name = t[2];
+  var allZero = true;
+  for (var i = run.startIndex; i <= run.endIndex; i++) if (series[i] !== 0) allZero = false;
+  ok(allZero, name + ': every day inside the run really has no night');
+  ok(run.startIndex === 0 || series[run.startIndex - 1] > 0,
+    name + ': the day before the run has a night — the leading edge is exact');
+  ok(run.endIndex === series.length - 1 || series[run.endIndex + 1] > 0,
+    name + ': the day after the run has a night — the trailing edge is exact');
+});
+
+// The run straddles the June solstice, which is what makes it the
+// midnight-sun stretch rather than an artifact somewhere else in the year.
+var JUNE_SOLSTICE_INDEX = 171;  // 2026-06-21, zero-based from 1 January
+[[runs60, '60°'], [runs70, '70°']].forEach(function (t) {
+  var run = t[0][0];
+  ok(run.startIndex < JUNE_SOLSTICE_INDEX && run.endIndex > JUNE_SOLSTICE_INDEX,
+    t[1] + ': the run contains the June solstice, as the midnight sun must');
+});
+
+// A run at the very edge of the array must still be found. Northern
+// latitudes never produce one, so it is constructed.
+var edge = M.zeroDarkRuns([0, 0, 5, 6, 5, 0]);
+ok(edge.length === 2, 'a run touching index 0 and another touching the end are both found');
+ok(edge[0].startIndex === 0 && edge[0].endIndex === 1 && edge[0].days === 2,
+  'the leading run is reported with its real bounds');
+ok(edge[1].startIndex === 5 && edge[1].endIndex === 5 && edge[1].days === 1,
+  'a single-day run at the very end is still a run');
+
+ok(M.zeroDarkRuns([]).length === 0, 'an empty series has no runs and does not throw');
+ok(M.zeroDarkRuns([1, 2, 3]).length === 0, 'a series with no zeros has no runs');
+ok(M.zeroDarkRuns([0, 0, 0]).length === 1, 'an all-zero series is one run, not three');
+
 // ===========================================================================
 // Summary
 // ===========================================================================
