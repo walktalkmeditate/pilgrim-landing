@@ -8,11 +8,17 @@
    Loads after sunpath.js. Reuses window.SunPathMath.
    ============================================= */
 
-(function () {
+(function (root) {
   'use strict';
 
   var SVG_NS = 'http://www.w3.org/2000/svg';
-  var M = window.SunPathMath;
+
+  // Resolved the same way every other module here resolves a sibling, so
+  // this file can be required into node for js/sunpath-render.test.js
+  // without a document. The browser path is unchanged.
+  var M = (typeof root !== 'undefined' && root.SunPathMath)
+    ? root.SunPathMath
+    : (typeof require === 'function' ? require('./sunpath-math.js') : null);
   if (!M) return;
 
   function svgEl(tag, attrs) {
@@ -203,6 +209,173 @@
     { lat: 60,    label: 'High-latitude (60°N)'},
     { lat: 70,    label: 'Arctic (70°N)'      }
   ];
+
+  /* ==========================================
+     The dark hours (after-the-sun §A)
+
+     /sunpath's seven sections all ask what the sun does by latitude and
+     season. This asks the same question after sunset: how long is true
+     dark, across a year, at the five latitudes the picker already
+     offers.
+
+     The one thing this must not get wrong is a night that does not come.
+     Above ~48.56° the sun never reaches 18° below the horizon near
+     midsummer, and a zero-height point on a curve looks exactly like a
+     very short night. So zero-dark stretches arrive as runs (D5,
+     SunPathMath.zeroDarkRuns) and are drawn as their own element — a
+     band across the stretch — never as part of the curve.
+     ========================================== */
+
+  var DARK_VIEW = { w: 360, h: 200, padL: 30, padR: 10, padT: 14, padB: 22 };
+  var DARK_MAX_H = 14;   // hours; 70° peaks at 13.6, so the axis holds every latitude
+
+  function darkX(dayIndex, days) {
+    var span = DARK_VIEW.w - DARK_VIEW.padL - DARK_VIEW.padR;
+    return DARK_VIEW.padL + (days <= 1 ? 0 : (dayIndex / (days - 1)) * span);
+  }
+
+  function darkY(hours) {
+    var span = DARK_VIEW.h - DARK_VIEW.padT - DARK_VIEW.padB;
+    return DARK_VIEW.h - DARK_VIEW.padB - (hours / DARK_MAX_H) * span;
+  }
+
+  /*
+   * darkHoursSentence(lat, series, runs, turnings) — the text equivalent.
+   *
+   * The SVG is aria-hidden (the idiom setupDawnSweep already uses), so
+   * this paragraph is the whole of what a screen reader, a crawler or an
+   * LLM receives. It therefore has to carry what the picture carries:
+   * the range, the flatness or swing, and — the part prose most easily
+   * drops — the stretch with no night at all.
+   */
+  function darkHoursSentence(lat, series, runs) {
+    var min = Math.min.apply(null, series);
+    var max = Math.max.apply(null, series);
+    var swing = max - min;
+
+    var head = 'At ' + lat + '°, true dark lasts between '
+      + min.toFixed(1) + ' and ' + max.toFixed(1) + ' hours a night.';
+
+    var shape = swing < 0.5
+      ? ' Every night of the year is within half an hour of every other.'
+      : ' The year swings by ' + swing.toFixed(1) + ' hours.';
+
+    var absence = '';
+    if (runs.length) {
+      var days = runs.reduce(function (a, r) { return a + r.days; }, 0);
+      absence = ' For ' + days + ' nights around midsummer there is no'
+        + ' astronomical night at all — the sun never sinks far enough below'
+        + ' the horizon, so the dark never fully arrives.';
+    }
+
+    return head + shape + absence;
+  }
+
+  /*
+   * drawDarkHours(lat, plot, caption) — emits the curve, any zero-dark
+   * band, the turning marks, and writes the sentence.
+   *
+   * Pure with respect to the document: everything it needs arrives as
+   * arguments, so a test can hand it fake nodes and read back what it
+   * actually emitted.
+   */
+  function drawDarkHours(lat, plot, caption, year) {
+    if (!M || !plot) return;
+
+    year = year || new Date().getUTCFullYear();
+    clearChildren(plot);
+
+    var series = M.darkHoursYear(lat, year);
+    var runs   = M.zeroDarkRuns(series);
+    var days   = series.length;
+
+    // The zero-dark stretch first, so the curve draws over it rather than
+    // under. A band, not a flat piece of curve — that is the whole of D5.
+    runs.forEach(function (run) {
+      var x1 = darkX(run.startIndex, days);
+      var x2 = darkX(run.endIndex, days);
+      plot.appendChild(svgEl('rect', {
+        'class': 'sunpath-dark-none',
+        x: x1, y: DARK_VIEW.padT,
+        width: Math.max(x2 - x1, 1),
+        height: DARK_VIEW.h - DARK_VIEW.padT - DARK_VIEW.padB
+      }));
+    });
+
+    // The curve itself covers only the nights that HAVE a night. A run is
+    // a break in the line, not a dip to the baseline.
+    var segments = [], current = [];
+    series.forEach(function (h, i) {
+      if (h > 0) {
+        current.push(darkX(i, days).toFixed(2) + ',' + darkY(h).toFixed(2));
+      } else if (current.length) {
+        segments.push(current); current = [];
+      }
+    });
+    if (current.length) segments.push(current);
+
+    segments.forEach(function (pts) {
+      plot.appendChild(svgEl('polyline', {
+        'class': 'sunpath-dark-curve',
+        points: pts.join(' '),
+        fill: 'none'
+      }));
+    });
+
+    // The four turnings, so the curve is readable against the year the
+    // rest of the page is about.
+    var T = (typeof root !== 'undefined' && root.Turnings) ? root.Turnings : null;
+    if (T && T.getTurningsForYear) {
+      var turnings = T.getTurningsForYear(year);
+      Object.keys(turnings).forEach(function (name) {
+        var d = turnings[name];
+        if (!d || isNaN(d.getTime())) return;
+        var idx = Math.floor((d.getTime() - Date.UTC(year, 0, 1)) / 86400000);
+        if (idx < 0 || idx >= days) return;
+        plot.appendChild(svgEl('line', {
+          'class': 'sunpath-dark-turning',
+          x1: darkX(idx, days), y1: DARK_VIEW.padT,
+          x2: darkX(idx, days), y2: DARK_VIEW.h - DARK_VIEW.padB
+        }));
+      });
+    }
+
+    if (caption) caption.textContent = darkHoursSentence(lat, series, runs);
+  }
+
+  function setupDarkHours() {
+    var container = document.getElementById('sunpath-dark-hours');
+    if (!container) return;
+    clearChildren(container);
+
+    var picker = htmlEl('div', 'sunpath-lat-picker');
+    DAWN_LATITUDES.forEach(function (entry, idx) {
+      var btn = htmlEl('button', 'sunpath-city-button', entry.label);
+      btn.type = 'button';
+      if (idx === 2) btn.classList.add('is-active'); // same 45° default as the dawn sweep
+      btn.addEventListener('click', function () {
+        container.querySelectorAll('.sunpath-city-button').forEach(function (b) {
+          b.classList.remove('is-active');
+        });
+        btn.classList.add('is-active');
+        drawDarkHours(entry.lat, plot, caption);
+      });
+      picker.appendChild(btn);
+    });
+
+    var plot = svgEl('svg', {
+      viewBox: '0 0 ' + DARK_VIEW.w + ' ' + DARK_VIEW.h,
+      'class': 'sunpath-dark-svg',
+      'aria-hidden': 'true'
+    });
+    var caption = htmlEl('p', 'sunpath-dark-caption');
+
+    container.appendChild(picker);
+    container.appendChild(plot);
+    container.appendChild(caption);
+
+    drawDarkHours(45, plot, caption);
+  }
 
   function setupDawnSweep() {
     var container = document.getElementById('sunpath-dawn');
@@ -483,14 +656,38 @@
   function init() {
     setupFestivals();
     setupAnalemma();
+    setupDarkHours();
     setupDawnSweep();
     setupWalkToSun();
     setupDaylightDelta();
   }
+
+  /* ==========================================
+     Exports — the pure drawing half
+
+     drawDarkHours takes its elements and its data and emits SVG; it
+     touches no globals and no document lookups, which is what lets
+     js/sunpath-render.test.js assert on the elements it actually emits
+     rather than on a model of them. That distinction is the mechanism
+     behind seven shipped bugs on /daylight: a test asserting against an
+     upstream proxy stays green while the drawn thing changes underneath.
+     ========================================== */
+
+  var api = { drawDarkHours: drawDarkHours, darkHoursSentence: darkHoursSentence };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  } else {
+    root.SunPathTools = api;
+  }
+
+  // DOM glue, browser only. Required into node for the tests above, this
+  // file must not try to read a document that is not there.
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-})();
+})(typeof window !== 'undefined' ? window : globalThis);
