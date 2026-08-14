@@ -279,6 +279,39 @@ equal(horizontalOnBaseline.length, 0,
     lat + '°: not one night with true dark is drawn inside a no-night band');
 });
 
+// Every geometric assertion above runs against a latitude with exactly ONE
+// zero-dark run. The multi-run shape — two stretches, one at each end of the
+// calendar year — is rendered but was never asserted on, even though the
+// fixture already existed in this file for an unrelated bounds check. The
+// project named this debt after the moon strip ("no generalised guard that a
+// strip's selection predicate and paint predicate agree") and it went unpaid
+// through three fix waves on a branch built to close exactly this family.
+//
+// Not reachable from the picker, which is northern-only, and not from
+// yourSky, which draws nothing. Latent, therefore — but the geometry is
+// emitted, and a guard that only holds for the shape its author happened to
+// draw is the shape of the problem, not a defence against it.
+var MULTI_LAT = -M.MAX_MODELLED_LAT_DEG;
+var dMulti = draw(MULTI_LAT);
+var multiRuns = M.zeroDarkRuns(M.darkHoursYear(MULTI_LAT, YEAR));
+ok(multiRuns.length > 1,
+  MULTI_LAT + '°: has more than one zero-dark run (' + multiRuns.length + ') — the untested shape');
+equal(dMulti.bands.length, multiRuns.length, MULTI_LAT + '°: one band per run');
+equal(dMulti.edges.length, multiRuns.length * 2, MULTI_LAT + '°: two edges per run');
+multiRuns.forEach(function (run, i) {
+  approxEq(Number(dMulti.bands[i].attrs.x), expectedX(run.startIndex, 365), 0.01,
+    MULTI_LAT + '°: band ' + i + ' starts at its own run (index ' + run.startIndex + ')');
+});
+ok(dMulti.edges.every(function (e) { return Number(e.attrs.x1) === Number(e.attrs.x2); }),
+  MULTI_LAT + '°: every edge is vertical, across both runs');
+var multiHoriz = 0;
+dMulti.plot.children.forEach(function (el) {
+  if (el.tag === 'line'
+      && Math.abs(Number(el.attrs.y1) - Number(el.attrs.y2)) < 0.01
+      && Math.abs(Number(el.attrs.y1) - BASELINE_Y) < 0.01) multiHoriz++;
+});
+equal(multiHoriz, 0, MULTI_LAT + '°: and nothing draws a horizontal rule on the baseline');
+
 // The width floor. Math.max(w, 1) exists so a stretch of one or two nights
 // still paints something a reader can see — and nothing exercised it: every
 // latitude drawn above yields either no run or a run of 100+ days, so
@@ -515,8 +548,22 @@ ok(/March/.test(withTurnings.caption.textContent)
 
 // The other half of the same contract: prose must not name a mark that was
 // never drawn. d45 was rendered before the Turnings stub existed.
-ok(!/solstice|equinox/i.test(d45.caption.textContent),
+//
+// Narrowed deliberately, and the reasoning belongs here because loosening a
+// guard to admit one's own change is exactly how these get lost. The bug
+// this defends against is turningClause announcing "the year's turnings are
+// marked down the plot" with nothing marked. It is NOT any mention of a
+// solstice: the where-clause added for D10 says "shortest near the June
+// solstice", which places a date on the curve and claims nothing about
+// marks. So the assertion checks the claim, not the vocabulary — and the
+// vocabulary is still checked, below, against a caption that has no marks.
+ok(!/marked down the plot/.test(d45.caption.textContent),
   'with no marks on the plot, the caption claims none — the contradiction has two directions');
+ok(Tools.darkHoursSentence(45, M.darkHoursYear(45, YEAR),
+     M.zeroDarkRuns(M.darkHoursYear(45, YEAR)), []).indexOf('turnings are marked') === -1,
+  'and turningClause emits nothing at all for an empty mark list');
+ok(/turnings are marked/.test(withTurnings.caption.textContent),
+  'while a caption with four marks does announce them — so the check above can fail');
 
 console.log('\n=== Your sky — the curve becomes personal (Task 4, D3) ===\n');
 
@@ -626,6 +673,120 @@ equal(reused.children.length, 0,
 
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
+
+console.log('\n=== The caption says WHERE the extremes fall, and only when true (D10) ===\n');
+
+/* The caption stated a range and, separately, a list of turning marks —
+   with nothing joining them. A sighted reader sees the curve dip at one
+   mark and peak at another; the text reader got two disconnected facts.
+   The clause is only emitted where it is true: naming a hinge three weeks
+   away is the nearly-true prose this section keeps having to unlearn. */
+var HINGES = { 'the March equinox': 79, 'the June solstice': 172,
+               'the September equinox': 265, 'the December solstice': 355 };
+var wrongClaims = [];
+[0, 23.5, 45, 60, 70, -45, -60, -70, 84].forEach(function (lat) {
+  var series = M.darkHoursYear(lat, YEAR);
+  var text = Tools.darkHoursSentence(lat, series, M.zeroDarkRuns(series), []);
+  var minAt = -1, maxAt = -1;
+  series.forEach(function (h, i) {
+    if (h <= 0) return;
+    if (minAt === -1 || h < series[minAt]) minAt = i;
+    if (maxAt === -1 || h > series[maxAt]) maxAt = i;
+  });
+  ['shortest', 'longest'].forEach(function (which) {
+    var m = new RegExp(which + ' near ([a-zA-Z ]+?)(?:,|\\.)').exec(text);
+    if (!m) return;
+    var name = m[1].trim();
+    var day = HINGES[name];
+    var at = which === 'shortest' ? minAt : maxAt;
+    var gap = Math.abs(at - day);
+    gap = Math.min(gap, series.length - gap);
+    if (gap > 21) wrongClaims.push(lat + '° claims ' + which + ' near ' + name + ', ' + gap + ' days off');
+  });
+});
+equal(wrongClaims.length, 0,
+  'no caption names a turning the extreme is not actually near'
+    + (wrongClaims.length ? ' — ' + wrongClaims.join('; ') : ''));
+
+var c45 = draw(45).caption.textContent;
+ok(/shortest near the June solstice/.test(c45),
+  '45°: the caption says which turning the shortest night falls at');
+ok(/longest near the December solstice/.test(c45), '45°: and which the longest');
+var c60 = draw(60).caption.textContent;
+ok(/longest near the December solstice/.test(c60), '60°: names its longest');
+ok(!/shortest near/.test(c60),
+  '60°: and drops the shortest half — that night is 32 days from any hinge');
+ok(!/shortest near|longest near/.test(draw(0).caption.textContent),
+  '0°: a flat year has no extremes worth placing, and claims none');
+
+console.log('\n=== Three things a reader could not see, or could not reconcile ===\n');
+
+/* A lone night between two zero-runs is one point, and a one-point polyline
+   paints nothing: in the DOM, absent on screen, and counted by the caption
+   among the nights that exist. Constructed, because no real latitude in the
+   modelled band produces one — the guard has to hold before the case is
+   reachable, not after. */
+var loneSeries = [0, 0, 5.5, 0, 0];
+var lonePlot = makeNode('svg'), loneCap = makeNode('p');
+(function () {
+  var realYear = M.darkHoursYear;
+  M.darkHoursYear = function () { return loneSeries; };
+  try { Tools.drawDarkHours(60, lonePlot, loneCap, YEAR); }
+  finally { M.darkHoursYear = realYear; }
+})();
+var lonePolys = lonePlot.children.filter(function (c) { return c.tag === 'polyline'; });
+var loneDots  = lonePlot.children.filter(function (c) { return c.tag === 'circle'; });
+equal(lonePolys.length, 0, 'a lone night emits no one-point polyline');
+equal(loneDots.length, 1, 'it emits a mark with area instead');
+ok(Number(loneDots[0].attrs.r) > 0, 'and that mark has a radius a reader can see');
+
+/* The caption states a minimum, a maximum and a swing. Rounded separately
+   they disagree: 109 of 401 latitudes printed things like "between 1.4 and
+   19.1 hours ... swings by 17.6". The five picker latitudes agreed by luck,
+   which is why nothing caught it. The swing is derived from the rounded
+   pair now, and this checks the arithmetic a reader can do. */
+var disagreed = [];
+[0, 23.5, 45, 60, 70, -60, -70, -83.23, 80, 84].forEach(function (lat) {
+  var series = M.darkHoursYear(lat, YEAR);
+  var text = Tools.darkHoursSentence(lat, series, M.zeroDarkRuns(series), []);
+  var span = /between ([\d.]+) and ([\d.]+) hours/.exec(text);
+  var sw = /swings by ([\d.]+) hours/.exec(text);
+  if (!span || !sw) return;
+  var lhs = Number((Number(span[2]) - Number(span[1])).toFixed(1));
+  if (Math.abs(lhs - Number(sw[1])) > 0.001) {
+    disagreed.push(lat + '° says ' + span[1] + '…' + span[2] + ' swinging ' + sw[1]);
+  }
+});
+equal(disagreed.length, 0,
+  'every caption\'s three figures add up' + (disagreed.length ? ' — ' + disagreed.join('; ') : ''));
+
+/* Nothing may be drawn outside the plot. The width floor that keeps a
+   one-night band visible put its second edge at x = 351 against a 350
+   margin when the run fell on the last day of the year. */
+var edgeSeries = [];
+for (var es = 0; es < 365; es++) edgeSeries.push(es === 364 ? 0 : 5);
+var edgePlot = makeNode('svg'), edgeCap = makeNode('p');
+(function () {
+  var realYear = M.darkHoursYear;
+  M.darkHoursYear = function () { return edgeSeries; };
+  try { Tools.drawDarkHours(60, edgePlot, edgeCap, YEAR); }
+  finally { M.darkHoursYear = realYear; }
+})();
+var RIGHT = VIEW.w - VIEW.padR;
+var outside = [];
+edgePlot.children.forEach(function (el) {
+  ['x1', 'x2', 'cx'].forEach(function (k) {
+    if (el.attrs[k] !== undefined && Number(el.attrs[k]) > RIGHT + 0.01) {
+      outside.push(el.attrs['class'] + '.' + k + '=' + el.attrs[k]);
+    }
+  });
+  if (el.tag === 'rect' && Number(el.attrs.x) + Number(el.attrs.width) > RIGHT + 0.01) {
+    outside.push('rect right=' + (Number(el.attrs.x) + Number(el.attrs.width)));
+  }
+});
+equal(outside.length, 0,
+  'a run on the last day of the year draws nothing past the plot\'s right margin ('
+    + RIGHT + ')' + (outside.length ? ' — ' + outside.join(', ') : ''));
 
 console.log('\n=== The section is actually wired to the page ===\n');
 

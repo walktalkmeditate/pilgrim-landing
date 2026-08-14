@@ -142,12 +142,12 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 106.08 KB — **+10.52 KB** |
+| after §A, at HEAD | 107.20 KB — **+11.64 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+21.02 KB** against a **+12.00 KB** budget |
+| projected feature total | **+22.14 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +10.52 — mostly comment, and still inside
+The review fix waves have since taken §A itself to +11.64 — mostly comment, and still inside
 the budget — which only makes the verdict wider.*
 
 *That figure moved twice for reasons worth recording. The polar refusal (D12) cost +0.98 and
@@ -163,8 +163,8 @@ growth at all.*
 was trimmed. Half the weight of both JS files is comment, and this codebase ships comments
 on purpose. But a lot of what the wave added was *archaeology*: paragraphs recording what a
 comment used to say wrongly. That belongs here, in a document nobody downloads, not in
-served bytes. Trimming five of those blocks and one CSS block returned 1.30 KB and left the
-operative reasoning in place. D9 held without being raised, which is the only outcome
+served bytes. Trimming five of those blocks and one CSS block returned 1.30 KB, and a second trim after the D10 clause returned 0.70 KB more. The
+operative reasoning stayed in place. D9 held without being raised, which is the only outcome
 consistent with having cut §B rather than raise it.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
@@ -412,9 +412,9 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **106.08 KB — +10.52 KB** |
+| **after §A** | **107.20 KB — +11.64 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.50 KB → 21.02 KB total, over |
+| §B, had it shipped | +10.50 KB → 22.14 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
 per-file from the shipped page and then reads this row back out of this document and
@@ -425,7 +425,7 @@ was a baseline measured with Apple `gzip -9` and a total computed with Node `zli
 subtraction across two implementations. One tool now, named in the table, on both sides of
 the subtraction.
 
-Of the +10.52 KB, +4.91 was §A as first written and the rest is the review fix waves —
+Of the +11.64 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
 

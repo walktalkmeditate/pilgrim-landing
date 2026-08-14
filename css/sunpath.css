@@ -1709,6 +1709,13 @@ body.constellation .sunpath-polar-circle {
   stroke: none;
 }
 
+/* A single night between two zero-runs. The curve rule sets fill: none,
+   which would make this a ring with no centre; it is a dot. */
+.sunpath-dark-lone {
+  fill: var(--ink-fog);
+  stroke: none;
+}
+
 .sunpath-dark-edge {
   stroke: var(--stone);
   stroke-width: 2.2;

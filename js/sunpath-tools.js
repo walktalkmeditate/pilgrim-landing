@@ -284,13 +284,49 @@
     var real = series.filter(function (h) { return h > 0; });
     var min = real.length ? Math.min.apply(null, real) : 0;
     var max = real.length ? Math.max.apply(null, real) : 0;
+    // WHERE the extremes fall. A sighted reader sees the curve dip at one
+    // mark and peak at another; the caption is the only reading anyone else
+    // gets, and it stated the range and the turnings with nothing joining them.
+    var minAt = -1, maxAt = -1;
+    series.forEach(function (h, i) {
+      if (h <= 0) return;
+      if (minAt === -1 || h < series[minAt]) minAt = i;
+      if (maxAt === -1 || h > series[maxAt]) maxAt = i;
+    });
     return {
       nights: real.length,
       lost: runs.reduce(function (a, r) { return a + r.days; }, 0),
       min: min,
       max: max,
+      minAt: minAt,
+      maxAt: maxAt,
+      days: series.length,
       swing: max - min
     };
+  }
+
+  // The turning a day-index actually falls near, or null — each answer is a
+  // hinge the caption already names. NEAR_TURNING_DAYS keeps it honest: at
+  // 60° the shortest night is 32 days from any hinge (it is the one just
+  // before the midnight-sun stretch opens), and "near the March equinox"
+  // would be the nearly-true prose this section keeps unlearning.
+  var NEAR_TURNING_DAYS = 21;
+
+  function nearestTurningName(index, days) {
+    if (index < 0 || !days) return null;
+    var hinges = [
+      { day: 79,  name: 'the March equinox' },
+      { day: 172, name: 'the June solstice' },
+      { day: 265, name: 'the September equinox' },
+      { day: 355, name: 'the December solstice' }
+    ];
+    var best = null, bestGap = days;
+    hinges.forEach(function (h) {
+      var gap = Math.abs(index - h.day);
+      gap = Math.min(gap, days - gap);
+      if (gap < bestGap) { bestGap = gap; best = h.name; }
+    });
+    return bestGap <= NEAR_TURNING_DAYS ? best : null;
   }
 
   /*
@@ -322,15 +358,31 @@
         + ' horizon.' + turnings;
     }
 
+    // The swing is derived from the ROUNDED pair, not rounded separately, or
+    // the three figures do not add up — 109 of 401 latitudes printed things
+    // like "between 1.4 and 19.1 hours ... swings by 17.6". The five picker
+    // latitudes agreed by luck, which is why nothing caught it.
+    var shownMin = Number(f.min.toFixed(1));
+    var shownMax = Number(f.max.toFixed(1));
+    var shownSwing = (shownMax - shownMin).toFixed(1);
+
     var head = runs.length
       ? 'At ' + lat + '°, on the nights it comes at all, true dark lasts between '
-        + f.min.toFixed(1) + ' and ' + f.max.toFixed(1) + ' hours.'
+        + shownMin.toFixed(1) + ' and ' + shownMax.toFixed(1) + ' hours.'
       : 'At ' + lat + '°, true dark lasts between '
-        + f.min.toFixed(1) + ' and ' + f.max.toFixed(1) + ' hours a night.';
+        + shownMin.toFixed(1) + ' and ' + shownMax.toFixed(1) + ' hours a night.';
+
+    var shortAt = nearestTurningName(f.minAt, f.days);
+    var longAt  = nearestTurningName(f.maxAt, f.days);
+    // Either half may be absent, so the clause is built from what is true.
+    var where = [];
+    if (shortAt) where.push('shortest near ' + shortAt);
+    if (longAt && longAt !== shortAt) where.push('longest near ' + longAt);
+    var whereClause = where.length ? ' — ' + where.join(', ') + '.' : '.';
 
     var shape = f.swing < DARK_FLAT_H
       ? ' Every night of the year is within half an hour of every other.'
-      : ' The year swings by ' + f.swing.toFixed(1) + ' hours.';
+      : ' The year swings by ' + shownSwing + ' hours' + whereClause;
 
     var absence = '';
     if (runs.length) {
@@ -422,7 +474,12 @@
     var bandBottom = DARK_VIEW.h - DARK_VIEW.padB;
     runs.forEach(function (run) {
       var x1 = darkX(run.startIndex, days);
+      // The floor keeps a one-night absence visible; the clamp keeps it from
+      // doing that outside the plot. A run on the last day of the year sits
+      // at the right margin, so the floor alone put its edge past it.
+      var right = DARK_VIEW.w - DARK_VIEW.padR;
       var w  = Math.max(darkX(run.endIndex, days) - x1, 1);
+      if (x1 + w > right) { x1 = Math.max(DARK_VIEW.padL, right - w); }
       plot.appendChild(svgEl('rect', {
         'class': 'sunpath-dark-none',
         x: x1, y: bandTop,
@@ -450,6 +507,16 @@
     if (current.length) segments.push(current);
 
     segments.forEach(function (pts) {
+      // A one-point polyline paints nothing — in the DOM, absent on screen,
+      // while the caption counts that night among those that exist.
+      if (pts.length === 1) {
+        var xy = pts[0].split(',');
+        plot.appendChild(svgEl('circle', {
+          'class': 'sunpath-dark-curve sunpath-dark-lone',
+          cx: xy[0], cy: xy[1], r: 1.1
+        }));
+        return;
+      }
       plot.appendChild(svgEl('polyline', {
         'class': 'sunpath-dark-curve',
         points: pts.join(' '),
