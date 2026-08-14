@@ -262,7 +262,14 @@ def raw_at_sites(epoch, site_list, alpha, cache):
     values = []
     for site in site_list:
         region = region_of(site['lat'], site['lon'])
-        key = (region, alpha)
+        # The epoch belongs in the key. Without it a caller holding one
+        # cache across two epochs gets the FIRST epoch's field back for
+        # both, silently — epoch is only read on a miss. A single-epoch
+        # bake never notices; the 2012 drift audit did, after this
+        # reported 0.0% change at all five reference sites and the
+        # radiance columns came back identical to four significant
+        # figures. Two epochs of satellite data are never byte-identical.
+        key = (epoch, region, alpha)
         if key not in cache:
             members = [s for s in S.REFERENCE_SITES
                        if region_of(s['lat'], s['lon']) == region]

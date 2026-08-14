@@ -58,7 +58,9 @@ eleven, and this site's aesthetic is restraint.
   personalisation rather than a separate feature.
 - **§B The turnings, after dark** — an **extension** of the existing "A calendar of
   turnings" section, not a new one.
-- **§C Two drifts** — one new section, beside the existing deep-time opener. **Gated** (D7).
+- **§C Two drifts** — ~~one new section, beside the existing deep-time opener~~
+  **CANCELLED 2026-08-13 by its own audit (D7).** The effect is +0.071 mag against 0.32 mag
+  of parameter slack, and points the opposite way to the story. Two changes ship, not three.
 
 ### D2 — §A reuses the existing picker, latitudes and default
 
@@ -108,7 +110,59 @@ turning, at the reader's latitude: how long true dark lasts, and whether a moon 
 This is the one place the moon math earns its 16 KB on this page. If §B is cut, the moon
 modules come out with it.
 
-### D7 — §C is gated on its own data audit, exactly as Gate 0 gated the ribbon
+### D7 — §C is CANCELLED. The gate ran on 2026-08-13 and failed it.
+
+*Original decision — §C gated on a 2012 epoch audit — is superseded. The audit was run
+before any of §C was built; this is its verdict, kept in full because the reasoning is the
+useful part.*
+
+The 2012 epoch exists and is nominally sound: all three tiles the seven routes need
+(`h17v04`, `h17v05`, `h31v05`) resolve at version **002**, confirming Gate 0's Q5 for
+exactly these tiles. Granules were fetched and hashed. The data is not the problem.
+
+**Two findings killed it.**
+
+**1. The drift is smaller than the instrument's own slack.** One frozen calibration
+(A = 1.2087e-09, p = 0.716133 — the shipped 2025 fit) applied to both epochs, 3,288 samples:
+
+| route | drift (mag) | darker | brighter |
+|---|---|---|---|
+| camino-norte | +0.165 | 79.1% | 8.2% |
+| camino-primitivo | +0.107 | 57.4% | 13.7% |
+| camino-ingles | +0.076 | 50.9% | 21.4% |
+| camino-frances | +0.056 | 47.0% | 27.2% |
+| shikoku-88 | +0.035 | 32.6% | 16.2% |
+| kumano-kodo | −0.010 | 2.6% | 2.6% |
+| camino-portugues | −0.053 | 42.6% | 38.1% |
+| **all, n-weighted** | **+0.071** | | |
+
+Gate 0 recorded that alpha alone shifts a single value by up to **0.32 mag**. The whole
+n-weighted effect is **+0.071**; the largest single route is half the alpha slack. This is
+the same overclaim that cancelled star counts on 2026-08-13, and it fails for the same
+reason: an effect inside the error bar is not a finding.
+
+**2. The sign is the opposite of the story.** Positive means the modelled sky got *darker*.
+Physically plausible — Spain's LED conversion cuts upward spill, and Santiago's raw radiance
+is down 50.5% — but the premise was "Earth's tilt drifts over millennia, our light over a
+decade." The data says the light receded, weakly, with two routes disagreeing about even
+that. A section reading *"the sky over these routes got very slightly darker, by an amount
+we cannot distinguish from our own calibration slack"* does not earn a place on the page.
+
+**Method finding, recorded so it is not rediscovered.** Refitting calibration per epoch —
+what `bake_darkness.py --epoch 2012` does — fits each epoch's radiance to the *same* fixed
+2015 ground truth, absorbing the change into A and p. Measured at the five reference sites:
+refit-per-epoch gives a mean drift of **−0.012**, frozen calibration **+0.153**. The naive
+approach would have produced a confident, well-tested, meaningless answer.
+
+**Pipeline bug found and fixed.** `bake_darkness.py`'s region cache was keyed
+`(region, alpha)` with no epoch, so a second epoch silently received the first's field —
+it reported *0.0% change at every site* on the first run. Harmless in a single-epoch bake,
+fatal for any two-epoch work. Fixed with a regression test in the same change as this
+amendment.
+
+**Consequence for the rest of the spec:** the +12 KB budget (D9) now has one fewer claimant,
+and no Earthdata dependency remains. The 276 MB of 2012 tiles stay in the gitignored cache
+should better calibration ever make the question answerable.
 
 The 2012→2025 drift story needs a second baked epoch. `assets/darkness/` holds 2025 only.
 
@@ -192,7 +246,7 @@ sentence names them.
 11. **`/sunpath` grows by no more than 12 KB gzipped**, measured per-file (not
     concatenated — that understates it), and the figure is recorded with the commit it was
     measured at.
-12. §C is absent from the page until its gate passes; no placeholder, no stub.
+12. §C does not ship. Its gate ran and failed (D7); there is no placeholder and no stub.
 13. Every assertion about what is drawn reads emitted elements, not the model (D5).
 14. No spec figure is stated without a test that recomputes it — extend the pattern in
     `js/muted-contrast.test.js`, which parses this repo's specs and recomputes from source.
@@ -213,9 +267,9 @@ sentence names them.
 
 ## Open questions
 
-- **§C's shape.** Whether the drift reads as a number, a small paired strip, or a sentence
-  is deliberately unresolved until the 2012 epoch is baked and its spread is known. Deciding
-  the presentation before seeing the data is how the ribbon's first band ramp went wrong.
+- ~~**§C's shape.**~~ Resolved by cancellation (D7). Deciding presentation before seeing the
+  data is how the ribbon's first band ramp went wrong — so the data was fetched and measured
+  first, and it said no. That is the question working, not the question going unanswered.
 
 ## Result
 

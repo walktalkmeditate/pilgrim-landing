@@ -21,6 +21,7 @@ import calibrate as C
 import emit as E
 import geometry as G
 import raster as R
+import sites as S
 
 passed = 0
 failed = 0
@@ -168,6 +169,60 @@ regions_route_ids = sorted(rid for ids in BD.REGIONS.values() for rid in ids)
 ok(regions_route_ids == sorted(G.WAYPOINT_TYPES),
    'bake_darkness.REGIONS and geometry.WAYPOINT_TYPES name the same seven routes '
    '(also enforced at import time -- see the module-level assertion in bake_darkness.py)')
+
+print('')
+print('raw_at_sites cache key — one cache must not serve two epochs')
+
+# The bug this pins: the key was (region, alpha), and `epoch` is only read
+# on a miss. A caller holding one cache across two epochs therefore got the
+# first epoch's blurred field back for the second, with no error — the 2012
+# drift audit saw 0.0% change at all five reference sites and radiance
+# columns identical to four significant figures before anyone looked at the
+# key. A single-epoch bake cannot reach it, which is why it survived.
+#
+# blurred_region touches real tiles, so this stubs it and watches which
+# (epoch, region) pairs actually get computed.
+
+
+class _FakeField(object):
+    """Stands in for (field, west, north, kernel_sum) without reading a tile."""
+
+    def __init__(self, marker):
+        self.marker = marker
+
+
+_calls = []
+
+
+def _fake_blurred_region(epoch, lats, lons, alpha):
+    _calls.append((epoch, round(lats[0], 3)))
+    return (_FakeField((epoch, alpha)), 0.0, 0.0, 1.0)
+
+
+_real_blurred = BD.blurred_region
+_real_sample = R.sample_bilinear
+try:
+    BD.blurred_region = _fake_blurred_region
+    # sample_bilinear is handed the stub field; return its marker's epoch so
+    # the value a caller sees is traceable to the epoch that produced it.
+    R.sample_bilinear = lambda field, w, n, d, la, lo: float(field.marker[0])
+
+    one_site = [S.REFERENCE_SITES[0]]
+    shared = {}
+    v2025 = BD.raw_at_sites(2025, one_site, 3.0, shared)
+    v2012 = BD.raw_at_sites(2012, one_site, 3.0, shared)
+
+    ok(v2025[0] == 2025.0, 'first epoch through a shared cache returns its own field')
+    ok(v2012[0] == 2012.0,
+       'second epoch through the SAME cache returns ITS OWN field, not the first epoch\'s '
+       '(the bug returned 2025 here, and reported 0.0%% drift)')
+    ok(len(_calls) == 2,
+       'a second epoch is a cache MISS, so the field is computed again rather than reused')
+    ok(sorted(c[0] for c in _calls) == [2012, 2025],
+       'both epochs reach blurred_region exactly once')
+finally:
+    BD.blurred_region = _real_blurred
+    R.sample_bilinear = _real_sample
 
 print('')
 print('%d passed, %d failed' % (passed, failed))
