@@ -222,53 +222,139 @@
      Above ~48.56° the sun never reaches 18° below the horizon near
      midsummer, and a zero-height point on a curve looks exactly like a
      very short night. So zero-dark stretches arrive as runs (D5,
-     SunPathMath.zeroDarkRuns) and are drawn as their own element — a
-     band across the stretch — never as part of the curve.
+     SunPathMath.zeroDarkRuns — whose doc comment carries the rationale
+     for all of this) and are drawn as their own element — a band across
+     the stretch — never as part of the curve.
      ========================================== */
 
   var DARK_VIEW = { w: 360, h: 200, padL: 30, padR: 10, padT: 14, padB: 22 };
-  var DARK_MAX_H = 14;   // hours; 70° peaks at 13.6, so the axis holds every latitude
+
+  // Hours. The axis every latitude the picker offers is drawn against —
+  // 70°, its highest, peaks at 13.6, so all five share one scale and the
+  // curves can be compared across latitudes. It is NOT tall enough for
+  // every latitude: values pass 14 h above ~72.7° and reach a full 24 above
+  // 84.56°, both of which drawDarkHours will accept from yourSky. So the
+  // axis grows to hold the series rather than letting the curve leave the
+  // viewBox — a mark drawn outside the box is a mark nobody can see.
+  var DARK_MAX_H = 14;
+
+  // Half an hour: the width inside which a whole year of nights reads as
+  // "the same night, every night" rather than as a swing. Shared, so the
+  // caption and the your-sky clause cannot answer that question
+  // differently about the same latitude.
+  var DARK_FLAT_H = 0.5;
+
+  // Calendar order, and named by month rather than by season: the sentence
+  // is read at southern latitudes too, where "spring equinox" is the
+  // autumn one.
+  var TURNING_NAMES = [
+    { key: 'springEquinox',  phrase: 'the March equinox'     },
+    { key: 'summerSolstice', phrase: 'the June solstice'     },
+    { key: 'autumnEquinox',  phrase: 'the September equinox' },
+    { key: 'winterSolstice', phrase: 'the December solstice' }
+  ];
+
+  function darkAxisMax(series) {
+    return Math.max(DARK_MAX_H, Math.ceil(Math.max.apply(null, series)));
+  }
 
   function darkX(dayIndex, days) {
     var span = DARK_VIEW.w - DARK_VIEW.padL - DARK_VIEW.padR;
     return DARK_VIEW.padL + (days <= 1 ? 0 : (dayIndex / (days - 1)) * span);
   }
 
-  function darkY(hours) {
+  function darkY(hours, maxH) {
     var span = DARK_VIEW.h - DARK_VIEW.padT - DARK_VIEW.padB;
-    return DARK_VIEW.h - DARK_VIEW.padB - (hours / DARK_MAX_H) * span;
+    return DARK_VIEW.h - DARK_VIEW.padB - (hours / maxH) * span;
   }
 
   /*
-   * darkHoursSentence(lat, series, runs, turnings) — the text equivalent.
+   * darkHoursFacts(series, runs) — the quantities both sentences below
+   * are about, derived once so the two cannot disagree.
+   *
+   * min, max and swing are taken over the nights that EXIST. A 0 in the
+   * series is SunPathMath.darkHoursOn's sentinel for "this night has no
+   * night", so a minimum taken across it prints a 0.0-hour night as a
+   * measurement — and then the next clause says those nights do not
+   * exist. `nights` is 0 when nothing but sentinels came back, and both
+   * callers have to say something else in that case: a series with no
+   * nights in it has no shortest night.
+   */
+  function darkHoursFacts(series, runs) {
+    var real = series.filter(function (h) { return h > 0; });
+    var min = real.length ? Math.min.apply(null, real) : 0;
+    var max = real.length ? Math.max.apply(null, real) : 0;
+    return {
+      nights: real.length,
+      lost: runs.reduce(function (a, r) { return a + r.days; }, 0),
+      min: min,
+      max: max,
+      swing: max - min
+    };
+  }
+
+  /*
+   * darkHoursSentence(lat, series, runs, marked) — the text equivalent.
    *
    * The SVG is aria-hidden (the idiom setupDawnSweep already uses), so
    * this paragraph is the whole of what a screen reader, a crawler or an
    * LLM receives. It therefore has to carry what the picture carries:
-   * the range, the flatness or swing, and — the part prose most easily
-   * drops — the stretch with no night at all.
+   * the range, the flatness or swing, the stretch with no night at all —
+   * the part prose most easily drops — and the turnings, which are drawn
+   * as four marks with no textual analogue unless this says them.
+   *
+   * `marked` is the list of turning keys drawDarkHours actually emitted
+   * a mark for, not the four it hoped to: if the Turnings module is
+   * absent no marks are drawn, and a sentence naming marks that are not
+   * on the plot is the same defect pointing the other way.
    */
-  function darkHoursSentence(lat, series, runs) {
-    var min = Math.min.apply(null, series);
-    var max = Math.max.apply(null, series);
-    var swing = max - min;
+  function darkHoursSentence(lat, series, runs, marked) {
+    var f = darkHoursFacts(series, runs);
+    var turnings = turningClause(marked);
 
-    var head = 'At ' + lat + '°, true dark lasts between '
-      + min.toFixed(1) + ' and ' + max.toFixed(1) + ' hours a night.';
+    if (!f.nights) {
+      return 'At ' + lat + '°, true dark never comes at all: on none of the '
+        + series.length + ' nights of the year does the sun sink 18° below the'
+        + ' horizon.' + turnings;
+    }
 
-    var shape = swing < 0.5
+    var head = runs.length
+      ? 'At ' + lat + '°, on the nights it comes at all, true dark lasts between '
+        + f.min.toFixed(1) + ' and ' + f.max.toFixed(1) + ' hours.'
+      : 'At ' + lat + '°, true dark lasts between '
+        + f.min.toFixed(1) + ' and ' + f.max.toFixed(1) + ' hours a night.';
+
+    var shape = f.swing < DARK_FLAT_H
       ? ' Every night of the year is within half an hour of every other.'
-      : ' The year swings by ' + swing.toFixed(1) + ' hours.';
+      : ' The year swings by ' + f.swing.toFixed(1) + ' hours.';
 
     var absence = '';
     if (runs.length) {
-      var days = runs.reduce(function (a, r) { return a + r.days; }, 0);
-      absence = ' For ' + days + ' nights around midsummer there is no'
+      absence = ' For ' + f.lost + ' nights around midsummer there is no'
         + ' astronomical night at all — the sun never sinks far enough below'
         + ' the horizon, so the dark never fully arrives.';
     }
 
-    return head + shape + absence;
+    return head + shape + absence + turnings;
+  }
+
+  /*
+   * turningClause(marked) — one clause for all four marks. They are the
+   * same four at every latitude, so this is a single sentence rather than
+   * four, and it exists because a mark a sighted reader can use and a
+   * screen-reader user cannot is the gap /daylight's moon strip shipped
+   * (D10 names it and says not to repeat it here).
+   */
+  function turningClause(marked) {
+    if (!marked || !marked.length) return '';
+    var phrases = TURNING_NAMES
+      .filter(function (t) { return marked.indexOf(t.key) !== -1; })
+      .map(function (t) { return t.phrase; });
+    if (!phrases.length) return '';
+    var list = phrases.length > 1
+      ? phrases.slice(0, -1).join(', ') + ' and ' + phrases[phrases.length - 1]
+      : phrases[0];
+    return ' The year\'s turnings are marked down the plot: ' + list + '.';
   }
 
   /*
@@ -288,6 +374,7 @@
     var series = M.darkHoursYear(lat, year);
     var runs   = M.zeroDarkRuns(series);
     var days   = series.length;
+    var maxH   = darkAxisMax(series);
 
     // The zero-dark stretch first, so the curve draws over it rather than
     // under. A band, not a flat piece of curve — that is the whole of D5.
@@ -307,7 +394,7 @@
     var segments = [], current = [];
     series.forEach(function (h, i) {
       if (h > 0) {
-        current.push(darkX(i, days).toFixed(2) + ',' + darkY(h).toFixed(2));
+        current.push(darkX(i, days).toFixed(2) + ',' + darkY(h, maxH).toFixed(2));
       } else if (current.length) {
         segments.push(current); current = [];
       }
@@ -323,12 +410,15 @@
     });
 
     // The four turnings, so the curve is readable against the year the
-    // rest of the page is about.
+    // rest of the page is about. Every one that gets a mark is collected
+    // and handed to the sentence, so the prose names exactly what the
+    // plot draws — no more, and no fewer.
+    var marked = [];
     var T = (typeof root !== 'undefined' && root.Turnings) ? root.Turnings : null;
     if (T && T.getTurningsForYear) {
       var turnings = T.getTurningsForYear(year);
-      Object.keys(turnings).forEach(function (name) {
-        var d = turnings[name];
+      TURNING_NAMES.forEach(function (t) {
+        var d = turnings[t.key];
         if (!d || isNaN(d.getTime())) return;
         var idx = Math.floor((d.getTime() - Date.UTC(year, 0, 1)) / 86400000);
         if (idx < 0 || idx >= days) return;
@@ -337,10 +427,11 @@
           x1: darkX(idx, days), y1: DARK_VIEW.padT,
           x2: darkX(idx, days), y2: DARK_VIEW.h - DARK_VIEW.padB
         }));
+        marked.push(t.key);
       });
     }
 
-    if (caption) caption.textContent = darkHoursSentence(lat, series, runs);
+    if (caption) caption.textContent = darkHoursSentence(lat, series, runs, marked);
   }
 
   /*
@@ -365,23 +456,30 @@
     var series = M.darkHoursYear(lat, year);
     if (!series.length) return '';
     var runs = M.zeroDarkRuns(series);
-    var longest = Math.max.apply(null, series);
-    var shortest = Math.min.apply(null, series);
+    var f = darkHoursFacts(series, runs);
+
+    // Every latitude on Earth gets true dark on some night of the year, so
+    // this is unreachable from a real reading — but the clause has to be
+    // false before it is wrong, and "the longest night gives 0.0 hours"
+    // would be the sentinel talking.
+    if (!f.nights) {
+      return 'Where you are, true dark never comes at all — not on one night'
+        + ' of the year.';
+    }
 
     if (runs.length) {
-      var lost = runs.reduce(function (a, r) { return a + r.days; }, 0);
-      return 'Where you are, the longest night gives ' + longest.toFixed(1)
-        + ' hours of true dark — and for ' + lost + ' nights around midsummer'
+      return 'Where you are, the longest night gives ' + f.max.toFixed(1)
+        + ' hours of true dark — and for ' + f.lost + ' nights around midsummer'
         + ' it never fully arrives at all.';
     }
 
-    if (longest - shortest < 0.5) {
+    if (f.swing < DARK_FLAT_H) {
       return 'Where you are, every night of the year gives about '
-        + longest.toFixed(1) + ' hours of true dark — the same night, all year.';
+        + f.max.toFixed(1) + ' hours of true dark — the same night, all year.';
     }
 
-    return 'Where you are, true dark runs from ' + shortest.toFixed(1)
-      + ' hours at its shortest to ' + longest.toFixed(1) + ' at its longest.';
+    return 'Where you are, true dark runs from ' + f.min.toFixed(1)
+      + ' hours at its shortest to ' + f.max.toFixed(1) + ' at its longest.';
   }
 
   function setupDarkHours() {
@@ -709,15 +807,21 @@
      drawDarkHours takes its elements and its data and emits SVG; it
      touches no globals and no document lookups, which is what lets
      js/sunpath-render.test.js assert on the elements it actually emits
-     rather than on a model of them. That distinction is the mechanism
-     behind seven shipped bugs on /daylight: a test asserting against an
-     upstream proxy stays green while the drawn thing changes underneath.
+     rather than on a model of them. Why that matters is written out once,
+     in SunPathMath.zeroDarkRuns' doc comment.
+
+     DARK_VIEW rides along frozen so the render harness can derive the
+     baseline, the plot height and a turning mark's x from the geometry
+     that ships, instead of restating 200 − 22 as a literal that goes
+     stale the moment the viewBox is retuned — the same failure shape D5
+     describes, applied to the test's own arithmetic.
      ========================================== */
 
   var api = {
     drawDarkHours: drawDarkHours,
     darkHoursSentence: darkHoursSentence,
-    yourSkyDarkClause: yourSkyDarkClause
+    yourSkyDarkClause: yourSkyDarkClause,
+    DARK_VIEW: Object.freeze ? Object.freeze(DARK_VIEW) : DARK_VIEW
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -4,10 +4,9 @@
    Run via:  node js/sunpath-render.test.js
 
    Asserts on the elements drawDarkHours actually EMITS, not on the
-   series it was given. That distinction is the mechanism behind seven
-   shipped bugs on /daylight: a test asserting against an upstream proxy
-   for the drawn output stays green while the drawn thing changes
-   underneath it. The spec makes it decision D5.
+   series it was given. Why that distinction earns a whole harness is
+   written out once, in SunPathMath.zeroDarkRuns' doc comment; the spec
+   makes it decision D5.
 
    The fake document is hand-rolled in the same spirit as
    js/daylight-render.test.js's — enough surface to record attributes,
@@ -62,7 +61,34 @@ function equal(a, b, label) {
          console.log('  ✗ ' + label + '  (' + a + ' vs ' + b + ')'); }
 }
 
+/* Every count in this file used to be checked with indexOf, and
+   '1230'.indexOf('123') is 0 — so multiplying both sentence builders'
+   counts by ten left all 47 assertions green. A figure is only stated if
+   nothing numeric abuts it on either side. */
+function statesNumber(text, value) {
+  var token = String(value).replace(/\./g, '\\.');
+  return new RegExp('(^|[^\\d.])' + token + '(?![\\d.])').test(text);
+}
+
+function statesIt(text, value, label) {
+  if (statesNumber(text, value)) { passed++; console.log('  ✓ ' + label); }
+  else { failed++; failures.push(label + ': "' + value + '" is not stated as its own figure');
+         console.log('  ✗ ' + label + '  (looked for ' + value + ')'); }
+}
+
 var YEAR = 2026;
+
+// The geometry that ships, read from the module rather than restated. A
+// literal 200 − 22 here goes stale the moment the viewBox is retuned, and
+// the baseline check below would then pass vacuously — D5's own failure
+// shape, applied to the test's arithmetic.
+var VIEW = Tools.DARK_VIEW;
+var PLOT_H = VIEW.h - VIEW.padT - VIEW.padB;
+var BASELINE_Y = VIEW.h - VIEW.padB;
+
+function expectedX(dayIndex, days) {
+  return VIEW.padL + (dayIndex / (days - 1)) * (VIEW.w - VIEW.padL - VIEW.padR);
+}
 
 function draw(lat) {
   var plot = makeNode('svg');
@@ -111,14 +137,27 @@ equal(all70, 365 - 177, '70°: the curve draws only the 188 nights that exist');
 
 // No emitted point may sit at the baseline: that is what a zero would
 // look like, and there are no zeros in a curve that skips them.
-var baselineY = 200 - 22;   // DARK_VIEW.h - padB
 var atBaseline = 0;
 d60.curves.forEach(function (c) {
   c.attrs.points.split(' ').forEach(function (p) {
-    if (Math.abs(Number(p.split(',')[1]) - baselineY) < 0.01) atBaseline++;
+    if (Math.abs(Number(p.split(',')[1]) - BASELINE_Y) < 0.01) atBaseline++;
   });
 });
 equal(atBaseline, 0, '60°: not one curve point sits on the baseline');
+
+// The axis is 14 h because 70°, the highest latitude the picker offers,
+// peaks at 13.6. Nothing stops a caller handing this a latitude the picker
+// does not offer — yourSky does exactly that — and above 84.56° a night
+// lasts the whole 24 hours. On a fixed 14-hour axis that curve is drawn
+// above the top of the viewBox: present in the DOM, off the plot.
+var d85 = draw(85);
+var y85 = d85.curves.reduce(function (a, c) {
+  return a.concat(c.attrs.points.split(' ').map(function (p) { return Number(p.split(',')[1]); }));
+}, []);
+ok(Math.max.apply(null, y85) <= BASELINE_Y + 0.01 && Math.min.apply(null, y85) >= VIEW.padT - 0.01,
+  '85°, where a night runs the full 24 h, still draws inside the box  (y '
+  + Math.min.apply(null, y85).toFixed(1) + '…' + Math.max.apply(null, y85).toFixed(1)
+  + ' within ' + VIEW.padT + '…' + BASELINE_Y + ')');
 
 console.log('\n=== The equator is flat, which is the section\'s whole point ===\n');
 
@@ -143,21 +182,45 @@ console.log('\n=== The turnings are marked ===\n');
 // then the real one with a stub.
 equal(d45.marks.length, 0, 'with no Turnings module present, no turning marks are invented');
 
+var STUB_TURNINGS = {
+  springEquinox:  [2, 20, 14, 46],
+  summerSolstice: [5, 21,  8, 24],
+  autumnEquinox:  [8, 23,  0,  5],
+  winterSolstice: [11, 21, 20, 50]
+};
+
 global.Turnings = {
   getTurningsForYear: function (y) {
-    return {
-      springEquinox: new Date(Date.UTC(y, 2, 20, 14, 46)),
-      summerSolstice: new Date(Date.UTC(y, 5, 21, 8, 24)),
-      autumnEquinox: new Date(Date.UTC(y, 8, 23, 0, 5)),
-      winterSolstice: new Date(Date.UTC(y, 11, 21, 20, 50))
-    };
+    var out = {};
+    Object.keys(STUB_TURNINGS).forEach(function (k) {
+      var t = STUB_TURNINGS[k];
+      out[k] = new Date(Date.UTC(y, t[0], t[1], t[2], t[3]));
+    });
+    return out;
   }
 };
 var withTurnings = draw(45);
 equal(withTurnings.marks.length, 4, 'all four turnings are marked when the module is there');
-ok(withTurnings.marks.every(function (m) { return Number(m.attrs.y2) > Number(m.attrs.y1); }),
-  'each turning mark has real height');
-delete global.Turnings;
+
+// A magnitude, not a sign. `y2 > y1` is satisfied by 0.0001 units — a mark
+// present in the DOM and absent on screen, which is the family of defect
+// this whole harness exists for. The band twelve lines up is held to > 100
+// for the same reason; a turning mark spans the plot exactly.
+ok(withTurnings.marks.every(function (m) {
+  return Number(m.attrs.y2) - Number(m.attrs.y1) >= PLOT_H - 0.01;
+}), 'each turning mark spans the full ' + PLOT_H + ' units of plot height, not a hairline');
+
+// And nothing yet has tied a mark to its DATE: four marks at the right
+// heights, five days off down the year, would satisfy every assertion
+// above. Each stub turning's own index says where its mark belongs.
+var marked45 = withTurnings.marks.map(function (m) { return Number(m.attrs.x1); });
+Object.keys(STUB_TURNINGS).forEach(function (key) {
+  var t = STUB_TURNINGS[key];
+  var idx = Math.floor((Date.UTC(YEAR, t[0], t[1], t[2], t[3]) - Date.UTC(YEAR, 0, 1)) / 86400000);
+  var want = expectedX(idx, 365);
+  ok(marked45.some(function (x) { return Math.abs(x - want) < 0.01; }),
+    key + ' is marked at day ' + idx + ', x = ' + want.toFixed(2) + ' — the date it falls on');
+});
 
 console.log('\n=== The caption carries what the picture carries (D10) ===\n');
 
@@ -166,15 +229,60 @@ ok(/within half an hour/.test(d0.caption.textContent),
   'the equator\'s caption states the flatness, which is the finding');
 ok(/no astronomical night at all/.test(d60.caption.textContent),
   '60°: the caption states the stretch with no night — the fact a curve conveys most cheaply and prose drops most easily');
-ok(d60.caption.textContent.indexOf('123') !== -1,
+statesIt(d60.caption.textContent, 123,
   '60°: the caption gives the number of nights, not just their existence');
-ok(d70.caption.textContent.indexOf('177') !== -1, '70°: likewise, 177');
+statesIt(d70.caption.textContent, 177, '70°: likewise, 177');
 ok(!/no astronomical night at all/.test(d45.caption.textContent),
   '45° has no such stretch, so its caption does not claim one');
+
+// 0 is darkHoursOn's sentinel for "this night has no night", so a minimum
+// taken across the whole series states a 0.0-hour night as a measurement
+// — and the clause after it says those nights do not exist. The SVG is
+// aria-hidden, so this paragraph is the entire reading a screen reader, a
+// crawler or an LLM gets: a contradiction here is not a cosmetic one.
+ok(!/between 0\.0 /.test(d60.caption.textContent),
+  '60°: the caption does not offer a 0.0-hour night and then deny those nights exist');
+statesIt(d60.caption.textContent, 0.9,
+  '60°: the shortest night that exists is 0.9 h, and that is what the caption says');
+statesIt(d60.caption.textContent, 11.7,
+  '60°: the swing is over the nights that exist — 11.7 h, not 12.6');
+statesIt(d70.caption.textContent, 1.2, '70°: likewise its shortest real night, 1.2 h');
+statesIt(d70.caption.textContent, 12.4, '70°: and its real swing, 12.4 h');
+
+// An all-zero series has no shortest night at all. No latitude on Earth
+// produces one, so it is constructed — the guard has to hold before the
+// case is reachable, not after.
+var allZero = Tools.darkHoursSentence(85, [0, 0, 0], [{ startIndex: 0, endIndex: 2, days: 3 }], []);
+ok(!/0\.0/.test(allZero),
+  'a series with no nights in it reports no hours at all, rather than 0.0 of them');
+ok(/never comes at all/.test(allZero),
+  'and says the true thing instead: at that latitude the dark never comes');
 
 var s1 = Tools.darkHoursSentence(60, M.darkHoursYear(60, YEAR), M.zeroDarkRuns(M.darkHoursYear(60, YEAR)));
 var s2 = Tools.darkHoursSentence(60, M.darkHoursYear(60, YEAR), M.zeroDarkRuns(M.darkHoursYear(60, YEAR)));
 ok(s1 === s2, 'darkHoursSentence is pure');
+
+console.log('\n=== The turnings are drawn AND named (D10, AC #10) ===\n');
+
+// Four marks ship at every latitude and nothing spoken names them. The
+// standing prose does not: the page carries 19 "solstice"s and 16
+// "equinox"es in other sections, so a page-wide regex for those words is
+// green with §A deleted entirely. The caption is the only text a reader of
+// this section is given, so the naming has to be in it.
+ok(/solstice/i.test(withTurnings.caption.textContent),
+  'the caption names the solstices its curve marks');
+ok(/equinox/i.test(withTurnings.caption.textContent),
+  'the caption names the equinoxes its curve marks');
+ok(/March/.test(withTurnings.caption.textContent)
+   && /June/.test(withTurnings.caption.textContent)
+   && /September/.test(withTurnings.caption.textContent)
+   && /December/.test(withTurnings.caption.textContent),
+  'all four are named, and by month — the sentence is read at southern latitudes too');
+
+// The other half of the same contract: prose must not name a mark that was
+// never drawn. d45 was rendered before the Turnings stub existed.
+ok(!/solstice|equinox/i.test(d45.caption.textContent),
+  'with no marks on the plot, the caption claims none — the contradiction has two directions');
 
 console.log('\n=== Your sky — the curve becomes personal (Task 4, D3) ===\n');
 
@@ -184,11 +292,13 @@ console.log('\n=== Your sky — the curve becomes personal (Task 4, D3) ===\n');
 
 var clause45 = Tools.yourSkyDarkClause(45, YEAR);
 ok(/8\.\d|9\.\d|1[01]\.\d/.test(clause45), '45°: the clause names a longest night in hours');
-ok(clause45.indexOf('11.7') !== -1, '45°: that longest night is 11.7 h, matching the series');
+statesIt(clause45, 11.7, '45°: that longest night is 11.7 h, matching the series');
 ok(!/never/.test(clause45), '45° always gets a night, so nothing is claimed about losing it');
 
 var clause60 = Tools.yourSkyDarkClause(60, YEAR);
-ok(clause60.indexOf('123') !== -1, '60°: the clause counts the nights with no true dark');
+statesIt(clause60, 123, '60°: the clause counts the nights with no true dark');
+ok(!/\b0\.0 hours\b/.test(clause60),
+  '60°: and never offers 0.0 hours as its shortest — that is the sentinel, not a night');
 ok(/never/.test(clause60), '60°: and says plainly that the dark never fully arrives');
 
 var clause0 = Tools.yourSkyDarkClause(0, YEAR);
@@ -208,9 +318,19 @@ equal(Tools.yourSkyDarkClause(NaN, YEAR), '', 'NaN likewise — never a sentence
 // one is the difference between a clause that is true and one that looks
 // true.
 var clauseS = Tools.yourSkyDarkClause(-60, YEAR);
-ok(clauseS.indexOf('116') !== -1,
+statesIt(clauseS, 116,
   '−60° reports its own 116 nights, not +60°\'s 123 — the hemispheres are not mirrors');
 ok(/never/.test(clauseS), '−60° still says the dark never fully arrives');
+
+// Amundsen–Scott station is permanently staffed at −89.9975°, and for 82
+// nights of the year the dark there does not end. Told that "for 365
+// nights it never fully arrives at all" — which is what a null collapsed
+// to 0 produces — the reader is given the precise opposite of their sky.
+var clausePole = Tools.yourSkyDarkClause(-89.9975, YEAR);
+statesIt(clausePole, '24.0',
+  'the south pole is told its longest night runs the full 24 hours');
+ok(!statesNumber(clausePole, 365),
+  'and is NOT told that all 365 of its nights lose the dark');
 
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
@@ -237,22 +357,24 @@ ok(/aria-label="Hours of true dark across the year"/.test(page),
   'the section names itself for assistive tech');
 
 // Everything the picture shows must be in the sentence, because the
-// picture is hidden from anyone reading the text.
-[[0, ['0°']], [45, ['45°', '11.7']], [60, ['60°', '123']], [70, ['70°', '177']]]
+// picture is hidden from anyone reading the text. Latitudes match as
+// text; every figure matches as a whole number, so a count ten times too
+// large cannot satisfy it.
+[[0, ['0°'], [9.4, 9.6]],
+ [45, ['45°'], [3.3, 11.7, 8.4]],
+ [60, ['60°'], [0.9, 12.6, 11.7, 123]],
+ [70, ['70°'], [1.2, 13.6, 12.4, 177]]]
   .forEach(function (t) {
     var text = draw(t[0]).caption.textContent;
     t[1].forEach(function (needle) {
       ok(text.indexOf(needle) !== -1,
         t[0] + '°: the caption states "' + needle + '", which the curve shows for free');
     });
+    t[2].forEach(function (figure) {
+      statesIt(text, figure,
+        t[0] + '°: the caption states ' + figure + ', which the curve shows for free');
+    });
   });
-
-// A turning mark is a visual affordance. If it is drawn it must be
-// speakable, or it is the moon strip's gap all over again. §A marks the
-// four turnings, and the section's own prose names them — assert the
-// standing copy does, since the caption deliberately stays short.
-ok(/solstice/i.test(page) && /equinox/i.test(page),
-  'the page names the turnings its curve marks, in standing prose');
 
 // No per-element title may creep into an aria-hidden subtree: it would be
 // silently inert, which is worse than absent because it looks like coverage.

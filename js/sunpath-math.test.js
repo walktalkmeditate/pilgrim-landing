@@ -680,8 +680,12 @@ if (M.azimuthToUnit(141, 90, 50) === null) {
 // it true dark, and one almanac should not carry two definitions.
 //
 // The table below is the spec's own, recomputed here from the shipped
-// twilight functions rather than copied from it, so the document and the
-// code cannot drift apart silently.
+// twilight functions rather than copied from it. That keeps the document
+// honest about what the code does — and NOTHING more: a test that
+// recomputes from the thing it is testing pins the code to itself and can
+// never find an error in it. The external anchors further down are what
+// tie this section to something outside the repo, as every other section
+// of this file is tied.
 // ===========================================================================
 
 console.log('\n=== Dark hours — the picker\'s five latitudes ===\n');
@@ -846,6 +850,103 @@ ok(edge[1].startIndex === 5 && edge[1].endIndex === 5 && edge[1].days === 1,
 ok(M.zeroDarkRuns([]).length === 0, 'an empty series has no runs and does not throw');
 ok(M.zeroDarkRuns([1, 2, 3]).length === 0, 'a series with no zeros has no runs');
 ok(M.zeroDarkRuns([0, 0, 0]).length === 1, 'an all-zero series is one run, not three');
+
+// "No threshold is guessed at" is a contract, and until now nothing held
+// it: relaxing `h === 0` to `h < 0.1` survives both suites, because the
+// shortest real night any latitude produces is 0.142 h (just under the
+// 48.56° boundary) and nothing in the year lands below a tenth of an
+// hour. So the case is constructed. A 0.05-hour night is three minutes of
+// true dark — a night, and not the absence of one.
+var brief = M.zeroDarkRuns([5, 0, 0, 0.05, 0, 0]);
+ok(brief.length === 2,
+  'a 0.05-hour night breaks the run in two — it is a night, not a rounding of nothing');
+ok(!!brief[1] && brief[1].startIndex === 4 && brief[1].days === 2,
+  'and the run after it starts on the far side of that night');
+
+console.log('\n=== The other pole of the same null — unbroken night (D4) ===\n');
+
+// hourAngleHalfSpan returns null for two OPPOSITE conditions: the sun's
+// maximum below −18° (24 h of astronomical night) and its minimum above
+// −18° (none at all). twilightUTC collapses both to null, and a caller
+// that reads null as "no night" tells a reader at Amundsen–Scott —
+// permanently staffed, −89.9975° — that the dark never arrives, on the
+// day it does not leave.
+//
+// Where the 24s begin is geometry again, the mirror of the 48.56° check
+// above. At the December solstice the sun's greatest altitude at a
+// northern latitude is 90° − lat − 23.44°; that reaches −18° at
+// 90 + 18 − 23.44 = 84.56°N. Above it the sun never climbs to 18° below
+// the horizon and the night runs the whole day.
+var DEC_SOLSTICE = new Date(Date.UTC(2026, 11, 21, 12));
+var JUN_SOLSTICE = new Date(Date.UTC(2026, 5, 21, 12));
+var PERMANENT_DARK_LAT = 90 + 18 - 23.44;
+
+ok(M.darkHoursOn(PERMANENT_DARK_LAT - 0.1, DEC_SOLSTICE) < 24,
+  'just below 84.56°N the December night is long but does end');
+ok(M.darkHoursOn(PERMANENT_DARK_LAT + 0.1, DEC_SOLSTICE) === 24,
+  'just above it the sun never reaches −18°, and the night is the whole day');
+approx(M.darkHoursOn(85, DEC_SOLSTICE), 24, 0,
+  '85°N on 21 December: 24 h of astronomical night, not 0');
+approx(M.darkHoursOn(90, DEC_SOLSTICE), 24, 0,
+  'the north pole on 21 December: 24 h, not 0');
+approx(M.darkHoursOn(-90, JUN_SOLSTICE), 24, 0,
+  'the south pole on 21 June: 24 h, not 0 — the mirror case');
+approx(M.darkHoursOn(-89.9975, JUN_SOLSTICE), 24, 0,
+  'Amundsen–Scott station, likewise');
+
+// 24 and 0 are the two ends of the same contract, so the run-finder must
+// never confuse them: a permanent night is the opposite of a missing one.
+[85, 90, -90].forEach(function (lat) {
+  var series = M.darkHoursYear(lat, 2026);
+  var runs = M.zeroDarkRuns(series);
+  var permanent = series.filter(function (h) { return h === 24; }).length;
+  var caught = 0;
+  runs.forEach(function (r) {
+    for (var i = r.startIndex; i <= r.endIndex; i++) if (series[i] === 24) caught++;
+  });
+  ok(permanent > 0, lat + '°: has nights that never end at all (' + permanent + ' of them)');
+  ok(caught === 0,
+    lat + '°: not one of them is inside a zero-dark run — unbroken night is not absent night');
+});
+
+console.log('\n=== Dark hours — anchored outside this repo ===\n');
+
+// Every assertion above recomputes from the same twilight functions it is
+// testing, which makes it a documentation guard and not an accuracy one.
+// These four are the tie to something outside: published astronomical
+// twilight times, differenced into a night length and compared with what
+// darkHoursOn returns.
+//
+// Source: api.sunrise-sunset.org (an independent implementation of the
+// NOAA twilight equations, not this repo's Spencer series), queried
+// 2026-08-13:
+//   ?lat=42.60&lng=-5.57&date=2026-10-15 → astronomical dusk 19:14:17Z
+//   ?lat=42.60&lng=-5.57&date=2026-10-16 → astronomical dawn 05:02:55Z
+//   ?lat=64.13&lng=-21.94&date=2026-10-15 → dusk 20:48:30Z
+//   ?lat=64.13&lng=-21.94&date=2026-10-16 → dawn 05:41:30Z
+//   ?lat=0&lng=0&date=2026-10-15 → dusk 18:58:37Z
+//   ?lat=0&lng=0&date=2026-10-16 → dawn 04:32:37Z
+//   ?lat=64.13&lng=-21.94&date=2026-06-21 → no astronomical twilight
+//
+// Tolerances are wider than this file's ±2 min for a single event, and
+// deliberately: a night length differences two events twelve hours apart,
+// and darkHoursOn samples declination once at midday for both. That is
+// worth about 3 min at mid-latitude and 8 min at 64°, and it is the same
+// approximation that makes the zero-night counts good to ±1 day.
+var OCT15 = new Date(Date.UTC(2026, 9, 15, 12));
+
+approx(M.darkHoursOn(42.60, OCT15), 9.8106, 5 / 60,
+  'León (42.60°N), night of 15 Oct 2026: 9 h 49 m of true dark, published');
+approx(M.darkHoursOn(64.13, OCT15), 8.8833, 10 / 60,
+  'Reykjavík (64.13°N), same night: 8 h 53 m, published');
+approx(M.darkHoursOn(0, OCT15), 9.5667, 2 / 60,
+  'the equator (0°, 0°), same night: 9 h 34 m, published');
+
+// And the zero contract itself, against an outside source rather than
+// against our own boundary: Reykjavík gets no astronomical twilight at
+// all in late June, which is why the almanac reports no event.
+approx(M.darkHoursOn(64.13, new Date(Date.UTC(2026, 5, 21, 12))), 0, 0,
+  'Reykjavík, 21 June 2026: no astronomical night, as published — exactly 0');
 
 // ===========================================================================
 // Summary

@@ -25,6 +25,17 @@ absence gives you — and that silence hides the most surprising fact available 
 | High-latitude (60°N) | 0.0 h | 6.9 h | 12.6 h | 12.6 h | **123** |
 | Arctic (70°N) | 0.0 h | 3.3 h | 13.6 h | 13.6 h | **177** |
 
+*The 0.0 h entries are the absence of a night, not a night of zero length — see D5. The
+"year's range" column is the span across the whole series including those absences; the
+range across the nights that exist is 11.7 h at 60° and 12.4 h at 70°, which is what the
+shipped caption states.*
+
+*The zero-night counts are good to **±1 day**. Declination is sampled once per night, at
+midday, while the event it decides falls some twelve hours later; an independent
+integration at 1–2 s resolution gives 122 and 176 where this page gives 123 and 177. That
+is inside the page's stated accuracy ("approximate but visualization-correct", ~0.5°) and
+the counts are quoted here as this page computes them.*
+
 At the equator every night of the year is the same length. At 45° it nearly quadruples
 across the year. At 70° true dark does not come at all for nearly half of it.
 
@@ -85,6 +96,15 @@ almanac would be worse than using a stricter one.
 occur near midsummer. That is not a gap in the data — it is the fact. It is *why* 60° and
 70° show zero.
 
+**And the same boundary has a far side.** Above 84.56° the sun does not climb to 18° *below*
+the horizon near midwinter, and the night lasts the whole day. Both conditions reach
+`darkHoursOn` as the same `null` from `hourAngleHalfSpan`, and reading that null as "no
+night" tells a reader at Amundsen–Scott the opposite of their sky. `darkHoursOn` therefore
+returns exactly **0** if and only if there is no astronomical night and exactly **24** if
+and only if there is nothing but — decided by the sun's own greatest altitude, additively,
+because six exported functions and two shipped instruments on `/daylight` read those nulls
+and none of them may be disturbed.
+
 ### D5 — A night with no true dark is drawn as an absence, never a zero
 
 This is the binding lesson from `/daylight`, which shipped **seven** bugs of one family:
@@ -105,12 +125,21 @@ was covered only by a test asserting against an upstream proxy for the rendered 
 
 *Measured before any of §B was written, which is what D9's budget is for.*
 
-| | gzipped |
+*Every figure in this spec is gzipped per file with Node `zlib`, level 9 — the tool
+`js/sunpath-budget.test.js` computes with. The first draft mixed tools: it recorded a
+baseline from Apple `gzip -9` (90.94 KB) and subtracted it from a Node total, so the "+4.61
+KB" it published was one implementation minus another.*
+
+| | gzipped (Node `zlib`, level 9) |
 |---|---|
-| `/sunpath` before this branch | 90.94 KB |
-| after §A (tasks 1–4) | 95.85 KB — **+4.91 KB** |
-| §B's `moon-lux.js` + `night-math.js` | **+10.52 KB** |
-| projected feature total | **+15.43 KB** against a **+12.00 KB** budget |
+| `/sunpath` before this branch (`b270938`) | 90.63 KB |
+| after §A, at HEAD | 98.28 KB — **+7.65 KB** |
+| §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
+| projected feature total | **+18.15 KB** against a **+12.00 KB** budget |
+
+*The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
+The review fix wave has since taken §A itself to +7.65 — mostly comment, and still inside
+the budget — which only makes the verdict wider.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
 — cut, as §C was.
@@ -214,8 +243,11 @@ error for most of the route. Cancelled on 2026-08-13; not deferred, not revisite
 
 ### D9 — A page-weight budget, because `/daylight` never got one
 
-`/sunpath` is **90.9 KB gzipped** today, of which **59.3 KB is vendor** (d3-geo 35.5,
-d3-array 16.8, topojson 7.0) serving the hero globe alone.
+`/sunpath` is **90.6 KB gzipped** today (Node `zlib` −9, per file), of which **21.1 KB is
+vendor** — d3-geo 12.8, d3-array 5.8, topojson 2.5, all gzipped — serving the hero globe
+alone. Unpacked those three are 59.3 KB, and quoting *that* figure inside a sentence about a
+gzipped page (as the first draft of this line did) overstates the vendor share by 2.8×. It
+is the same raw-vs-gzip confusion the sibling spec already corrected once.
 
 `/daylight` went 52.1 → 106.0 KB across three slices with no budget, and every slice
 argued its own increase was small. This spec sets one up front: **+12 KB gzipped, total.**
@@ -270,15 +302,21 @@ sentence names them.
    **Cut by the budget gate (D6).** §B does not ship.
 8. ~~§B's moon figure is `nightMoonLux`'s illuminance across the dark window, not phase.~~
    Cut with it.
-9. `role="img"` + one mirrored accessible name + outside-SVG text; no per-element titles.
+9. ~~`role="img"` + one mirrored accessible name + outside-SVG text; no per-element titles.~~
+   **Departed from deliberately — the SVG ships `aria-hidden="true"`. See "Departures from
+   the spec, and why".** Outside-SVG text and no per-element titles hold as written.
 10. The text equivalent names the zero-dark stretch and any marked turning (D10).
 11. **`/sunpath` grows by no more than 12 KB gzipped**, measured per-file (not
     concatenated — that understates it), and the figure is recorded with the commit it was
     measured at.
 12. §C does not ship. Its gate ran and failed (D7); there is no placeholder and no stub.
 13. Every assertion about what is drawn reads emitted elements, not the model (D5).
-14. No spec figure is stated without a test that recomputes it — extend the pattern in
-    `js/muted-contrast.test.js`, which parses this repo's specs and recomputes from source.
+14. No spec figure is stated without a test that recomputes it. The pattern is the one in
+    `js/muted-contrast.test.js`, which parses this repo's specs and recomputes from source,
+    and it is now genuinely extended to *this* spec: the Result section's four contrast rows
+    are parsed and recomputed from `css/sunpath.css` by `js/muted-contrast.test.js`, and its
+    post-§A weight row by `js/sunpath-budget.test.js`. (Claimed and not done in the first
+    pass: no test read this document at all.)
 
 ---
 
@@ -310,40 +348,110 @@ gates were written for.
 
 ### Page weight, against the budget
 
-| | gzipped |
+| | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
-| `/sunpath` at `b270938` (spec only, no code) | 90.94 KB |
-| **after §A** | **95.55 KB — +4.61 KB** |
+| `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
+| **after §A** | **98.28 KB — +7.65 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.52 KB → 15.43 KB total, over |
+| §B, had it shipped | +10.50 KB → 18.15 KB total, over |
 
-The figure is now **pinned by a test** (`js/muted-contrast.test.js`), which recomputes it
-per-file from the shipped page rather than trusting this table. Three numbers drifted in
-this repo's specs across three review rounds on the sibling page; this one cannot.
+The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
+per-file from the shipped page and then reads this row back out of this document and
+compares. Three numbers drifted in this repo's specs across three review rounds on the
+sibling page — and this one drifted too, three ways at once (95.85 in D6, 95.55 here, 95.54
+in the test's own output) inside a paragraph claiming it could not. What made that possible
+was a baseline measured with Apple `gzip -9` and a total computed with Node `zlib`: a
+subtraction across two implementations. One tool now, named in the table, on both sides of
+the subtraction.
+
+Of the +7.65 KB, +4.91 was §A as first written and the rest is the review fix wave —
+overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
+axis.
 
 ### Contrast
 
 | | light parchment | dark parchment | `#0a0a12` |
 |---|---|---|---|
 | the curve | 6.110:1 | 5.130:1 | 5.773:1 |
-| the no-night band, vs the page | 1.198:1 | 1.293:1 | 1.241:1 |
-| the no-night band, **vs the curve** | 5.098:1 | 3.968:1 | 4.652:1 |
+| the no-night band's edge, vs the page | 3.954:1 | 6.416:1 | 7.220:1 |
+| a turning mark, vs the page | 3.954:1 | 6.416:1 | 7.220:1 |
+| the no-night wash, **vs the curve** | 5.098:1 | 3.968:1 | 4.652:1 |
+
+Every mark carrying essential information clears Task 7's 3:1 floor (WCAG 1.4.11). The band
+carries its share on an **edge** at full strength rather than on the wash: taking the wash
+itself to 3:1 needs alpha 0.84 in light mode, which is a wall of stone across a third of the
+plot. The wash behind it measures 1.198 / 1.293 / 1.241:1 against the page and is asked to
+clear nothing — it is redundant reinforcement, and saying so is the difference between a
+floor and a number picked to match what was built.
 
 The last row is the one that matters and it is asserted, not observed. A stretch with no
 night drawn as a fainter shade of the curve would read as *less of this*; it is not less
-dark, it is no dark.
+dark, it is no dark. Both marks are also held to one device pixel on the narrowest column
+the page renders at: under that a stroke is antialiased to a fainter colour than it
+declares, and every figure in this table would be a fiction.
+
+The four figures above are read back out of this table and recomputed from the shipped
+stylesheet by `js/muted-contrast.test.js` (AC #14).
 
 ### What the tests hold
 
 - The spec's own latitude table, recomputed from the shipped twilight functions rather than
-  copied — the document and the code cannot drift apart quietly.
+  copied. That keeps this document honest about what the code does and **nothing more** — a
+  test that recomputes from the thing it tests pins the code to itself and can never find an
+  error in it. It is a documentation guard, not an accuracy one, and the first draft of this
+  section called it a strength.
+- **Anchored outside the repo**, which is the convention every other section of
+  `js/sunpath-math.test.js` already follows: published astronomical twilight times for León,
+  Reykjavík and the equator on the night of 15 October 2026 (api.sunrise-sunset.org, an
+  independent implementation of the NOAA equations, queried 2026-08-13), differenced into a
+  night length; plus Reykjavík on 21 June, where the same source reports no astronomical
+  twilight at all and `darkHoursOn` returns exactly 0. Measuring true dark at −17° instead of
+  −18° turns all four red.
 - The boundary at 48.56° checked against its derivation (at the June solstice the sun's
-  midnight altitude is `lat − 66.56°`), not against an observed number.
+  midnight altitude is `lat − 66.56°`), not against an observed number — and its far side at
+  84.56° (`90 + 18 − 23.44`) the same way, where the night stops ending.
 - The curve **breaks** around a zero-dark stretch: 60° draws as two segments covering 242 of
   365 nights, 70° as two covering 188, and **no emitted point sits on the baseline**.
-- Mutation-checked: running the curve through the zeros turns 5 assertions red; a
-  zero-height band turns 1; nautical twilight instead of astronomical turns 18; clamping a
-  no-night to 0.01 instead of exact zero turns 4.
+- Mutation-checked, re-run at HEAD after the review fix wave: running the curve through the
+  zeros turns 5 render assertions red; a zero-height band turns 1; nautical twilight instead
+  of astronomical turns 23 in the math suite and 25 in the render suite; clamping a no-night
+  to 0.01 instead of exact zero turns 6 red and then crashes the math suite on a run that is
+  no longer there. (The counts first published here — 18 and 4 — were measured at Task 1 and
+  went stale the moment Task 2 added tests to the same file.)
+
+### Departures from the spec, and why
+
+- **AC #9 asked for `role="img"`. The SVG ships `aria-hidden="true"`.** `role="img"`
+  flattens the subtree, which is what AC #9 was defending against — but this page already
+  has an answer to that, and it is the stronger one: `setupDawnSweep` and `setupAnalemma`
+  both hide their plot outright and carry the whole reading in a real DOM paragraph beside
+  it. There is then no subtree to flatten, no accessible name to keep in sync with the
+  caption, and no per-element `<title>` that can look like coverage while being inert. The
+  rest of AC #9 — outside-SVG text, no per-element titles — ships as written. Undisclosed in
+  the first pass, which is the part that was wrong.
+- **`DARK_MAX_H` is a floor, not a fixed axis.** The five picker latitudes all fit under
+  14 h, and sharing one scale is what makes them comparable. `yourSky` will hand the same
+  renderer any latitude, and above 84.56° a night is 24 h long, so the axis grows to hold
+  the series rather than drawing a curve above the top of the box.
+
+### The eighth instance, found in review
+
+`/daylight` shipped seven bugs of one family (D5): correct arithmetic rendering to something
+no reader can see, or prose contradicting the pixels beside it. This section shipped an
+eighth into review, in the one channel D10 exists to protect.
+
+`darkHoursSentence` took its minimum with `Math.min` across the whole series — including the
+zeros that are `darkHoursOn`'s sentinel for *this night has no night*. So the caption at 60°
+read *"true dark lasts between **0.0** and 12.6 hours a night"* and then, two clauses later,
+*"for 123 nights there is no astronomical night at all"*. The renderer obeyed D5 exactly; it
+was the sentence that did not, and because the SVG is `aria-hidden` that sentence is the
+entire representation for a screen reader, a crawler or an LLM. The real figures are 0.9 h
+and a swing of 11.7 h at 60°, 1.2 h and 12.4 h at 70°.
+
+The mechanism was the familiar one: the caption's guards asserted that certain numbers
+*appeared* in the string, and every number it printed did appear. Nothing asserted what it
+did not say. `js/sunpath-render.test.js` now asserts the absence — the caption may not
+match `/between 0\.0 /` — alongside the figures.
 
 ### One thing found on the way
 
