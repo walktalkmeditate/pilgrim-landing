@@ -353,15 +353,24 @@ ok(!QUALIFIER.test(d0.caption.textContent), '0°: likewise unqualified');
 // Tied to the data rather than to the two latitudes above, so the pairing
 // cannot drift: wherever a stretch of no-night exists, the qualifier is
 // there, and wherever none exists, it is not.
-[0, 23.5, 45, 60, 70, -60, -70, 84].forEach(function (lat) {
+var QUALIFIER_LATS = [0, 23.5, 45, 60, 70, -60, -70, 84];
+var qualifierChecked = 0;
+QUALIFIER_LATS.forEach(function (lat) {
   var series = M.darkHoursYear(lat, YEAR);
   var runs = M.zeroDarkRuns(series);
   var text = Tools.darkHoursSentence(lat, series, runs, []);
+  // A latitude with no night at all takes a different sentence, which has
+  // no range to qualify. No latitude in the list is one — and the count
+  // below is why that skip cannot quietly become all of them.
   if (!series.some(function (h) { return h > 0; })) return;
+  qualifierChecked++;
   equal(QUALIFIER.test(text), runs.length > 0,
     lat + '°: the qualifier is present exactly when there are nights without a night ('
       + runs.length + ' stretch' + (runs.length === 1 ? '' : 'es') + ')');
 });
+equal(qualifierChecked, QUALIFIER_LATS.length,
+  'and every latitude in the list was actually checked — a loop that skips its way to zero '
+    + 'assertions is the inert coverage this suite exists to catch');
 
 // An all-zero series has no shortest night at all. No latitude on Earth
 // produces one, so it is constructed — the guard has to hold before the
