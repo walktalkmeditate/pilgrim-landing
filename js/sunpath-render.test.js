@@ -88,9 +88,22 @@ var YEAR = 2026;
 var BAND_CSS = require('fs')
   .readFileSync(require('path').join(__dirname, '..', 'css', 'sunpath.css'), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '');
-var BAND_RULE = /\.sunpath-dark-none\s*\{([^}]*)\}/.exec(BAND_CSS);
-var BAND_IS_STROKED = !!BAND_RULE && !/stroke:\s*none/.test(BAND_RULE[1])
-  && /stroke:/.test(BAND_RULE[1]);
+// EVERY rule that can name the band, not just the bare selector: a
+// `html[data-theme="dark"] .sunpath-dark-none` or `.sunpath-dark-svg rect`
+// override re-strokes it in one mode only, and a single-selector lookup
+// cannot see that. The mutation passed the whole suite until this changed.
+var BAND_RULES = [];
+var BAND_RE = /([^{}]+)\{([^}]*)\}/g;
+var BAND_M;
+while ((BAND_M = BAND_RE.exec(BAND_CSS)) !== null) {
+  var sel = BAND_M[1].trim();
+  if (/\.sunpath-dark-none\b/.test(sel) || /\.sunpath-dark-svg\s+rect\b/.test(sel)) {
+    BAND_RULES.push({ sel: sel, decls: BAND_M[2] });
+  }
+}
+var BAND_IS_STROKED = BAND_RULES.some(function (r) {
+  return /stroke:/.test(r.decls) && !/stroke:\s*none/.test(r.decls);
+});
 
 var VIEW = Tools.DARK_VIEW;
 var PLOT_H = VIEW.h - VIEW.padT - VIEW.padB;
@@ -459,6 +472,35 @@ ok(!/never comes at all/.test(clausePole),
   'nor the opposite of its own sky');
 ok(clausePole !== '',
   'and is not met with silence either — a blank clause is a bug a reader cannot see');
+
+// The refusal sentence is prose making a physical claim, and the first
+// version of it was false across the first tenth of a degree it refused:
+// "within 5.5° of the pole the midwinter sun NEVER climbs to within 18° of
+// the horizon" — arithmetic right (90 − 84.5), physics wrong. At 84.5° the
+// lowest solar-noon altitude in 2026 is −17.926°, above −18°, so the sun
+// does climb and a real night does end there.
+//
+// The margin is deliberate: MAX_MODELLED_LAT_DEG sits INSIDE the geometric
+// boundary so the instrument never has to adjudicate a borderline reading.
+// That means any absolute claim about the refused band is false across the
+// margin by construction. This asserts the sentence stays hedged, and that
+// the edge it cites is the edge the code uses.
+var refusalText = Tools.yourSkyDarkClause(90, YEAR);
+var EDGE_DEG = M.MAX_MODELLED_LAT_DEG;
+var edgeNoonAlt = 90;
+for (var rd = 0; rd < 365; rd++) {
+  var ra = 90 - Math.abs(EDGE_DEG - M.declination(new Date(Date.UTC(YEAR, 0, 1 + rd, 12))));
+  if (ra < edgeNoonAlt) edgeNoonAlt = ra;
+}
+ok(edgeNoonAlt > -18,
+  'at the modelled edge the sun still climbs above −18° (' + edgeNoonAlt.toFixed(3)
+    + '°) — which is why an absolute claim about the refused band would be false');
+ok(!/never climbs|never rises|never reaches/.test(refusalText),
+  'the refusal makes no absolute claim that its own margin falsifies');
+ok(refusalText.indexOf(String(EDGE_DEG)) !== -1,
+  'and it cites the edge the code actually uses (' + EDGE_DEG + '°), not a derived figure');
+ok(/about|approximately|nearer/.test(refusalText),
+  'and hedges the boundary, because the line is drawn deliberately early');
 
 // The refusal is a latitude property, so it has to hold on the picker side
 // too: nothing drawn, and a caption that says why rather than an empty plot

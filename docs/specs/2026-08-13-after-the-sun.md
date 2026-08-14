@@ -58,7 +58,7 @@ Nothing here needs new astronomy or new libraries:
 | the four turnings, Meeus-accurate | `window.Turnings.getTurningsForYear(year)` | **yes** |
 | the latitude picker (0 / 23.5 / 45 / 60 / 70) | `js/sunpath-tools.js` `DAWN_LATITUDES` | **yes** |
 | geolocation, "your sky" | `js/sunpath.js` `getCurrentPosition` / `yourSky` | **yes** |
-| moon illuminance across a night | `MoonLux` + `js/night-math.js` `nightMoonLux` | no — 16 KB to add |
+| moon illuminance across a night | `MoonLux` + `js/night-math.js` `nightMoonLux` | no — 10.5 KB to add (measured; see D6) |
 | measured sky brightness, 7 routes | `assets/darkness/*.json` | no — 52 KB, and only §3 needs it |
 
 ---
@@ -142,16 +142,22 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 99.80 KB — **+9.17 KB** |
+| after §A, at HEAD | 105.77 KB — **+10.20 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+19.67 KB** against a **+12.00 KB** budget |
+| projected feature total | **+20.70 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +9.17 — mostly comment, and still inside
-the budget — which only makes the verdict wider. The last 1.52 KB is two fixes: the polar
-refusal (D12, +0.98) and the band's edges (the tenth instance, +0.54). Roughly two thirds of
-both is comment explaining why. That is the trade this codebase keeps making deliberately —
-the reasoning ships with the code, because these bugs get reintroduced.*
+The review fix waves have since taken §A itself to +10.20 — mostly comment, and still inside
+the budget — which only makes the verdict wider.*
+
+*That figure moved twice for reasons worth recording. The polar refusal (D12) cost +0.98 and
+the band's edges (the tenth instance) +0.54. Then the review found the gate was never
+measuring `sunpath/index.html` itself, only the assets it references — so every byte of new
+markup had been worth exactly zero to it. Counting the document adds +0.25 KB of this
+branch's own growth and 5.05 KB of pre-existing baseline. Three times now this gate has
+missed something, and all three times the miss was worth zero: an unresolvable path, a mixed
+gzip implementation, and the document. It now carries a self-test proving it responds to
+growth at all.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
 — cut, as §C was.
@@ -175,7 +181,7 @@ processions, and gatherings" — most of which happen at night or before dawn. F
 turning, at the reader's latitude: how long true dark lasts, and whether a moon is up in it
 (`nightMoonLux`, the honest quantity — illuminance across the dark window, not phase).
 
-This is the one place the moon math earns its 16 KB on this page. If §B is cut, the moon
+This is the one place the moon math earns its 10.5 KB on this page. If §B is cut, the moon
 modules come out with it.
 
 ### D7 — §C is CANCELLED. The gate ran on 2026-08-13 and failed it.
@@ -398,9 +404,9 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **99.80 KB — +9.17 KB** |
+| **after §A** | **105.77 KB — +10.20 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.50 KB → 18.15 KB total, over |
+| §B, had it shipped | +10.50 KB → 20.70 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
 per-file from the shipped page and then reads this row back out of this document and
@@ -411,7 +417,7 @@ was a baseline measured with Apple `gzip -9` and a total computed with Node `zli
 subtraction across two implementations. One tool now, named in the table, on both sides of
 the subtraction.
 
-Of the +7.65 KB, +4.91 was §A as first written and the rest is the review fix wave —
+Of the +10.20 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
 

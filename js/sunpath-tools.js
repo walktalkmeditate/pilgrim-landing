@@ -360,18 +360,31 @@
   /*
    * darkHoursRefusal(where) — the instrument's own edge, said out loud.
    *
-   * Above MAX_MODELLED_LAT_DEG the midwinter sun never climbs to within
-   * 18° of the horizon: no dusk opens the night, no dawn closes it, and
-   * "hours of true dark" has no span to measure. Both readouts say so
-   * rather than draw a plausible curve across the part of the year they
-   * cannot see — the failure this page keeps having to unlearn is arithmetic
-   * that renders to something confident and wrong.
+   * Nearer the pole than MAX_MODELLED_LAT_DEG the midwinter sun stops
+   * climbing to within 18° of the horizon: no dusk opens the night, no
+   * dawn closes it, and "hours of true dark" has no span to measure. Both
+   * readouts say so rather than draw a plausible curve across the part of
+   * the year they cannot see — the failure this page keeps having to
+   * unlearn is arithmetic that renders to something confident and wrong.
+   *
+   * The wording matters, and the first version got it wrong in exactly
+   * that way. It said "within 5.5° of the pole the midwinter sun NEVER
+   * climbs to within 18° of the horizon" — computed correctly from
+   * 90 − 84.5, and false for the first tenth of a degree it refuses. The
+   * lowest solar-noon altitude in 2026 is −17.926° at 84.5°, −17.976° at
+   * 84.55°: above −18°, so the sun does climb, a dusk/dawn pair does
+   * exist, and a real night does end. Only from about 84.6° is the
+   * sentence true. The margin is deliberate — the edge sits inside the
+   * geometric boundary on purpose — so the sentence now says the boundary
+   * is approached, not crossed, and says why the line is early.
    */
   function darkHoursRefusal(where) {
-    return where + ', this instrument stops. Within '
-      + (90 - M.MAX_MODELLED_LAT_DEG).toFixed(1) + '° of the pole the midwinter'
-      + ' sun never climbs to within 18° of the horizon — no dusk opens the'
-      + ' night, no dawn closes it, and no span is left to measure.';
+    return where + ', this instrument stops. Nearer the pole than about '
+      + M.MAX_MODELLED_LAT_DEG + '°, the midwinter sun stops climbing to within'
+      + ' 18° of the horizon: no dusk opens the night, no dawn closes it, and no'
+      + ' span is left to measure. The line is drawn a little inside where that'
+      + ' begins, so the instrument never has to guess which side of it a'
+      + ' reading falls on.';
   }
 
   /*

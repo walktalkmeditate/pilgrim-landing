@@ -1096,15 +1096,67 @@ function sunpathValue(selector, prop) {
 // properties, and a bare `opacity` multiplies both. Resolved together so a
 // rule cannot declare a strong colour and paint a weak one — which is
 // exactly what the band did while its own assertion was written at 1.1.
+//
+// Dark-mode overrides fall through the same way js/daylight.css's
+// labelEffectiveAlpha resolves them: a `html[data-theme="dark"] <sel>`
+// rule wins per-property over the base rule. Without this, §A's figures
+// describe the light-mode cascade in both modes, and a dark-only override
+// re-introduces the tenth instance with every suite green.
+function sunpathDeclsFor(selector, mode) {
+  const base = sunpathDecls(selector);
+  if (mode !== 'dark') return { base: base, dark: null };
+  const dark = ruleDeclarations(sunpathCss, 'html[data-theme="dark"] ' + selector);
+  return { base: base, dark: dark || null };
+}
+
+function sunpathPropIn(selector, prop, mode) {
+  const d = sunpathDeclsFor(selector, mode);
+  const re = new RegExp('(?:^|[;{\\s])' + prop + ':\\s*([^;]+)');
+  const fromDark = d.dark && re.exec(d.dark);
+  const fromBase = re.exec(d.base);
+  const m = fromDark || fromBase;
+  return m ? m[1].trim() : null;
+}
+
 function sunpathPaintIn(selector, prop, mode) {
-  const decls = sunpathDecls(selector);
-  const color = resolveFillColor(sunpathValue(selector, prop), mode);
-  const own = new RegExp(prop + '-opacity:\\s*([\\d.]+)').exec(decls);
-  const shared = /(^|[^-])opacity:\s*([\d.]+)/.exec(decls);
+  const d = sunpathDeclsFor(selector, mode);
+  const raw = sunpathPropIn(selector, prop, mode);
+  assert.ok(raw, selector + ' has no ' + prop);
+  const color = resolveFillColor(raw, mode);
+  const readNum = function (name) {
+    const v = sunpathPropIn(selector, name, mode);
+    return v === null ? null : parseFloat(v);
+  };
+  const own = readNum(prop + '-opacity');
+  // A bare `opacity:` only — never the `-opacity` partners matched above.
+  const sharedSrc = (d.dark && /(^|[^-])opacity:/.test(d.dark)) ? d.dark : d.base;
+  const sharedM = /(^|[^-])opacity:\s*([\d.]+)/.exec(sharedSrc);
   const alpha = color.alpha
-    * (own ? parseFloat(own[1]) : 1)
-    * (shared ? parseFloat(shared[2]) : 1);
+    * (own === null ? 1 : own)
+    * (sharedM ? parseFloat(sharedM[2]) : 1);
   return { rgb: color.rgb, alpha: alpha };
+}
+
+/* A dash is invisible to a colour lookup and changes the answer.
+   .sunpath-dark-turning shipped `stroke-dasharray: 2 3` — 40% duty —
+   while this sweep measured it solid and the spec recorded 3.954:1 for a
+   mark painting at 1.610:1. At the narrowest column those dashes are
+   ~1.6 x 1.1 device px, small enough that antialiasing blends them toward
+   the duty average, which is the model js/daylight.css's ribbon sweep
+   already uses (dashDutyFor above).
+
+   Rather than duty-weight §A's figures, the marks are solid and this
+   asserts the dash is absent — a mark carrying essential information on
+   this plot may not be dashed, because at this scale it cannot be dashed
+   and still clear 3:1 (0.835 duty was needed, which is not a dash). */
+function sunpathDashDuty(selector, mode) {
+  const raw = sunpathPropIn(selector, 'stroke-dasharray', mode);
+  if (!raw) return 1;
+  const nums = raw.split(/[\s,]+/).map(parseFloat).filter(function (n) { return !isNaN(n); });
+  if (!nums.length) return 1;
+  const on = nums.filter(function (_, i) { return i % 2 === 0; }).reduce(function (a, b) { return a + b; }, 0);
+  const total = nums.reduce(function (a, b) { return a + b; }, 0);
+  return total > 0 ? on / total : 1;
 }
 
 test('the dark-hours curve clears AA-large against every background it is drawn on (§A)', function () {
@@ -1193,6 +1245,51 @@ test('the no-night band is distinguishable from the curve, not a fainter version
   });
 });
 
+test('no §A mark that carries essential information is dashed (Task 7, WCAG 1.4.11)', function () {
+  /* The dash the sweep could not see. .sunpath-dark-turning shipped
+     `stroke-dasharray: 2 3` while every figure recorded for it — 3.954 /
+     6.416 / 7.220 — described a solid stroke. Duty-weighted, the painted
+     values were 1.610 / 2.097 / 2.097, all under 3:1.
+
+     Clearing 3:1 at this colour needs 0.835 duty, which is a solid line
+     with pinholes in it, so the dash could not both distinguish the mark
+     and carry the standard. The marks are solid and told apart by weight
+     and context instead; this is the guard that keeps a dash from coming
+     back and quietly invalidating the row above. */
+  ['.sunpath-dark-turning', '.sunpath-dark-edge', '.sunpath-dark-curve'].forEach(function (sel) {
+    ['light', 'dark'].forEach(function (mode) {
+      const duty = sunpathDashDuty(sel, mode);
+      assert.strictEqual(duty, 1,
+        mode + ' ' + sel + ' is dashed (duty ' + duty.toFixed(3) + '). At this plot\'s scale a '
+          + 'dashed mark paints at its duty average, and 0.835 is needed to clear 3:1 — so a dash '
+          + 'here means the ratio recorded for this mark is not the ratio painted');
+    });
+  });
+});
+
+test('a turning mark clears 3:1 against the band it paints over, not just the page (§A)', function () {
+  /* At 60°N and 70°N the June solstice mark falls INSIDE the zero-dark
+     band, so the background it actually paints on is the wash-composited
+     one, not the bare page. The sweep measured only the page. The margin
+     is smaller here (3.301:1 in light mode against 3.954:1) and it is the
+     figure that would go under first if the wash were ever deepened. */
+  ['light', 'dark'].forEach(function (mode) {
+    const mark = sunpathPaintIn('.sunpath-dark-turning', 'stroke', mode);
+    const wash = sunpathPaintIn('.sunpath-dark-none', 'fill', mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const washPx = composite(wash.rgb, wash.alpha, background.rgb);
+      const markPx = composite(mark.rgb, mark.alpha, washPx);
+      const ratio = contrast(markPx, washPx);
+      console.log('  turning over the band — ' + mode + ' over ' + background.label
+        + ' = ' + ratio.toFixed(3) + ':1');
+      assert.ok(ratio >= GRAPHIC_MIN,
+        mode + ' a turning mark inside the no-night band is ' + ratio.toFixed(3)
+          + ':1 against the wash it sits on over ' + background.label
+          + ', below the ' + GRAPHIC_MIN + ':1 WCAG 1.4.11 asks of it');
+    });
+  });
+});
+
 test('the band declares no stroke, so nothing horizontal lands on the baseline (§A, D5)', function () {
   /* The edge rules are separated from the wash for one reason: a stroked
      rect draws all four sides, and the bottom one is a horizontal line
@@ -1210,10 +1307,16 @@ test('the band declares no stroke, so nothing horizontal lands on the baseline (
      vertical", "nothing at all draws a horizontal rule along the
      baseline") rather than here. This assertion holds the half that lives
      in CSS. */
-  const decls = sunpathDecls('.sunpath-dark-none');
-  assert.match(decls, /stroke:\s*none/,
-    '.sunpath-dark-none must declare stroke: none — a stroked rect draws a '
-      + 'horizontal rule along the baseline, which is the zero-height curve D5 forbids');
+  // Resolved per mode, not read off the base rule: a
+  // `html[data-theme="dark"] .sunpath-dark-none { stroke: ... }` override
+  // re-introduces the tenth instance in dark mode alone, and a base-rule
+  // lookup cannot see it. That mutation passed 28/28 until this changed.
+  ['light', 'dark'].forEach(function (mode) {
+    const stroke = sunpathPropIn('.sunpath-dark-none', 'stroke', mode);
+    assert.strictEqual(stroke, 'none',
+      mode + ' .sunpath-dark-none resolves stroke: ' + stroke + ' — a stroked rect draws a '
+        + 'horizontal rule along the baseline, which is the zero-height curve D5 forbids');
+  });
 
   ['light', 'dark'].forEach(function (mode) {
     const edge = sunpathPaintIn('.sunpath-dark-edge', 'stroke', mode);

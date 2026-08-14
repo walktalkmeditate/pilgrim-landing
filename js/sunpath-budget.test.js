@@ -70,7 +70,13 @@ var BASELINE_BYTES = {
   'js/sunpath-time-machine.js':        2974,
   'js/sunpath-turnings.js':            2946,
   'js/sunpath-countdown.js':           1514,
-  'js/sunpath-archive-tabs.js':         581
+  'js/sunpath-archive-tabs.js':         581,
+  // The document itself. The gate measured only the assets it references,
+  // so markup-only growth — a new section's headings and prose — was worth
+  // exactly zero bytes to it. That is the third time this file has been
+  // caught not counting something: the other two were an unresolvable path
+  // and a mixed gzip implementation, and both were also worth zero.
+  'sunpath/index.html':                5050
 };
 
 var passed = 0, failed = 0, failures = [];
@@ -92,8 +98,14 @@ function referencedFiles(page) {
     });
 }
 
-var page = fs.readFileSync(path.join(ROOT, 'sunpath', 'index.html'), 'utf8');
-var files = referencedFiles(page);
+var PAGE_REL = 'sunpath/index.html';
+var page = fs.readFileSync(path.join(ROOT, PAGE_REL), 'utf8');
+// The document is measured alongside its assets, not instead of them: its
+// gzipped weight already contains every inline <script> and <style>, which
+// were the other thing the old scan could not see.
+var files = referencedFiles(page).concat([PAGE_REL]);
+var inlineScriptBytes = (page.match(/<script(?![^>]*\ssrc=)[^>]*>[\s\S]*?<\/script>/g) || [])
+  .reduce(function (a, m) { return a + m.length; }, 0);
 
 console.log('\n=== /sunpath, per-file gzipped (Node zlib, level 9) ===\n');
 
@@ -102,6 +114,37 @@ ok(files.length > 0, 'the page references js/css assets at all');
 var missing = files.filter(function (f) { return !fs.existsSync(path.join(ROOT, f)); });
 ok(missing.length === 0,
   'every referenced asset resolves on disk' + (missing.length ? ' — missing: ' + missing.join(', ') : ''));
+
+// --- Can this gate see growth at all? ---
+//
+// Every mistake this file has made was the same one: the thing it forgot
+// to count was worth exactly zero bytes, so the total looked right and the
+// assertion passed. An unresolvable path, a mixed gzip implementation, and
+// the document itself — three misses, three silent zeroes. A budget test
+// that cannot demonstrate it responds to growth is not a budget test.
+var probeRel = 'js/sunpath-tools.js';
+var probeBuf = fs.readFileSync(path.join(ROOT, probeRel));
+var probePlain = zlib.gzipSync(probeBuf, { level: 9 }).length;
+// Incompressible, so the gzip delta is the byte delta rather than a guess.
+var probeNoise = require('crypto').randomBytes(4096);
+var probeGrown = zlib.gzipSync(Buffer.concat([probeBuf, probeNoise]), { level: 9 }).length;
+ok(probeGrown - probePlain > 3500,
+  'the measurement responds to growth: +4096 incompressible bytes moves the gzip figure by '
+    + (probeGrown - probePlain) + ' B');
+
+// And the scan and the baseline must describe the same set of files. A key
+// in one and not the other is how a file stops being counted without the
+// total moving.
+var measuredSet = {};
+files.forEach(function (f) { measuredSet[f] = true; });
+var baselineOnly = Object.keys(BASELINE_BYTES).filter(function (f) { return !measuredSet[f]; });
+var scanOnly = files.filter(function (f) { return !(f in BASELINE_BYTES); });
+ok(baselineOnly.length === 0,
+  'every file the baseline names is still scanned'
+    + (baselineOnly.length ? ' — orphaned: ' + baselineOnly.join(', ') : ''));
+ok(scanOnly.length === 0,
+  'and every file scanned has a baseline to compare against'
+    + (scanOnly.length ? ' — unbaselined: ' + scanOnly.join(', ') : ''));
 
 var nowBytes = 0, baseBytes = 0, grew = [];
 files.forEach(function (f) {
@@ -125,6 +168,7 @@ grew.forEach(function (g) {
   console.log('  ' + (g.delta >= 0 ? '+' : '') + (g.delta / 1024).toFixed(2)
     + ' KB  ' + g.file);
 });
+console.log('\n  (of which ' + inlineScriptBytes + ' B is inline <script>, inside the document\'s own gzip)');
 console.log('\n  baseline b270938 : ' + baseKb.toFixed(2) + ' KB');
 console.log('  now              : ' + nowKb.toFixed(2) + ' KB');
 console.log('  delta            : ' + (deltaKb >= 0 ? '+' : '') + deltaKb.toFixed(2)
