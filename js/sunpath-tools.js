@@ -460,10 +460,28 @@
     // rest of the page is about. Every one that gets a mark is collected
     // and handed to the sentence, so the prose names exactly what the
     // plot draws — no more, and no fewer.
+    // Isolated, because everything below it depends on getting here. The
+    // marks are decoration with a textual analogue; the caption is the
+    // whole reading. A throw inside Turnings used to leave the plot
+    // redrawn for the NEW latitude under the OLD latitude's caption —
+    // prose contradicting the pixels, from an exception — and, because
+    // init() calls the six setups in sequence with no isolation, it also
+    // took the dawn sweep, walk-to-sun and daylight-delta off the page.
+    //
+    // On failure `marked` stays empty, which is already the well-tested
+    // "no Turnings module" path: turningClause says nothing, and the
+    // caption names exactly the marks that were drawn. None.
     var marked = [];
     var T = (typeof root !== 'undefined' && root.Turnings) ? root.Turnings : null;
+    var turnings = null;
     if (T && T.getTurningsForYear) {
-      var turnings = T.getTurningsForYear(year);
+      try {
+        turnings = T.getTurningsForYear(year);
+      } catch (e) {
+        turnings = null;
+      }
+    }
+    if (turnings) {
       TURNING_NAMES.forEach(function (t) {
         var d = turnings[t.key];
         if (!d || isNaN(d.getTime())) return;
@@ -869,6 +887,12 @@
     drawDarkHours: drawDarkHours,
     darkHoursSentence: darkHoursSentence,
     yourSkyDarkClause: yourSkyDarkClause,
+    // Exported so the wiring has a seam. Without one, nothing exercised the
+    // picker at all — its five click handlers, its 45° default and the
+    // plot's aria-hidden were untested, and deleting setupDarkHours() from
+    // init() left every suite green. The whole section could leave the page
+    // unnoticed.
+    setupDarkHours: setupDarkHours,
     DARK_VIEW: Object.freeze ? Object.freeze(DARK_VIEW) : DARK_VIEW
   };
 

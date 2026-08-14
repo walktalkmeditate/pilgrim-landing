@@ -25,11 +25,37 @@ function makeNode(tag) {
     firstChild: null,
     dataset: {},
     style: {},
-    classList: { add: function () {}, remove: function () {}, contains: function () { return false; } },
+    // Real enough to drive the picker. These three were no-ops, which is
+    // why setupDarkHours had no test: a click that goes nowhere and a
+    // query that returns nothing cannot show that the wiring works.
+    classes: {},
+    listeners: {},
+    classList: {
+      add: function (c) { node.classes[c] = true; },
+      remove: function (c) { delete node.classes[c]; },
+      contains: function (c) { return !!node.classes[c]; }
+    },
     setAttribute: function (k, v) { node.attrs[k] = v; },
     getAttribute: function (k) { return node.attrs[k]; },
-    addEventListener: function () {},
-    querySelectorAll: function () { return []; },
+    addEventListener: function (ev, fn) {
+      (node.listeners[ev] = node.listeners[ev] || []).push(fn);
+    },
+    click: function () {
+      (node.listeners.click || []).forEach(function (fn) { fn(); });
+    },
+    // Only the one selector setupDarkHours uses, matched against the class
+    // the element was created with plus anything classList added.
+    querySelectorAll: function (sel) {
+      var want = sel.replace(/^\./, '');
+      var out = [];
+      (function walk(n) {
+        n.children.forEach(function (c) {
+          if (c.className === want || c.classes[want]) out.push(c);
+          walk(c);
+        });
+      })(node);
+      return out;
+    },
     appendChild: function (c) { node.children.push(c); node.firstChild = node.children[0]; return c; },
     removeChild: function (c) {
       var i = node.children.indexOf(c);
@@ -600,6 +626,91 @@ equal(reused.children.length, 0,
 
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
+
+console.log('\n=== The section is actually wired to the page ===\n');
+
+/* Nothing drove setupDarkHours. Its five click handlers, its 45° default,
+   the container structure and the plot's aria-hidden were all untested,
+   and deleting the setupDarkHours() call from init() left every suite
+   green — the whole section could leave /sunpath unnoticed. */
+var wiredContainer = makeNode('div');
+var realGetById = global.document.getElementById;
+global.document.getElementById = function (id) {
+  return id === 'sunpath-dark-hours' ? wiredContainer : null;
+};
+Tools.setupDarkHours();
+global.document.getElementById = realGetById;
+
+var wiredPicker = wiredContainer.children.filter(function (c) {
+  return c.className === 'sunpath-lat-picker';
+})[0];
+var wiredPlot = wiredContainer.children.filter(function (c) { return c.tag === 'svg'; })[0];
+var wiredCaption = wiredContainer.children.filter(function (c) {
+  return c.className === 'sunpath-dark-caption';
+})[0];
+
+ok(!!wiredPicker, 'setupDarkHours emits a latitude picker');
+ok(!!wiredPlot, 'and a plot');
+ok(!!wiredCaption, 'and a caption');
+equal(wiredPicker.children.length, 5, 'the picker offers five latitudes');
+equal(wiredPlot.attrs['aria-hidden'], 'true',
+  'the plot is aria-hidden — D10 turns on this, and nothing asserted it before');
+ok(wiredPlot.children.length > 0, 'and it is drawn on setup, not left empty until first click');
+statesIt(wiredCaption.textContent, '45°', 'the default reading is 45°, matching the dawn sweep');
+equal(wiredPicker.children.filter(function (b) { return b.classes['is-active']; }).length, 1,
+  'exactly one button starts active');
+ok(wiredPicker.children[2].classes['is-active'], 'and it is the third — the 45° default');
+
+// A click has to redraw, and move the active state with it. The picker
+// showing one latitude while the plot draws another is the shape of defect
+// this section is meant to be free of.
+wiredPicker.children[4].click();
+statesIt(wiredCaption.textContent, '70°', 'clicking the fifth button redraws at 70°');
+equal(wiredPicker.children.filter(function (b) { return b.classes['is-active']; }).length, 1,
+  'still exactly one button active after the click');
+ok(wiredPicker.children[4].classes['is-active'] && !wiredPicker.children[2].classes['is-active'],
+  'and the active state moved to the button that was clicked');
+
+console.log('\n=== The turnings, against the module that actually ships ===\n');
+
+/* Every turning assertion above ran against a stub. Renaming a key in
+   js/turnings.js would take the marks AND the caption's turnings clause
+   off the page with the whole suite green. This is the one place the real
+   module is loaded. */
+/* js/turnings.js assigns straight to `window.Turnings` with no CommonJS
+   guard, and js/sunpath-tools.js captured `root` as globalThis when it was
+   required (no window existed then). So the shim is: give turnings.js a
+   `window` to write to, then hand what it wrote to the global the tools
+   module actually reads. */
+var prevTurnings = global.Turnings;
+global.window = global.window || {};
+require('./turnings.js');
+global.Turnings = global.window.Turnings;
+ok(!!global.Turnings && typeof global.Turnings.getTurningsForYear === 'function',
+  'the shipped js/turnings.js loaded and exposes getTurningsForYear');
+
+var withReal = draw(45);
+equal(withReal.marks.length, 4,
+  'the shipped js/turnings.js yields four marks, the same as the stub');
+ok(/solstice/.test(withReal.caption.textContent) && /equinox/.test(withReal.caption.textContent),
+  'and the caption names them from the real dates');
+
+/* A module that throws must degrade to the no-marks path, not take the
+   caption with it. Before this, an exception here left the plot redrawn
+   for the new latitude under the previous latitude's caption — and killed
+   the three instruments init() sets up after this one. */
+global.Turnings = {
+  getTurningsForYear: function () { throw new Error('turnings exploded'); }
+};
+var withThrow = draw(60);
+equal(withThrow.marks.length, 0, 'a throwing Turnings module draws no marks');
+ok(withThrow.caption.textContent.indexOf('60°') !== -1,
+  'but the caption is still written, for the latitude actually drawn');
+ok(!/turnings are marked/.test(withThrow.caption.textContent),
+  'and claims no marks, because none were drawn');
+ok(withThrow.curves.length > 0, 'and the curve is still there');
+
+global.Turnings = prevTurnings;
 
 console.log('\n=== Text equivalence (Task 6, D10) ===\n');
 

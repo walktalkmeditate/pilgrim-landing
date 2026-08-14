@@ -142,12 +142,12 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 105.77 KB — **+10.20 KB** |
+| after §A, at HEAD | 106.21 KB — **+10.64 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+20.70 KB** against a **+12.00 KB** budget |
+| projected feature total | **+21.14 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +10.20 — mostly comment, and still inside
+The review fix waves have since taken §A itself to +10.64 — mostly comment, and still inside
 the budget — which only makes the verdict wider.*
 
 *That figure moved twice for reasons worth recording. The polar refusal (D12) cost +0.98 and
@@ -404,9 +404,9 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **105.77 KB — +10.20 KB** |
+| **after §A** | **106.21 KB — +10.64 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.50 KB → 20.70 KB total, over |
+| §B, had it shipped | +10.50 KB → 21.14 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
 per-file from the shipped page and then reads this row back out of this document and
@@ -417,7 +417,7 @@ was a baseline measured with Apple `gzip -9` and a total computed with Node `zli
 subtraction across two implementations. One tool now, named in the table, on both sides of
 the subtraction.
 
-Of the +10.20 KB, +4.91 was §A as first written and the rest is the review fix waves —
+Of the +10.64 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
 
