@@ -19,7 +19,15 @@
   var M = (typeof root !== 'undefined' && root.SunPathMath)
     ? root.SunPathMath
     : (typeof require === 'function' ? require('./sunpath-math.js') : null);
-  if (!M) return;
+  if (!M) {
+    // Six sections vanish silently otherwise. js/sunpath.js logs the same
+    // failure; this file did not.
+    if (typeof console !== 'undefined') {
+      console.error('SunPathTools: SunPathMath not loaded — festivals, analemma, '
+        + 'dark hours, dawn sweep, walk-to-sun and daylight-delta will not initialise');
+    }
+    return;
+  }
 
   function svgEl(tag, attrs) {
     var el = document.createElementNS(SVG_NS, tag);

@@ -272,16 +272,27 @@
     dom.yourskyBtn.addEventListener('click', requestYourSky);
   }
 
+  // Last request ISSUED wins, not last settled: two taps with a slow first
+  // fix let the stale answer overwrite the fresh one.
+  var yourSkyToken = 0;
+
   function requestYourSky() {
     if (!navigator.geolocation) {
       showYourSky(null, 'Your browser can’t share a location.');
       return;
     }
+    var token = ++yourSkyToken;
     dom.yourskyReadout.hidden = false;
     dom.yourskyReadout.textContent = 'locating…';
     navigator.geolocation.getCurrentPosition(
-      function (pos) { showYourSky({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
-      function () { showYourSky(null, 'Couldn’t read your location — no worries.'); },
+      function (pos) {
+        if (token !== yourSkyToken) return;
+        showYourSky({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      function () {
+        if (token !== yourSkyToken) return;
+        showYourSky(null, 'Couldn’t read your location — no worries.');
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
     );
   }

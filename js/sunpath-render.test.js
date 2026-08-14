@@ -603,7 +603,7 @@ statesIt(clauseS, 116,
   '−60° reports its own 116 nights, not +60°\'s 123 — the hemispheres are not mirrors');
 ok(/never/.test(clauseS), '−60° still says the dark never fully arrives');
 
-// Amundsen–Scott station is permanently staffed at −89.9975°, and for 82
+// Amundsen–Scott station is permanently staffed at −89.9975°, and for 81
 // nights of the year the dark there does not end. Told that "for 365
 // nights it never fully arrives at all" — which is what a null collapsed
 // to 0 produces — the reader is given the precise opposite of their sky.
@@ -673,6 +673,32 @@ equal(reused.children.length, 0,
 
 ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
   'yourSkyDarkClause is pure');
+
+console.log('\n=== The page\'s own prose, against the boundary the math derives ===\n');
+
+/* sunpath/index.html says true dark "stops coming at all for part of the
+   summer" past about 48½°. That figure is hand-written and nothing tied it
+   to the 48.56° this suite re-derives from the declination series — correct
+   today, and free to drift the moment either moves. */
+var pageHtml = require('fs').readFileSync(
+  require('path').join(__dirname, '..', 'sunpath', 'index.html'), 'utf8');
+var proseM = /(\d+)(½|\.5)?°[^<.]*stops coming at all/.exec(pageHtml);
+ok(!!proseM, 'the page states a latitude where true dark stops coming at all');
+if (proseM) {
+  var claimed = Number(proseM[1]) + (proseM[2] ? 0.5 : 0);
+  // Derived, not restated: the June-solstice midnight sun reaches −18° where
+  // (lat − 66.56) does, so the first latitude that loses a night is the one
+  // whose series contains a zero.
+  var firstZeroLat = null;
+  for (var pl = 47; pl < 51 && firstZeroLat === null; pl += 0.01) {
+    var pr = M.zeroDarkRuns(M.darkHoursYear(Math.round(pl * 100) / 100, YEAR));
+    if (pr && pr.length) firstZeroLat = Math.round(pl * 100) / 100;
+  }
+  ok(firstZeroLat !== null, 'and the series says where that actually happens (' + firstZeroLat + '°)');
+  ok(Math.abs(claimed - firstZeroLat) < 0.5,
+    'the page\'s "' + claimed + '°" is within half a degree of the derived '
+      + firstZeroLat + '° — prose and math agree');
+}
 
 console.log('\n=== The caption says WHERE the extremes fall, and only when true (D10) ===\n');
 

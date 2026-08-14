@@ -142,12 +142,12 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 107.20 KB — **+11.64 KB** |
+| after §A, at HEAD | 107.43 KB — **+11.86 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+22.14 KB** against a **+12.00 KB** budget |
+| projected feature total | **+22.36 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +11.64 — mostly comment, and still inside
+The review fix waves have since taken §A itself to +11.86 — mostly comment, and still inside
 the budget — which only makes the verdict wider.*
 
 *That figure moved twice for reasons worth recording. The polar refusal (D12) cost +0.98 and
@@ -412,9 +412,9 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **107.20 KB — +11.64 KB** |
+| **after §A** | **107.43 KB — +11.86 KB** |
 | budget | 12.00 KB |
-| §B, had it shipped | +10.50 KB → 22.14 KB total, over |
+| §B, had it shipped | +10.50 KB → 22.36 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
 per-file from the shipped page and then reads this row back out of this document and
@@ -425,7 +425,7 @@ was a baseline measured with Apple `gzip -9` and a total computed with Node `zli
 subtraction across two implementations. One tool now, named in the table, on both sides of
 the subtraction.
 
-Of the +11.64 KB, +4.91 was §A as first written and the rest is the review fix waves —
+Of the +11.86 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
 
@@ -488,6 +488,34 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
 - *These counts have been wrong twice.* The first pair published here (18 and 4) was measured
   at Task 1 and went stale when Task 2 added tests to the same file; the second (23 and 25)
   went stale when the qualifier guard was added. They are re-measured, not recalled.
+
+### Known debt, left deliberately — 2026-08-14
+
+The review found these and they are not fixed. Naming them is the point; a review whose
+leftovers dissolve into silence is how the first seven instances accumulated.
+
+- **`js/sunpath-math.js` grew +2.79 KB gzipped, and `/daylight` and `/moonpath` both load
+  it** without calling one dark-hours function. D9's budget is scoped to `/sunpath`, so that
+  cost lands on two other pages entirely unmeasured, and neither has a budget test. Splitting
+  the dark-hours functions into their own module would fix it and cost more bytes on
+  `/sunpath` than it saves elsewhere. **The right fix is a budget test for those two pages,
+  not a split here.**
+- **The y axis rescales above 14 h with no axis, ticks or gridline drawn.** Only the caption
+  carries units, so two latitudes on two different scales are visually identical. Unreachable
+  from the picker (0–70°, all under 14 h) and from "your sky" (which draws nothing), so it is
+  latent — but `drawDarkHours` is exported and the render suite draws at the edge. Drawing an
+  axis is a design change, and at +11.86 KB against +12.00 there is no room to make it
+  carelessly.
+- **The turning-mark idx range guard survives deletion**, and a partially-valid `Turnings`
+  return (some keys good, some malformed) has no coverage. The all-valid and all-absent and
+  all-throwing cases do.
+- **`init()` still calls its six setups in sequence with no isolation between them.** The
+  dark-hours section can no longer take the others down — its own throw path is wrapped — but
+  any of the other five can still take out the ones after it. Fixing that properly means
+  wrapping all six, which is a change to five sections this branch did not otherwise touch.
+
+The page-weight budget is the binding constraint on all of these, which is D9 working as
+intended rather than an excuse: it cost §B a whole feature, and it is now costing polish.
 
 ### Departures from the spec, and why
 
