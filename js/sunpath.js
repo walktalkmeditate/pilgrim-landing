@@ -302,7 +302,16 @@
       if (renderer.setIdle) renderer.setIdle(false);
       renderer.render(buildState());
     }
-    dom.yourskyReadout.textContent = yourSkyText(altDeg, distKm, sunriseAz);
+    // The dark-hours clause (after-the-sun D3) extends this readout rather
+    // than adding a control of its own. If sunpath-tools has not loaded, or
+    // the latitude is unusable, the clause is simply absent — this path
+    // must never block and must never invent a reading.
+    var darkClause = (window.SunPathTools && window.SunPathTools.yourSkyDarkClause)
+      ? window.SunPathTools.yourSkyDarkClause(loc.lat)
+      : '';
+
+    dom.yourskyReadout.textContent =
+      yourSkyText(altDeg, distKm, sunriseAz) + (darkClause ? ' ' + darkClause : '');
   }
 
   function yourSkyText(altDeg, distKm, sunriseAz) {

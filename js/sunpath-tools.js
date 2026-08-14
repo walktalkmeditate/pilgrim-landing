@@ -343,6 +343,47 @@
     if (caption) caption.textContent = darkHoursSentence(lat, series, runs);
   }
 
+  /*
+   * yourSkyDarkClause(lat, year) — one sentence about the reader's own
+   * latitude, for the "your sky" readout that already exists (D3).
+   *
+   * This EXTENDS geolocation rather than adding a control: §A works
+   * exactly the same on the picker if location is refused or
+   * unavailable, and no path here blocks on a prompt. A missing latitude
+   * returns '' — an absence a caller can test, not an empty sentence and
+   * never a reading about NaN°.
+   *
+   * Southern latitudes are not a mirror of northern ones: −60° loses 116
+   * nights to the midnight sun where +60° loses 123, because southern
+   * summer is the shorter season — Earth moves fastest near perihelion in
+   * January. The clause reports what its own latitude gives.
+   */
+  function yourSkyDarkClause(lat, year) {
+    if (lat == null || isNaN(lat)) return '';
+    year = year || new Date().getUTCFullYear();
+
+    var series = M.darkHoursYear(lat, year);
+    if (!series.length) return '';
+    var runs = M.zeroDarkRuns(series);
+    var longest = Math.max.apply(null, series);
+    var shortest = Math.min.apply(null, series);
+
+    if (runs.length) {
+      var lost = runs.reduce(function (a, r) { return a + r.days; }, 0);
+      return 'Where you are, the longest night gives ' + longest.toFixed(1)
+        + ' hours of true dark — and for ' + lost + ' nights around midsummer'
+        + ' it never fully arrives at all.';
+    }
+
+    if (longest - shortest < 0.5) {
+      return 'Where you are, every night of the year gives about '
+        + longest.toFixed(1) + ' hours of true dark — the same night, all year.';
+    }
+
+    return 'Where you are, true dark runs from ' + shortest.toFixed(1)
+      + ' hours at its shortest to ' + longest.toFixed(1) + ' at its longest.';
+  }
+
   function setupDarkHours() {
     var container = document.getElementById('sunpath-dark-hours');
     if (!container) return;
@@ -673,7 +714,11 @@
      upstream proxy stays green while the drawn thing changes underneath.
      ========================================== */
 
-  var api = { drawDarkHours: drawDarkHours, darkHoursSentence: darkHoursSentence };
+  var api = {
+    drawDarkHours: drawDarkHours,
+    darkHoursSentence: darkHoursSentence,
+    yourSkyDarkClause: yourSkyDarkClause
+  };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;

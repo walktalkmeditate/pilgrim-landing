@@ -176,6 +176,45 @@ var s1 = Tools.darkHoursSentence(60, M.darkHoursYear(60, YEAR), M.zeroDarkRuns(M
 var s2 = Tools.darkHoursSentence(60, M.darkHoursYear(60, YEAR), M.zeroDarkRuns(M.darkHoursYear(60, YEAR)));
 ok(s1 === s2, 'darkHoursSentence is pure');
 
+console.log('\n=== Your sky — the curve becomes personal (Task 4, D3) ===\n');
+
+// D3: this EXTENDS the geolocation that already exists; it does not add a
+// control, and it never blocks. The clause is pure so it can be asserted
+// without a browser, and so the refusal path is a plain absence.
+
+var clause45 = Tools.yourSkyDarkClause(45, YEAR);
+ok(/8\.\d|9\.\d|1[01]\.\d/.test(clause45), '45°: the clause names a longest night in hours');
+ok(clause45.indexOf('11.7') !== -1, '45°: that longest night is 11.7 h, matching the series');
+ok(!/never/.test(clause45), '45° always gets a night, so nothing is claimed about losing it');
+
+var clause60 = Tools.yourSkyDarkClause(60, YEAR);
+ok(clause60.indexOf('123') !== -1, '60°: the clause counts the nights with no true dark');
+ok(/never/.test(clause60), '60°: and says plainly that the dark never fully arrives');
+
+var clause0 = Tools.yourSkyDarkClause(0, YEAR);
+ok(/every night/.test(clause0) || /same/.test(clause0),
+  'the equator gets its own reading — every night alike, not a swing of zero');
+
+// The refusal path is an absence, not an empty string or a fabricated
+// latitude. A caller that got no location must be able to tell.
+equal(Tools.yourSkyDarkClause(null, YEAR), '', 'no latitude yields no clause at all');
+equal(Tools.yourSkyDarkClause(undefined, YEAR), '', 'undefined likewise');
+equal(Tools.yourSkyDarkClause(NaN, YEAR), '', 'NaN likewise — never a sentence about NaN°');
+
+// Southern latitudes are a real reader, and they are NOT a mirror. −60°
+// loses 116 nights to the midnight sun where +60° loses 123, because
+// southern summer is the shorter one — Earth moves fastest near
+// perihelion in January. Asserting the real number rather than a mirrored
+// one is the difference between a clause that is true and one that looks
+// true.
+var clauseS = Tools.yourSkyDarkClause(-60, YEAR);
+ok(clauseS.indexOf('116') !== -1,
+  '−60° reports its own 116 nights, not +60°\'s 123 — the hemispheres are not mirrors');
+ok(/never/.test(clauseS), '−60° still says the dark never fully arrives');
+
+ok(Tools.yourSkyDarkClause(45, YEAR) === Tools.yourSkyDarkClause(45, YEAR),
+  'yourSkyDarkClause is pure');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
