@@ -323,6 +323,46 @@ statesIt(d60.caption.textContent, 11.7,
 statesIt(d70.caption.textContent, 1.2, '70°: likewise its shortest real night, 1.2 h');
 statesIt(d70.caption.textContent, 12.4, '70°: and its real swing, 12.4 h');
 
+// The qualifier that makes the range honest. At 60° the caption reports a
+// 0.9-hour shortest night, and 123 nights of that year have no night at
+// all — so the range is over the nights that HAVE one, and the sentence
+// has to say so. Without "on the nights it comes at all" it reads "true
+// dark lasts between 0.9 and 12.6 hours a night", which claims a 0.9-hour
+// night happens nightly at a latitude where a third of the year has none.
+//
+// This is the eighth instance's twin, and the fix for the eighth — assert
+// that "between 0.0 " is absent — does not touch it: every number in the
+// unqualified sentence is correct. It is the missing clause that lies. The
+// branch shipped with no assertion on either side of it, and 94 assertions
+// stayed green with it forced permanently on or permanently off.
+var QUALIFIER = /on the nights it comes at all/;
+
+ok(QUALIFIER.test(d60.caption.textContent),
+  '60°: the range is qualified — it is over the nights that have a night');
+ok(QUALIFIER.test(d70.caption.textContent), '70°: likewise');
+ok(!/hours a night/.test(d60.caption.textContent),
+  '60°: and does not also say "a night", which would put the claim back');
+
+ok(!QUALIFIER.test(d45.caption.textContent),
+  '45° has a night every night, so its range needs no qualifying — and an '
+    + 'unearned qualifier is the same defect pointing the other way');
+ok(/hours a night/.test(d45.caption.textContent),
+  '45°: it says "a night" plainly, because there every night is one');
+ok(!QUALIFIER.test(d0.caption.textContent), '0°: likewise unqualified');
+
+// Tied to the data rather than to the two latitudes above, so the pairing
+// cannot drift: wherever a stretch of no-night exists, the qualifier is
+// there, and wherever none exists, it is not.
+[0, 23.5, 45, 60, 70, -60, -70, 84].forEach(function (lat) {
+  var series = M.darkHoursYear(lat, YEAR);
+  var runs = M.zeroDarkRuns(series);
+  var text = Tools.darkHoursSentence(lat, series, runs, []);
+  if (!series.some(function (h) { return h > 0; })) return;
+  equal(QUALIFIER.test(text), runs.length > 0,
+    lat + '°: the qualifier is present exactly when there are nights without a night ('
+      + runs.length + ' stretch' + (runs.length === 1 ? '' : 'es') + ')');
+});
+
 // An all-zero series has no shortest night at all. No latitude on Earth
 // produces one, so it is constructed — the guard has to hold before the
 // case is reachable, not after.

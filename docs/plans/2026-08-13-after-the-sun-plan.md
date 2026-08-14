@@ -22,8 +22,11 @@ vendor dependency, no new data file.
 ## Global constraints
 
 - **Budget: +12 KB gzipped for the whole feature**, measured per-file (not concatenated —
-  that understates it by ~5%). `/sunpath` is 90.9 KB today. If §B will not fit, §B is cut
-  before the budget is raised. This is D9 and it is binding.
+  that understates it by ~5%). `/sunpath` is **90.63 KB** today, measured with Node `zlib`
+  at level 9 — the tool the budget test uses. (This line first said 90.9 KB, which was an
+  Apple `gzip -9` figure; mixing the two implementations is the error the spec's Result
+  section records.) If §B will not fit, §B is cut before the budget is raised. This is D9
+  and it is binding.
 - **A night with no true dark renders as an absence, never a zero** (D5). A zero-height bar
   looks exactly like a very short night.
 - **Assertions read emitted elements, not the model that produced them** (D5). This is the
@@ -86,7 +89,10 @@ part and the spec keeps it in full.
 
 - [x] Run: `node js/sunpath-math.test.js` — expect FAIL, function not defined.
 - [x] Implement both. A night whose window never closes returns **0**, and the caller must
-      be able to tell 0-because-no-night from a short night — see Task 2.
+      be able to tell 0-because-no-night from a short night — see Task 2. *(Superseded by
+      D12: exactly 0 holds across the band where every night ends, and `null` — not modelled
+      — above 84.5°, because the two opposite conditions behind that `0` cannot be told
+      apart reliably at those latitudes. See the spec.)*
 - [x] Run — expect PASS.
 - [x] Commit.
 

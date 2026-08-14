@@ -32,9 +32,15 @@ shipped caption states.*
 
 *The zero-night counts are good to **±1 day**. Declination is sampled once per night, at
 midday, while the event it decides falls some twelve hours later; an independent
-integration at 1–2 s resolution gives 122 and 176 where this page gives 123 and 177. That
-is inside the page's stated accuracy ("approximate but visualization-correct", ~0.5°) and
-the counts are quoted here as this page computes them.*
+integration at 1–2 s resolution gives 122 and 176 where this page gives 123 and 177. The
+counts are quoted here as this page computes them.*
+
+*An earlier draft justified that tolerance by citing the page's "stated accuracy
+(**"approximate but visualization-correct"**, ~0.5°)". The page states no such thing —
+the phrase appears nowhere in this repository except in the sentence that attributed it —
+and ~0.5° is the accuracy of the **equation of time, in minutes**, a different quantity.
+`js/sunpath-math.js` puts the Spencer declination series at **~0.05°**. The ±1 day is a
+sampling-cadence artefact, not a series-accuracy one, and it needed no citation to say so.*
 
 At the equator every night of the year is the same length. At 45° it nearly quadruples
 across the year. At 70° true dark does not come at all for nearly half of it.
@@ -454,12 +460,20 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
   from textbook obliquity (D12).
 - The curve **breaks** around a zero-dark stretch: 60° draws as two segments covering 242 of
   365 nights, 70° as two covering 188, and **no emitted point sits on the baseline**.
-- Mutation-checked, re-run at HEAD after the review fix wave: running the curve through the
-  zeros turns 5 render assertions red; a zero-height band turns 1; nautical twilight instead
-  of astronomical turns 23 in the math suite and 25 in the render suite; clamping a no-night
-  to 0.01 instead of exact zero turns 6 red and then crashes the math suite on a run that is
-  no longer there. (The counts first published here — 18 and 4 — were measured at Task 1 and
-  went stale the moment Task 2 added tests to the same file.)
+- Mutation-checked, re-measured at HEAD after every fix wave including the last: running the
+  curve through the zeros turns **5** render assertions red; a zero-height band turns **1**;
+  nautical twilight instead of astronomical turns **24** in the math suite and **26** in the
+  render suite; clamping a no-night to 0.01 instead of exact zero turns **6** math and **2**
+  render red and then crashes both on a run that is no longer there.
+- Added by the last two fixes: deleting either domain guard, restoring the textbook 84.56°
+  edge, over-refusing to 60°, or reading the twilight null as 24 all turn the math suite red
+  (D12); re-stroking the band, drawing its edges horizontally, or dropping them turn the
+  render suite red, and re-stroking it turns `muted-contrast` red as well (the tenth
+  instance); forcing the caption's qualifier permanently on turns **6** render assertions
+  red and permanently off turns **8**.
+- *These counts have been wrong twice.* The first pair published here (18 and 4) was measured
+  at Task 1 and went stale when Task 2 added tests to the same file; the second (23 and 25)
+  went stale when the qualifier guard was added. They are re-measured, not recalled.
 
 ### Departures from the spec, and why
 
