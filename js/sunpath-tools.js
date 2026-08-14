@@ -399,15 +399,28 @@
 
     // The zero-dark stretch first, so the curve draws over it rather than
     // under. A band, not a flat piece of curve — that is the whole of D5.
+    // The wash is fill-only and the two ends are separate vertical rules.
+    // A stroked rect would also draw its bottom edge along the baseline —
+    // a horizontal stone line 1.251:1 from the curve's own ink, which is
+    // the flat-piece-of-curve-at-zero D5 forbids, drawn by the stylesheet
+    // in an element the point-level guard never looked at.
+    var bandTop = DARK_VIEW.padT;
+    var bandBottom = DARK_VIEW.h - DARK_VIEW.padB;
     runs.forEach(function (run) {
       var x1 = darkX(run.startIndex, days);
-      var x2 = darkX(run.endIndex, days);
+      var w  = Math.max(darkX(run.endIndex, days) - x1, 1);
       plot.appendChild(svgEl('rect', {
         'class': 'sunpath-dark-none',
-        x: x1, y: DARK_VIEW.padT,
-        width: Math.max(x2 - x1, 1),
-        height: DARK_VIEW.h - DARK_VIEW.padT - DARK_VIEW.padB
+        x: x1, y: bandTop,
+        width: w,
+        height: bandBottom - bandTop
       }));
+      [x1, x1 + w].forEach(function (x) {
+        plot.appendChild(svgEl('line', {
+          'class': 'sunpath-dark-edge',
+          x1: x, y1: bandTop, x2: x, y2: bandBottom
+        }));
+      });
     });
 
     // The curve itself covers only the nights that HAVE a night. A run is

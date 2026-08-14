@@ -82,6 +82,16 @@ var YEAR = 2026;
 // literal 200 − 22 here goes stale the moment the viewBox is retuned, and
 // the baseline check below would then pass vacuously — D5's own failure
 // shape, applied to the test's arithmetic.
+// Read from the stylesheet, not assumed: the whole point of the check
+// below is that the rect's bottom edge is only forbidden when it is
+// stroked, and whether it is stroked lives in css/sunpath.css.
+var BAND_CSS = require('fs')
+  .readFileSync(require('path').join(__dirname, '..', 'css', 'sunpath.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+var BAND_RULE = /\.sunpath-dark-none\s*\{([^}]*)\}/.exec(BAND_CSS);
+var BAND_IS_STROKED = !!BAND_RULE && !/stroke:\s*none/.test(BAND_RULE[1])
+  && /stroke:/.test(BAND_RULE[1]);
+
 var VIEW = Tools.DARK_VIEW;
 var PLOT_H = VIEW.h - VIEW.padT - VIEW.padB;
 var BASELINE_Y = VIEW.h - VIEW.padB;
@@ -99,7 +109,15 @@ function draw(lat) {
     caption: caption,
     curves: plot.children.filter(function (c) { return c.tag === 'polyline'; }),
     bands:  plot.children.filter(function (c) { return c.tag === 'rect'; }),
-    marks:  plot.children.filter(function (c) { return c.tag === 'line'; })
+    // Split by class, not by tag: the band's two ends are <line> too, and
+    // a filter that lumps them in with the turnings would report six marks
+    // at 60° and call it four.
+    marks:  plot.children.filter(function (c) {
+      return c.tag === 'line' && c.attrs['class'] === 'sunpath-dark-turning';
+    }),
+    edges:  plot.children.filter(function (c) {
+      return c.tag === 'line' && c.attrs['class'] === 'sunpath-dark-edge';
+    })
   };
 }
 
@@ -145,18 +163,74 @@ d60.curves.forEach(function (c) {
 });
 equal(atBaseline, 0, '60°: not one curve point sits on the baseline');
 
+// The same rule, applied to EVERY element rather than to the curve's
+// points. The band shipped as a stroked <rect>, whose bottom edge is a
+// horizontal stone line along the baseline — 1.251:1 from the curve's own
+// ink in dark mode, near enough to read as a flat piece of curve at zero.
+// The guard above looked only at polyline points and never saw it. This is
+// the shape of the mistake, not just the instance: a property asserted
+// against one element while another draws the thing it forbids.
+var horizontalOnBaseline = [];
+d60.plot.children.forEach(function (el) {
+  if (el.tag === 'rect') {
+    var bottom = Number(el.attrs.y) + Number(el.attrs.height);
+    var stroked = (el.attrs['class'] || '').indexOf('sunpath-dark-none') !== -1;
+    if (stroked && Math.abs(bottom - BASELINE_Y) < 0.01) {
+      // A fill-only rect may end at the baseline; a stroked one draws on it.
+      if (BAND_IS_STROKED) horizontalOnBaseline.push('rect bottom edge');
+    }
+  }
+  if (el.tag === 'line'
+      && Math.abs(Number(el.attrs.y1) - Number(el.attrs.y2)) < 0.01
+      && Math.abs(Number(el.attrs.y1) - BASELINE_Y) < 0.01) {
+    horizontalOnBaseline.push(el.attrs['class'] + ' (horizontal line)');
+  }
+});
+equal(horizontalOnBaseline.length, 0,
+  '60°: nothing at all draws a horizontal rule along the baseline'
+    + (horizontalOnBaseline.length ? ' — found ' + horizontalOnBaseline.join(', ') : ''));
+
+// The band's two ends carry its 3:1, so they have to exist, be vertical,
+// and land where the stretch does. Vertical is the load-bearing word: a
+// horizontal rule in this colour is the defect above.
+equal(d60.edges.length, 2, '60°: the stretch is bounded by exactly two edge rules');
+equal(d70.edges.length, 2, '70°: likewise');
+ok(d60.edges.every(function (e) { return Number(e.attrs.x1) === Number(e.attrs.x2); }),
+  '60°: both edges are vertical — a horizontal one would read as curve');
+ok(d60.edges.every(function (e) {
+  return Math.abs(Number(e.attrs.y1) - VIEW.padT) < 0.01
+      && Math.abs(Number(e.attrs.y2) - BASELINE_Y) < 0.01;
+}), '60°: and both span the plot, matching the wash they bound');
+equal(Number(d60.edges[0].attrs.x1), Number(d60.bands[0].attrs.x),
+  '60°: the first edge stands at the wash\'s left side');
+equal(Number(d60.edges[1].attrs.x1),
+  Number(d60.bands[0].attrs.x) + Number(d60.bands[0].attrs.width),
+  '60°: and the second at its right — not a pixel adrift from what it marks');
+equal(d45.edges.length, 0, '45°: no stretch, so no edges to bound it');
+
 // The axis is 14 h because 70°, the highest latitude the picker offers,
 // peaks at 13.6. Nothing stops a caller handing this a latitude the picker
-// does not offer — yourSky does exactly that — and above 84.56° a night
-// lasts the whole 24 hours. On a fixed 14-hour axis that curve is drawn
-// above the top of the viewBox: present in the DOM, off the plot.
-var d85 = draw(85);
-var y85 = d85.curves.reduce(function (a, c) {
+// does not offer — yourSky does exactly that — and at the modelled edge a
+// night runs 23.0 h. On a fixed 14-hour axis that curve is drawn above the
+// top of the viewBox: present in the DOM, off the plot.
+//
+// Asserted at the edge itself, not past it: draw(85) now emits nothing, and
+// `Math.max.apply(null, [])` is −Infinity, so this test passed on an empty
+// set for as long as it named a latitude the instrument had stopped drawing.
+var EDGE_LAT = require('./sunpath-math.js').MAX_MODELLED_LAT_DEG;
+var dEdge = draw(-EDGE_LAT);
+var yEdge = dEdge.curves.reduce(function (a, c) {
   return a.concat(c.attrs.points.split(' ').map(function (p) { return Number(p.split(',')[1]); }));
 }, []);
-ok(Math.max.apply(null, y85) <= BASELINE_Y + 0.01 && Math.min.apply(null, y85) >= VIEW.padT - 0.01,
-  '85°, where a night runs the full 24 h, still draws inside the box  (y '
-  + Math.min.apply(null, y85).toFixed(1) + '…' + Math.max.apply(null, y85).toFixed(1)
+// Non-vacuity is the whole point of this line: the assertion below reads
+// Math.max/Math.min over this array, and both are silently satisfiable by
+// an empty one. Near the pole most of the year has no astronomical night,
+// so the count is a minority of 365 and that is correct.
+ok(yEdge.length > 100,
+  'the modelled edge draws a real curve to measure — ' + yEdge.length + ' of 365 nights');
+ok(Math.max.apply(null, yEdge) <= BASELINE_Y + 0.01 && Math.min.apply(null, yEdge) >= VIEW.padT - 0.01,
+  '−' + EDGE_LAT + '°, where a night runs 23.0 h, still draws inside the box  (y '
+  + Math.min.apply(null, yEdge).toFixed(1) + '…' + Math.max.apply(null, yEdge).toFixed(1)
   + ' within ' + VIEW.padT + '…' + BASELINE_Y + ')');
 
 console.log('\n=== The equator is flat, which is the section\'s whole point ===\n');

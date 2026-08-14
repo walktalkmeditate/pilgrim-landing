@@ -1126,12 +1126,16 @@ test('every §A mark that carries essential information clears 3:1 against the p
   /* D5 makes the no-night band essential by construction — it is the
      whole of how a reader tells "no night" from "a very short one" — and
      the turning marks are the only thing placing the curve in the year.
-     The band carries its 3:1 on its EDGE: taking the wash itself to 3:1
+     The band carries its 3:1 on its EDGES: taking the wash itself to 3:1
      would need alpha 0.84 in light mode, which is a wall of stone across
      a third of the plot. The wash is redundant reinforcement and is not
-     asked to clear anything; the rule around it is the mark. */
+     asked to clear anything; the rules at the stretch's ends are the mark.
+
+     `.sunpath-dark-edge` rather than the rect's own stroke, because a
+     stroked rect draws its BOTTOM edge along the baseline too — see the
+     stroke: none assertion below. */
   const MARKS = [
-    { sel: '.sunpath-dark-none', prop: 'stroke', what: 'the no-night band\'s edge' },
+    { sel: '.sunpath-dark-edge', prop: 'stroke', what: 'the no-night band\'s edge' },
     { sel: '.sunpath-dark-turning', prop: 'stroke', what: 'a turning mark' }
   ];
   ['light', 'dark'].forEach(function (mode) {
@@ -1156,7 +1160,7 @@ test('§A\'s marks are wide enough that the contrast measured for them is real (
      is one CSS pixel only at full width. Under one device pixel a stroke
      is painted at partial coverage — an alpha multiplier the sweep above
      does not model — and every figure it printed is optimistic. */
-  ['.sunpath-dark-none', '.sunpath-dark-turning', '.sunpath-dark-curve'].forEach(function (sel) {
+  ['.sunpath-dark-edge', '.sunpath-dark-turning', '.sunpath-dark-curve'].forEach(function (sel) {
     const units = parseFloat(sunpathValue(sel, 'stroke-width'));
     const devicePx = units * (NARROWEST_CONTENT_PX / DARK_VIEWBOX_UNITS);
     console.log('  ' + sel + ': stroke-width ' + units + ' units → '
@@ -1189,6 +1193,40 @@ test('the no-night band is distinguishable from the curve, not a fainter version
   });
 });
 
+test('the band declares no stroke, so nothing horizontal lands on the baseline (§A, D5)', function () {
+  /* The edge rules are separated from the wash for one reason: a stroked
+     rect draws all four sides, and the bottom one is a horizontal line
+     along y = h − padB — the baseline. In stone at full strength that
+     measures 1.251:1 against the curve's own ink in dark mode, near
+     enough to read as a flat piece of curve at zero. D5 forbids exactly
+     that, and the render suite's guard looked only at the polyline's
+     points, so the stylesheet drew it for a whole branch unchallenged.
+
+     The edges cannot be asked to clear a colour floor against the curve —
+     they are 1.545:1 in light mode and would fail one. They are told
+     apart from it by ORIENTATION: vertical rules at the stretch's two
+     ends. That is a real distinction and not a colour one, which is why
+     it is enforced in js/sunpath-render.test.js ("both edges are
+     vertical", "nothing at all draws a horizontal rule along the
+     baseline") rather than here. This assertion holds the half that lives
+     in CSS. */
+  const decls = sunpathDecls('.sunpath-dark-none');
+  assert.match(decls, /stroke:\s*none/,
+    '.sunpath-dark-none must declare stroke: none — a stroked rect draws a '
+      + 'horizontal rule along the baseline, which is the zero-height curve D5 forbids');
+
+  ['light', 'dark'].forEach(function (mode) {
+    const edge = sunpathPaintIn('.sunpath-dark-edge', 'stroke', mode);
+    const curve = sunpathPaintIn('.sunpath-dark-curve', 'stroke', mode);
+    RIBBON_BACKGROUNDS[mode].forEach(function (background) {
+      const ratio = contrast(composite(edge.rgb, edge.alpha, background.rgb),
+                             composite(curve.rgb, curve.alpha, background.rgb));
+      console.log('  edge vs curve — ' + mode + ' over ' + background.label
+        + ' = ' + ratio.toFixed(3) + ':1 (orientation carries this, not colour)');
+    });
+  });
+});
+
 test('the spec\'s stated §A contrast figures are the figures §A measures (AC #14)', function () {
   /* AC #14 says no spec figure ships without a test that recomputes it,
      and names this file's spec-parsing pattern as the mechanism. It was
@@ -1210,7 +1248,7 @@ test('the spec\'s stated §A contrast figures are the figures §A measures (AC #
     {
       label: 'the no-night band\'s edge, vs the page',
       measure: function (mode, background) {
-        const e = sunpathPaintIn('.sunpath-dark-none', 'stroke', mode);
+        const e = sunpathPaintIn('.sunpath-dark-edge', 'stroke', mode);
         return contrast(composite(e.rgb, e.alpha, background.rgb), background.rgb);
       }
     },

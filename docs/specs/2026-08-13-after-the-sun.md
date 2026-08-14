@@ -136,16 +136,16 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 99.27 KB — **+8.63 KB** |
+| after §A, at HEAD | 99.80 KB — **+9.17 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
-| projected feature total | **+19.13 KB** against a **+12.00 KB** budget |
+| projected feature total | **+19.67 KB** against a **+12.00 KB** budget |
 
 *The gate fired when §A stood at +4.91 KB and §B's modules would have taken it to +15.43.
-The review fix waves have since taken §A itself to +8.63 — mostly comment, and still inside
-the budget — which only makes the verdict wider. The last 0.98 KB is the polar refusal
-(D12): 0.69 KB of it is the comment explaining why the instrument declines above 84.5°
-rather than answering. That is the trade this codebase keeps making deliberately — the
-reasoning ships with the code, because the bug it replaced was reintroduced twice.*
+The review fix waves have since taken §A itself to +9.17 — mostly comment, and still inside
+the budget — which only makes the verdict wider. The last 1.52 KB is two fixes: the polar
+refusal (D12, +0.98) and the band's edges (the tenth instance, +0.54). Roughly two thirds of
+both is comment explaining why. That is the trade this codebase keeps making deliberately —
+the reasoning ships with the code, because these bugs get reintroduced.*
 
 D9 says §B is cut before the budget is raised, and it is. Not deferred behind a placeholder
 — cut, as §C was.
@@ -392,7 +392,7 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **99.27 KB — +8.63 KB** |
+| **after §A** | **99.80 KB — +9.17 KB** |
 | budget | 12.00 KB |
 | §B, had it shipped | +10.50 KB → 18.15 KB total, over |
 
@@ -496,6 +496,36 @@ The mechanism was the familiar one: the caption's guards asserted that certain n
 *appeared* in the string, and every number it printed did appear. Nothing asserted what it
 did not say. `js/sunpath-render.test.js` now asserts the absence — the caption may not
 match `/between 0\.0 /` — alongside the figures.
+
+### The tenth instance — the guard and the element that drew past it
+
+Found the same day as D12, and worth its own entry because the mechanism is the one that
+keeps producing these rather than a new mistake.
+
+`js/sunpath-render.test.js` asserted *"not one curve point sits on the baseline"* — D5's
+rule, enforced on the polyline. `.sunpath-dark-none` shipped as a **stroked rect**, and a
+stroked rect draws all four sides. Its bottom edge is a horizontal line along
+`y = h − padB`: the baseline. In `--stone` at full strength that line measures **1.251:1
+against the curve's own ink** in dark mode — near enough to read as a flat piece of curve at
+zero, which is precisely and only what D5 exists to prevent. The renderer obeyed the rule;
+the stylesheet drew the forbidden thing in an element the guard never looked at.
+
+The design comment above the rule had already worked out that the wash cannot carry 3:1 and
+that *"the rule around it is the mark"*. It was right about the wash and wrong about the
+rule: a rectangle's rule is four lines, and one of them lands where nothing may land.
+
+**Fixed structurally, not by tuning.** The wash is `stroke: none`, and the mark is two
+`.sunpath-dark-edge` **vertical** rules at the stretch's ends, emitted as their own
+elements. Vertical is load-bearing: the edges measure 1.545:1 and 1.251:1 against the curve
+and would fail any colour-separation floor. They are told apart from the curve by
+orientation, which is a real distinction and not a colour one — so the render suite enforces
+the orientation (*"both edges are vertical"*, *"nothing at all draws a horizontal rule along
+the baseline"*, checked across **every** emitted element rather than the polyline's points)
+and `js/muted-contrast.test.js` holds the `stroke: none` that makes it possible. Restoring
+the stroke turns both suites red.
+
+The contrast figures are unchanged — same colour, same alpha, a different element carrying
+it: 3.954 / 6.416 / 7.220 against the page.
 
 ### One thing found on the way
 
