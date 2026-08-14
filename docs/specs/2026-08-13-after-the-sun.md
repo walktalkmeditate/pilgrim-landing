@@ -494,12 +494,15 @@ stylesheet by `js/muted-contrast.test.js` (AC #14).
 The review found these and they are not fixed. Naming them is the point; a review whose
 leftovers dissolve into silence is how the first seven instances accumulated.
 
-- **`js/sunpath-math.js` grew +2.79 KB gzipped, and `/daylight` and `/moonpath` both load
-  it** without calling one dark-hours function. D9's budget is scoped to `/sunpath`, so that
-  cost lands on two other pages entirely unmeasured, and neither has a budget test. Splitting
-  the dark-hours functions into their own module would fix it and cost more bytes on
-  `/sunpath` than it saves elsewhere. **The right fix is a budget test for those two pages,
-  not a split here.**
+- ~~**`js/sunpath-math.js` grew +2.79 KB gzipped, and `/daylight` and `/moonpath` both load
+  it** without calling one dark-hours function.~~ **Resolved 2026-08-14** by
+  `js/page-weight.test.js`, a ratchet over all 21 pages — not the module split, which would
+  have cost more on `/sunpath` than it saved elsewhere. `/daylight` is pinned at 112.48 KB,
+  the heaviest page on the site, ahead of `/sunpath`'s 107.43. Building it turned up two
+  blind spots of its own: the scan matched only absolute asset paths, so the root page (which
+  writes them relative) measured 22.10 KB against a real 63.86; and page discovery looked
+  only for `index.html`, so ten top-level `.html` pages were invisible to the assertion
+  claiming every page was weighed.
 - **The y axis rescales above 14 h with no axis, ticks or gridline drawn.** Only the caption
   carries units, so two latitudes on two different scales are visually identical. Unreachable
   from the picker (0–70°, all under 14 h) and from "your sky" (which draws nothing), so it is
