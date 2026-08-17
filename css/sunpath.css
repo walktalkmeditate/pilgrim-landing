@@ -157,12 +157,19 @@ body.constellation .sunpath-temporal-status[data-turning="winter-solstice"] { --
 .sunpath-globe-svg {
   width: 100%;
   height: auto;
-  cursor: grab;
-  touch-action: none;
   display: block;
 }
 
-.sunpath-globe-svg:active { cursor: grabbing; }
+/* Drag surface, either renderer. Without touch-action a finger drag becomes
+   a page scroll — js/globe-touch.test.js. */
+.sunpath-globe-svg,
+.sunpath-globe-canvas {
+  cursor: grab;
+  touch-action: none;
+}
+
+.sunpath-globe-svg:active,
+.sunpath-globe-canvas:active { cursor: grabbing; }
 
 .sunpath-sphere {
   fill: var(--parchment-secondary);
