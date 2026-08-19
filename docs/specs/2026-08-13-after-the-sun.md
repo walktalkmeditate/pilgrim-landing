@@ -142,7 +142,7 @@ KB" it published was one implementation minus another.*
 | | gzipped (Node `zlib`, level 9) |
 |---|---|
 | `/sunpath` before this branch (`b270938`) | 90.63 KB |
-| after §A, at HEAD | 107.43 KB — **+11.86 KB** |
+| after §A, at HEAD | 107.71 KB — **+11.83 KB** |
 | §B's `moon-lux.js` + `night-math.js` | **+10.50 KB** |
 | projected feature total | **+22.36 KB** against a **+12.00 KB** budget |
 
@@ -412,7 +412,7 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **107.43 KB — +11.86 KB** |
+| **after §A** | **107.71 KB — +11.83 KB** |
 | budget | 12.00 KB |
 | §B, had it shipped | +10.50 KB → 22.36 KB total, over |
 
