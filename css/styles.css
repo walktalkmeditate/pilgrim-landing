@@ -1019,6 +1019,21 @@ body.constellation .hero-quote[data-category="presence"] {
   }
 }
 
+/* Walk with me — the route inks itself on reveal (the shared page's
+   overture, quoted); the walker settles at its end. */
+.walkwithme { text-align: center; }
+.walkwithme-route { display: flex; justify-content: center; margin-bottom: 24px; color: var(--stone); opacity: 0.85; }
+.walkwithme-path { stroke-dasharray: 460; stroke-dashoffset: 460; }
+.walkwithme-route.revealed .walkwithme-path { stroke-dashoffset: 0; transition: stroke-dashoffset 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s; }
+.walkwithme-walker { opacity: 0; }
+.walkwithme-route.revealed .walkwithme-walker { opacity: 1; transition: opacity 0.9s ease 2.5s; }
+.walkwithme-door a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--stone); padding-bottom: 2px; transition: border-color 0.3s ease, color 0.3s ease; }
+.walkwithme-door a:hover { color: var(--stone); border-bottom-color: var(--ink); }
+@media (prefers-reduced-motion: reduce) {
+  .walkwithme-path { stroke-dashoffset: 0; }
+  .walkwithme-walker { opacity: 1; }
+}
+
 /* Reliquary — a memory anchored to a place on the land.
    The pin holds steady (it is an anchor). The photo inside breathes
    softly, a held memory. Two rings ripple outward in staggered

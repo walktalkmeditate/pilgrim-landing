@@ -50,7 +50,7 @@ const BASELINE_KB = {
   'sunpath/2027-spring-equinox/index.html':     90.11,
   'sunpath/2026-spring-equinox/index.html':     90.10,
   'moonpath/index.html':                        68.70,
-  'index.html':                                 63.86,
+  'index.html':                                 64.55,  // +0.69: Walk with me section (v1.10.0)
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

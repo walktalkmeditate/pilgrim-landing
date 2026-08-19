@@ -52,7 +52,7 @@ var SPEC_PATH = path.join(ROOT, 'docs/specs/2026-08-13-after-the-sun.md');
    A file that appears on the page and not in this table is treated as
    new weight, which is what it is. */
 var BASELINE_BYTES = {
-  'css/styles.css':                   13034,
+  'css/styles.css':                   13348, // rebased 2026-08-19: homepage Walk-with-me section (+314 B gz) — shared file, not sunpath growth
   'css/sunpath.css':                   7656,
   'js/moon.js':                        1128,
   'js/turnings.js':                    2215,
