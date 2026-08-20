@@ -1,0 +1,47 @@
+/* =============================================
+   Traces glyphs — the wisp and the cairn
+
+   Loaded by index.html ONLY. css/styles.css is loaded by ten pages
+   including /daylight and /sunpath, both of which sit under page-weight
+   gates; this section's styles have no business growing them.
+   ============================================= */
+
+/* --- The wisp --- */
+
+.traces-card-icon--whispers {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin-inline: auto;
+}
+
+/* The energy colour, as a soft halo behind the line work — never the
+   line itself. The Swift property is named borderColor, and compassion,
+   wonder, courage and lightness are all near-invisible as a thin stroke
+   on parchment. */
+.wisp-aura {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--wisp-energy, transparent) 0%, transparent 68%);
+  opacity: 0.55;
+  transition: background 5.5s linear;
+  pointer-events: none;
+}
+
+.wisp {
+  position: relative;
+  display: block;
+  color: var(--rust);
+  animation: wisp-breathe 5.5s ease-in-out infinite;
+}
+
+@keyframes wisp-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.92; }
+  50%      { transform: scale(1.04); opacity: 1;    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wisp { animation: none; }
+  .wisp-aura { transition: none; }
+}

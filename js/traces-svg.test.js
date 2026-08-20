@@ -145,14 +145,23 @@ if (!have('rsvg-convert') || !have('magick')) {
 
 console.log('\n=== the wisp inherits page ink ===\n');
 
-const wisp = path.join(DIR, 'whisper.svg');
-ok(fs.existsSync(wisp), 'whisper.svg exists');
-if (fs.existsSync(wisp)) {
-  const svg = fs.readFileSync(wisp, 'utf8');
-  ok(!/fill="#[0-9A-Fa-f]{6}"/.test(svg),
-    'whisper.svg has no hardcoded fill — it must inherit currentColor in both themes');
-  ok(/fill="currentColor"/.test(svg), 'whisper.svg fills with currentColor');
+// The wisp is INLINE in index.html, not an external file, and that is not
+// a style preference. currentColor inside an SVG loaded through <img src>
+// resolves against that SVG's own document, not the host page — so an
+// external wisp renders black and ignores the moon theme toggle entirely.
+// Inline is also what the rest of this section already does.
+const INDEX = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const wisp = INDEX.match(/<svg class="wisp"[\s\S]*?<\/svg>/);
+
+ok(!!wisp, 'index.html carries the wisp as inline <svg class="wisp">');
+if (wisp) {
+  ok(!/fill="#[0-9A-Fa-f]{6}"/.test(wisp[0]),
+    'the wisp has no hardcoded fill — it must follow currentColor in both themes');
+  ok((wisp[0].match(/fill="currentColor"/g) || []).length === 3,
+    'all three wisp paths fill with currentColor');
 }
+ok(!fs.existsSync(path.join(DIR, 'whisper.svg')),
+  'there is no second copy of the wisp on disk to drift out of sync with the inline one');
 
 console.log('\n=== Summary ===\n');
 console.log('passed:  ' + passed);

@@ -485,10 +485,10 @@ body.constellation .hero-quote[data-category="presence"] {
 .traces-card-title--cairns    { color: var(--moss); }
 .traces-card-title--reliquary { color: var(--stone); }
 
-/* Animated icons — bring the traces to life. The whispers icon ripples
-   outward in sequence like sound from its source; the cairns icon
-   breathes a slow warm glow echoing the eternal cairn at 108 stones,
-   with the top stone subtly settling like it was just placed. */
+/* The cairns icon breathes a slow warm glow echoing the eternal cairn at
+   108 stones, with the top stone subtly settling like it was just placed.
+   The whispers icon's rules used to live here too; it is now the app's own
+   wisp glyph and is styled in css/traces-glyphs.css. */
 .traces-card-icon--whispers {
   color: var(--rust);
   opacity: 0.95;
@@ -497,54 +497,8 @@ body.constellation .hero-quote[data-category="presence"] {
   color: var(--moss);
   opacity: 0.9;
 }
-.traces-card-icon--whispers svg,
 .traces-card-icon--cairns svg {
   overflow: visible;
-}
-
-.traces-card-icon--whispers svg {
-  animation: traces-whisper-breathe 4.2s ease-in-out infinite;
-}
-
-.traces-card-icon--whispers svg circle {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: traces-whisper-source 4.2s ease-in-out infinite;
-}
-
-@keyframes traces-whisper-breathe {
-  0%, 100% {
-    filter: drop-shadow(0 0 0 rgba(160, 99, 75, 0));
-    transform: scale(1);
-  }
-  50% {
-    filter: drop-shadow(0 0 7px rgba(196, 126, 99, 0.6));
-    transform: scale(1.04);
-  }
-}
-
-.traces-card-icon--whispers svg path {
-  opacity: 0;
-  animation: traces-whisper-arc 4.2s ease-out infinite;
-}
-
-.traces-card-icon--whispers svg path:nth-of-type(1) { animation-delay: 0s;    }
-.traces-card-icon--whispers svg path:nth-of-type(2) { animation-delay: 0.55s; }
-.traces-card-icon--whispers svg path:nth-of-type(3) { animation-delay: 1.1s;  }
-
-@keyframes traces-whisper-source {
-  0%, 100% { transform: scale(1);    opacity: 1;   }
-  50%      { transform: scale(1.28); opacity: 0.7; }
-}
-
-@keyframes traces-whisper-arc {
-  0%   { opacity: 0;   transform: translateX(-2px);   }
-  18%  { opacity: 1;   transform: translateX(0);      }
-  60%  { opacity: 0.5; transform: translateX(1.5px);  }
-  100% { opacity: 0;   transform: translateX(3px);    }
-}
-
-.traces-card-icon--cairns svg {
   animation: traces-cairn-breathe 5.8s ease-in-out infinite;
 }
 
