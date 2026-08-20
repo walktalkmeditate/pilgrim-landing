@@ -133,7 +133,7 @@
   // climb to eternal pulls all seven.
 
   var STONE_CDN_BASE = 'https://cdn.pilgrimapp.org/audio/stone/';
-  var STONE_VOLUME = 0.4;   // the app has a bellVolume preference; the web has none
+  var STONE_VOLUME = 0.33;  // the app has a bellVolume preference; the web has none
   var IMPACT_MS = 120;      // the chime lands on impact, not on the press
 
   var chimeCache = {};
