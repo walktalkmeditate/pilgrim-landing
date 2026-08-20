@@ -95,6 +95,71 @@
 
 .cairn-counter.is-visible { opacity: 1; }
 
+/* --- Placement motion --- */
+
+/* The stone falls on a heavy-in ease and does NOT decelerate at the
+   bottom. Real things arrive; they do not ease into the ground. */
+.falling-stone {
+  position: absolute;
+  left: 50%;
+  top: var(--stone-land, 62%);
+  width: 12px;
+  height: 7px;
+  margin-left: -6px;
+  border-radius: 50%;
+  /* A lit top-left so it reads as a rounded stone rather than a flat
+     pill. The energy colour is the body of the stone, not a label on it. */
+  background:
+    radial-gradient(ellipse at 34% 28%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 58%),
+    var(--stone-energy, var(--stone));
+  opacity: 0;
+  pointer-events: none;
+  animation: stone-drop 260ms cubic-bezier(.55, .06, .68, .19) forwards;
+}
+
+@keyframes stone-drop {
+  0%   { transform: translateY(-30px) scale(0.9); opacity: 0;   }
+  25%  {                                          opacity: 0.9; }
+  100% { transform: translateY(0) scale(1);       opacity: 0;   }
+}
+
+/* The settle. This is the detail that carries the whole feature: the
+   pile compresses on impact and springs back. Mass is communicated by
+   what the receiving object does, never by the falling one. */
+.cairn-layer {
+  transform-origin: 50% 95.5%;   /* the shared ground line, not the box */
+}
+
+.cairn-stack.is-settling .cairn-layer {
+  animation: cairn-settle 180ms ease-out;
+}
+
+@keyframes cairn-settle {
+  0%   { transform: scaleY(1);     }
+  35%  { transform: scaleY(0.985); }
+  100% { transform: scaleY(1);     }
+}
+
+.dust {
+  position: absolute;
+  bottom: 4.5%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--fog);
+  opacity: 0;
+  pointer-events: none;
+  animation: dust-kick 400ms ease-out forwards;
+}
+
+@keyframes dust-kick {
+  0%   { opacity: 0.55; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0;    transform: translate(var(--dx), 4px) scale(0.4); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cairn-stack, .cairn-counter { transition: none; }
+  .falling-stone, .dust { display: none; }
+  .cairn-stack.is-settling .cairn-layer { animation: none; }
 }

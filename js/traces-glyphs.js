@@ -14,14 +14,22 @@
 
   // Ascending. tierFor() walks this and keeps the last match, so the
   // order here is load-bearing.
+  //
+  // `artTop` is where this tier's artwork begins, as a fraction of the
+  // glyph box, measured off the rendered SVGs. A dropped stone has to
+  // land on the pile rather than at a fixed height: every tier shares a
+  // ground line but they are wildly different heights, so a fixed
+  // landing point either buries the stone inside a tall cairn or leaves
+  // it vanishing in mid-air above the two pebbles of `faint` — which is
+  // the state every visitor sees first.
   var TIERS = [
-    { name: 'faint',   min: 0,   sound: 1 },
-    { name: 'small',   min: 3,   sound: 2 },
-    { name: 'medium',  min: 7,   sound: 3 },
-    { name: 'large',   min: 12,  sound: 4 },
-    { name: 'great',   min: 42,  sound: 5 },
-    { name: 'sacred',  min: 77,  sound: 6 },
-    { name: 'eternal', min: 108, sound: 7 }
+    { name: 'faint',   min: 0,   sound: 1, artTop: 0.795 },
+    { name: 'small',   min: 3,   sound: 2, artTop: 0.170 },
+    { name: 'medium',  min: 7,   sound: 3, artTop: 0.040 },
+    { name: 'large',   min: 12,  sound: 4, artTop: 0.040 },
+    { name: 'great',   min: 42,  sound: 5, artTop: 0.040 },
+    { name: 'sacred',  min: 77,  sound: 6, artTop: 0.055 },
+    { name: 'eternal', min: 108, sound: 7, artTop: 0.040 }
   ];
 
   // The order the copy in index.html lists them in, NOT the

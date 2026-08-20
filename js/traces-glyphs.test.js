@@ -73,6 +73,24 @@ for (let i = 1; i < G.TIERS.length; i++) {
 }
 ok(rising, 'sound tier rises strictly with cairn tier');
 
+console.log('\n=== artTop, where each pile begins ===\n');
+
+// Web-only, not from Swift: a dropped stone lands on the pile as it is
+// now. These are measured off the rendered SVGs, so they drift the day
+// the artwork is replaced — js/traces-svg.test.js measures the same
+// files and is where a mismatch shows up as a moved base.
+G.TIERS.forEach(function (t) {
+  ok(typeof t.artTop === 'number' && t.artTop > 0 && t.artTop < 1,
+    t.name + ' has an artTop inside the box (' + t.artTop + ')');
+});
+
+// faint is two pebbles on the ground; every other tier is a stack that
+// reaches most of the way up. If faint ever stops being the lowest
+// starting point, a stone dropped on it vanishes in mid-air.
+const faintTop = G.TIERS[0].artTop;
+ok(G.TIERS.slice(1).every(function (t) { return t.artTop < faintTop; }),
+  'faint starts lowest in the box — every other tier reaches higher');
+
 console.log('\n=== the seven energies ===\n');
 
 eq(G.ENERGIES.length, 7, 'there are exactly seven energies');

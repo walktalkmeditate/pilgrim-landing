@@ -76,6 +76,44 @@
     };
   }
 
+  var reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function spawn(className, styles, lifeMs) {
+    var el = document.createElement('span');
+    el.className = className;
+    for (var k in styles) {
+      if (Object.prototype.hasOwnProperty.call(styles, k)) el.style.setProperty(k, styles[k]);
+    }
+    els.stack.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, lifeMs);
+  }
+
+  function animatePlacement(result) {
+    if (reduceMotion) return;
+
+    // Land on top of the pile as it is NOW, not at a fixed height.
+    spawn('falling-stone', {
+      '--stone-energy': result.energy.hex,
+      '--stone-land': (G.tierFor(result.stones).artTop * 100).toFixed(1) + '%'
+    }, 300);
+
+    // The settle has to restart on every click, and a class that is
+    // already present will not replay its animation. Strip it, force a
+    // reflow, put it back.
+    els.stack.classList.remove('is-settling');
+    void els.stack.offsetWidth;
+    els.stack.classList.add('is-settling');
+
+    var count = result.tierChanged ? 5 : 3;
+    for (var i = 0; i < count; i++) {
+      var spread = (i - (count - 1) / 2) * 7;
+      spawn('dust', { '--dx': spread.toFixed(1) + 'px' }, 420);
+    }
+  }
+
   function initCairn() {
     els.stack = document.getElementById('cairn-stack');
     els.under = document.getElementById('cairn-under');
@@ -83,7 +121,9 @@
     els.counter = document.getElementById('cairn-counter');
     if (!els.stack || !els.under || !els.over || !els.counter) return;
 
-    els.stack.addEventListener('click', function () { placeStone(); });
+    els.stack.addEventListener('click', function () {
+      animatePlacement(placeStone());
+    });
   }
 
   function init() {
