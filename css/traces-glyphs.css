@@ -73,8 +73,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wisp { animation: none; }
+  .wisp { animation: none; transition: none; }
   .wisp-aura { transition: none; }
+  .traces-card p.wisp-energy { transition: none; }
 }
 
 /* --- The cairn --- */
