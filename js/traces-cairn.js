@@ -237,6 +237,23 @@
       keyHeld = true;
     });
     els.stack.addEventListener('keyup', function () { keyHeld = false; });
+
+    // Demonstrate the verb: one stone settles on its own the first time
+    // the section comes into view. Silent — there is no user gesture, so
+    // there is no sound, and an unprompted noise would be the wrong kind
+    // of surprise anyway. It counts as stone 1, which is why the
+    // counter's rule is "with the first stone" and not "after the first
+    // click": there is no separate demonstration state to reason about.
+    if (typeof IntersectionObserver === 'function') {
+      var shown = false;
+      var io = new IntersectionObserver(function (entries) {
+        if (shown || !entries[0].isIntersecting) return;
+        shown = true;
+        io.disconnect();
+        setTimeout(function () { animatePlacement(placeStone()); }, 600);
+      }, { threshold: 0.6 });
+      io.observe(els.stack);
+    }
   }
 
   function init() {

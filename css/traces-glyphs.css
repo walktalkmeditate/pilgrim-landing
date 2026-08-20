@@ -93,18 +93,25 @@
   display: block;
 }
 
-.cairn-counter {
+/* Qualified deliberately. The counter is a <p> inside .traces-card, and
+   `.traces-card p` in styles.css is more specific than a bare
+   .cairn-counter — so every one of these declarations was being thrown
+   away and the readout rendered as body copy in the display serif, at
+   the same size as the paragraph below it. It is a caption, not prose. */
+.traces-card p.cairn-counter {
   margin: 0;
   min-height: 1.2em;
+  max-width: none;
   font-family: var(--font-ui);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
   letter-spacing: 0.04em;
   color: var(--ink-fog);
   opacity: 0;
   transition: opacity 0.6s ease;
 }
 
-.cairn-counter.is-visible { opacity: 1; }
+.traces-card p.cairn-counter.is-visible { opacity: 1; }
 
 /* --- Placement motion --- */
 
