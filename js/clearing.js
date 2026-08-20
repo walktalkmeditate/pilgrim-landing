@@ -89,6 +89,9 @@
     var host = spot.host;
     host.classList.add('clearing-host');
 
+    var seasonColor = window.SeasonalEngine && window.SeasonalEngine.getCurrentSeason &&
+      C.SEASON_COLORS[window.SeasonalEngine.getCurrentSeason()];
+
     var fog = document.createElement('button');
     fog.type = 'button';
     fog.className = 'clearing-fog clearing-fog--' + spot.zone.side +
@@ -101,6 +104,7 @@
       '<g transform="' + C.GLYPH_TRANSFORM + '">' +
       '<path d="' + C.GLYPH_PATH + '" fill="currentColor"/>' +
       '</g></svg></span>';
+    if (seasonColor) fog.querySelector('.clearing-glyph').style.color = seasonColor;
     host.appendChild(fog);
 
     var status = document.createElement('p');
@@ -122,9 +126,7 @@
         '<svg viewBox="0 0 48 48" width="28" height="28" fill="none">' +
         '<circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2.5" ' +
         'stroke-linecap="round" stroke-dasharray="34 80" stroke-dashoffset="17"/></svg></span>';
-      var season = window.SeasonalEngine && window.SeasonalEngine.getCurrentSeason &&
-        C.SEASON_COLORS[window.SeasonalEngine.getCurrentSeason()];
-      if (season) rider.style.color = season;
+      if (seasonColor) rider.style.color = seasonColor;
       document.body.appendChild(rider);
       riderSvg = rider.querySelector('svg');
       riderCircle = rider.querySelector('circle');
