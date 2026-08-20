@@ -56,7 +56,7 @@ const BASELINE_KB = {
   // gzipped) and the seven chimes (188 KB) are fetched assets and so are
   // invisible here — at rest a visitor pulls one painting, and only a visitor
   // who climbs to eternal pulls all of it.
-  'index.html':                                 73.94,
+  'index.html':                                 74.30,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

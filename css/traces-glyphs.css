@@ -8,7 +8,13 @@
 
 /* --- The wisp --- */
 
+/* Shorter than the 5.5s breath on purpose. Fading for the whole interval
+   means the colour is never actually AT an energy — it is permanently
+   mid-morph, and the name below it would be reading "gratitude" while the
+   glyph sits halfway to compassion. Fading for half, then resting, keeps
+   the word and the colour agreeing. */
 .traces-card-icon--whispers {
+  --wisp-fade: 2.6s;
   flex-direction: column;
   gap: var(--padding-xs);
 }
@@ -32,20 +38,28 @@
   line-height: 1.4;
   letter-spacing: 0.04em;
   color: var(--ink-fog);
-  transition: color 5.5s linear;
+  transition: color var(--wisp-fade) ease-in-out;
 }
 
 /* The energy colour, as a soft halo behind the line work — never the
    line itself. The Swift property is named borderColor, and compassion,
    wonder, courage and lightness are all near-invisible as a thin stroke
    on parchment. */
+/* The soft falloff is a MASK, not a gradient in the background.
+   A custom property inside radial-gradient() is not interpolatable, so
+   `transition: background` had nothing to animate — the gradient simply
+   recomputed and the halo hard-cut to its new colour every 5.5s. Painting
+   a flat background-color and shaping it with a mask gives the same
+   result from a property that genuinely cross-fades. */
 .wisp-aura {
   position: absolute;
   inset: -14px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--wisp-energy, transparent) 0%, transparent 68%);
+  background-color: var(--wisp-energy, transparent);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 0%, transparent 68%);
   opacity: 0.55;
-  transition: background 5.5s linear;
+  transition: background-color var(--wisp-fade) ease-in-out;
   pointer-events: none;
 }
 
@@ -58,7 +72,7 @@
   position: relative;
   display: block;
   color: var(--rust);
-  transition: color 5.5s linear;
+  transition: color var(--wisp-fade) ease-in-out;
   animation: wisp-breathe 5.5s ease-in-out infinite;
 }
 
