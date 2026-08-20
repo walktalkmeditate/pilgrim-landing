@@ -198,8 +198,16 @@
   100% { opacity: 0.28; }
 }
 
+/* The 108th stone. Everything holds: the glow comes up over 2.4s rather
+   than 900ms, and the wisp stops cycling (in JS) so the aura settles on
+   whichever energy was breathing when the last stone landed. */
+.cairn-stack.is-eternal::after {
+  animation: cairn-glow-arrive 2400ms ease-in forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cairn-stack, .cairn-counter { transition: none; }
+  .cairn-stack.is-eternal::after { animation: none; opacity: 0.28; }
   .falling-stone, .dust { display: none; }
   .cairn-stack.is-settling .cairn-pile { animation: none; }
   .cairn-layer--over.is-wiping { animation: none; clip-path: none; }

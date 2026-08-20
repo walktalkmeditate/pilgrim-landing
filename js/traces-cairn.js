@@ -28,12 +28,18 @@
     aura.style.setProperty('--wisp-energy', currentEnergy().hex);
   }
 
+  var breathTimer = null;
+
   function startBreathing(aura) {
     paintAura(aura);
-    setInterval(function () {
+    breathTimer = setInterval(function () {
       breathIndex++;
       paintAura(aura);
     }, BREATH_MS);
+  }
+
+  function stopBreathing() {
+    if (breathTimer) { clearInterval(breathTimer); breathTimer = null; }
   }
 
   // --- The cairn ---
@@ -177,6 +183,15 @@
     }
   }
 
+  // At 108 everything holds for a beat: the wisp stops cycling and
+  // settles on whichever energy was breathing when the last stone
+  // landed, the eternal glow comes up slowly, and stone-tier-7 plays
+  // alone. Reload resets it, like everything else here.
+  function reachEternal() {
+    stopBreathing();
+    els.stack.classList.add('is-eternal');
+  }
+
   function initCairn() {
     els.stack = document.getElementById('cairn-stack');
     els.under = document.getElementById('cairn-under');
@@ -184,11 +199,44 @@
     els.counter = document.getElementById('cairn-counter');
     if (!els.stack || !els.under || !els.over || !els.counter) return;
 
-    els.stack.addEventListener('click', function () {
+    var HOLD_DELAY_MS = 400;   // long enough that an ordinary click never repeats
+    var HOLD_STEP_MS = 250;
+    var holdDelay = null, holdRepeat = null;
+
+    function place() {
       var result = placeStone();
       animatePlacement(result);
       setTimeout(function () { playChime(result.stones); }, reduceMotion ? 0 : IMPACT_MS);
+      if (result.stones === 108) reachEternal();
+    }
+
+    function startHold() {
+      holdDelay = setTimeout(function () {
+        holdRepeat = setInterval(place, HOLD_STEP_MS);
+      }, HOLD_DELAY_MS);
+    }
+
+    function endHold() {
+      if (holdDelay) { clearTimeout(holdDelay); holdDelay = null; }
+      if (holdRepeat) { clearInterval(holdRepeat); holdRepeat = null; }
+    }
+
+    els.stack.addEventListener('click', place);
+    els.stack.addEventListener('pointerdown', startHold);
+    els.stack.addEventListener('pointerup', endHold);
+    els.stack.addEventListener('pointerleave', endHold);
+    els.stack.addEventListener('pointercancel', endHold);
+
+    // Space and Enter both activate a <button>, and holding either
+    // auto-repeats keydown. The first keydown is left to the synthetic
+    // click it will produce; every repeat after that places directly.
+    var keyHeld = false;
+    els.stack.addEventListener('keydown', function (e) {
+      if (e.key !== ' ' && e.key !== 'Enter') return;
+      if (keyHeld) { e.preventDefault(); place(); }
+      keyHeld = true;
     });
+    els.stack.addEventListener('keyup', function () { keyHeld = false; });
   }
 
   function init() {
