@@ -7,9 +7,9 @@
  * The glyph path is the app's Assets.xcassets seek-clearing.svg
  * (drawn with Arrow, by QuiverAI — https://quiver.ai), normalised
  * upstream to a centred 150x150 viewBox. Its source file fills with
- * #0a1624, night ink on the app's parchment map; on this page's dark
- * section that would be invisible, so the path travels bare and the
- * page colours it through currentColor.
+ * the app's night ink, drawn for the app's parchment map; on this
+ * page's dark section that would be invisible, so the path travels
+ * bare and the page colours it through currentColor.
  */
 
 (function (root) {
