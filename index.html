@@ -981,8 +981,115 @@
       border-color: var(--ink);
     }
 
+    /* The hidden clearing — one calm spot below the door holds a
+       denser patch of fog. The door's crescent rides the viewport
+       once you step through, leaning toward it; stillness (or a
+       tap) thins the fog. */
+    .clearing-host { position: relative; }
+
+    .clearing-fog {
+      position: absolute;
+      width: 148px;
+      height: 148px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      transform: translateY(-50%);
+    }
+
+    .clearing-fog--left  { left: clamp(0.25rem, 3vw, 3.5rem); }
+    .clearing-fog--right { right: clamp(0.25rem, 3vw, 3.5rem); }
+
+    .clearing-fog--small { width: 112px; height: 112px; }
+    .clearing-fog--small .clearing-glyph svg { width: 54px; height: 54px; }
+
+    .clearing-fog::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--fog) 0%, transparent 62%);
+      filter: blur(7px);
+      opacity: 0.85;
+      transition: opacity 2.4s ease-out;
+    }
+
+    .clearing-fog:focus-visible {
+      outline: 1px solid var(--dawn);
+      outline-offset: 6px;
+    }
+
+    .clearing-glyph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dawn);
+      opacity: 0;
+      filter: blur(9px);
+      transform: scale(1.04);
+      transition: opacity 2.4s ease-out, filter 2.4s ease-out, transform 2.4s ease-out;
+    }
+
+    .clearing-glyph svg { width: 64px; height: 64px; }
+
+    .clearing-fog.is-revealed { cursor: default; }
+    .clearing-fog.is-revealed::before { opacity: 0.12; }
+    .clearing-fog.is-revealed:focus-visible { outline: none; }
+    .clearing-fog.is-revealed .clearing-glyph {
+      opacity: 0.92;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    .clearing-rider {
+      position: fixed;
+      right: 1.25rem;
+      top: 50%;
+      width: 28px;
+      height: 28px;
+      color: var(--dawn);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.2s ease;
+      z-index: 5;
+    }
+
+    /* Breath and rotation live on separate elements: two animations
+       of one property and the settle wins — the traces lesson. */
+    .clearing-breath {
+      display: block;
+      animation: seek-door-breath 5.5s ease-in-out infinite;
+    }
+
+    .clearing-rider svg {
+      display: block;
+      overflow: visible;
+      transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .clearing-rider svg circle {
+      transition: stroke-dasharray 0.6s ease-out, stroke-dashoffset 0.6s ease-out;
+    }
+
+    .clearing-rider.is-riding { opacity: 0.7; }
+
+    .clearing-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .seek-door-crescent { animation: none; opacity: 0.85; }
+      .clearing-rider { display: none; }
+      .clearing-glyph { transition: opacity 0.8s ease; filter: none; transform: none; }
     }
   </style>
 </head>
@@ -1930,6 +2037,8 @@
   <script src="js/collective-routes.js"></script>
   <script src="js/traces-glyphs.js" defer></script>
   <script src="js/traces-cairn.js" defer></script>
+  <script src="js/clearing-core.js" defer></script>
+  <script src="js/clearing.js" defer></script>
   <script>
     (function() {
       var svg = document.getElementById('trail-svg');
