@@ -89,6 +89,59 @@
     };
   }
 
+  // --- Chimes ---
+  //
+  // Seven sounds, one per tier, rising as the cairn grows. This is what
+  // makes the climb an instrument rather than a button that makes noise.
+  //
+  // Lazy per tier: most visitors only ever pull stone-tier-1 (9 KB); a
+  // climb to eternal pulls all seven.
+
+  var STONE_CDN_BASE = 'https://cdn.pilgrimapp.org/audio/stone/';
+  var STONE_VOLUME = 0.4;   // the app has a bellVolume preference; the web has none
+  var IMPACT_MS = 120;      // the chime lands on impact, not on the press
+
+  var chimeCache = {};
+  var chimePlaying = null;
+
+  function chimeFor(soundTier) {
+    if (!chimeCache[soundTier]) {
+      var a = new Audio(STONE_CDN_BASE + 'stone-tier-' + soundTier + '.m4a');
+      a.preload = 'none';
+      a.volume = STONE_VOLUME;
+      chimeCache[soundTier] = a;
+    }
+    return chimeCache[soundTier];
+  }
+
+  // One sound at a time. The walker in js/main.js plays whispers from the
+  // same CDN, and two sources at once is mush — iOS arbitrates this with
+  // AudioSessionCoordinator and a consumer string, so a chime yields to a
+  // playing whisper rather than talking over it.
+  function whisperIsPlaying() {
+    var audios = document.querySelectorAll('audio');
+    for (var i = 0; i < audios.length; i++) {
+      if (!audios[i].paused && !audios[i].ended) return true;
+    }
+    return false;
+  }
+
+  function playChime(stones) {
+    if (whisperIsPlaying()) return;
+
+    if (chimePlaying) {
+      chimePlaying.pause();
+      chimePlaying.currentTime = 0;
+    }
+
+    var a = chimeFor(G.soundTierFor(stones));
+    chimePlaying = a;
+    var p = a.play();
+    if (p && typeof p.catch === 'function') {
+      p['catch'](function () { /* autoplay refused or file missing — stay silent */ });
+    }
+  }
+
   function spawn(className, styles, lifeMs) {
     var el = document.createElement('span');
     el.className = className;
@@ -132,7 +185,9 @@
     if (!els.stack || !els.under || !els.over || !els.counter) return;
 
     els.stack.addEventListener('click', function () {
-      animatePlacement(placeStone());
+      var result = placeStone();
+      animatePlacement(result);
+      setTimeout(function () { playChime(result.stones); }, reduceMotion ? 0 : IMPACT_MS);
     });
   }
 
