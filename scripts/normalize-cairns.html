@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cairn ground-line tuning</title>
+<style>
+  body { background: #F5F0E8; font: 14px/1.5 -apple-system, sans-serif; padding: 2rem; color: #2C241E; }
+  h1, h2 { font-weight: 600; font-size: 1rem; }
+  .stack { position: relative; width: 300px; height: 300px; border: 1px solid #B8AFA2; }
+  .stack img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; }
+  .ground { position: absolute; left: 0; right: 0; top: 95.5%; border-top: 1px dashed #A0634B; z-index: 2; }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; align-items: flex-end; }
+  .row figure { margin: 0; text-align: center; }
+  .row .cell { position: relative; width: 96px; height: 96px; }
+  .row .cell img { width: 96px; height: 96px; display: block; }
+  .row .cell::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 95.5%;
+    border-top: 1px dashed rgba(160, 99, 75, 0.5);
+  }
+  .row figcaption { font-size: 12px; color: #8B7355; }
+  table { border-collapse: collapse; margin-top: 2rem; font-size: 12px; }
+  th, td { border: 1px solid #B8AFA2; padding: 4px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<h1>All seven overlaid — the bases must coincide on the dashed line</h1>
+<div class="stack" id="stack"><div class="ground"></div></div>
+
+<h2>Each at the shipping size (96px)</h2>
+<div class="row" id="row"></div>
+
+<h2>Measured content bounds (inline copies, via getBBox)</h2>
+<p>Base y is what must agree. Read it after the SVGs have loaded.</p>
+<table id="measurements"><thead><tr>
+  <th>tier</th><th>x</th><th>y</th><th>width</th><th>height</th><th>base y</th>
+</tr></thead><tbody></tbody></table>
+<div id="probe" style="position:absolute;left:-9999px;top:0;"></div>
+
+<script>
+  var TIERS = ['faint','small','medium','large','great','sacred','eternal'];
+  var stack = document.getElementById('stack');
+  var row = document.getElementById('row');
+  var probe = document.getElementById('probe');
+  var tbody = document.querySelector('#measurements tbody');
+
+  TIERS.forEach(function (t) {
+    var src = '../assets/traces/cairn-' + t + '.svg';
+
+    var img = document.createElement('img');
+    img.src = src;
+    stack.appendChild(img);
+
+    var fig = document.createElement('figure');
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    var i2 = document.createElement('img');
+    i2.src = src;
+    cell.appendChild(i2);
+    var cap = document.createElement('figcaption');
+    cap.textContent = t;
+    fig.appendChild(cell); fig.appendChild(cap);
+    row.appendChild(fig);
+  });
+
+  // Inline each SVG off-screen so getBBox() can report real content bounds.
+  // An <img> gives no access to the document inside it.
+  Promise.all(TIERS.map(function (t) {
+    return fetch('../assets/traces/cairn-' + t + '.svg')
+      .then(function (r) { return r.text(); })
+      .then(function (text) { return { tier: t, text: text }; });
+  })).then(function (all) {
+    all.forEach(function (entry) {
+      var host = document.createElement('div');
+      host.innerHTML = entry.text;
+      probe.appendChild(host);
+      var svg = host.querySelector('svg');
+      svg.setAttribute('width', '150');
+      svg.setAttribute('height', '150');
+      var target = svg.querySelector('g.cairn-art') || svg;
+      var b;
+      try { b = target.getBBox(); } catch (e) { b = { x: 0, y: 0, width: 0, height: 0 }; }
+      var tr = document.createElement('tr');
+      [entry.tier,
+       b.x.toFixed(2), b.y.toFixed(2),
+       b.width.toFixed(2), b.height.toFixed(2),
+       (b.y + b.height).toFixed(2)].forEach(function (v) {
+        var td = document.createElement('td');
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    document.body.setAttribute('data-measured', 'true');
+  });
+</script>
+</body>
+</html>
