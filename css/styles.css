@@ -485,10 +485,9 @@ body.constellation .hero-quote[data-category="presence"] {
 .traces-card-title--cairns    { color: var(--moss); }
 .traces-card-title--reliquary { color: var(--stone); }
 
-/* The cairns icon breathes a slow warm glow echoing the eternal cairn at
-   108 stones, with the top stone subtly settling like it was just placed.
-   The whispers icon's rules used to live here too; it is now the app's own
-   wisp glyph and is styled in css/traces-glyphs.css. */
+/* Both traces glyphs are now the app's own artwork and are styled in
+   css/traces-glyphs.css, which only index.html loads. What stays here is
+   the colour each card is keyed to, which the titles share. */
 .traces-card-icon--whispers {
   color: var(--rust);
   opacity: 0.95;
@@ -496,30 +495,6 @@ body.constellation .hero-quote[data-category="presence"] {
 .traces-card-icon--cairns {
   color: var(--moss);
   opacity: 0.9;
-}
-.traces-card-icon--cairns svg {
-  overflow: visible;
-  animation: traces-cairn-breathe 5.8s ease-in-out infinite;
-}
-
-.traces-card-icon--cairns svg ellipse:nth-of-type(4) {
-  animation: traces-cairn-stone-settle 5.8s ease-in-out infinite;
-}
-
-@keyframes traces-cairn-breathe {
-  0%, 100% {
-    filter: drop-shadow(0 0 0 rgba(149, 168, 149, 0));
-    transform: scale(1);
-  }
-  50% {
-    filter: drop-shadow(0 0 7px rgba(149, 168, 149, 0.55));
-    transform: scale(1.04);
-  }
-}
-
-@keyframes traces-cairn-stone-settle {
-  0%, 100% { transform: translateY(0);     }
-  50%      { transform: translateY(-0.8px);}
 }
 
 /* =============================================

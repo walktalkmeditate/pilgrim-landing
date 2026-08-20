@@ -1140,15 +1140,22 @@
           </div>
 
           <div class="traces-card reveal reveal-delay-2">
-            <div class="traces-card-icon traces-card-icon--cairns" aria-hidden="true">
-              <!-- Stacked stones — slow warm glow echoing the eternal cairn,
-                   top stone gently settles as if just placed -->
-              <svg viewBox="0 0 48 48" width="40" height="40" fill="currentColor">
-                <ellipse cx="24" cy="38" rx="14" ry="4"/>
-                <ellipse cx="24" cy="28" rx="10" ry="3.3"/>
-                <ellipse cx="24" cy="19" rx="7" ry="2.6"/>
-                <ellipse cx="24" cy="11" rx="4.5" ry="2"/>
-              </svg>
+            <div class="traces-card-icon traces-card-icon--cairns">
+              <!-- The app's seven tier paintings. Click to place a stone;
+                   thresholds are the app's own (3/7/12/42/77/108), so the
+                   page does not contradict its "108 stones" copy. State is
+                   in-memory: this is the demo, the footer cairn is the
+                   record. -->
+              <button type="button" class="cairn-stack" id="cairn-stack"
+                      aria-label="Place a stone on the cairn">
+                <!-- Both layers start on faint. An empty src would make the
+                     browser re-request this page as an image. -->
+                <img class="cairn-layer cairn-layer--under" id="cairn-under"
+                     src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
+                <img class="cairn-layer cairn-layer--over" id="cairn-over"
+                     src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
+              </button>
+              <p class="cairn-counter" id="cairn-counter" aria-live="polite"></p>
             </div>
             <h3 class="traces-card-title traces-card-title--cairns">Cairns</h3>
             <p>A pile of virtual stones at a meaningful spot. Place your own or add to a cairn left by someone who passed before you. Seven tiers from a faint trace to the eternal cairn that glows at 108 stones.</p>

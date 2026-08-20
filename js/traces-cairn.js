@@ -33,9 +33,63 @@
     }, BREATH_MS);
   }
 
+  // --- The cairn ---
+  //
+  // In-memory only. This is the demo; the footer cairn in js/main.js is
+  // the record, and it is deliberately untouched.
+
+  var stones = 0;
+  var tierName = 'faint';
+
+  var els = {};
+
+  function artFor(name) {
+    return 'assets/traces/cairn-' + name + '.svg';
+  }
+
+  function renderCounter() {
+    els.counter.textContent = stones + (stones === 1 ? ' stone · ' : ' stones · ') + tierName;
+    els.counter.classList.add('is-visible');
+  }
+
+  // Swaps the two layers so the outgoing art stays beneath the incoming
+  // one. Task 6 animates the reveal; here it is an instant swap.
+  function showTier(name) {
+    els.under.src = els.over.src;
+    els.over.src = artFor(name);
+  }
+
+  function placeStone() {
+    stones++;
+    var next = G.tierNameFor(stones);
+    var tierChanged = next !== tierName;
+    tierName = next;
+
+    if (tierChanged) showTier(tierName);
+    renderCounter();
+
+    return {
+      stones: stones,
+      tier: tierName,
+      energy: currentEnergy(),
+      tierChanged: tierChanged
+    };
+  }
+
+  function initCairn() {
+    els.stack = document.getElementById('cairn-stack');
+    els.under = document.getElementById('cairn-under');
+    els.over = document.getElementById('cairn-over');
+    els.counter = document.getElementById('cairn-counter');
+    if (!els.stack || !els.under || !els.over || !els.counter) return;
+
+    els.stack.addEventListener('click', function () { placeStone(); });
+  }
+
   function init() {
     var aura = document.getElementById('wisp-aura');
     if (aura) startBreathing(aura);
+    initCairn();
   }
 
   if (document.readyState === 'loading') {
