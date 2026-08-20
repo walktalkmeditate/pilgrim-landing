@@ -50,7 +50,13 @@ const BASELINE_KB = {
   'sunpath/2027-spring-equinox/index.html':     90.11,
   'sunpath/2026-spring-equinox/index.html':     90.10,
   'moonpath/index.html':                        68.70,
-  'index.html':                                 64.55,  // +0.69: Walk with me section (v1.10.0)
+  // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
+  // (3.74), js/traces-glyphs.js (2.18) and the inline wisp (1.35), less the
+  // rules this removed from styles.css. The seven cairn paintings (20.1 KB
+  // gzipped) and the seven chimes (188 KB) are fetched assets and so are
+  // invisible here — at rest a visitor pulls one painting, and only a visitor
+  // who climbs to eternal pulls all of it.
+  'index.html':                                 74.30,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
