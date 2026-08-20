@@ -1148,12 +1148,19 @@
                    record. -->
               <button type="button" class="cairn-stack" id="cairn-stack"
                       aria-label="Place a stone on the cairn">
-                <!-- Both layers start on faint. An empty src would make the
+                <!-- The pile wrapper carries the settle; the layers carry the
+                     tier wipe. They must be different elements — both are
+                     `animation` on the same property, so on one element the
+                     more specific settle silently wins and the wipe never
+                     runs at all.
+                     Both layers start on faint. An empty src would make the
                      browser re-request this page as an image. -->
-                <img class="cairn-layer cairn-layer--under" id="cairn-under"
-                     src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
-                <img class="cairn-layer cairn-layer--over" id="cairn-over"
-                     src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
+                <span class="cairn-pile">
+                  <img class="cairn-layer cairn-layer--under" id="cairn-under"
+                       src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
+                  <img class="cairn-layer cairn-layer--over" id="cairn-over"
+                       src="assets/traces/cairn-faint.svg" alt="" aria-hidden="true">
+                </span>
               </button>
               <p class="cairn-counter" id="cairn-counter" aria-live="polite"></p>
             </div>

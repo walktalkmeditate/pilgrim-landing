@@ -74,6 +74,17 @@
   border-radius: var(--radius-sm);
 }
 
+/* The pile wrapper exists so the settle and the tier wipe live on
+   different elements. Both are `animation` on the same property, and on
+   one element the more specific settle wins outright — the wipe then
+   never runs and the tier change silently becomes an instant swap. */
+.cairn-pile {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 95.5%;   /* the shared ground line, not the box */
+}
+
 .cairn-layer {
   position: absolute;
   inset: 0;
@@ -126,11 +137,7 @@
 /* The settle. This is the detail that carries the whole feature: the
    pile compresses on impact and springs back. Mass is communicated by
    what the receiving object does, never by the falling one. */
-.cairn-layer {
-  transform-origin: 50% 95.5%;   /* the shared ground line, not the box */
-}
-
-.cairn-stack.is-settling .cairn-layer {
+.cairn-stack.is-settling .cairn-pile {
   animation: cairn-settle 180ms ease-out;
 }
 
@@ -158,8 +165,43 @@
   100% { opacity: 0;    transform: translate(var(--dx), 4px) scale(0.4); }
 }
 
+/* --- Tier change --- */
+
+/* Bottom-to-top reveal, never a cross-fade. Cairns grow upward, so an
+   upward wipe reads as the new pile assembling out of the ground rather
+   than one image dissolving into another. That single choice is what
+   makes seven unrelated paintings feel like one object that grew. */
+.cairn-layer--over.is-wiping {
+  animation: cairn-wipe 500ms ease-out forwards;
+}
+
+@keyframes cairn-wipe {
+  0%   { clip-path: inset(100% 0 0 0); }
+  100% { clip-path: inset(0 0 0 0);    }
+}
+
+/* sacred and eternal carry radial glows. They arrive LATE — the pile
+   assembles first, and then it begins to shine. */
+.cairn-stack.is-glowing::after {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--dawn) 0%, transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+  animation: cairn-glow-arrive 900ms ease-in 500ms forwards;
+}
+
+@keyframes cairn-glow-arrive {
+  0%   { opacity: 0;    }
+  100% { opacity: 0.28; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cairn-stack, .cairn-counter { transition: none; }
   .falling-stone, .dust { display: none; }
-  .cairn-stack.is-settling .cairn-layer { animation: none; }
+  .cairn-stack.is-settling .cairn-pile { animation: none; }
+  .cairn-layer--over.is-wiping { animation: none; clip-path: none; }
+  .cairn-stack.is-glowing::after { animation: none; opacity: 0.28; }
 }

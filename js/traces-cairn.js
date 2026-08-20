@@ -15,6 +15,9 @@
 
   var BREATH_MS = 5500;
 
+  var reduceMotion = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   var breathIndex = 0;
 
   function currentEnergy() {
@@ -52,11 +55,21 @@
     els.counter.classList.add('is-visible');
   }
 
-  // Swaps the two layers so the outgoing art stays beneath the incoming
-  // one. Task 6 animates the reveal; here it is an instant swap.
+  var GLOWING_TIERS = ['sacred', 'eternal'];
+
+  // Swaps the layers so the outgoing art holds beneath the incoming one,
+  // then wipes the new tier up from the base.
   function showTier(name) {
     els.under.src = els.over.src;
     els.over.src = artFor(name);
+
+    els.stack.classList.toggle('is-glowing', GLOWING_TIERS.indexOf(name) !== -1);
+
+    if (reduceMotion) return;
+
+    els.over.classList.remove('is-wiping');
+    void els.over.offsetWidth;
+    els.over.classList.add('is-wiping');
   }
 
   function placeStone() {
@@ -75,9 +88,6 @@
       tierChanged: tierChanged
     };
   }
-
-  var reduceMotion = window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function spawn(className, styles, lifeMs) {
     var el = document.createElement('span');
