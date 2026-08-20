@@ -57,6 +57,11 @@ const fogSize = fogRule && fogRule[0].match(/width:\s*(\d+)px/);
 ok(fogSize && parseInt(fogSize[1], 10) >= 44,
   'the fog patch is a real tap target (width ≥ 44px)');
 
+const smallRule = html.match(/\.clearing-fog--small\s*\{[^}]*\}/);
+const smallSize = smallRule && smallRule[0].match(/width:\s*(\d+)px/);
+ok(smallSize && parseInt(smallSize[1], 10) >= 44,
+  'the small fallback patch is still a real tap target');
+
 console.log('\n=== reduced motion ===\n');
 
 const rmBlocks = html.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\n    \}/g) || [];

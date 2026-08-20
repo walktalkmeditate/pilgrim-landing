@@ -1002,6 +1002,9 @@
     .clearing-fog--left  { left: clamp(0.25rem, 3vw, 3.5rem); }
     .clearing-fog--right { right: clamp(0.25rem, 3vw, 3.5rem); }
 
+    .clearing-fog--small { width: 112px; height: 112px; }
+    .clearing-fog--small .clearing-glyph svg { width: 54px; height: 54px; }
+
     .clearing-fog::before {
       content: '';
       position: absolute;
@@ -1035,6 +1038,7 @@
 
     .clearing-fog.is-revealed { cursor: default; }
     .clearing-fog.is-revealed::before { opacity: 0.12; }
+    .clearing-fog.is-revealed:focus-visible { outline: none; }
     .clearing-fog.is-revealed .clearing-glyph {
       opacity: 0.92;
       filter: blur(0);

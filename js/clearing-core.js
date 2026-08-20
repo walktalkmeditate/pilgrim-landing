@@ -49,18 +49,51 @@
     return i >= count ? count - 1 : i;
   }
 
-  // Calm spots only: each sits in its section's vertical padding band,
-  // where no copy lives at any viewport width. Sides alternate so the
-  // rider's lean varies between visits.
+  // Where exactly the patch sits is measured, not trusted: content
+  // reflows with viewport width and future copy edits, so the zone's
+  // topPct is only a preference. From it, walk outward two points at
+  // a time to the nearest band where the patch column overlaps no
+  // content rect by more than a 20px graze. null means this section
+  // has no room at this width; the caller tries the next zone.
+  function placementPct(host, rects, preferredPct, patchSize, colLeft, colRight) {
+    var half = patchSize / 2;
+    var relevant = [];
+    for (var i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      if (Math.min(colRight, r.right) - Math.max(colLeft, r.left) > 20) {
+        relevant.push(r);
+      }
+    }
+    function clearAt(pct) {
+      var cy = host.top + host.height * pct / 100;
+      if (cy - half < host.top - 10) return false;
+      if (cy + half > host.top + host.height + 10) return false;
+      for (var j = 0; j < relevant.length; j++) {
+        var oy = Math.min(cy + half, relevant[j].bottom) - Math.max(cy - half, relevant[j].top);
+        if (oy > 20) return false;
+      }
+      return true;
+    }
+    if (clearAt(preferredPct)) return preferredPct;
+    for (var step = 2; step <= 96; step += 2) {
+      if (preferredPct - step >= 2 && clearAt(preferredPct - step)) return preferredPct - step;
+      if (preferredPct + step <= 98 && clearAt(preferredPct + step)) return preferredPct + step;
+    }
+    return null;
+  }
+
+  // Calm sections below the seek door. topPct is the preferred spot;
+  // placementPct has the final say. Sides alternate so the rider's
+  // lean varies between visits. The trail section is absent: measured
+  // at both 390px and 845px, it never has a content-free band.
   var ZONES = [
-    { selector: '.journey.section', side: 'right', topPct: 7 },
-    { selector: '.seasons.section', side: 'left', topPct: 6 },
-    { selector: '.haiku.section', side: 'right', topPct: 14 },
-    { selector: '.goshuin-section', side: 'left', topPct: 8 },
-    { selector: '.soundscape-section', side: 'right', topPct: 91 },
-    { selector: '.privacy-section', side: 'left', topPct: 92 },
-    { selector: '.story.section', side: 'right', topPct: 6 },
-    { selector: '.trail-section', side: 'left', topPct: 89 }
+    { selector: '.journey.section', side: 'right', topPct: 30 },
+    { selector: '.seasons.section', side: 'left', topPct: 80 },
+    { selector: '.haiku.section', side: 'right', topPct: 40 },
+    { selector: '.goshuin-section', side: 'left', topPct: 60 },
+    { selector: '.soundscape-section', side: 'right', topPct: 60 },
+    { selector: '.privacy-section', side: 'left', topPct: 64 },
+    { selector: '.story.section', side: 'right', topPct: 50 }
   ];
 
   var api = {
@@ -72,6 +105,7 @@
     arcSpan: arcSpan,
     dashFor: dashFor,
     pickZone: pickZone,
+    placementPct: placementPct,
     ZONES: ZONES,
     GLYPH_VIEWBOX: '0 0 150 150',
     GLYPH_TRANSFORM: 'translate(-18.8298 63.9750) scale(0.670213)',

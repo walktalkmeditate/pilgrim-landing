@@ -71,6 +71,31 @@ eq(C.pickZone(8, function () { return 0.9999; }), 7, 'rand just under 1 picks th
 eq(C.pickZone(1, function () { return 0.5; }), 0, 'a single zone is always picked');
 eq(C.pickZone(8, function () { return 0.999999999; }), 7, 'floating point cannot reach an eighth index');
 
+console.log('\n=== placementPct — measured, not trusted ===\n');
+
+const HOST = { top: 1000, height: 500 };
+const COL = [25, 173];
+
+eq(C.placementPct(HOST, [], 50, 148, COL[0], COL[1]), 50,
+  'an empty section grants the preferred spot');
+eq(C.placementPct(HOST, [{ left: 0, right: 400, top: 1200, bottom: 1290 }], 50, 148, COL[0], COL[1]), 70,
+  'content at the preferred spot: walk to the nearest clear band');
+eq(C.placementPct(HOST, [{ left: 500, right: 900, top: 1200, bottom: 1290 }], 50, 148, COL[0], COL[1]), 50,
+  'content outside the patch column is no obstacle');
+eq(C.placementPct(HOST, [{ left: 0, right: 400, top: 990, bottom: 1510 }], 50, 148, COL[0], COL[1]), null,
+  'a section with no room says so instead of overlapping');
+eq(C.placementPct(HOST, [], 96, 148, COL[0], COL[1]), 86,
+  'a preference past the section edge is pulled back inside');
+
+const TIGHT = [
+  { left: 0, right: 400, top: 990, bottom: 1200 },
+  { left: 0, right: 400, top: 1300, bottom: 1510 }
+];
+eq(C.placementPct(HOST, TIGHT, 50, 148, COL[0], COL[1]), null,
+  'a 100px gap cannot take the full patch');
+eq(C.placementPct(HOST, TIGHT, 50, 112, COL[0], COL[1]), 50,
+  'the same gap takes the small patch');
+
 console.log('\n=== ZONES — curated calm spots, all below the seek door ===\n');
 
 ok(Array.isArray(C.ZONES) && C.ZONES.length >= 6, 'at least six zones so return visits differ');
