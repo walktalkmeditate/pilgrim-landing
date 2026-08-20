@@ -56,7 +56,12 @@ const BASELINE_KB = {
   // gzipped) and the seven chimes (188 KB) are fetched assets and so are
   // invisible here — at rest a visitor pulls one painting, and only a visitor
   // who climbs to eternal pulls all of it.
-  'index.html':                                 74.30,
+  // +7.19: the hidden clearing. Nearly all of it is js/clearing-core.js
+  // carrying the app's real seek-clearing glyph path (9.2 KB raw, most of
+  // the delta gzipped); js/clearing.js and the inline styles are the small
+  // remainder. Same trade traces made: the app's actual drawing, priced in
+  // the open rather than a lighter imitation of it.
+  'index.html':                                 81.49,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
