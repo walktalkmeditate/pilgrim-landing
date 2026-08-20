@@ -62,13 +62,68 @@
     return ENERGIES[((breathIndex % n) + n) % n];
   }
 
+  function hexToHsl(hex) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255;
+    var g = parseInt(hex.slice(3, 5), 16) / 255;
+    var b = parseInt(hex.slice(5, 7), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var l = (max + min) / 2;
+    var h = 0, s = 0;
+
+    if (max !== min) {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r)      h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else                h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s * 100, l: l * 100 };
+  }
+
+  // The wisp wearing an energy, legibly.
+  //
+  // Painting the glyph the literal border colour does not work: on
+  // parchment, compassion, wonder, courage and lightness are all
+  // near-invisible as a thin line, and presence is nearly black.
+  //
+  // But hue alone does not work either, and that is the less obvious
+  // half. The app's seven border colours cluster into about three
+  // families — presence 200deg and wonder 198deg are the same teal,
+  // lightness 29deg and stillness 32deg the same tan, gratitude 41deg
+  // and courage 46deg the same gold. Pin every energy to one lightness
+  // and the cycle reads as three colours slowly flickering, not seven.
+  //
+  // So each energy keeps its OWN relative lightness and saturation,
+  // compressed into a band the page can actually show. Deep, saturated
+  // presence and pale, washed wonder stay obviously different despite
+  // sharing a hue. The caller passes the band its theme wants.
+  var SAT_FLOOR = 28;
+  var SAT_CEIL = 62;
+
+  // The observed lightness spread across the seven, which is what gets
+  // remapped onto the caller's band.
+  var SRC_L_MIN = 20;
+  var SRC_L_MAX = 76;
+
+  function glyphColorFor(hex, minL, maxL) {
+    var hsl = hexToHsl(hex);
+    var s = Math.min(SAT_CEIL, Math.max(SAT_FLOOR, hsl.s));
+    var t = (hsl.l - SRC_L_MIN) / (SRC_L_MAX - SRC_L_MIN);
+    t = Math.min(1, Math.max(0, t));
+    var l = minL + t * (maxL - minL);
+    return 'hsl(' + hsl.h.toFixed(1) + ', ' + s.toFixed(1) + '%, ' + l.toFixed(1) + '%)';
+  }
+
   var api = {
     TIERS: TIERS,
     ENERGIES: ENERGIES,
     tierFor: tierFor,
     tierNameFor: tierNameFor,
     soundTierFor: soundTierFor,
-    energyAt: energyAt
+    energyAt: energyAt,
+    hexToHsl: hexToHsl,
+    glyphColorFor: glyphColorFor
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -24,17 +24,46 @@
     return G.energyAt(breathIndex);
   }
 
-  function paintAura(aura) {
-    aura.style.setProperty('--wisp-energy', currentEnergy().hex);
+  var wispEls = {};
+
+  function bandFor(wisp) {
+    var cs = getComputedStyle(wisp);
+    return [
+      parseFloat(cs.getPropertyValue('--wisp-l-min')) || 30,
+      parseFloat(cs.getPropertyValue('--wisp-l-max')) || 54
+    ];
+  }
+
+  function paintEnergy() {
+    var energy = currentEnergy();
+
+    // The aura keeps the app's literal border colour. Behind the line
+    // work it can be as pale as it likes.
+    if (wispEls.aura) wispEls.aura.style.setProperty('--wisp-energy', energy.hex);
+
+    // The glyph itself takes a legible remapping of that same colour.
+    if (wispEls.wisp) {
+      var band = bandFor(wispEls.wisp);
+      wispEls.wisp.style.color = G.glyphColorFor(energy.hex, band[0], band[1]);
+    }
+
+    // The name is what actually distinguishes the seven. Their border
+    // colours cluster into about three hue families — lightness and
+    // stillness are near twins — so the word carries the identity and
+    // the colour is atmosphere.
+    if (wispEls.name) {
+      wispEls.name.textContent = energy.name;
+      wispEls.name.style.color = wispEls.wisp ? wispEls.wisp.style.color : '';
+    }
   }
 
   var breathTimer = null;
 
-  function startBreathing(aura) {
-    paintAura(aura);
+  function startBreathing() {
+    paintEnergy();
     breathTimer = setInterval(function () {
       breathIndex++;
-      paintAura(aura);
+      paintEnergy();
     }, BREATH_MS);
   }
 
@@ -257,8 +286,10 @@
   }
 
   function init() {
-    var aura = document.getElementById('wisp-aura');
-    if (aura) startBreathing(aura);
+    wispEls.aura = document.getElementById('wisp-aura');
+    wispEls.wisp = document.querySelector('.wisp');
+    wispEls.name = document.getElementById('wisp-energy');
+    if (wispEls.aura || wispEls.wisp) startBreathing();
     initCairn();
   }
 

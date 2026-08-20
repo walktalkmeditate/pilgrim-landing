@@ -9,10 +9,30 @@
 /* --- The wisp --- */
 
 .traces-card-icon--whispers {
+  flex-direction: column;
+  gap: var(--padding-xs);
+}
+
+.wisp-well {
   position: relative;
+  display: block;
   width: 40px;
   height: 40px;
-  margin-inline: auto;
+}
+
+/* Same qualification as the cairn counter, and for the same reason:
+   `.traces-card p` in styles.css outspecifies a bare class, so an
+   unqualified rule here is parsed, matched, and discarded. */
+.traces-card p.wisp-energy {
+  margin: 0;
+  min-height: 1.2em;
+  max-width: none;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink-fog);
+  transition: color 5.5s linear;
 }
 
 /* The energy colour, as a soft halo behind the line work — never the
@@ -29,11 +49,22 @@
   pointer-events: none;
 }
 
+/* The band the glyph colour is remapped into — dark enough to read on
+   parchment, light enough to read on the night palette. JS reads these
+   and hands them to TracesGlyphs.glyphColorFor(). */
 .wisp {
+  --wisp-l-min: 30;
+  --wisp-l-max: 54;
   position: relative;
   display: block;
   color: var(--rust);
+  transition: color 5.5s linear;
   animation: wisp-breathe 5.5s ease-in-out infinite;
+}
+
+[data-theme="dark"] .wisp {
+  --wisp-l-min: 52;
+  --wisp-l-max: 78;
 }
 
 @keyframes wisp-breathe {
