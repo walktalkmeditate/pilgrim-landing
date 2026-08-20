@@ -62,6 +62,16 @@ const smallSize = smallRule && smallRule[0].match(/width:\s*(\d+)px/);
 ok(smallSize && parseInt(smallSize[1], 10) >= 44,
   'the small fallback patch is still a real tap target');
 
+console.log('\n=== the rider wears the season ===\n');
+
+const core = require('./clearing-core.js');
+Object.keys(core.SEASON_COLORS).forEach(function (season) {
+  ok(html.indexOf(core.SEASON_COLORS[season]) !== -1,
+    season + '\'s rider colour is a colour the seasons section itself shows');
+});
+ok(/\.clearing-breath[^}]*seek-door-breath/.test(html),
+  'the rider breathes with the door\'s own keyframes, not a copy');
+
 console.log('\n=== reduced motion ===\n');
 
 const rmBlocks = html.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\n    \}/g) || [];

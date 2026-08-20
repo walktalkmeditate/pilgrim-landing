@@ -96,10 +96,21 @@
     { selector: '.story.section', side: 'right', topPct: 50 }
   ];
 
+  // The warm middle dot of each season swatch in the seasons section
+  // — the same palette the visitor is shown, worn by the rider. The
+  // wiring test holds these to the swatch markup so they cannot fork.
+  var SEASON_COLORS = {
+    spring: '#C4A574',
+    summer: '#D4A87A',
+    autumn: '#C47E50',
+    winter: '#A09080'
+  };
+
   var api = {
     DASH_TOTAL: DASH_TOTAL,
     STILLNESS_MS: 4000,
     HOVER_MS: 350,
+    SEASON_COLORS: SEASON_COLORS,
     leanAngleDeg: leanAngleDeg,
     unwrapAngle: unwrapAngle,
     arcSpan: arcSpan,

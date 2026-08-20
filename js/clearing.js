@@ -118,9 +118,13 @@
       rider.className = 'clearing-rider';
       rider.setAttribute('aria-hidden', 'true');
       rider.innerHTML =
+        '<span class="clearing-breath">' +
         '<svg viewBox="0 0 48 48" width="28" height="28" fill="none">' +
         '<circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2.5" ' +
-        'stroke-linecap="round" stroke-dasharray="34 80" stroke-dashoffset="17"/></svg>';
+        'stroke-linecap="round" stroke-dasharray="34 80" stroke-dashoffset="17"/></svg></span>';
+      var season = window.SeasonalEngine && window.SeasonalEngine.getCurrentSeason &&
+        C.SEASON_COLORS[window.SeasonalEngine.getCurrentSeason()];
+      if (season) rider.style.color = season;
       document.body.appendChild(rider);
       riderSvg = rider.querySelector('svg');
       riderCircle = rider.querySelector('circle');

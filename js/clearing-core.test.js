@@ -117,6 +117,13 @@ ok(C.GLYPH_PATH.indexOf('m223 18') === 0, 'path data starts where the iOS path s
 ok(C.GLYPH_PATH.indexOf('fill') === -1, 'no fill rides along inside the path data');
 ok(C.GLYPH_PATH.length > 3000, 'the whole path came across, not a truncation');
 
+console.log('\n=== season colours — the warm dot of each swatch ===\n');
+
+['spring', 'summer', 'autumn', 'winter'].forEach(function (s) {
+  ok(/^#[0-9A-F]{6}$/i.test(C.SEASON_COLORS[s] || ''), s + ' has a colour');
+});
+eq(Object.keys(C.SEASON_COLORS).length, 4, 'four seasons, no more');
+
 console.log('\n=== constants ===\n');
 
 eq(C.STILLNESS_MS, 4000, 'stillness is four seconds');

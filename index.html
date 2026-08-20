@@ -1058,6 +1058,13 @@
       z-index: 5;
     }
 
+    /* Breath and rotation live on separate elements: two animations
+       of one property and the settle wins — the traces lesson. */
+    .clearing-breath {
+      display: block;
+      animation: seek-door-breath 5.5s ease-in-out infinite;
+    }
+
     .clearing-rider svg {
       display: block;
       overflow: visible;
