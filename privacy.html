@@ -52,7 +52,7 @@
       <img src="assets/pilgrim-logo.png" alt="Pilgrim logo" class="legal-logo" width="48" height="48">
     </a>
     <h1 class="display-large">Privacy Policy</h1>
-    <p class="legal-updated caption">Last updated: May 23, 2026</p>
+    <p class="legal-updated caption">Last updated: September 24, 2026</p>
   </header>
 
   <div class="breathe-wash" id="breathe-wash" aria-hidden="true"></div>
@@ -64,80 +64,197 @@
       <section class="legal-section">
         <h2>The short version</h2>
         <p>
-          Pilgrim is built on a simple principle: your walk is yours alone. We do not collect,
-          store, or transmit your personal data. Everything stays on your device.
+          Pilgrim is anonymous. There are no accounts, and we never ask for your name, your email,
+          or anything else that says who you are. Your walks, recordings, transcriptions, photos and
+          reflections live on your device.
+        </p>
+        <p>
+          A few features do need the network: finding whispers and cairns near you, the weather,
+          the map, and anything you choose to share or send. Each one is listed below with exactly
+          what it carries and where it goes. This policy covers Pilgrim on iPhone, iPad and Android;
+          where they differ, it says so.
         </p>
       </section>
 
       <section class="legal-section">
         <h2>Data that stays on your device</h2>
-        <p>The following data is created and stored locally on your device. It never leaves your device unless you explicitly choose to share or export it.</p>
+        <p>The following is created and kept on your device. It leaves only in the ways described on this page, each of which you start yourself.</p>
         <ul>
           <li><strong>Walking routes</strong> — GPS coordinates recorded during your walks</li>
           <li><strong>Voice recordings</strong> — Audio captured when you record thoughts during a walk</li>
-          <li><strong>Transcriptions</strong> — On-device speech-to-text processing of your voice recordings (WhisperKit on iOS, whisper.cpp on Android). No audio is sent to any server.</li>
-          <li><strong>Photos</strong> — Images you attach to a walk from your device's photo library. Pilgrim stores only a reference to each photo; the image itself stays in your photo library and is never uploaded.</li>
+          <li><strong>Transcriptions</strong> — Speech-to-text runs on your device (WhisperKit on iOS, whisper.cpp on Android). No audio is ever sent anywhere to be transcribed.</li>
+          <li><strong>Photos</strong> — Pilgrim stores only a reference to each photo; the image stays in your photo library.</li>
           <li><strong>Walk statistics</strong> — Distance, duration, steps, elevation, pace</li>
           <li><strong>Intentions and reflections</strong> — Text you enter before or after a walk</li>
+          <li><strong>Your answers on an Honor walk</strong> — Recordings you make in reply to a shared walk are kept on your device and never uploaded.</li>
           <li><strong>Preferences</strong> — Your settings and customizations</li>
         </ul>
       </section>
 
       <section class="legal-section">
-        <h2>Data we do not collect</h2>
-        <ul>
-          <li>We do not collect analytics or usage data</li>
-          <li>We do not use advertising identifiers</li>
-          <li>We do not track your location in the background for any purpose other than recording your active walk</li>
-          <li>We do not create user accounts or profiles</li>
-          <li>We do not sell, share, or transmit any data to third parties</li>
-        </ul>
-      </section>
-
-      <section class="legal-section">
-        <h2>Third-party services</h2>
-        <p>Pilgrim uses a small number of third-party services that operate independently:</p>
-        <ul>
-          <li><strong>Weather</strong> — When weather information is displayed, your approximate location is sent to a weather service to retrieve current conditions: <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple WeatherKit</a> on iOS, and <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo</a> on Android.</li>
-          <li><strong>Mapbox</strong> — Map tiles are loaded from Mapbox's servers when you view maps. Mapbox may receive your IP address and general area to serve map data. This is governed by <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener noreferrer">Mapbox's Privacy Policy</a>.</li>
-        </ul>
-      </section>
-
-      <section class="legal-section">
-        <h2>Share Your Walk</h2>
+        <h2>The anonymous app ID</h2>
         <p>
-          When you choose to share a walk, a temporary web page is created containing the walk data
-          you select (route, stats, voice transcriptions). This page is stored on our servers and
-          is accessible via a unique link. Shared walk pages are ephemeral and will be automatically
-          deleted. Sharing is entirely optional and initiated only by you.
+          The first time a feature needs to talk to our server, the app makes up a random ID on your
+          device. It is not derived from your phone, your name or your Apple or Google account, and it
+          stays the same until you delete the app or clear its data. It travels with shares, whispers,
+          stones, feedback, podcast submissions and the collective counter, so we can limit abuse. Our
+          server stores it only as a one-way hash, except for the collective counter, described below.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>During every walk</h2>
+        <ul>
+          <li><strong>Whispers and cairns nearby</strong> — When a walk begins, and again if you travel more than 10 km, the app sends your location to our server (walk.pilgrimapp.org) to find the whispers and cairns around you. No ID goes with it, and our server uses the location to answer without saving it.</li>
+          <li><strong>Weather</strong> — At the start of each walk your location is sent to a weather service: <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple WeatherKit</a> on iOS, <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo</a> on Android. On iPhone it is also sent when you open an Honor walk's overview.</li>
+          <li><strong>Maps</strong> — Map tiles load from <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener noreferrer">Mapbox</a>, which sees your IP address and the area being drawn. Mapbox's own usage telemetry is turned off on Android; on iPhone it is on in version 2.0.0 and is turned off in the next update.</li>
+        </ul>
+        <p>Pilgrim uses location in the background only while a walk you started is being recorded.</p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Catalogs and downloads</h2>
+        <p>
+          When it opens, or when they are first needed, the app downloads its catalogs of soundscapes,
+          voice guides and whispers, the collective's pilgrimage routes, and the collective's running
+          total from cdn.pilgrimapp.org and walk.pilgrimapp.org. These are plain downloads: nothing about you is sent, and like any
+          website our servers see the IP address the request comes from. Voice guide packs download
+          when you choose them. The transcription model downloads once: on iPhone from
+          Hugging Face
+          the first time you transcribe, on Android from our CDN shortly after the first launch.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Whispers and stones</h2>
+        <ul>
+          <li><strong>Placing a whisper</strong> sends your location, which whisper you chose, how long it should linger, and the anonymous app ID. Anyone walking nearby can find it until it expires (you choose a day, a week or a month on iPhone; a week on Android), and it is deleted within a day after that.</li>
+          <li><strong>Placing a stone</strong> sends your location and the anonymous app ID. The stone joins a cairn at that spot. Cairns are public and permanent, and nothing stored with a cairn says who added to it.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section">
+        <h2>Sharing a walk</h2>
+        <p>
+          When you share a walk, a web page is made on our server and anyone with its link can open
+          it. It contains your route (up to 200 points, with times, including where it started and
+          ended), your distance, durations and weather, the times you meditated and spoke, the names
+          of the places where it started and ended (looked up through Apple on iPhone), and, if you
+          add them, a short note, elevation and steps, waypoints and small photos with where they were
+          taken. Transcriptions are never included.
+        </p>
+        <p>
+          An interactive share ("Walk with me") also uploads the voice recordings you select and
+          full-size photos with where they were taken, and on iPhone where each recording was made.
+          Anyone with the link can see the walk data behind the page. <strong>Trim start &amp;
+          end</strong>, on by default for interactive shares, leaves off the first and last 150 m
+          and anything recorded there, so your doorstep is not on the page. Walks shorter than 600 m
+          are not trimmed.
+        </p>
+        <p>
+          To make the page, our server sends the route to Mapbox to draw a map image, sends the place
+          names, weather and distance (never your note) to DeepSeek
+          to write the page's haiku, and, for interactive shares, asks Mapbox for the name of the place
+          where each recording was made.
+        </p>
+        <p>
+          A page and everything on it is deleted when it expires (after one moon, one season or one
+          cycle: 30, 90 or 365 days, as you choose), within a day of that date. To remove a page
+          sooner, email us its link. Visitors to a walk page can leave a stone on it; to allow one
+          stone each, our server remembers a one-way hash of the visitor's IP address for a day.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Honor (iPhone)</h2>
+        <p>
+          Opening a shared walk downloads it, with its recordings and photos, from walk.pilgrimapp.org.
+          Pilgrimage routes download from the public open-pilgrimages dataset through
+          jsDelivr,
+          which sees your IP address and which route you opened. Saving a pilgrimage's maps downloads
+          Mapbox tiles for the route itself, not for where you are. None of these requests carries
+          anything about you.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Feedback</h2>
+        <p>
+          A Trail Note (Settings → Connect) sends your message, the anonymous app ID and, unless you
+          switch it off, your device model, system version and app version. It becomes a public issue
+          in our open-source repository on GitHub,
+          where it is kept. Please leave out anything personal. To have one removed, email us.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Pilgrim on the Path (iPhone podcast)</h2>
+        <p>
+          Submitting a walk to the podcast is anonymous and entirely your choice. It sends the walk's
+          voice recordings and their transcriptions, your intention and reflection, the weather, the
+          date, where the walk began, its share link, and the anonymous app ID. The recordings are kept
+          in private storage for 30 days; the rest is kept privately (in a private GitHub repository)
+          so we can prepare episodes. A walk chosen for an episode stays published. To withdraw a
+          submission, email us.
         </p>
       </section>
 
       <section class="legal-section">
         <h2>Walk with the collective</h2>
         <p>
-          When enabled in Settings, the app sends anonymous aggregate totals after each walk:
-          walk count, distance, meditation duration, and talk duration. A random token is
-          included for rate-limiting purposes only and is automatically purged after two hours.
-          No location, personal information, or walk details are included. This data is used
-          solely to display collective statistics on pilgrimapp.org. This setting is off by default.
+          When you turn this on in Settings (it is off by default), the app sends totals after each
+          walk: one walk, its distance, meditation time and talk time, with the anonymous app ID. No
+          location or walk details are included. The ID is kept as-is only to count how many pilgrims
+          walked in the last hour, and entries older than two hours are cleared as new walks come in.
+          The totals appear on pilgrimapp.org and in the app.
         </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>Other lookups on your phone</h2>
+        <ul>
+          <li><strong>Writing prompts</strong> — Opening a walk's prompts looks up the names of the places where it started and ended, through your phone's built-in geocoder (Apple on iPhone; usually Google on Android). The prompts themselves are made on your device and go wherever you copy them.</li>
+          <li><strong>My Journey</strong> — The journey viewer and editor open as web pages inside the app. Your walks are handed to the page on your device and are not uploaded; the page loads its fonts from Google and its maps from Mapbox.</li>
+          <li><strong>Dictating an intention (Android)</strong> — This uses your phone's speech recognizer, which on some phones processes audio on Google's servers.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section">
+        <h2>Who else is involved</h2>
+        <p>
+          Everything above that reaches a company other than us: Apple (weather, place names),
+          Open-Meteo (weather on Android), Mapbox (maps, map images, place names), Google (place names
+          and speech on Android, fonts), jsDelivr (pilgrimage routes), Hugging Face (the iPhone
+          transcription model), DeepSeek (the share haiku), and GitHub (feedback and podcast
+          submissions). Our server and CDN run on Cloudflare.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>What we never do</h2>
+        <ul>
+          <li>We never create accounts or profiles, or ask who you are</li>
+          <li>The apps include no analytics or advertising SDKs, and use no advertising identifiers</li>
+          <li>We never sell your data, and it is shared only as this page describes</li>
+          <li>This website counts page visits with a self-hosted, cookie-free tool; it counts visits to pages and never records who you are</li>
+        </ul>
       </section>
 
       <section class="legal-section">
         <h2>Data export and deletion</h2>
         <p>
           You can export your walk data at any time in the Pilgrim format, and as GPX files where
-          supported. You can delete any or all walks from within the app. When deleted, the data is
-          permanently removed from your device.
+          supported. You can delete any or all walks from within the app; deleted walks are removed
+          from your device permanently. Shared pages and whispers delete themselves when they expire.
+          For anything on our server you would like removed sooner, email us.
         </p>
       </section>
 
       <section class="legal-section">
         <h2>Children's privacy</h2>
         <p>
-          Pilgrim does not knowingly collect any personal information. The app does not require
-          an account, and no data is transmitted from the device during normal use.
+          Pilgrim does not ask anyone, including children, for personal information, and there are no
+          accounts. Everything the app itself sends is described on this page.
         </p>
       </section>
 
@@ -153,8 +270,8 @@
       <section class="legal-section">
         <h2>Contact</h2>
         <p>
-          If you have questions about this privacy policy, you can reach us at
-          <a href="mailto:privacy@pilgrimapp.org">privacy@pilgrimapp.org</a>.
+          If you have questions about this privacy policy, or want something removed, you can reach
+          us at <a href="mailto:privacy@pilgrimapp.org">privacy@pilgrimapp.org</a>.
         </p>
       </section>
 

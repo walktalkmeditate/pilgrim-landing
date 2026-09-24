@@ -69,7 +69,12 @@ const BASELINE_KB = {
   'compare.html':                               32.25,
   'found.html':                                 20.68,
   'press.html':                                 20.24,
-  'privacy.html':                               19.76,
+  // +2.29: the policy says what the apps actually send. An audit of every
+  // outbound call found the old page wrong on whisper lookups, weather
+  // precision, the collective token, sharing, feedback, the podcast and
+  // six unnamed third parties. All of it is text; a shorter page would
+  // have to leave one of those out again.
+  'privacy.html':                               22.05,
   'terms.html':                                 19.42,
   'seek.html':                                  16.91,
   'now.html':                                    9.63,
