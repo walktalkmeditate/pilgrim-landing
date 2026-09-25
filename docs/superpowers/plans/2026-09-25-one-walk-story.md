@@ -1231,8 +1231,14 @@ console.log('\n=== the phones quote the app ===\n');
   ['>Set<', 'Scenes/ActiveWalk/IntentionSettingView.swift:375'],
   ['<span>WANDER</span><span>HONOR</span><span>SEEK</span>', 'Scenes/Home/WalkStartView.swift:326'],
   ['walk · talk · meditate', 'Models/Walk/WalkMode.swift:8'],
-  ['<span class="ws-button">Wander</span>', 'Models/Walk/WalkMode.swift buttonLabel'],
-  ['Solvitur ambulando — it is solved by walking', 'the Path tab quote (docs/screenshots/01_walk_start.png)'],
+  ['<span class="ws-w">Wander</span>', 'Models/Walk/WalkMode.swift:16 (buttonLabel)'],
+  ['<span class="ws-h">Honor</span>', 'Models/Walk/WalkMode.swift:17 (buttonLabel)'],
+  ['<span class="ws-s">Seek</span>', 'Models/Walk/WalkMode.swift:18 (buttonLabel)'],
+  ['walk in their steps', 'Models/Walk/WalkMode.swift:9 (subtitle)'],
+  ['follow the unknown', 'Models/Walk/WalkMode.swift:10 (subtitle)'],
+  ['Where they walked,<br>you walk', 'Support Files/Base.lproj/Localizable.strings:165 (Honor.Quote.1)'],
+  ['What you seek<br>is seeking you', 'Support Files/Base.lproj/Localizable.strings:170 (Seek.Quote.1)'],
+  ['Solvitur ambulando —<br>it is solved by walking', 'Support Files/Base.lproj/Localizable.strings:159 (Welcome.Quote.4)'],
   ['>Path<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
   ['>Journal<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
   ['>Settings<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
@@ -1372,12 +1378,12 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
               <div class="ws-screen ws-screen--path">
                 <p class="ws-status">6:12</p>
                 <img class="ws-app-logo" src="assets/pilgrim-logo.png" alt="" width="60" height="60">
-                <p class="ws-app-quote">Solvitur ambulando — it is solved by walking</p>
+                <p class="ws-app-quote"><span class="ws-w">Solvitur ambulando —<br>it is solved by walking</span><span class="ws-h">Where they walked,<br>you walk</span><span class="ws-s">What you seek<br>is seeking you</span></p>
                 <i class="ws-app-moon"></i>
                 <div class="ws-app-bottom">
-                  <div class="ws-modes"><span>WANDER</span><span>HONOR</span><span>SEEK</span><i class="ws-modes-sel"><i class="ws-modes-lit"><span>WANDER</span><span>HONOR</span><span>SEEK</span></i></i></div>
-                  <p class="ws-app-sub">walk · talk · meditate</p>
-                  <span class="ws-button">Wander</span>
+                  <div class="ws-modes"><span>WANDER</span><span>HONOR</span><span>SEEK</span><i class="ws-modes-lit"><b class="ws-w">WANDER</b><b class="ws-h">HONOR</b><b class="ws-s">SEEK</b></i></div>
+                  <p class="ws-app-sub"><span class="ws-w">walk · talk · meditate</span><span class="ws-h">walk in their steps</span><span class="ws-s">follow the unknown</span></p>
+                  <span class="ws-button"><span class="ws-w">Wander</span><span class="ws-h">Honor</span><span class="ws-s">Seek</span></span>
                   <div class="ws-tabs"><span class="is-on"><svg class="ws-icon"><use href="#ws-i-walk"/></svg>Path</span><span><svg class="ws-icon"><use href="#ws-i-book"/></svg>Journal</span><span><svg class="ws-icon"><use href="#ws-i-gear"/></svg>Settings</span></div>
                 </div>
                 <div class="ws-map-layer">
@@ -2083,17 +2089,27 @@ Expected: no matches, `exit 1`.
 
 /* 01 — the Path tab (Scenes/Home/WalkStartView.swift). */
 .ws-app-logo { position: absolute; top: calc(128 * var(--pt)); left: 50%; width: calc(96 * var(--pt)); height: auto; margin-left: calc(-48 * var(--pt)); border-radius: calc(22 * var(--pt)); }
-.ws-app-quote { position: absolute; top: calc(250 * var(--pt)); left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); line-height: 1.25; text-align: center; text-wrap: balance; color: var(--fog); }
+.ws-app-quote { position: absolute; top: calc(250 * var(--pt)); left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); line-height: 1.25; text-align: center; color: var(--fog); }
 .ws-app-moon { position: absolute; top: calc(360 * var(--pt)); left: 50%; width: calc(220 * var(--pt)); height: calc(220 * var(--pt)); margin-left: calc(-110 * var(--pt)); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fog) 30%, transparent), transparent); }
 .ws-app-moon::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(40 * var(--pt)); height: calc(40 * var(--pt)); margin: calc(-20 * var(--pt)); border-radius: 50%; box-shadow: inset calc(5 * var(--pt)) 0 0 color-mix(in srgb, var(--fog) 85%, transparent); }
 .ws-app-bottom { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(22 * var(--pt)); }
-.ws-modes { --m: calc(clamp(0, (var(--hold, 1) - 0.1) / 0.15, 2) - clamp(0, (var(--hold, 1) - 0.4) / 0.075, 2)); position: relative; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); padding-bottom: calc(6 * var(--pt)); font-weight: 700; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 55%, transparent); }
-/* The selection is a window that slides under the labels, carrying the
-   stone underline and a stone copy of the row, so the lit word travels
-   with the line: a transform, never a colour change. */
-.ws-modes-sel { position: absolute; font-style: normal; left: 0; top: 0; bottom: 0; width: calc(108.67 * var(--pt)); overflow: hidden; transform: translateX(calc(var(--m) * 116.67 * var(--pt))); }
-.ws-modes-sel::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(2 * var(--pt)); background: linear-gradient(90deg, var(--stone), color-mix(in srgb, var(--stone) 20%, transparent)); }
-.ws-modes-lit { display: grid; grid-template-columns: repeat(3, calc(108.67 * var(--pt))); column-gap: calc(8 * var(--pt)); width: calc(342 * var(--pt)); color: var(--stone); font-style: normal; transform: translateX(calc(var(--m) * -116.67 * var(--pt))); }
+.ws-modes { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); font-weight: 700; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 55%, transparent); }
+.ws-modes > span { padding-bottom: calc(6 * var(--pt)); }
+/* The selected mode lights in stone over the row, with the app's own
+   underline for it: Wander's trail fades ahead, Honor's gathers in the
+   middle, Seek's arrives from behind (WalkStartView.trailUnderline). */
+.ws-modes-lit { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); color: var(--stone); font-style: normal; }
+.ws-modes-lit b { position: relative; font-weight: inherit; }
+.ws-modes-lit b::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(2 * var(--pt)); }
+.ws-modes-lit .ws-w::after { background: linear-gradient(90deg, var(--stone), color-mix(in srgb, var(--stone) 20%, transparent)); }
+.ws-modes-lit .ws-h::after { background: linear-gradient(90deg, color-mix(in srgb, var(--stone) 30%, transparent), var(--stone), color-mix(in srgb, var(--stone) 30%, transparent)); }
+.ws-modes-lit .ws-s::after { background: linear-gradient(90deg, color-mix(in srgb, var(--stone) 20%, transparent), var(--stone)); }
+.ws-app-quote,
+.ws-app-sub,
+.ws-app-bottom .ws-button { display: grid; }
+.ws-app-quote > span,
+.ws-app-sub > span,
+.ws-app-bottom .ws-button > span { grid-area: 1 / 1; }
 .ws-app-sub { margin: calc(8 * var(--pt)) 0 calc(16 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 50%, transparent); }
 .ws-app-bottom .ws-button { --press: calc(clamp(0, (var(--hold, 1) - 0.55) / 0.02, 1) - clamp(0, (var(--hold, 1) - 0.58) / 0.02, 1)); border-radius: calc(14 * var(--pt)); transform: scale(calc(1 - 0.04 * var(--press))); }
 .ws-tabs { display: flex; width: calc(274 * var(--pt)); margin: calc(25 * var(--pt)) auto 0; padding: calc(4 * var(--pt)); border-radius: calc(31 * var(--pt)); background: color-mix(in srgb, var(--parchment) 55%, #fff); box-shadow: 0 calc(8 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.1); font: 500 calc(10 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
@@ -2485,9 +2501,23 @@ Expected: FAIL on the new timing and script checks.
 .ws-moment-mark { transform: scale(calc(0.85 + 0.15 * clamp(0, (var(--hold, 1) - var(--at)) / 0.06, 1))); }
 .ws-closing { opacity: clamp(0, calc((var(--hold, 1) - 0.92) / 0.05), 1); }
 
-/* 01 — the mode row's selection runs WANDER → HONOR → SEEK and home;
+/* 01 — the selection rests on Wander, Honor, Seek, then Wander again;
+   each mode brings its own quote, subtitle and button, as the app's
+   Path tab does. The lit word and its underline crossfade; words that
+   replace each other hand over, the old gone before the new arrives.
    Wander is pressed, the walk opens under the intention sheet, and a
    Recurring word is tapped: the app fills the field with it at once. */
+.ws-screen--path {
+  --h: calc(clamp(0, (var(--hold, 1) - 0.14) / 0.06, 1) - clamp(0, (var(--hold, 1) - 0.28) / 0.06, 1));
+  --s: calc(clamp(0, (var(--hold, 1) - 0.28) / 0.06, 1) - clamp(0, (var(--hold, 1) - 0.42) / 0.06, 1));
+  --w: calc(1 - var(--h) - var(--s));
+}
+.ws-screen--path .ws-w { opacity: clamp(0, calc(2 * var(--w) - 1), 1); }
+.ws-screen--path .ws-h { opacity: clamp(0, calc(2 * var(--h) - 1), 1); }
+.ws-screen--path .ws-s { opacity: clamp(0, calc(2 * var(--s) - 1), 1); }
+.ws-modes-lit .ws-w { opacity: var(--w); }
+.ws-modes-lit .ws-h { opacity: var(--h); }
+.ws-modes-lit .ws-s { opacity: var(--s); }
 .ws-screen--path .ws-map-layer { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.05), 1); }
 .ws-screen--path .ws-map-layer::after { opacity: clamp(0, calc((var(--hold, 1) - 0.64) / 0.1), 1); }
 .ws-intention { transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.64) / 0.1, 1)) * 110%)); }
