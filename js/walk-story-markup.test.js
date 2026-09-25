@@ -233,6 +233,14 @@ ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the c
 ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
 ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
 
+const drawEnd = css.match(/\.ws-summary \{ --draw: clamp\(0, \(var\(--hold, 1\) - ([\d.]+)\) \/ ([\d.]+), 1\); \}/);
+ok(!!drawEnd && +drawEnd[1] + +drawEnd[2] <= 0.3 + 1e-9, 'scene 07: the summary\'s line has drawn by hold 0.3');
+const lastReveal = css.match(/\.ws-summary-timer,\s*\.ws-summary \.ws-stat-row \{ opacity: clamp\(0, calc\(\(var\(--hold, 1\) - ([\d.]+)\) \/ ([\d.]+)\), 1\); \}/);
+ok(!!lastReveal && +lastReveal[1] + +lastReveal[2] <= 0.55 + 1e-9,
+  'scene 07: the summary is whole by hold 0.55, so a reader who stops mid-scene sees a finished screen');
+const share = story.slice(story.indexOf('ws-screen--share'), story.indexOf('ws-safari'));
+ok(share.indexOf('<use href="#ws-streets"/>') !== -1, 'scene 08: the shared page opens over the walk\'s map, as the live page does');
+
 console.log('\n=== scripts ===\n');
 
 const coreTag = html.match(/<script[^>]*src="js\/walk-story-core\.js"[^>]*>/);

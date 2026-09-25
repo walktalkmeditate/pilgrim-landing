@@ -541,6 +541,10 @@ body.constellation .walk-story-scene { background: transparent; }
 /* 08 — the shared walk as it opens in Safari (pilgrim-worker
    src/generators/html-template.ts, the departure chapter). */
 .ws-screen--share { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt)); text-align: center; }
+/* The departure chapter opens over the walk's own map under a parchment
+   veil, as the live page does. */
+.ws-share-map::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--parchment) 72%, transparent); }
+.ws-share-open { position: relative; }
 .ws-share-orn { font-size: calc(22 * var(--pt)); opacity: 0.45; }
 .ws-share-kicker { margin-top: calc(16 * var(--pt)); font-size: calc(11 * var(--pt)); letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.5; white-space: nowrap; }
 .ws-share-kicker::before,
@@ -810,17 +814,18 @@ body.constellation .walk-story-scene { background: transparent; }
 
 /* 07 — the summary's own reveal: the line draws, coloured by what you
    were doing, the photos surface where they were taken, then the words
-   and the time. */
-.ws-summary { --draw: clamp(0, (var(--hold, 1) - 0.05) / 0.4, 1); }
+   and the time. It is whole by mid-hold, so a reader who stops there
+   sees the finished screen, and the page's seal still presses last. */
+.ws-summary { --draw: clamp(0, (var(--hold, 1) - 0.05) / 0.25, 1); }
 .ws-summary-path { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - var(--draw)); }
 .ws-summary-talk { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--draw) - var(--a)) / (var(--b) - var(--a)), 1)); }
 .ws-relic,
 .ws-summary-still { opacity: clamp(0, calc((var(--draw) - var(--at)) / 0.08), 1); transform: scale(calc(0.6 + 0.4 * clamp(0, (var(--draw) - var(--at)) / 0.08, 1))); }
 .ws-intention-card,
-.ws-elevation { opacity: clamp(0, calc((var(--hold, 1) - 0.5) / 0.08), 1); }
-.ws-journey { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.08), 1); }
+.ws-elevation { opacity: clamp(0, calc((var(--hold, 1) - 0.3) / 0.08), 1); }
+.ws-journey { opacity: clamp(0, calc((var(--hold, 1) - 0.36) / 0.08), 1); }
 .ws-summary-timer,
-.ws-summary .ws-stat-row { opacity: clamp(0, calc((var(--hold, 1) - 0.68) / 0.08), 1); }
+.ws-summary .ws-stat-row { opacity: clamp(0, calc((var(--hold, 1) - 0.42) / 0.08), 1); }
 
 /* 08 — someone, later, follows your line; the shared page opens as it
    does in the browser, each line rising in after the last. */
