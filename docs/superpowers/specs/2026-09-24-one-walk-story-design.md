@@ -100,7 +100,8 @@ Each scene: a kicker, a headline with one italic word, a body of two or three
 lines, what the landscape does, and what the phone shows. The hour is the
 stage's time of day during that scene. **Every act timing below is hold-local:**
 0 at the start of the scene's hold, 1 at its end (see *Scroll model*). No payoff
-lands inside a fade.
+lands inside a fade. **Every reveal scrubs both ways:** scrolling back un-inks the
+line, un-writes the words and lets moments recede, eased like forward motion.
 
 ### 01 · Set out · dawn
 - **Headline:** You set out with an *intention*.
@@ -146,8 +147,8 @@ lands inside a fade.
     ring appears on the line at the moment's point, with the English label and
     the Japanese name beside it. Ring and label scale 0.85 → 1 and fade 0 → 1
     over 0.06 of the hold on the shared easing: the same treatment as scene 07's
-    seal press, at a smaller size. Once shown, they stay for the rest of the
-    scene.
+    seal press, at a smaller size. Scrolling back before a moment's fraction lets
+    it recede the same way.
   - **Closing line:** at 0.92 of the hold, *What did you leave behind at the gate?*
 - **Phone:** the morning card, as `StageMorningCard.swift` renders it: the theme
   "Entry", the narrative's first sentence, "3.6 km · 430 m up · 2 to 3 hours ·
@@ -411,6 +412,12 @@ goes, not just the two feature-list entries:
   - `honorReveal(hold)` → how far the line has inked, which moments are showing,
     and whether the closing line is
   - `pillLabel(index)`
+- **Reveals are pure functions of eased progress,** with no stored "furthest
+  reached" state. So the story is a scrubbable timeline that reverses as smoothly
+  as it plays, as underdog.ai's does. The one-shot exceptions are events, not
+  reveals:
+  - the cairn's demo stone, which is a placement;
+  - `story-reach-end`, which fires once per visit.
 - `js/walk-story.js` wires it up:
   - measuring, and the rAF easing loop;
   - writing `--p` and `data-scene` on the active scene, and opacities on the five
@@ -532,11 +539,3 @@ polish. So the story is measured on installs too:
 - Audio in the story. The soundscape player stays in its own section after the
   story.
 - Android screenshots or Android-specific scenes. Honor's caption says iPhone.
-
-## Deferred / Open Questions
-
-### From 2026-09-25 review
-
-- **Scroll-reversal behavior for word-by-word and ink reveals is undefined** — The nine scenes / Scroll model (P1, design-lens, confidence 75)
-  If the transcript's word count and the Honor line's ink are plain functions of progress, scrolling back up will visibly delete words and un-draw the line. The reviewer's fix is to hold each reveal at its furthest point until the scene is left and re-entered. That conflicts with how scroll-scrubbed stories usually behave, and underdog.ai scrubs both ways. The agent's lean: reveals scrub both ways, smoothed by the easing loop. Decide before planning.
-  <!-- dedup-key: section="the nine scenes scroll model" title="scrollreversal behavior for wordbyword and ink reveals is undefined" evidence="the transcript writes itself in word by word over p 0.4–0.9" -->
