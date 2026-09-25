@@ -3234,7 +3234,7 @@ In `featureList`:
 
 ```
       "Three ways to walk — Wander with no aim, Seek places hidden in fog and revealed by stillness, and Honor a path someone else laid down (iPhone)",
-      "Honor pilgrimage stages from the open open-pilgrimages dataset — the Camino de Santiago, the Kumano Kodō and Shikoku's 88 temples (iPhone)",
+      "Honor pilgrimage stages from the open-pilgrimages dataset — the Camino de Santiago, the Kumano Kodō and Shikoku's 88 temples (iPhone)",
       "Offline maps for saved pilgrimage stages (iPhone)",
       "Walk with me — share a walk as a living page, with voices at the places they were spoken",
       "Themes across walks — the words you return to, offered back as intentions",
@@ -3293,6 +3293,8 @@ Replace the four lines under `## Privacy posture` that begin `- No accounts.`, `
 ```
 
 Replace `MIT data license.` on the open-pilgrimages line with `Code MIT, data ODbL.`, and replace `- Privacy (no accounts, no cloud, no telemetry)` with `- Privacy (anonymous, no accounts, walks on your device)`.
+
+Replace `Open-pilgrimages dataset: MIT-style data license.` on the `## License` line with `Open-pilgrimages dataset: code MIT, data ODbL.`
 
 - [ ] **Step 4: Run the tests and watch them pass**
 

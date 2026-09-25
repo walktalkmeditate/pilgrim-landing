@@ -118,4 +118,4 @@ requires creating an account.
 
 ## License
 
-App + site: GPLv3. Open-pilgrimages dataset: MIT-style data license.
+App + site: GPLv3. Open-pilgrimages dataset: code MIT, data ODbL.
