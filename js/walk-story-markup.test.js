@@ -164,6 +164,39 @@ ok(/<video class="ws-video"[^>]*poster="assets\/screenshots\/03_meditation\.png"
   'the meditation video has a poster for Low Power Mode and reduced motion');
 ok(/<link rel="stylesheet" href="css\/walk-story\.css">/.test(html), 'the story\'s stylesheet is linked');
 
+console.log('\n=== CSS timings are the core\'s ===\n');
+
+const css = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(css.indexOf('var(--hold, 1) / ' + C.LINE_INK_END + ',') !== -1, 'lines ink over ' + C.LINE_INK_END + ' of the hold, as lineInk does');
+ok(css.indexOf('var(--hold, 1) / ' + C.HONOR.inkEnd + ',') !== -1, 'Honor inks over ' + C.HONOR.inkEnd + ', as honorReveal does');
+ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the closing line waits for ' + C.HONOR.closingAt);
+ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
+ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
+
+console.log('\n=== scripts ===\n');
+
+const coreTag = html.match(/<script[^>]*src="js\/walk-story-core\.js"[^>]*>/);
+const domTag = html.match(/<script[^>]*src="js\/walk-story\.js"[^>]*>/);
+ok(coreTag && /\bdefer\b/.test(coreTag[0]), 'index.html loads js/walk-story-core.js, deferred');
+ok(domTag && /\bdefer\b/.test(domTag[0]), 'index.html loads js/walk-story.js, deferred');
+ok(coreTag && domTag && html.indexOf(coreTag[0]) < html.indexOf(domTag[0]), 'the core loads before the wiring that reads it');
+ok(domTag && html.indexOf('src="js/traces-cairn.js"') < html.indexOf(domTag[0]), 'the cairn loads before the story that calls its demo');
+ok(domTag && html.indexOf('src="js/moon.js"') < html.indexOf(domTag[0]), 'moon.js (getMoonPhase) loads before the story paints tonight\'s moon');
+const wiring = fs.existsSync(path.join(ROOT, 'js', 'walk-story.js')) ? fs.readFileSync(path.join(ROOT, 'js', 'walk-story.js'), 'utf8') : '';
+ok(wiring.length > 0, 'js/walk-story.js exists (a script tag pointing at a 404 is silent)');
+ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingClientRect') && /function measure\(\)[\s\S]*getBoundingClientRect/.test(wiring),
+  'the only layout read is in measure(), never in the frame loop');
+ok(/window\.innerWidth !== width/.test(wiring), 'height-only resizes (iOS toolbar) are ignored');
+ok(/behavior: smooth \? 'smooth' : 'instant'/.test(wiring),
+  'a focus jump is instant: the page\'s own scroll-behavior: smooth would animate "auto"');
+ok(/CSS\.supports\('height', '100svh'\)/.test(wiring), 'no svh, no pinning: the story would collapse');
+ok(/function settle\(\)[\s\S]*story-reach-end/.test(wiring) && !/function render\(p\)[\s\S]*?story-reach-end[\s\S]*?function settle/.test(wiring),
+  'the reach event fires where the reader comes to rest, never mid-traversal');
+ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story--pinned \.walk-story-stage\s*\{[^}]*overflow/.test(css),
+  'the story clips, not the stage, so the 100lvh sky reaches below it');
+ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
+  'will-change on the sky layers and only the active phone: six promoted layers at most');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

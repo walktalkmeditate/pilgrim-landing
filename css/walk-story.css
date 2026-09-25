@@ -532,3 +532,176 @@ body.constellation .walk-story-scene { background: transparent; }
 
 /* Scene 06's traces keep the look css/traces-glyphs.css gives them. */
 .ws-act--traces { display: flex; gap: 2.5rem; justify-content: center; }
+
+/* --- Pinned: js/walk-story.js adds .walk-story--pinned. Nine scenes
+   fill one sticky stage; each scene's front is shown by opacity, its
+   line stays once walked, and the five skies crossfade behind. The
+   stage's frame is 100svh and its sky 100lvh: dvh follows Safari's
+   toolbar and would reflow the stage as it collapses. The stage must
+   not clip, or the 100lvh sky stops at the 100svh edge and the page's
+   parchment shows beneath it once the toolbar folds away; the story
+   clips instead, and overflow: clip makes no scroll container, so
+   sticky still works. Scenes already clip themselves. --- */
+
+.walk-story--pinned { height: calc(9 * 1.4 * 100svh); overflow: clip; }
+.walk-story--pinned .walk-story-stage { position: sticky; top: 0; height: 100svh; }
+.walk-story--pinned .walk-story-atmosphere { display: block; position: absolute; top: 0; left: 0; right: 0; height: 100lvh; }
+.walk-story--pinned .ws-sky { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
+.walk-story--pinned .walk-story-scene { position: absolute; inset: 0; min-height: 0; padding: 0; background: none; }
+.walk-story--pinned .walk-story-line { opacity: 0; }
+.walk-story--pinned .walk-story-front { position: absolute; inset: 0; display: block; opacity: 0; pointer-events: none; }
+.walk-story--pinned .walk-story-scene.is-active .walk-story-front { pointer-events: auto; }
+
+.walk-story--pinned .walk-story-copy { position: absolute; left: 8%; width: 36%; top: 50%; transform: translateY(-50%); max-width: none; }
+.walk-story--pinned .walk-story-phone {
+  position: absolute;
+  left: 68%;
+  top: 50%;
+  width: auto;
+  height: 72%;
+  max-height: 720px;
+  transform: translate(-50%, calc(-50% + (0.5 - var(--hold, 1)) * 18px));
+}
+/* At most six promoted layers: the five skies and the one phone moving. */
+.walk-story--pinned .walk-story-scene.is-active .walk-story-phone { will-change: transform; }
+.walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
+.walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
+.walk-story--pinned .ws-said { position: absolute; left: 8%; width: 40%; bottom: 17%; }
+
+.walk-story--pinned .walk-story-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: absolute;
+  right: 3%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  color: var(--ws-ink);
+}
+.walk-story-rail a { position: relative; display: block; width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: height 0.35s var(--ws-ease), opacity 0.35s var(--ws-ease); }
+.walk-story-rail a::before { content: ''; position: absolute; inset: -9px -14px; }
+.walk-story-rail a[aria-current="step"] { height: 24px; opacity: 0.9; }
+.walk-story-rail a:focus-visible { outline: 2px solid currentColor; outline-offset: 5px; }
+.walk-story--pinned .walk-story-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  position: absolute;
+  left: 50%;
+  bottom: calc(4% + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.8em 1.4em;
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.4s var(--ws-ease);
+}
+.walk-story-pill.is-hidden { opacity: 0; pointer-events: none; }
+
+@media (max-width: 1024px) and (min-width: 721px) {
+  .walk-story--pinned .walk-story-copy { left: 6%; width: 42%; }
+  .walk-story--pinned .walk-story-phone { height: 60%; }
+}
+
+@media (max-width: 720px) {
+  .walk-story--pinned .walk-story-copy { left: 6%; right: 6%; width: auto; top: 5%; transform: none; max-height: 46%; }
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { max-height: 58%; }
+  .walk-story--pinned .walk-story-scene--no-phone .walk-story-copy { max-height: 88%; }
+  .walk-story--pinned .walk-story-phone,
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone {
+    left: auto;
+    right: 4%;
+    top: auto;
+    bottom: calc(4% + 3.6rem + env(safe-area-inset-bottom, 0px));
+    height: 36%;
+    transform: translateY(calc((0.5 - var(--hold, 1)) * 10px));
+  }
+  .walk-story--pinned .ws-act--right { left: auto; right: 4%; width: 56%; top: auto; bottom: 7%; transform: none; }
+  .walk-story--pinned .ws-said { left: 6%; width: 50%; top: 49%; bottom: auto; }
+  .walk-story--pinned .walk-story-rail { right: 2%; gap: 10px; }
+  .walk-story-copy h2 { font-size: clamp(1.9rem, 8.6vw, 2.6rem); }
+}
+
+/* --- Acts. Each reads its scene's hold (0..1), written per frame by
+   js/walk-story.js; unset, var(--hold, 1) is the finished state the
+   stacked story shows. Every reveal scrubs both ways. The ink and
+   Honor numbers are WalkStoryCore's; the markup test holds them. --- */
+
+.ws-line { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, var(--hold, 1) / 0.85, 1)); }
+.ws-honor-yours { stroke-dashoffset: calc(1 - clamp(0, var(--hold, 1) / 0.88, 1)); }
+.ws-moment { opacity: clamp(0, calc((var(--hold, 1) - var(--at)) / 0.06), 1); }
+.ws-moment-mark { transform: scale(calc(0.85 + 0.15 * clamp(0, (var(--hold, 1) - var(--at)) / 0.06, 1))); }
+.ws-closing { opacity: clamp(0, calc((var(--hold, 1) - 0.92) / 0.05), 1); }
+
+/* 01 — the mode row's selection runs WANDER → HONOR → SEEK and home;
+   Wander is pressed, the walk opens under the intention sheet, and a
+   Recurring word is tapped: the app fills the field with it at once. */
+.ws-screen--path .ws-map-layer { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.05), 1); }
+.ws-screen--path .ws-map-layer::after { opacity: clamp(0, calc((var(--hold, 1) - 0.64) / 0.1), 1); }
+.ws-intention { transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.64) / 0.1, 1)) * 110%)); }
+.ws-chip--tapped::after { opacity: calc(0.3 * (clamp(0, (var(--hold, 1) - 0.78) / 0.01, 1) - clamp(0, (var(--hold, 1) - 0.8) / 0.01, 1))); }
+.ws-intention .ws-before,
+.ws-placeholder,
+.ws-recurring { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.8) / 0.02, 1)); }
+.ws-intention .ws-after,
+.ws-typed { opacity: clamp(0, calc((var(--hold, 1) - 0.8) / 0.02), 1); }
+
+/* 02 — recording starts at 0.25; what was said writes itself in after. */
+.ws-pin { opacity: clamp(0, calc((var(--hold, 1) - 0.25) / 0.04), 1); }
+.ws-rec-live { opacity: clamp(0, calc((var(--hold, 1) - 0.25) / 0.03), 1); }
+.ws-rec-idle { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.25) / 0.03, 1)); }
+.ws-said span { opacity: clamp(0, calc((var(--hold, 1) - 0.35) / 0.5 * 15 - var(--i)), 1); }
+
+/* 04 — the morning card settles in first. */
+.ws-card { opacity: clamp(0, calc((var(--hold, 1) - 0.04) / 0.1), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.04) / 0.1, 1)) * 16 * var(--pt))); }
+
+/* 05 — the fog drifts, the crescent leans. Nothing is revealed: the
+   page's only reveal is the hidden clearing, and only stillness opens it. */
+.ws-fog-bank { transform: translateX(calc((1 - var(--hold, 1)) * 60px)); }
+.ws-crescent-lean { transform: rotate(calc(var(--lean) * clamp(0, (var(--hold, 1) - 0.2) / 0.6, 1))); }
+
+/* 06 — the wisp brightens as the line passes it. */
+.ws-act--traces .wisp-well { opacity: calc(0.55 + 0.45 * clamp(0, (var(--hold, 1) - 0.2) / 0.3, 1)); }
+
+/* 07 — once the line has closed its ring, the seal presses into it. */
+.ws-seal { transform-box: fill-box; transform-origin: center; opacity: clamp(0, calc((var(--hold, 1) - 0.86) / 0.08), 1); transform: scale(calc(1.15 - 0.15 * clamp(0, (var(--hold, 1) - 0.86) / 0.08, 1))); }
+.ws-seal-ink { fill: none; stroke: #C4553A; }
+
+/* 07 — the summary's own reveal: the line draws, coloured by what you
+   were doing, the photos surface where they were taken, then the words
+   and the time. */
+.ws-summary { --draw: clamp(0, (var(--hold, 1) - 0.05) / 0.4, 1); }
+.ws-summary-path { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - var(--draw)); }
+.ws-summary-talk { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--draw) - var(--a)) / (var(--b) - var(--a)), 1)); }
+.ws-relic,
+.ws-summary-still { opacity: clamp(0, calc((var(--draw) - var(--at)) / 0.08), 1); transform: scale(calc(0.6 + 0.4 * clamp(0, (var(--draw) - var(--at)) / 0.08, 1))); }
+.ws-intention-card,
+.ws-elevation { opacity: clamp(0, calc((var(--hold, 1) - 0.5) / 0.08), 1); }
+.ws-journey { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.08), 1); }
+.ws-summary-timer,
+.ws-summary .ws-stat-row { opacity: clamp(0, calc((var(--hold, 1) - 0.68) / 0.08), 1); }
+
+/* 08 — someone, later, follows your line; the shared page opens as it
+   does in the browser, each line rising in after the last. */
+.ws-follower { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--hold, 1) - 0.3) / 0.6, 1)); }
+.ws-share-open > * { --t: calc(0.05 + var(--i) * 0.07); opacity: clamp(0, calc((var(--hold, 1) - var(--t)) / 0.12), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - var(--t)) / 0.12, 1)) * 12 * var(--pt))); }
+
+/* Loops run only on the scene on stage, and never under reduced motion. */
+.walk-story--pinned .walk-story-scene.is-active .ws-ring { animation: ws-breath 5.5s ease-in-out infinite; }
+.walk-story--pinned .walk-story-scene.is-active .ws-meter i { animation: ws-level var(--beat, 0.9s) ease-in-out var(--lag, 0s) infinite alternate; }
+.ws-meter i:nth-child(2n) { --beat: 0.62s; }
+.ws-meter i:nth-child(3n) { --lag: -0.4s; }
+.ws-meter i:nth-child(5) { --beat: 0.75s; --lag: -0.2s; }
+@keyframes ws-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+@keyframes ws-level { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .walk-story .ws-ring, .walk-story .ws-meter i { animation: none; }
+}
