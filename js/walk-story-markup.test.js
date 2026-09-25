@@ -210,6 +210,16 @@ const storyCss = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8
 ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(storyCss),
   'the walker and the tracker fade while the ink line is the companion');
 
+console.log('\n=== the page claims only what the policy says ===\n');
+
+const llms = fs.readFileSync(path.join(ROOT, 'llms.txt'), 'utf8');
+[/no cloud/i, /no telemetry/i, /no user id/i, /never uploaded/i, /Nothing is uploaded to any server/, /All data stays on your phone/].forEach(function (re) {
+  ok(!re.test(html), 'index.html no longer says ' + re);
+  ok(!re.test(llms), 'llms.txt no longer says ' + re);
+});
+ok(/Honor/.test(html.slice(html.indexOf('"featureList"'), html.indexOf('"screenshot"'))), 'the feature list names Honor');
+ok(/data ODbL/.test(llms), 'llms.txt gives the dataset\'s real data licence');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

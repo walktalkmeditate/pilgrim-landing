@@ -57,7 +57,7 @@
     "operatingSystem": "iOS 18+, iPadOS 18+, Android 9+",
     "applicationCategory": "HealthApplication",
     "applicationSubCategory": "Walking Meditation",
-    "description": "Privacy-first walking and meditation companion for iPhone, iPad, and Android. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, seek places hidden in fog and revealed by stillness, earn digital goshuin seals. No accounts, no analytics, no cloud. Open source and free forever.",
+    "description": "Privacy-first walking and meditation companion for iPhone, iPad, and Android. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, seek places hidden in fog and revealed by stillness, earn digital goshuin seals, and on iPhone walk in someone else's steps along the Camino, the Kumano Kodō and Shikoku's 88 temples. Anonymous, no accounts, walks stored on your device. Open source and free forever.",
     "url": "https://pilgrimapp.org",
     "downloadUrl": [
       "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
@@ -91,11 +91,16 @@
       "Home Screen widget with a daily walking mantra",
       "Whispers — anonymous audio gifts placed along walking routes with proximity detection",
       "Cairns — virtual stone cairns placed at meaningful spots, stackable by other walkers across seven tiers",
-      "Walk Reliquary — pin photos from your walk to the route map with a ritual long-press gesture, fully opt-in, no photos stored or uploaded",
+      "Walk Reliquary — pin photos from your walk to the route map with a ritual long-press gesture, fully opt-in; photos stay in your library and upload only when you share a walk interactively",
+      "Three ways to walk — Wander with no aim, Seek places hidden in fog and revealed by stillness, and Honor a path someone else laid down (iPhone)",
+      "Honor pilgrimage stages from the open open-pilgrimages dataset — the Camino de Santiago, the Kumano Kodō and Shikoku's 88 temples (iPhone)",
+      "Offline maps for saved pilgrimage stages (iPhone)",
+      "Walk with me — share a walk as a living page, with voices at the places they were spoken",
+      "Themes across walks — the words you return to, offered back as intentions",
       "On-device photo analysis via Vision framework enriches writing prompts with landscape, text, people, and color context",
       "No accounts required",
-      "No cloud storage — all data on-device",
-      "No analytics or telemetry",
+      "No accounts; walks stored on the device",
+      "No analytics or advertising SDKs",
       "Open source (GPLv3)"
     ],
     "screenshot": "https://pilgrimapp.org/assets/og-image.png",
@@ -150,7 +155,7 @@
         "name": "What is the best privacy-focused walking app?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim is a privacy-first walking and meditation companion for iPhone, iPad, and Android. It has no accounts, no analytics, no cloud storage, and no telemetry. Voice transcription runs entirely on-device (WhisperKit on iOS, whisper.cpp on Android). All data stays on your phone. It is open source (GPLv3) and free forever."
+          "text": "Pilgrim is a privacy-first walking and meditation companion for iPhone, iPad, and Android. It is anonymous: there are no accounts and no analytics or advertising SDKs, and your walks are stored on your device. Voice transcription runs entirely on-device (WhisperKit on iOS, whisper.cpp on Android). What you choose to share travels, and the privacy policy lists exactly what. It is open source (GPLv3) and free forever."
         }
       },
       {
@@ -182,7 +187,7 @@
         "name": "How can I record voice notes while walking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using OpenAI's Whisper model (WhisperKit on iOS, whisper.cpp on Android). Nothing is uploaded to any server. Your voice recordings and transcriptions stay on your phone."
+          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using OpenAI's Whisper model (WhisperKit on iOS, whisper.cpp on Android). No audio is sent anywhere to be transcribed. Your recordings and transcriptions stay on your phone unless you choose to share a walk."
         }
       },
       {
@@ -1745,7 +1750,7 @@
               </svg>
             </div>
             <h3 class="traces-card-title traces-card-title--reliquary">The Walk Reliquary</h3>
-            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from your photo library, never copied, never uploaded. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
+            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from your photo library, never copied; a photo leaves your phone only if you share the walk interactively. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
           </div>
         </div>
       </div>
