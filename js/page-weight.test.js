@@ -63,7 +63,11 @@ const BASELINE_KB = {
   // curated offset — the inline styles, and the rider's seasonal breath.
   // Same trade traces made: the app's actual drawing, priced in the open,
   // not a lighter imitation.
-  'index.html':                                 83.50,
+  // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md):
+  // nine scenes, each with its copy, an HTML phone and its line in two
+  // geometries, replace six sections; the removed sections' inline CSS
+  // went with them. Raised again as each task lands.
+  'index.html':                                 95.29,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

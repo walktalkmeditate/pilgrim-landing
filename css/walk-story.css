@@ -98,3 +98,437 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story-scene .traces-card-title { color: var(--ws-ink); }
 .walk-story-scene .traces-card p.cairn-counter,
 .walk-story-scene .traces-card p.wisp-energy { color: var(--ws-muted) !important; }
+
+/* --- Stacked: no JS, reduced motion, short viewports. Nine sections in
+   their finished states: every act below reads var(--hold, 1). --- */
+
+.walk-story { position: relative; }
+.walk-story-stage { position: relative; }
+.walk-story-atmosphere,
+.walk-story-rail,
+.walk-story-pill { display: none; }
+
+.walk-story-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 92svh;
+  padding: 14vh 8% 24vh;
+}
+
+.walk-story-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.walk-story-line--portrait { display: none; }
+@media (max-width: 720px) {
+  .walk-story-line--landscape { display: none; }
+  .walk-story-line--portrait { display: block; }
+}
+
+.walk-story-front {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3rem 6%;
+}
+.walk-story-copy { flex: 1 1 22rem; max-width: 36rem; }
+.walk-story-phone { flex: 0 0 auto; width: min(300px, 76vw); }
+.ws-act--right { flex: 1 1 18rem; }
+.ws-said { flex: 1 1 100%; }
+
+/* --- Copy --- */
+
+.ws-kicker {
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ws-muted);
+  margin: 0 0 1.25rem;
+}
+.walk-story-copy h2 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.3rem, 4.4vw, 4.25rem);
+  line-height: 1.03;
+  letter-spacing: -0.012em;
+  margin: 0 0 1.2rem;
+}
+.walk-story-copy h2 em { font-style: italic; font-weight: 400; }
+.ws-body { font-size: clamp(1.05rem, 1.3vw, 1.22rem); line-height: 1.62; max-width: 34ch; margin: 0 0 1rem; }
+.ws-aside,
+.ws-caption,
+.ws-said { font-style: italic; color: var(--ws-muted); }
+.ws-caption { font-size: 0.98rem; margin: 0.3rem 0; }
+.ws-closing { font-family: var(--font-display); font-size: clamp(1.25rem, 1.8vw, 1.6rem); font-style: italic; margin: 1.1rem 0; }
+.ws-said { font-family: var(--font-display); font-size: clamp(1.1rem, 1.5vw, 1.35rem); max-width: 30ch; margin: 0; }
+.walk-story-copy a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+.ws-list { list-style: none; padding: 0; margin: 1rem 0; }
+.ws-list li { margin: 0.3rem 0; }
+.ws-begin { font-family: var(--font-display); font-size: 1.3rem; font-style: italic; margin: 1.4rem 0 0.8rem; }
+.ws-seek-form { margin-top: 1.4rem; }
+.ws-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.walk-story-skip {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 5;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  transform: translateY(-300%);
+}
+.walk-story-skip:focus { transform: none; }
+
+/* On a night sky the page's own badge colours sink; lift them. */
+.walk-story-scene[data-sky="night"] .app-store-badge,
+.walk-story-scene[data-sky="night"] .google-play-badge {
+  background: var(--ws-ink-darksky);
+  color: var(--ws-night-base);
+  border-color: var(--ws-ink-darksky);
+}
+
+/* --- The line --- */
+
+.ws-line { fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+/* The Honor stage is drawn scaled; its stroke is divided back by the
+   scale the bake puts on the group, so it matches every other line.
+   (A non-scaling stroke would lay pathLength dashes out in screen space
+   and part the ink from its dot.) */
+.ws-honor-route .ws-line { stroke-width: calc(2.25 / var(--ws-route-scale, 1)); }
+.ws-honor-route .ws-honor-theirs { stroke-width: calc(2 / var(--ws-route-scale, 1)); }
+.ws-dot > circle,
+.ws-pin circle,
+.ws-moment circle { fill: currentColor; }
+.ws-ring { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.6; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; }
+.ws-honor-theirs { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 0.004 0.012; opacity: 0.45; }
+.ws-moment-label { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.04em; fill: currentColor; }
+.ws-moment-ja { font-size: 12px; fill: currentColor; opacity: 0.8; }
+.ws-crescent { fill: none; stroke: var(--dawn); stroke-width: 2.5; stroke-linecap: round; }
+.ws-follower { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; opacity: 0.45; }
+.ws-moon-disc { fill: currentColor; opacity: 0.08; }
+.ws-moon-lit { fill: currentColor; opacity: 0.85; }
+
+/* --- The phones' map and status bar. --- */
+
+:root {
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  --ws-status-icons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 13'%3E%3Crect x='0' y='8' width='3.2' height='4.2' rx='1'/%3E%3Crect x='4.6' y='5.8' width='3.2' height='6.4' rx='1'/%3E%3Crect x='9.2' y='3.4' width='3.2' height='8.8' rx='1'/%3E%3Crect x='13.8' y='1' width='3.2' height='11.2' rx='1'/%3E%3Cpath d='M30 12.4 27.7 9.8a3.4 3.4 0 0 1 4.6 0Z'/%3E%3Cpath d='M25.4 7.5a6.6 6.6 0 0 1 9.2 0M22.8 4.8a10.3 10.3 0 0 1 14.4 0' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3Crect x='46.5' y='1' width='24' height='11' rx='3.6' fill='none' stroke='black' stroke-opacity='.4'/%3E%3Crect x='48.5' y='3' width='20' height='7' rx='2'/%3E%3Cpath d='M72 4.6a2 2 0 0 1 0 3.8Z' fill-opacity='.45'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] {
+  --ws-map-land: #221E18;
+  --ws-map-road: #332D25;
+  --ws-map-park: #232A20;
+  --ws-map-water: #1D2A2B;
+}
+
+/* --- The phone. Every string on it is the app's own (the markup test
+   cites each), and its colours are the page's, so it follows the theme.
+
+   It is drawn in the app's own points. The phone is a size container and
+   --pt is one point of a 390 × 844 iPhone screen, so each number below is
+   the SwiftUI source's number: a 17-point button is 17 points on a phone
+   of any size, and nothing outgrows the phone as the phone shrinks. --- */
+
+.ws-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.walk-story-phone {
+  --pt: calc(100cqw / 412);
+  --ws-bezel: #1D1915;
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 412 / 866;
+  border-radius: 16% / 7.6%;
+  background: var(--ws-bezel);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 60px 100px -40px rgba(24, 16, 8, 0.55),
+    0 24px 44px -26px rgba(24, 16, 8, 0.45);
+}
+[data-theme="dark"] .walk-story-phone {
+  --ws-bezel: #0B0A09;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 60px 100px -40px rgba(0, 0, 0, 0.8);
+}
+/* The action button and the volume rocker on the left, power on the right. */
+.walk-story-phone::before,
+.walk-story-phone::after { content: ''; position: absolute; width: 0.8%; }
+.walk-story-phone::before {
+  right: 100%;
+  top: 17%;
+  height: 23%;
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(var(--ws-bezel) 0 14%, transparent 14% 29%, var(--ws-bezel) 29% 61%, transparent 61% 69%, var(--ws-bezel) 69%);
+}
+.walk-story-phone::after { left: 100%; top: 27%; height: 11%; border-radius: 0 2px 2px 0; background: var(--ws-bezel); }
+
+.ws-screen {
+  position: absolute;
+  inset: calc(11 * var(--pt));
+  overflow: hidden;
+  clip-path: inset(0 round calc(55 * var(--pt)));
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: calc(12 * var(--pt));
+  line-height: 1.2;
+}
+:where(.ws-screen) p { margin: 0; }
+/* The Dynamic Island and the home indicator. */
+.ws-screen::before,
+.ws-screen::after { content: ''; position: absolute; z-index: 5; left: 50%; }
+.ws-screen::before {
+  top: calc(11 * var(--pt));
+  width: calc(125 * var(--pt));
+  height: calc(37 * var(--pt));
+  margin-left: calc(-62.5 * var(--pt));
+  border-radius: calc(19 * var(--pt));
+  background: #000;
+}
+.ws-screen::after {
+  bottom: calc(8 * var(--pt));
+  width: calc(139 * var(--pt));
+  height: calc(5 * var(--pt));
+  margin-left: calc(-69.5 * var(--pt));
+  border-radius: calc(3 * var(--pt));
+  background: currentColor;
+}
+.ws-status {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(59 * var(--pt));
+  padding: 0 calc(30 * var(--pt)) 0 calc(50 * var(--pt));
+  font: 600 calc(17 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+.ws-status::after {
+  content: '';
+  width: calc(78 * var(--pt));
+  height: calc(13 * var(--pt));
+  background: currentColor;
+  -webkit-mask: var(--ws-status-icons) center / contain no-repeat;
+  mask: var(--ws-status-icons) center / contain no-repeat;
+}
+.ws-icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ws-grabber { position: absolute; top: calc(6 * var(--pt)); left: 50%; width: calc(36 * var(--pt)); height: calc(5 * var(--pt)); margin-left: calc(-18 * var(--pt)); border-radius: calc(3 * var(--pt)); background: var(--fog); }
+.ws-button {
+  display: block;
+  padding: calc(12 * var(--pt)) 0;
+  border-radius: calc(12 * var(--pt));
+  background: var(--stone);
+  color: var(--parchment);
+  font-weight: 700;
+  font-size: calc(17 * var(--pt));
+  text-align: center;
+}
+
+/* 01 — the Path tab (Scenes/Home/WalkStartView.swift). */
+.ws-app-logo { position: absolute; top: calc(128 * var(--pt)); left: 50%; width: calc(96 * var(--pt)); height: auto; margin-left: calc(-48 * var(--pt)); border-radius: calc(22 * var(--pt)); }
+.ws-app-quote { position: absolute; top: calc(250 * var(--pt)); left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); line-height: 1.25; text-align: center; text-wrap: balance; color: var(--fog); }
+.ws-app-moon { position: absolute; top: calc(360 * var(--pt)); left: 50%; width: calc(220 * var(--pt)); height: calc(220 * var(--pt)); margin-left: calc(-110 * var(--pt)); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fog) 30%, transparent), transparent); }
+.ws-app-moon::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(40 * var(--pt)); height: calc(40 * var(--pt)); margin: calc(-20 * var(--pt)); border-radius: 50%; box-shadow: inset calc(5 * var(--pt)) 0 0 color-mix(in srgb, var(--fog) 85%, transparent); }
+.ws-app-bottom { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(22 * var(--pt)); }
+.ws-modes { --m: calc(clamp(0, (var(--hold, 1) - 0.1) / 0.15, 2) - clamp(0, (var(--hold, 1) - 0.4) / 0.075, 2)); position: relative; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); padding-bottom: calc(6 * var(--pt)); font-weight: 700; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 55%, transparent); }
+/* The selection is a window that slides under the labels, carrying the
+   stone underline and a stone copy of the row, so the lit word travels
+   with the line: a transform, never a colour change. */
+.ws-modes-sel { position: absolute; font-style: normal; left: 0; top: 0; bottom: 0; width: calc(108.67 * var(--pt)); overflow: hidden; transform: translateX(calc(var(--m) * 116.67 * var(--pt))); }
+.ws-modes-sel::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(2 * var(--pt)); background: linear-gradient(90deg, var(--stone), color-mix(in srgb, var(--stone) 20%, transparent)); }
+.ws-modes-lit { display: grid; grid-template-columns: repeat(3, calc(108.67 * var(--pt))); column-gap: calc(8 * var(--pt)); width: calc(342 * var(--pt)); color: var(--stone); font-style: normal; transform: translateX(calc(var(--m) * -116.67 * var(--pt))); }
+.ws-app-sub { margin: calc(8 * var(--pt)) 0 calc(16 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-app-bottom .ws-button { --press: calc(clamp(0, (var(--hold, 1) - 0.55) / 0.02, 1) - clamp(0, (var(--hold, 1) - 0.58) / 0.02, 1)); border-radius: calc(14 * var(--pt)); transform: scale(calc(1 - 0.04 * var(--press))); }
+.ws-tabs { display: flex; width: calc(274 * var(--pt)); margin: calc(25 * var(--pt)) auto 0; padding: calc(4 * var(--pt)); border-radius: calc(31 * var(--pt)); background: color-mix(in srgb, var(--parchment) 55%, #fff); box-shadow: 0 calc(8 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.1); font: 500 calc(10 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+[data-theme="dark"] .ws-tabs { background: var(--parchment-tertiary); }
+.ws-tabs span { flex: 1; display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--pt)); padding: calc(7 * var(--pt)) 0 calc(6 * var(--pt)); border-radius: calc(27 * var(--pt)); }
+.ws-tabs .ws-icon { font-size: calc(26 * var(--pt)); }
+.ws-tabs .is-on { background: var(--parchment-secondary); color: var(--stone); }
+
+/* The walk screen: the map, its two corner buttons, the walked line. */
+.ws-map-layer { position: absolute; inset: 0; background: var(--ws-map-land); }
+/* iOS dims what a sheet covers; the dim rises with the sheet. */
+.ws-screen--path .ws-map-layer::after { content: ''; position: absolute; inset: 0; background: rgba(20, 14, 8, 0.2); }
+.ws-map { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
+.ws-map-route { fill: none; stroke: var(--moss); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-map-halo { fill: var(--dawn); opacity: 0.22; }
+.ws-map-you { fill: var(--dawn); stroke: var(--parchment); stroke-width: 3; }
+.ws-map-btn { position: absolute; top: calc(70 * var(--pt)); display: grid; place-items: center; width: calc(36 * var(--pt)); height: calc(36 * var(--pt)); border-radius: 50%; background: color-mix(in srgb, var(--parchment) 88%, transparent); box-shadow: 0 calc(2 * var(--pt)) calc(10 * var(--pt)) rgba(0, 0, 0, 0.12); font-size: calc(17 * var(--pt)); }
+.ws-map-btn--left { left: calc(16 * var(--pt)); }
+.ws-map-btn--right { right: calc(16 * var(--pt)); }
+
+/* The intention sheet (Scenes/ActiveWalk/IntentionSettingView.swift),
+   at its medium detent: iOS floats it clear of the edges. */
+.ws-intention {
+  position: absolute;
+  left: calc(8 * var(--pt));
+  right: calc(8 * var(--pt));
+  bottom: calc(8 * var(--pt));
+  height: calc(330 * var(--pt));
+  padding: calc(24 * var(--pt)) calc(24 * var(--pt)) 0;
+  border-radius: calc(44 * var(--pt));
+  background: var(--parchment);
+  box-shadow: 0 calc(-4 * var(--pt)) calc(30 * var(--pt)) rgba(0, 0, 0, 0.18);
+}
+.ws-sheet-title { font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--ink) 80%, transparent); }
+.ws-field { display: grid; margin-top: calc(24 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--parchment-secondary) 50%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-field > span { grid-area: 1 / 1; }
+.ws-placeholder { color: var(--fog); }
+.ws-field-meta { display: flex; justify-content: space-between; margin-top: calc(8 * var(--pt)); color: var(--fog); }
+.ws-field-meta .ws-icon { margin-right: calc(6 * var(--pt)); vertical-align: -0.15em; }
+.ws-count { display: grid; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-count > span,
+.ws-set > span { grid-area: 1 / 1; }
+.ws-recurring { margin-top: calc(16 * var(--pt)); }
+.ws-sheet-label { margin-bottom: calc(8 * var(--pt)); color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-chips { display: flex; flex-wrap: wrap; gap: calc(8 * var(--pt)); }
+.ws-chip { position: relative; padding: calc(6 * var(--pt)) calc(12 * var(--pt)); border-radius: 999px; background: color-mix(in srgb, var(--moss) 15%, transparent); color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.ws-chip--tapped::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--moss); opacity: 0; }
+.ws-sheet-buttons { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(24 * var(--pt)); display: flex; justify-content: space-between; font-weight: 700; font-size: calc(17 * var(--pt)); color: var(--fog); }
+.ws-set { display: grid; }
+.ws-set .ws-before { color: color-mix(in srgb, var(--fog) 30%, transparent); }
+.ws-set .ws-after { color: var(--stone); }
+
+/* 02 — the stats sheet (Scenes/ActiveWalk/WalkStatsSheet.swift, expanded). */
+.ws-stats-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: calc(33 * var(--pt)) calc(16 * var(--pt)) calc(34 * var(--pt));
+  border-radius: calc(20 * var(--pt)) calc(20 * var(--pt)) 0 0;
+  background: var(--parchment);
+  box-shadow: 0 calc(-6 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+.ws-timer { font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ws-intention-line { margin-top: calc(4 * var(--pt)); color: color-mix(in srgb, var(--fog) 60%, transparent); }
+.ws-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(24 * var(--pt)); margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-stat-row b { display: block; margin-bottom: calc(2 * var(--pt)); font-weight: 400; font-size: calc(20 * var(--pt)); font-variant-numeric: tabular-nums; color: var(--ink); }
+.ws-stat-row .ws-icon { display: block; margin: 0 auto calc(4 * var(--pt)); font-size: calc(14 * var(--pt)); color: var(--stone); }
+.ws-actions { display: flex; justify-content: center; gap: calc(24 * var(--pt)); margin-top: calc(32 * var(--pt)); }
+.ws-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(6 * var(--pt)); width: calc(88 * var(--pt)); height: calc(88 * var(--pt)); border: calc(1.5 * var(--pt)) solid; border-radius: 50%; }
+.ws-action .ws-icon { font-size: calc(24 * var(--pt)); }
+.ws-action--dawn { color: var(--dawn); background: color-mix(in srgb, var(--dawn) 6%, transparent); }
+.ws-action--rust { color: var(--rust); background: color-mix(in srgb, var(--rust) 6%, transparent); }
+.ws-action--fog { color: var(--fog); background: color-mix(in srgb, var(--fog) 6%, transparent); }
+.ws-action--fog .ws-icon { fill: currentColor; stroke: none; }
+/* Recording: the ring thickens to 2.5 and the fill deepens to 15%, drawn
+   as a layer that fades in rather than a border that repaints. */
+.ws-rec-ring { position: absolute; inset: calc(-1.5 * var(--pt)); border: calc(2.5 * var(--pt)) solid; border-radius: 50%; background: color-mix(in srgb, var(--rust) 10%, transparent); }
+.ws-rec-glyph,
+.ws-rec-labels { display: grid; place-items: center; }
+.ws-rec-glyph > *,
+.ws-rec-labels > * { grid-area: 1 / 1; }
+.ws-rec-labels em { font-style: normal; }
+.ws-meter { display: flex; align-items: center; gap: calc(3 * var(--pt)); height: calc(24 * var(--pt)); }
+.ws-meter i { width: calc(3 * var(--pt)); height: 100%; border-radius: calc(2 * var(--pt)); background: currentColor; transform: scaleY(var(--lvl, 0.5)); }
+.ws-meter i:nth-child(1) { --lvl: 0.35; }
+.ws-meter i:nth-child(2) { --lvl: 0.7; }
+.ws-meter i:nth-child(3) { --lvl: 1; }
+.ws-meter i:nth-child(4) { --lvl: 0.6; }
+.ws-meter i:nth-child(5) { --lvl: 0.3; }
+
+.ws-screen--video { background: #000; color: #fff; }
+.ws-screen--video::after { display: none; }
+.ws-video { width: 100%; height: 100%; object-fit: cover; }
+
+/* 04 — the morning card (Scenes/Honor/StageMorningCard.swift), a large
+   sheet over the dimmed screen behind it. */
+.ws-screen--card { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+.ws-screen--card .ws-status { color: #fff; }
+.ws-card {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16 * var(--pt));
+  padding: calc(34 * var(--pt)) calc(16 * var(--pt)) calc(50 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+}
+.ws-card-theme { font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); }
+.ws-card-narrative { font-family: var(--font-display); font-size: calc(17 * var(--pt)); line-height: 1.3; }
+.ws-card-fact { margin-top: calc(-8 * var(--pt)); color: var(--fog); }
+.ws-card-narrative + .ws-card-fact { margin-top: 0; }
+.ws-card .ws-button { margin-top: auto; }
+
+/* 07 — the walk summary (Scenes/WalkSummary/WalkSummaryView.swift), top
+   of its scroll: the map with the photos where they were taken, the
+   intention, the elevation, the line the app writes, the time. */
+.ws-screen--summary { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+.ws-screen--summary .ws-status { color: #fff; }
+.ws-summary {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  padding: 0 calc(16 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+  text-align: center;
+}
+.ws-nav { position: relative; height: calc(84 * var(--pt)); }
+.ws-nav-title { padding-top: calc(32 * var(--pt)); font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); }
+.ws-done { position: absolute; right: calc(4 * var(--pt)); top: calc(20 * var(--pt)); padding: calc(12 * var(--pt)) calc(16 * var(--pt)); border-radius: 999px; background: var(--parchment-secondary); font-size: calc(17 * var(--pt)); color: var(--stone); }
+.ws-summary-map { position: relative; height: calc(320 * var(--pt)); margin: 0 calc(-16 * var(--pt)); -webkit-mask: radial-gradient(closest-side, #000 72%, transparent); mask: radial-gradient(closest-side, #000 72%, transparent); }
+.ws-summary-map svg { display: block; width: 100%; height: 100%; }
+.ws-summary-path,
+.ws-summary-talk { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-summary-path { stroke: var(--moss); }
+.ws-summary-talk { stroke: var(--rust); }
+.ws-summary-still { fill: color-mix(in srgb, var(--dawn) 60%, transparent); stroke: var(--dawn); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.ws-summary-end { fill: var(--parchment); stroke: var(--ink); stroke-width: 2; opacity: 0.6; }
+.ws-relic { position: absolute; width: calc(30 * var(--pt)); height: calc(30 * var(--pt)); margin: calc(-15 * var(--pt)) 0 0 calc(-15 * var(--pt)); border: calc(2 * var(--pt)) solid var(--parchment); border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 calc(5 * var(--pt)) color-mix(in srgb, var(--dawn) 30%, transparent); }
+.ws-intention-card { display: grid; justify-items: center; gap: calc(8 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--moss) 6%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-intention-card .ws-icon { font-size: calc(14 * var(--pt)); color: var(--moss); }
+.ws-elevation { margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-elevation svg { display: block; width: 100%; height: calc(34 * var(--pt)); }
+.ws-elev-fill { fill: color-mix(in srgb, var(--stone) 18%, transparent); }
+.ws-elev-line { fill: none; stroke: var(--stone); stroke-width: 1.5; }
+.ws-elevation p { white-space: nowrap; display: flex; justify-content: space-between; align-items: center; margin-top: calc(4 * var(--pt)); }
+.ws-elevation .ws-icon { font-size: calc(18 * var(--pt)); }
+.ws-journey { margin-top: calc(16 * var(--pt)); padding: 0 calc(24 * var(--pt)); font-family: var(--font-display); font-size: calc(17 * var(--pt)); text-wrap: balance; color: var(--fog); }
+.ws-summary-timer { margin-top: calc(12 * var(--pt)); font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; }
+
+/* 08 — the shared walk as it opens in Safari (pilgrim-worker
+   src/generators/html-template.ts, the departure chapter). */
+.ws-screen--share { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt)); text-align: center; }
+.ws-share-orn { font-size: calc(22 * var(--pt)); opacity: 0.45; }
+.ws-share-kicker { margin-top: calc(16 * var(--pt)); font-size: calc(11 * var(--pt)); letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.5; white-space: nowrap; }
+.ws-share-kicker::before,
+.ws-share-kicker::after { content: ''; display: inline-block; width: calc(34 * var(--pt)); height: 1px; margin: 0 calc(12 * var(--pt)); background: currentColor; opacity: 0.35; vertical-align: middle; }
+.ws-share-place { margin-top: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 400; font-size: calc(46 * var(--pt)); line-height: 1.06; }
+.ws-share-weather { margin-top: calc(12 * var(--pt)); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55; }
+.ws-share-epigraph { margin-top: calc(30 * var(--pt)); font-family: var(--font-display); font-style: italic; font-size: calc(20 * var(--pt)); line-height: 1.55; opacity: 0.85; }
+.ws-share-doors { display: grid; gap: calc(10 * var(--pt)); width: 100%; margin-top: calc(40 * var(--pt)); }
+.ws-pill { display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--pt)); padding: calc(13 * var(--pt)) 0; border: 1px solid currentColor; border-radius: 999px; font-size: calc(12 * var(--pt)); letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+.ws-pill--solid { background: var(--ink); color: var(--parchment); border-color: var(--ink); opacity: 1; }
+.ws-pill img { width: calc(20 * var(--pt)); height: calc(20 * var(--pt)); border-radius: calc(5 * var(--pt)); }
+.ws-safari { position: absolute; left: calc(16 * var(--pt)); right: calc(16 * var(--pt)); bottom: calc(26 * var(--pt)); padding: calc(14 * var(--pt)) 0; border-radius: 999px; background: color-mix(in srgb, var(--parchment-secondary) 85%, #fff); box-shadow: 0 calc(4 * var(--pt)) calc(20 * var(--pt)) rgba(0, 0, 0, 0.12); font: 500 calc(15 * var(--pt)) / 1.2 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; letter-spacing: 0; opacity: 0.9; }
+[data-theme="dark"] .ws-safari { background: var(--parchment-tertiary); }
+
+/* Scene 06's traces keep the look css/traces-glyphs.css gives them. */
+.ws-act--traces { display: flex; gap: 2.5rem; justify-content: center; }
