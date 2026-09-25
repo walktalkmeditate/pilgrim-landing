@@ -145,6 +145,18 @@ const landed = C.sceneAt(C.holdStartProgress(3, 9), 9);
 eq(landed.index, 3, 'and lands inside the scene it names');
 near(C.holdLocal(landed.local), 0, 'at the very start of its hold', 1e-9);
 
+console.log('\n=== labelScale ===\n');
+
+eq(C.labelScale(1), 1, 'at full size the labels are drawn as set');
+eq(C.labelScale(2), 1, 'a larger viewBox scale never shrinks them');
+eq(C.labelScale(C.LABEL_MIN_PX / C.LABEL_PX), 1, 'exactly at the floor, nothing changes');
+near(C.labelScale(0.64), C.LABEL_MIN_PX / (C.LABEL_PX * 0.64), 'at 1024px (scale 0.64) they are counter-scaled', 1e-12);
+[0.3, 0.5, 0.64, 0.8, 0.846, 1, 1.5].forEach(function (s) {
+  ok(C.labelScale(s) * C.LABEL_PX * s >= C.LABEL_MIN_PX - 1e-9,
+    'at viewBox scale ' + s + ' a label reads at ' + C.LABEL_MIN_PX + 'px or more on screen  (' + (C.labelScale(s) * C.LABEL_PX * s).toFixed(2) + ')');
+});
+eq(C.LABEL_MIN_PX, 11, 'labels never read below 11px on screen');
+
 console.log('\n=== moonPath ===\n');
 
 eq(C.moonPath(0.5, 50, 50, 10), 'M50 40 A10 10 0 0 0 50 60 A10.00 10 0 0 0 50 40Z',

@@ -46,9 +46,6 @@
   var videoScene = video ? scenes.indexOf(video.closest('.walk-story-scene')) : -1;
   var tracesScene = sceneIndex('traces');
   var portraitQuery = window.matchMedia('(max-width: 720px)');
-  // The moments' labels are SVG text, so they shrink with the line's
-  // viewBox; below this size on screen they are counter-scaled.
-  var LABEL_PX = 13, LABEL_MIN_PX = 11;
 
   var state = scenes.map(function (scene) {
     var svgs = Array.prototype.slice.call(scene.querySelectorAll('.walk-story-line'));
@@ -92,7 +89,7 @@
     stageHeight = stage.offsetHeight;
     var box = root.querySelector('.walk-story-line--' + (portrait ? 'portrait' : 'landscape')).viewBox.baseVal;
     var scale = Math.min(stage.offsetWidth / box.width, stageHeight / box.height);
-    root.style.setProperty('--ws-label-k', Math.max(1, LABEL_MIN_PX / (LABEL_PX * scale)).toFixed(3));
+    root.style.setProperty('--ws-label-k', C.labelScale(scale).toFixed(3));
     state.forEach(function (s) {
       s.tracks.forEach(function (t) {
         t.length = 0;

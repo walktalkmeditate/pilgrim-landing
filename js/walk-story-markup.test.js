@@ -232,6 +232,8 @@ ok(css.indexOf('var(--hold, 1) / ' + C.HONOR.inkEnd + ',') !== -1, 'Honor inks o
 ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the closing line waits for ' + C.HONOR.closingAt);
 ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
 ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
+ok(new RegExp('\\.ws-moment-label \\{[^}]*font-size: ' + C.LABEL_PX + 'px').test(css),
+  'the labels are set at ' + C.LABEL_PX + 'px, the size labelScale counter-scales from');
 
 const drawEnd = css.match(/\.ws-summary \{ --draw: clamp\(0, \(var\(--hold, 1\) - ([\d.]+)\) \/ ([\d.]+), 1\); \}/);
 ok(!!drawEnd && +drawEnd[1] + +drawEnd[2] <= 0.3 + 1e-9, 'scene 07: the summary\'s line has drawn by hold 0.3');

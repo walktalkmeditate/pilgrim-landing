@@ -18,6 +18,10 @@
   var LINE_INK_END = 0.85;
   var PAST_LINE_OPACITY = 0.35;
   var PAST_LINE_OPACITY_COMPACT = 0.2;
+  // The moments' labels are SVG text set at LABEL_PX in the viewBox, so
+  // they shrink with it; on screen they never read below LABEL_MIN_PX.
+  var LABEL_PX = 13;
+  var LABEL_MIN_PX = 11;
 
   // Skies are per scene, not per hour: text colour cannot crossfade
   // mid-read, so a sky that darkened under a scene's fixed ink would
@@ -151,6 +155,13 @@
     return (index + FADE) / n;
   }
 
+  // The counter-scale for the labels at a viewBox drawn at vbScale screen
+  // pixels per unit: 1 while they read at LABEL_MIN_PX or more, and just
+  // enough to hold them there below it. It never shrinks them.
+  function labelScale(vbScale) {
+    return Math.max(1, LABEL_MIN_PX / (LABEL_PX * vbScale));
+  }
+
   // Lit part of the moon at phase 0..1 (0 new, 0.5 full), as an SVG
   // path in a circle of radius r centred on (cx, cy). Waxing is lit
   // on the right; the terminator is an ellipse whose x-radius is
@@ -175,6 +186,8 @@
     LINE_INK_END: LINE_INK_END,
     PAST_LINE_OPACITY: PAST_LINE_OPACITY,
     PAST_LINE_OPACITY_COMPACT: PAST_LINE_OPACITY_COMPACT,
+    LABEL_PX: LABEL_PX,
+    LABEL_MIN_PX: LABEL_MIN_PX,
     SKIES: SKIES,
     SCENES: SCENES,
     HONOR: HONOR,
@@ -190,6 +203,7 @@
     lineInk: lineInk,
     pillLabel: pillLabel,
     holdStartProgress: holdStartProgress,
+    labelScale: labelScale,
     moonPath: moonPath
   };
 
