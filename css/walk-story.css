@@ -572,7 +572,7 @@ body.constellation .walk-story-scene { background: transparent; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   position: absolute;
   right: 3%;
   top: 50%;
@@ -580,9 +580,13 @@ body.constellation .walk-story-scene { background: transparent; }
   z-index: 3;
   color: var(--ws-ink);
 }
-.walk-story-rail a { position: relative; display: block; width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: height 0.35s var(--ws-ease), opacity 0.35s var(--ws-ease); }
+/* Every dot keeps its 6px box, so nothing reflows; the current one's
+   pill stretches over it by transform. */
+.walk-story-rail a { position: relative; display: block; width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: opacity 0.35s var(--ws-ease); }
 .walk-story-rail a::before { content: ''; position: absolute; inset: -9px -14px; }
-.walk-story-rail a[aria-current="step"] { height: 24px; opacity: 0.9; }
+.walk-story-rail a::after { content: ''; position: absolute; left: 0; top: -8px; width: 6px; height: 22px; border-radius: 3px; background: currentColor; opacity: 0; transform: scaleY(0.27); transition: transform 0.35s var(--ws-ease), opacity 0.35s var(--ws-ease); }
+.walk-story-rail a[aria-current="step"] { opacity: 0.9; }
+.walk-story-rail a[aria-current="step"]::after { opacity: 1; transform: none; }
 .walk-story-rail a:focus-visible { outline: 2px solid currentColor; outline-offset: 5px; }
 .walk-story--pinned .walk-story-pill {
   display: inline-flex;
@@ -625,7 +629,7 @@ body.constellation .walk-story-scene { background: transparent; }
   }
   .walk-story--pinned .ws-act--right { left: auto; right: 4%; width: 56%; top: auto; bottom: 7%; transform: none; }
   .walk-story--pinned .ws-said { left: 6%; width: 50%; top: 49%; bottom: auto; }
-  .walk-story--pinned .walk-story-rail { right: 2%; gap: 10px; }
+  .walk-story--pinned .walk-story-rail { right: 2%; gap: 14px; }
   .walk-story-copy h2 { font-size: clamp(1.9rem, 8.6vw, 2.6rem); }
 }
 
