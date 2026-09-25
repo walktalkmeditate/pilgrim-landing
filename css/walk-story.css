@@ -1,0 +1,100 @@
+/* One walk, told by scroll. Loaded by index.html only.
+
+   Everything here is prefixed walk-story / ws-. The "Why Pilgrim exists"
+   section is already .story, styled at css/styles.css:1111–1123, so a
+   bare .story would collide both ways.
+
+   The skies are the story's own, not js/seasonal.js's: its time-of-day
+   modifiers shift parchment by barely a shade (js/breathe-tint.js makes
+   the same call). js/walk-story-contrast.test.js parses the tokens below
+   and holds every scene's text to AA over its own sky. */
+
+:root {
+  --ws-dawn-base: #F2E4D3;
+  --ws-dawn-glow: rgba(244, 195, 161, 0.5);
+  --ws-day-base: #F5F0E8;
+  --ws-day-glow: rgba(251, 243, 220, 0.6);
+  --ws-golden-base: #EEDAB8;
+  --ws-golden-glow: rgba(230, 178, 106, 0.45);
+  --ws-dusk-base: #3B2F40;
+  --ws-dusk-glow: rgba(169, 96, 79, 0.35);
+  --ws-night-base: #121521;
+  --ws-night-glow: rgba(40, 48, 82, 0.6);
+  --ws-ink-lightsky: #2C241E;
+  --ws-muted-lightsky: #4F4943;
+  --ws-ink-darksky: #F0EBE1;
+  --ws-muted-darksky: #C9C1B6;
+  --ws-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+[data-theme="dark"] {
+  --ws-dawn-base: #2A2119;
+  --ws-dawn-glow: rgba(90, 58, 42, 0.5);
+  --ws-day-base: #1C1914;
+  --ws-day-glow: rgba(46, 42, 34, 0.6);
+  --ws-golden-base: #2A1F12;
+  --ws-golden-glow: rgba(92, 64, 32, 0.45);
+  --ws-dusk-base: #1D1725;
+  --ws-dusk-glow: rgba(74, 42, 48, 0.4);
+  --ws-night-base: #0C0E16;
+  --ws-night-glow: rgba(28, 34, 56, 0.6);
+}
+
+/* --- Skies: the atmosphere's five layers when pinned, each scene's own
+   background when stacked. The glow sits low, where the line walks. --- */
+
+.ws-sky-dawn,
+.walk-story-scene[data-sky="dawn"] {
+  background: radial-gradient(120% 85% at 18% 105%, var(--ws-dawn-glow), transparent 62%), var(--ws-dawn-base);
+}
+.ws-sky-day,
+.walk-story-scene[data-sky="day"] {
+  background: radial-gradient(120% 85% at 50% 108%, var(--ws-day-glow), transparent 62%), var(--ws-day-base);
+}
+.ws-sky-golden,
+.walk-story-scene[data-sky="golden"] {
+  background: radial-gradient(120% 85% at 82% 108%, var(--ws-golden-glow), transparent 64%), var(--ws-golden-base);
+}
+.ws-sky-dusk,
+.walk-story-scene[data-sky="dusk"] {
+  background: radial-gradient(120% 80% at 70% 110%, var(--ws-dusk-glow), transparent 66%), var(--ws-dusk-base);
+}
+.ws-sky-night,
+.walk-story-scene[data-sky="night"] {
+  background: radial-gradient(90% 70% at 80% 12%, var(--ws-night-glow), transparent 60%), var(--ws-night-base);
+}
+
+/* --- Ink: dark on the light skies, light on dusk and night, and light
+   everywhere in dark mode. Fixed per scene: text never changes colour
+   mid-read, which is why the skies blend only between scenes. --- */
+
+.walk-story-scene,
+.walk-story-stage {
+  --ws-ink: var(--ws-ink-lightsky);
+  --ws-muted: var(--ws-muted-lightsky);
+}
+.walk-story-scene[data-sky="dusk"],
+.walk-story-scene[data-sky="night"],
+.walk-story-stage[data-sky="dusk"],
+.walk-story-stage[data-sky="night"],
+[data-theme="dark"] .walk-story-scene,
+[data-theme="dark"] .walk-story-stage {
+  --ws-ink: var(--ws-ink-darksky);
+  --ws-muted: var(--ws-muted-darksky);
+}
+.walk-story-scene {
+  color: var(--ws-ink);
+}
+
+/* Star mode: the starfield is the story's sky. */
+body.constellation .walk-story-atmosphere { display: none; }
+body.constellation .walk-story-scene { background: transparent; }
+
+/* Scene 06 moves the wisp and the cairn in with the page's own colours
+   (moss, rust, the energy's hue). On the golden sky those fall under
+   AA, so inside the story they take the scene's ink. js/traces-cairn.js
+   sets the wisp's name colour inline, hence !important there; the word
+   carries the energy's identity, and the glyph keeps its colour. */
+.walk-story-scene .traces-card-title { color: var(--ws-ink); }
+.walk-story-scene .traces-card p.cairn-counter,
+.walk-story-scene .traces-card p.wisp-energy { color: var(--ws-muted) !important; }
