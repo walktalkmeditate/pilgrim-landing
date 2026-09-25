@@ -168,7 +168,8 @@ body.constellation .walk-story-scene { background: transparent; }
 .ws-caption { font-size: 0.98rem; margin: 0.3rem 0; }
 .ws-closing { font-family: var(--font-display); font-size: clamp(1.25rem, 1.8vw, 1.6rem); font-style: italic; margin: 1.1rem 0; }
 .ws-said { font-family: var(--font-display); font-size: clamp(1.1rem, 1.5vw, 1.35rem); max-width: 30ch; margin: 0; }
-.walk-story-copy a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+/* Text links only: scene 09's store badges are links in the copy too. */
+.walk-story-copy p a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 .ws-list { list-style: none; padding: 0; margin: 1rem 0; }
 .ws-list li { margin: 0.3rem 0; }
 .ws-begin { font-family: var(--font-display); font-size: 1.3rem; font-style: italic; margin: 1.4rem 0 0.8rem; }
