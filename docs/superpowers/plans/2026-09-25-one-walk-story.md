@@ -3240,7 +3240,7 @@ In `featureList`:
       "Themes across walks — the words you return to, offered back as intentions",
 ```
 
-- Replace `"No cloud storage — all data on-device",` with `"No accounts; walks stored on the device",`, and `"No analytics or telemetry",` with `"No analytics or advertising SDKs",`.
+- Replace `"No cloud storage — all data on-device",` with `"Walks stored on the device",`, and `"No analytics or telemetry",` with `"No analytics or advertising SDKs",`.
 
 Replace the FAQ answer at line 153 with:
 
