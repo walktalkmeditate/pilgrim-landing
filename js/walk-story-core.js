@@ -17,6 +17,7 @@
   var FADE = 0.12;
   var LINE_INK_END = 0.85;
   var PAST_LINE_OPACITY = 0.35;
+  var PAST_LINE_OPACITY_COMPACT = 0.2;
 
   // Skies are per scene, not per hour: text colour cannot crossfade
   // mid-read, so a sky that darkened under a scene's fixed ink would
@@ -77,9 +78,14 @@
     return 1;
   }
 
-  function lineOpacity(j, current) {
-    if (j < current) return PAST_LINE_OPACITY;
-    return j === current ? 1 : 0;
+  // On a phone the walked line shares a narrow screen with the copy, so
+  // it steps further back; in the finale, whose copy fills the screen,
+  // it is put away, and only the last metres and the walker remain.
+  function lineOpacity(j, current, compact) {
+    if (j > current) return 0;
+    if (j === current) return 1;
+    if (!compact) return PAST_LINE_OPACITY;
+    return current === SCENES.length - 1 ? 0 : PAST_LINE_OPACITY_COMPACT;
   }
 
   function skyWeights(p, n) {
@@ -168,6 +174,7 @@
     FADE: FADE,
     LINE_INK_END: LINE_INK_END,
     PAST_LINE_OPACITY: PAST_LINE_OPACITY,
+    PAST_LINE_OPACITY_COMPACT: PAST_LINE_OPACITY_COMPACT,
     SKIES: SKIES,
     SCENES: SCENES,
     HONOR: HONOR,

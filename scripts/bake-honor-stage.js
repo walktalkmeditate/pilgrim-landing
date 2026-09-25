@@ -33,13 +33,16 @@ const GEOMETRIES = {
   portrait: { start: [84, 744], width: 90 }
 };
 
-// Takijiri-oji and Nezu-oji sit 12 units apart at the stage's foot, so
-// one label hangs below and the other rides above. Both read rightward:
-// left of the stage is the phone on a desktop and the screen's edge on
-// a phone. Takahara, at the top, reads back toward the line.
+// Takijiri-oji and Nezu-oji sit 12 units apart at the stage's foot, and
+// the route climbs steeply just past Nezu-oji, so no label may reach
+// rightward over the climb. On a desktop both hang left of the foot, one
+// under the line and one over it, which keeps the bottom-right corner
+// free for the pill. On a phone the screen's edge is to the left, so
+// Takijiri-oji hangs below and Nezu-oji sits beyond the climb, under the
+// line's next rise. Takahara, at the top, reads back toward the line.
 const LABELS = {
-  landscape: [{ x: 10, y: 24, anchor: 'start' }, { x: 10, y: -26, anchor: 'start' }, { x: -10, y: -14, anchor: 'end' }],
-  portrait: [{ x: 8, y: 22, anchor: 'start' }, { x: 8, y: -24, anchor: 'start' }, { x: -10, y: -14, anchor: 'end' }]
+  landscape: [{ x: -18, y: 24, anchor: 'end' }, { x: -10, y: -30, anchor: 'end' }, { x: -10, y: -18, anchor: 'end' }],
+  portrait: [{ x: 8, y: 26, anchor: 'start' }, { x: 30, y: -5, anchor: 'start' }, { x: -10, y: -18, anchor: 'end' }]
 };
 
 function round1(n) {

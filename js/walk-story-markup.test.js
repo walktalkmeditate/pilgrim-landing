@@ -148,6 +148,9 @@ const baked = B.bake(fixture);
 eq(count(story, 'd="' + baked.d + '"'), 4, 'both geometries draw the baked stage, faint and inked');
 Object.keys(B.GEOMETRIES).forEach(function (g) {
   ok(story.indexOf('transform="' + baked.placements[g].transform + '"') !== -1, g + ': placed by the bake\'s transform');
+  const squash = function (s) { return s.replace(/\s+/g, ' ').replace(/> </g, '><'); };
+  ok(squash(story).indexOf(squash(B.svgFor(baked, g))) !== -1,
+    g + ': the stage, its markers and their labels are the bake\'s output, verbatim');
 });
 C.honorReveal(0).moments.forEach(function (m) {
   const at = Math.round(m.at * 1e4) / 1e4;
@@ -156,6 +159,21 @@ C.honorReveal(0).moments.forEach(function (m) {
 ok(story.indexOf(fixture.stage.closing) !== -1, 'the closing line is the dataset\'s own');
 ok(story.indexOf('On iPhone. Coming to Android.') !== -1, 'Honor says where it runs');
 ok(story.indexOf('https://github.com/walktalkmeditate/open-pilgrimages') !== -1, 'the stage credits its dataset');
+
+console.log('\n=== the line\'s own shapes ===\n');
+
+const sceneBlock = function (n) {
+  const from = story.indexOf('id="scene-' + n + '"');
+  return story.slice(from, story.indexOf('<div class="walk-story-front">', from));
+};
+Array.from(sceneBlock(7).matchAll(/class="ws-line" d="M[\d. ]+C[\d. ]+ ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) A/g)).forEach(function (m, i) {
+  ok(Math.abs(+m[1] - +m[3]) <= 3 && +m[2] < +m[4],
+    'scene 7 (' + (i ? 'portrait' : 'landscape') + '): the approach arrives heading down, as the ring\'s first arc leaves, so the ink never hooks');
+});
+const followers = Array.from(sceneBlock(8).matchAll(/class="ws-follower" d="([^"]+)"/g)).map(function (m) { return m[1]; });
+const walked = Array.from(sceneBlock(8).matchAll(/class="ws-line" d="([^"]+)"/g)).map(function (m) { return m[1]; });
+eq(followers.length, 2, 'scene 8 has a follower in each geometry');
+ok(followers.every(function (d, i) { return d !== walked[i]; }), 'scene 8: whoever follows walks beside your line, not hidden under it');
 
 console.log('\n=== acts and ways out ===\n');
 

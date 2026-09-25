@@ -46,6 +46,9 @@
   var videoScene = video ? scenes.indexOf(video.closest('.walk-story-scene')) : -1;
   var tracesScene = sceneIndex('traces');
   var portraitQuery = window.matchMedia('(max-width: 720px)');
+  // The moments' labels are SVG text, so they shrink with the line's
+  // viewBox; below this size on screen they are counter-scaled.
+  var LABEL_PX = 13, LABEL_MIN_PX = 11;
 
   var state = scenes.map(function (scene) {
     var svgs = Array.prototype.slice.call(scene.querySelectorAll('.walk-story-line'));
@@ -69,7 +72,7 @@
     };
   });
 
-  var pinned = false;
+  var pinned = false, compact = false;
   var top = 0, height = 0, stageHeight = 0, width = 0;
   var target = 0, shown = 0, raf = 0, lastT = 0;
   var current = -1, inView = false, demoed = false, reachedEnd = false;
@@ -82,10 +85,14 @@
 
   function measure() {
     var portrait = portraitQuery.matches;
+    compact = portrait;
     width = window.innerWidth;
     top = root.getBoundingClientRect().top + window.scrollY;
     height = root.offsetHeight;
     stageHeight = stage.offsetHeight;
+    var box = root.querySelector('.walk-story-line--' + (portrait ? 'portrait' : 'landscape')).viewBox.baseVal;
+    var scale = Math.min(stage.offsetWidth / box.width, stageHeight / box.height);
+    root.style.setProperty('--ws-label-k', Math.max(1, LABEL_MIN_PX / (LABEL_PX * scale)).toFixed(3));
     state.forEach(function (s) {
       s.tracks.forEach(function (t) {
         t.length = 0;
@@ -93,6 +100,7 @@
         try { t.length = t.path.getTotalLength(); } catch (e) { t.length = 0; }
       });
       s.hold = -1;   // re-place every dot in the geometry now on screen
+      s.lineOpacity = -1;
     });
     target = C.storyProgress(window.scrollY, top, height, stageHeight);
   }
@@ -164,7 +172,7 @@
         s.frontEl.style.opacity = front;
         s.frontOpacity = front;
       }
-      var line = C.lineOpacity(j, at.index);
+      var line = C.lineOpacity(j, at.index, compact);
       if (line !== s.lineOpacity) {
         for (var q = 0; q < s.lines.length; q++) s.lines[q].style.opacity = line;
         s.lineOpacity = line;
@@ -293,6 +301,7 @@
       s.lineOpacity = -1;
     });
     skies.forEach(function (el, i) { el.style.opacity = ''; skyOpacity[i] = -1; });
+    root.style.removeProperty('--ws-label-k');
     rail.forEach(function (a) { a.removeAttribute('aria-current'); });
     stage.setAttribute('data-sky', 'dawn');
     current = -1;

@@ -67,7 +67,7 @@ const BASELINE_KB = {
   // nine scenes, each with its copy, an HTML phone and its line in two
   // geometries, replace six sections; the removed sections' inline CSS
   // went with them. Raised again as each task lands.
-  'index.html':                                 105.11,
+  'index.html':                                 106.10,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
