@@ -1270,27 +1270,27 @@
         <section class="walk-story-scene walk-story-scene--no-phone" id="scene-5" data-scene="seek" data-sky="day" aria-labelledby="scene-5-title">
           <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
             <defs>
-              <radialGradient id="ws-fog-l"><stop offset="0" stop-color="currentColor" stop-opacity=".24"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
-              <radialGradient id="ws-fog-dense-l"><stop offset="0" stop-color="currentColor" stop-opacity=".42"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-l"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".7"/><stop offset="1" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-dense-l"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".9"/><stop offset="1" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
             </defs>
             <g class="ws-fog-bank">
               <ellipse cx="520" cy="560" rx="420" ry="150" fill="url(#ws-fog-l)"/>
               <ellipse cx="1000" cy="470" rx="360" ry="130" fill="url(#ws-fog-l)"/>
+              <ellipse cx="760" cy="520" rx="130" ry="80" fill="url(#ws-fog-dense-l)"/>
             </g>
-            <ellipse cx="760" cy="520" rx="130" ry="80" fill="url(#ws-fog-dense-l)"/>
             <path class="ws-line" d="M1520 594.3 C1420 660 1260 700 1100 690" pathLength="1"/>
             <g class="ws-dot" transform="translate(1100 690)"><circle r="6"/><g class="ws-crescent-lean" style="--lean:-153deg"><circle class="ws-crescent" r="18" stroke-dasharray="34 80" stroke-dashoffset="17"/></g></g>
           </svg>
           <svg class="walk-story-line walk-story-line--portrait" viewBox="0 0 400 860" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
             <defs>
-              <radialGradient id="ws-fog-p"><stop offset="0" stop-color="currentColor" stop-opacity=".24"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
-              <radialGradient id="ws-fog-dense-p"><stop offset="0" stop-color="currentColor" stop-opacity=".42"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-p"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".7"/><stop offset="1" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-dense-p"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".9"/><stop offset="1" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
             </defs>
             <g class="ws-fog-bank">
               <ellipse cx="200" cy="470" rx="220" ry="80" fill="url(#ws-fog-p)"/>
               <ellipse cx="120" cy="610" rx="180" ry="70" fill="url(#ws-fog-p)"/>
+              <ellipse cx="300" cy="440" rx="60" ry="40" fill="url(#ws-fog-dense-p)"/>
             </g>
-            <ellipse cx="300" cy="440" rx="60" ry="40" fill="url(#ws-fog-dense-p)"/>
             <path class="ws-line" d="M174 665.4 C160 610 110 570 60 560" pathLength="1"/>
             <g class="ws-dot" transform="translate(60 560)"><circle r="6"/><g class="ws-crescent-lean" style="--lean:-27deg"><circle class="ws-crescent" r="16" stroke-dasharray="30 71" stroke-dashoffset="15"/></g></g>
           </svg>

@@ -25,6 +25,8 @@
   --ws-ink-darksky: #F0EBE1;
   --ws-muted-darksky: #C9C1B6;
   --ws-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Fog is paler than the sky it hangs in, never a shade of the ink. */
+  --ws-fog: #FFFDF8;
 }
 
 [data-theme="dark"] {
@@ -38,6 +40,7 @@
   --ws-dusk-glow: rgba(74, 42, 48, 0.4);
   --ws-night-base: #0C0E16;
   --ws-night-glow: rgba(28, 34, 56, 0.6);
+  --ws-fog: #5A5247;
 }
 
 /* --- Skies: the atmosphere's five layers when pinned, each scene's own
@@ -707,6 +710,9 @@ body.constellation .walk-story-scene { background: transparent; }
 /* 05 — the fog drifts, the crescent leans. Nothing is revealed: the
    page's only reveal is the hidden clearing, and only stillness opens it. */
 .ws-fog-bank { transform: translateX(calc((1 - var(--hold, 1)) * 60px)); }
+/* It lifts with its scene: a walked line stays, the weather does not. */
+.walk-story--pinned .ws-fog-bank { transition: opacity 0.6s var(--ws-ease); }
+.walk-story--pinned .walk-story-scene:not(.is-active) .ws-fog-bank { opacity: 0; }
 .ws-crescent-lean { transform: rotate(calc(var(--lean) * clamp(0, (var(--hold, 1) - 0.2) / 0.6, 1))); }
 
 /* 06 — the wisp brightens as the line passes it. */

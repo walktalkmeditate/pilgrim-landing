@@ -175,6 +175,18 @@ const walked = Array.from(sceneBlock(8).matchAll(/class="ws-line" d="([^"]+)"/g)
 eq(followers.length, 2, 'scene 8 has a follower in each geometry');
 ok(followers.every(function (d, i) { return d !== walked[i]; }), 'scene 8: whoever follows walks beside your line, not hidden under it');
 
+const fogScene = sceneBlock(5);
+const fogStops = Array.from(fogScene.matchAll(/<radialGradient id="ws-fog[^"]*">([\s\S]*?)<\/radialGradient>/g)).map(function (m) { return m[1]; });
+eq(fogStops.length, 4, 'scene 5 has its four fog gradients');
+ok(fogStops.every(function (g) { return g.indexOf('currentColor') === -1 && /stop-color:\s*var\(--ws-fog\)/.test(g); }),
+  'the fog is paler than the sky: its gradients take --ws-fog, never the ink (currentColor)');
+eq(count(fogScene, '<ellipse'), (fogScene.match(/<g class="ws-fog-bank">[\s\S]*?<\/g>/g) || []).join('').split('<ellipse').length - 1,
+  'every fog ellipse drifts in the bank, so none is left behind');
+const storyCssForFog = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(/:not\(\.is-active\) \.ws-fog-bank\s*\{[^}]*opacity:\s*0/.test(storyCssForFog), 'the fog lifts once its scene has passed');
+ok(/--ws-fog:/.test(storyCssForFog.slice(storyCssForFog.indexOf(':root {'), storyCssForFog.indexOf('}', storyCssForFog.indexOf(':root {')))),
+  'the fog\'s colour is a token in the light palette');
+
 console.log('\n=== acts and ways out ===\n');
 
 eq(count(story, 'data-seek-door'), 1, 'one seek door, keyed by data-seek-door');
