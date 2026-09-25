@@ -39,10 +39,12 @@ const GEOMETRIES = {
 // under the line and one over it, which keeps the bottom-right corner
 // free for the pill. On a phone the screen's edge is to the left, so
 // Takijiri-oji hangs below and Nezu-oji sits beyond the climb, under the
-// line's next rise. Takahara, at the top, reads back toward the line.
+// line's next rise. Takahara, at the top, reads back toward the line on
+// a desktop; on a phone that is where the earlier scenes' line winds, so
+// it reads outward, into the space the phone's column leaves.
 const LABELS = {
   landscape: [{ x: -18, y: 24, anchor: 'end' }, { x: -10, y: -30, anchor: 'end' }, { x: -10, y: -18, anchor: 'end' }],
-  portrait: [{ x: 8, y: 26, anchor: 'start' }, { x: 30, y: -5, anchor: 'start' }, { x: -10, y: -18, anchor: 'end' }]
+  portrait: [{ x: 8, y: 26, anchor: 'start' }, { x: 30, y: -5, anchor: 'start' }, { x: 10, y: -3, anchor: 'start' }]
 };
 
 function round1(n) {

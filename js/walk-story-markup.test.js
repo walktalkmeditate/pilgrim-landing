@@ -260,14 +260,17 @@ ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-pho
 console.log('\n=== the frame ===\n');
 
 function mediaBlock(query) {
-  const i = css.indexOf('@media ' + query + ' {');
-  if (i === -1) return '';
-  let depth = 0, j = css.indexOf('{', i);
-  for (; j < css.length; j++) {
-    if (css[j] === '{') depth++;
-    else if (css[j] === '}' && --depth === 0) break;
+  const blocks = [];
+  let i = -1;
+  while ((i = css.indexOf('@media ' + query + ' {', i + 1)) !== -1) {
+    let depth = 0, j = css.indexOf('{', i);
+    for (; j < css.length; j++) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}' && --depth === 0) break;
+    }
+    blocks.push(css.slice(i, j));
   }
-  return css.slice(i, j);
+  return blocks.join('\n');
 }
 ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*inset:\s*0 max\(0px, calc\(50% - \d+px\)\)/.test(css),
   'a wide screen holds copy and phone in one centred frame instead of spreading them to its edges');
@@ -281,6 +284,24 @@ ok(/\.walk-story-copy \.store-badges\s*\{[^}]*justify-content:\s*flex-start/.tes
   'the store badges line up with the copy\'s left edge');
 ok(/\.walk-story-pill\.is-docked\s*\{[^}]*right:/.test(css) && /classList\.toggle\('is-docked'/.test(wiring),
   'after the opening the pill docks to the corner, clear of the line');
+
+['landscape', 'portrait'].forEach(function (g) {
+  const boxes = Array.from(story.matchAll(new RegExp('<svg class="walk-story-line walk-story-line--' + g + '" viewBox="([^"]+)" preserveAspectRatio="([^"]+)"', 'g')))
+    .map(function (m) { return m[1] + ' / ' + m[2]; });
+  eq(boxes.length, 9, g + ': nine scenes draw the line');
+  eq(new Set(boxes).size, 1, g + ': every scene shares one viewBox and alignment, so their lines meet on screen');
+});
+ok(/viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet"/.test(story),
+  'on a phone the line is drawn smaller and hugs the left edge, leaving the right half to the phone');
+ok(/\.ws-act--traces \.traces-card,\s*\.ws-act--traces \.traces-card:last-child\s*\{\s*border:\s*0/.test(css),
+  'scene 06\'s cards drop the list hairlines css/styles.css gives them elsewhere');
+ok(/\.ws-act--traces \.traces-card-icon\s*\{[^}]*min-height:[^}]*justify-content:\s*flex-end/.test(css),
+  'scene 06\'s wisp and cairn stand on one floor, so their titles share a line');
+const phoneCss = mediaBlock('(max-width: 720px)');
+ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*display:\s*grid/.test(phoneCss),
+  'on a phone the copy spans the top and the phone, the words and the traces share the row beneath it');
+ok(/\.walk-story--pinned \.walk-story-phone[^{]*\{[^}]*height:\s*min\(100%/.test(phoneCss),
+  'on a phone the phone takes all the height the copy leaves it, up to its column\'s width');
 
 console.log('\n=== the story\'s neighbours ===\n');
 
