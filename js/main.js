@@ -285,6 +285,7 @@
     var scaleFactor = 0.02;
 
     window.addEventListener('scroll', function () {
+      if (document.body.classList.contains('walk-story-pinned')) return;
       var y = window.scrollY;
       if (y > heroHeight * 0.8) {
         tracker.classList.add('visible');
@@ -708,6 +709,8 @@
     }
 
     function onScrollOrResize() {
+      // The walk story's ink line is the companion while it is pinned.
+      if (document.body.classList.contains('walk-story-pinned')) return;
       var percent = updateWalkerPosition();
 
       // Scroll-gated walking: enter walking state on every scroll

@@ -709,3 +709,13 @@ body.constellation .walk-story-scene { background: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .walk-story .ws-ring, .walk-story .ws-meter i { animation: none; }
 }
+
+/* The walk story's ink line is the page's companion while it is pinned;
+   the walker and the distance counter rest until it ends. js/walk-story.js
+   sets the class, and js/main.js skips their updates under it. */
+body.walk-story-pinned .page-walker,
+body.walk-story-pinned .scroll-tracker {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}

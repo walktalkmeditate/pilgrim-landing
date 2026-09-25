@@ -130,6 +130,11 @@ eq(C.STILLNESS_MS, 4000, 'stillness is four seconds');
 eq(C.HOVER_MS, 350, 'hover hurries after 350ms');
 eq(C.DASH_TOTAL, 114, 'dash total matches the door markup (34 + 80)');
 
+ok(C.ZONES.every(function (z) { return ['.journey.section', '.privacy-section'].indexOf(z.selector) === -1; }),
+  'no zone points at a section the walk story absorbed');
+ok(C.ZONES.some(function (z) { return z.selector === '.reliquary.section'; }),
+  'the Reliquary, now first below the story, is a zone');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

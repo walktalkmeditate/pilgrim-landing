@@ -1,8 +1,9 @@
 /* The hidden clearing — DOM wiring. Loaded by index.html only.
  *
- * One calm spot below the seek door holds a denser patch of fog,
- * placed fresh each visit. Step through the door (scroll past it)
- * and the door's crescent rides the viewport, leaning toward the
+ * One calm spot below the walk story holds a denser patch of fog,
+ * placed fresh each visit. The door is scene 05's form, inside the
+ * story's sticky stage, so it leaves the viewport only when the story
+ * ends: then the crescent rides the viewport, leaning toward the
  * spot — the app's own gesture: the crescent rides the walker, and
  * leans toward what waits. Stillness with the fog in view reveals
  * the clearing; hover and tap merely hurry it. Reduced motion gets
@@ -15,7 +16,7 @@
   var C = window.ClearingCore;
   if (!C) return;
 
-  var door = document.querySelector('.seek-door');
+  var door = document.querySelector('[data-seek-door]');
   if (!door) return;
 
   var reduceMotion = window.matchMedia &&

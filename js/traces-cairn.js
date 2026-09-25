@@ -221,6 +221,14 @@
     els.stack.classList.add('is-eternal');
   }
 
+  var demoShown = false;
+
+  function demo() {
+    if (demoShown || !els.stack) return;
+    demoShown = true;
+    setTimeout(function () { animatePlacement(placeStone()); }, 600);
+  }
+
   function initCairn() {
     els.stack = document.getElementById('cairn-stack');
     els.under = document.getElementById('cairn-under');
@@ -273,13 +281,15 @@
     // of surprise anyway. It counts as stone 1, which is why the
     // counter's rule is "with the first stone" and not "after the first
     // click": there is no separate demonstration state to reason about.
+    // Inside the pinned walk story the cairn sits in a sticky stage and
+    // is "in view" from the story's first scene while invisible, so
+    // there the story calls TracesCairn.demo() when scene 06 is on stage.
     if (typeof IntersectionObserver === 'function') {
-      var shown = false;
       var io = new IntersectionObserver(function (entries) {
-        if (shown || !entries[0].isIntersecting) return;
-        shown = true;
+        if (demoShown || !entries[0].isIntersecting) return;
+        if (els.stack.closest('.walk-story--pinned')) return;
         io.disconnect();
-        setTimeout(function () { animatePlacement(placeStone()); }, 600);
+        demo();
       }, { threshold: 0.6 });
       io.observe(els.stack);
     }
@@ -292,6 +302,8 @@
     if (wispEls.aura || wispEls.wisp) startBreathing();
     initCairn();
   }
+
+  window.TracesCairn = { demo: demo };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

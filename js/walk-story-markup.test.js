@@ -197,6 +197,19 @@ ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story-
 ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
   'will-change on the sky layers and only the active phone: six promoted layers at most');
 
+console.log('\n=== the story\'s neighbours ===\n');
+
+const cairnSrc = fs.readFileSync(path.join(ROOT, 'js', 'traces-cairn.js'), 'utf8');
+ok(/window\.TracesCairn\s*=\s*\{\s*demo:\s*demo\s*\}/.test(cairnSrc), 'traces-cairn.js exposes TracesCairn.demo()');
+ok(cairnSrc.indexOf("closest('.walk-story--pinned')") !== -1,
+  'the cairn\'s own observer stands down inside the pinned story, where it would fire unseen');
+const mainSrc = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+eq((mainSrc.match(/classList\.contains\('walk-story-pinned'\)/g) || []).length, 2,
+  'the scroll tracker and the page walker both rest while the story is pinned');
+const storyCss = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(storyCss),
+  'the walker and the tracker fade while the ink line is the companion');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

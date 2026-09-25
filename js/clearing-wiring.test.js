@@ -88,6 +88,20 @@ ok(html.indexOf('#0a1624') === -1, 'index.html carries no hardcoded night-ink fi
   ok(src.indexOf('#0a1624') === -1, 'js/' + f + ' carries no hardcoded night-ink fill');
 });
 
+console.log('\n=== zones and the door ===\n');
+
+const bodyHtml = html.slice(html.indexOf('<body'));
+const classLists = Array.from(bodyHtml.matchAll(/\sclass="([^"]*)"/g)).map(function (m) { return m[1].split(/\s+/); });
+core.ZONES.forEach(function (z) {
+  const want = z.selector.split('.').filter(Boolean);
+  const n = classLists.filter(function (cl) { return want.every(function (c) { return cl.indexOf(c) !== -1; }); }).length;
+  ok(n === 1, z.selector + ' matches exactly one element  (' + n + ')');
+});
+ok((bodyHtml.match(/\sdata-seek-door[\s>]/g) || []).length === 1, 'exactly one element is the seek door');
+const clearingSrc = fs.readFileSync(path.join(ROOT, 'js', 'clearing.js'), 'utf8');
+ok(clearingSrc.indexOf("querySelector('[data-seek-door]')") !== -1,
+  'clearing.js finds the door by data-seek-door, not the retired .seek-door section');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

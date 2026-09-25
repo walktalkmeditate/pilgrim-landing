@@ -87,12 +87,11 @@
   // lean varies between visits. The trail section is absent: measured
   // at both 390px and 845px, it never has a content-free band.
   var ZONES = [
-    { selector: '.journey.section', side: 'right', topPct: 30 },
+    { selector: '.reliquary.section', side: 'left', topPct: 30 },
     { selector: '.seasons.section', side: 'left', topPct: 80 },
     { selector: '.haiku.section', side: 'right', topPct: 40 },
     { selector: '.goshuin-section', side: 'left', topPct: 60 },
     { selector: '.soundscape-section', side: 'right', topPct: 60 },
-    { selector: '.privacy-section', side: 'left', topPct: 64 },
     { selector: '.story.section', side: 'right', topPct: 50 }
   ];
 
