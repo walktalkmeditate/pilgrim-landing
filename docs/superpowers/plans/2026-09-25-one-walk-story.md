@@ -23,7 +23,8 @@
 - Only `transform` and `opacity` animate. SVG `stroke-dashoffset` on the short scene paths (under 200 points) is the one exception. No per-frame layout reads.
 - No JavaScript, `prefers-reduced-motion: reduce`, and viewports under 560 px tall all get the stacked, finished-state story.
 - WCAG AA: body text ≥ 4.5:1 over every scene's sky, in light and dark. In star mode the sky is transparent and the starfield shows.
-- Phone mocks quote only strings found in cited pilgrim-ios files. Nothing the app doesn't show appears on a phone.
+- Phone mocks quote only strings found in cited pilgrim-ios files (scene 08's phone shows the shared walk page, so its strings are cited from pilgrim-worker's page template). Nothing the app, or the shared page, doesn't show appears on a phone.
+- Phones are drawn in the app's own points: each phone is a size container, `--pt` is one point of a 390 × 844 screen, and every size is the SwiftUI source's number times `--pt`.
 - The Honor stage's data comes from the committed fixture `scripts/fixtures/nakahechi-stage-00.json`, never from `../open-pilgrimages` at test time.
 - `js/page-weight.test.js` is a ratchet. Every baseline raise is a deliberate line with a reason comment.
 - The pre-commit hook checks permalinks and JSON-LD metadata; it must pass, never `--no-verify`.
@@ -36,9 +37,12 @@
 2. **Inactive scenes use `opacity: 0` and `pointer-events: none`, not `visibility: hidden`.** Hidden would take eight of nine scenes away from screen readers and keyboard users. The focus rule (focusing anything in a scene brings that scene on stage) keeps focus out of faded scenes.
 3. **Scenes live inside the sticky stage.** Pinned, all nine fill the stage and only the active scene's front shows. Stacked, they flow normally. Each scene carries its own phone and line, so no separate "slots" are needed.
 4. **Scene 02's transcript is a caption on the page, not text on the phone.** The app transcribes after the walk (WhisperKit), so the active-walk screen shows the recording ("Stop", the Talk timer), and the same words appear in scene 07's summary, where the app really shows them.
-5. **Reveals scrub both ways,** including scene 08's share route. The spec's `.revealed` class became a `--hold` scrub, per the reversal decision recorded in the spec.
+5. **Reveals scrub both ways,** including scene 08's shared page rising in. The spec's `.revealed` class became a `--hold` scrub, per the reversal decision recorded in the spec.
 6. **The contrast check is its own test,** `js/walk-story-contrast.test.js`. It follows `js/breathe-contrast.test.js`'s approach (tokens parsed from the shipped stylesheet). The two existing sweeps cover the seasonal parchment and the hour-wash, which the story's skies replace, so they stay untouched.
 7. **The two line geometries switch by CSS media query** (`max-width: 720px`), not JavaScript. `walk-story.js` only re-measures the visible geometry's paths.
+8. **The phones are the app's real screens, drawn in its own points.** Each phone is a size container and every size is the SwiftUI source's number, so a 17-point button stays 17 points at any phone size. The screens follow the app: the intention sheet rises over the walk's map (as `ActiveWalkView` presents it) and a Recurring tap fills the field at once; the stats sheet, morning card and summary are `WalkStatsSheet`, `StageMorningCard` (the stage's narrative whole, from the fixture) and `WalkSummaryView`. One street map and the icons are SVG symbols the phones share.
+9. **Scene 07's seal presses on the page, not the phone.** The app's summary shows no seal; the goshuin lives in the Journal. The spec's line already closes into a ring "where the seal will press", so the seal presses there, once the ring has closed.
+10. **Scene 08's phone is the shared walk as Safari shows it,** so its strings are pilgrim-worker's page template (the departure chapter), cited in the markup test, not the app's.
 
 ## File map
 
@@ -513,7 +517,7 @@ EOF
 Create `scripts/fixtures/nakahechi-stage-00.json` with exactly this content (it is copied from the dataset, not generated at test time):
 
 ```json
-{"source":"open-pilgrimages v1.12.0, routes/kumano-kodo-nakahechi/ways/stage-00.json (ODbL)","stage":{"name":"Takijiri-oji to Takahara","theme":"Entry","distanceKm":3.6,"gainMeters":430,"hours":{"min":2,"max":3},"difficulty":"moderate","firstSentence":"Takijiri-oji stands at the confluence of two rivers, where pilgrims traditionally waded into the water to purify themselves before entering the divine realm.","closing":"What did you leave behind at the gate?"},"route":[[33.775981,135.50398],[33.775758,135.503992],[33.776114,135.504523],[33.776503,135.504258],[33.776479,135.504535],[33.776868,135.504958],[33.776755,135.50499],[33.776862,135.50521],[33.776928,135.506335],[33.777498,135.506972],[33.777678,135.507361],[33.777523,135.508196],[33.777563,135.508756],[33.777894,135.509805],[33.778092,135.510055],[33.77832,135.511153],[33.778546,135.511668],[33.778774,135.511891],[33.7788,135.5123],[33.781278,135.512509],[33.78182,135.513178],[33.782235,135.514025],[33.7828,135.514297],[33.783224,135.516365],[33.784114,135.517891],[33.78495,135.51883],[33.786105,135.519882],[33.786016,135.519968],[33.786335,135.520099],[33.786408,135.519993],[33.786542,135.520209],[33.787214,135.520603],[33.788121,135.521389],[33.788464,135.521845],[33.789784,135.523052],[33.789899,135.52346],[33.790508,135.523931],[33.791225,135.524202],[33.791566,135.524894],[33.792057,135.525389],[33.792758,135.525578],[33.793684,135.526314],[33.793878,135.526726],[33.793894,135.527165],[33.794446,135.529428]],"moments":[{"label":"Takijiri-oji","ja":"滝尻王子","frac":0,"words":"One of the Five Great Oji. Gate to the sacred mountains."},{"label":"Nezu-oji (remains)","ja":"不寝王子跡","frac":0.0934,"words":"Ruins of an Oji shrine."},{"label":"Takahara","ja":"高原","frac":0.9959,"words":""}]}
+{"source":"open-pilgrimages v1.12.0, routes/kumano-kodo-nakahechi/ways/stage-00.json (ODbL)","stage":{"name":"Takijiri-oji to Takahara","theme":"Entry","distanceKm":3.6,"gainMeters":430,"hours":{"min":2,"max":3},"difficulty":"moderate","narrative":"Takijiri-oji stands at the confluence of two rivers, where pilgrims traditionally waded into the water to purify themselves before entering the divine realm. The climb from the river to Takahara is immediate and steep — the mountain makes no concessions to your arrival. By the time you reach the ridge, you understand: you have left the ordinary world behind.","closing":"What did you leave behind at the gate?"},"route":[[33.775981,135.50398],[33.775758,135.503992],[33.776114,135.504523],[33.776503,135.504258],[33.776479,135.504535],[33.776868,135.504958],[33.776755,135.50499],[33.776862,135.50521],[33.776928,135.506335],[33.777498,135.506972],[33.777678,135.507361],[33.777523,135.508196],[33.777563,135.508756],[33.777894,135.509805],[33.778092,135.510055],[33.77832,135.511153],[33.778546,135.511668],[33.778774,135.511891],[33.7788,135.5123],[33.781278,135.512509],[33.78182,135.513178],[33.782235,135.514025],[33.7828,135.514297],[33.783224,135.516365],[33.784114,135.517891],[33.78495,135.51883],[33.786105,135.519882],[33.786016,135.519968],[33.786335,135.520099],[33.786408,135.519993],[33.786542,135.520209],[33.787214,135.520603],[33.788121,135.521389],[33.788464,135.521845],[33.789784,135.523052],[33.789899,135.52346],[33.790508,135.523931],[33.791225,135.524202],[33.791566,135.524894],[33.792057,135.525389],[33.792758,135.525578],[33.793684,135.526314],[33.793878,135.526726],[33.793894,135.527165],[33.794446,135.529428]],"moments":[{"label":"Takijiri-oji","ja":"滝尻王子","frac":0,"words":"One of the Five Great Oji. Gate to the sacred mountains."},{"label":"Nezu-oji (remains)","ja":"不寝王子跡","frac":0.0934,"words":"Ruins of an Oji shrine."},{"label":"Takahara","ja":"高原","frac":0.9959,"words":""}]}
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -1220,11 +1224,21 @@ console.log('\n=== the phones quote the app ===\n');
 [
   ['Set Your Intention', 'Scenes/ActiveWalk/IntentionSettingView.swift:85'],
   ['What purpose guides this walk?', 'Scenes/ActiveWalk/IntentionSettingView.swift:94'],
+  ['Voice</span>', 'Scenes/ActiveWalk/IntentionSettingView.swift:118'],
+  ['>5/140<', 'Scenes/ActiveWalk/IntentionSettingView.swift:126 (count/maxCharacters)'],
   ['>Recurring<', 'Scenes/ActiveWalk/IntentionSettingView.swift:137'],
+  ['<span>Cancel</span>', 'Scenes/ActiveWalk/IntentionSettingView.swift:365'],
+  ['>Set<', 'Scenes/ActiveWalk/IntentionSettingView.swift:375'],
   ['<span>WANDER</span><span>HONOR</span><span>SEEK</span>', 'Scenes/Home/WalkStartView.swift:326'],
   ['walk · talk · meditate', 'Models/Walk/WalkMode.swift:8'],
-  ['<span class="ws-app-button">Wander</span>', 'Models/Walk/WalkMode.swift buttonLabel'],
+  ['<span class="ws-button">Wander</span>', 'Models/Walk/WalkMode.swift buttonLabel'],
   ['Solvitur ambulando — it is solved by walking', 'the Path tab quote (docs/screenshots/01_walk_start.png)'],
+  ['>Path<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['>Journal<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['>Settings<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['Distance</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:488'],
+  ['Steps</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:490'],
+  ['Ascent</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:492'],
   ['<b>21:04</b>Walk', 'Scenes/ActiveWalk/WalkStatsSheet.swift:497'],
   ['<b>0:12</b>Talk', 'Scenes/ActiveWalk/WalkStatsSheet.swift:499'],
   ['<b>3:15</b>Meditate', 'Scenes/ActiveWalk/WalkStatsSheet.swift:501'],
@@ -1234,13 +1248,21 @@ console.log('\n=== the phones quote the app ===\n');
   ['<span>End</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:531'],
   ['>' + fixture.stage.theme + '<', 'Scenes/Honor/StageMorningCard.swift:46 (stage.theme)'],
   ['3.6 km · 430 m up · 2 to 3 hours · moderate', 'Scenes/Honor/StageMorningCard.swift:5 (factsLine)'],
+  ['>clear, 18°C<', 'Scenes/Honor/StageMorningCard.swift:18 (weatherLine)'],
   ['maps saved for today', 'Scenes/Honor/StageMorningCard.swift:25'],
-  ['>walk<', 'Scenes/Honor/StageMorningCard.swift:79 (buttonTitle)']
+  ['>walk<', 'Scenes/Honor/StageMorningCard.swift:79 (buttonTitle)'],
+  ['>Done<', 'Scenes/WalkSummary/WalkSummaryView.swift:155'],
+  ['You walked, spoke your mind, and found stillness.', 'Scenes/WalkSummary/WalkSummaryView.swift:468'],
+  ['Elevation</span>', 'Scenes/WalkSummary/WalkSummaryView.swift:536'],
+  ['walk with me<', 'pilgrim-worker src/generators/html-template.ts:2013'],
+  ['>as it happened · 2h 41m<', 'pilgrim-worker src/generators/html-template.ts:2015 (walkDurationLabel)'],
+  ['walk this<', 'pilgrim-worker src/generators/html-template.ts:2016'],
+  ['Clear · waxing crescent ☽ · 18°C', 'pilgrim-worker src/generators/html-template.ts:1789 (storyWeatherLine)']
 ].forEach(function (pair) {
   ok(story.indexOf(pair[0]) !== -1, 'a phone says ' + JSON.stringify(pair[0]) + '  — ' + pair[1]);
 });
 ok(story.indexOf('What are you walking with') === -1, 'no invented intention prompt');
-ok(story.indexOf(fixture.stage.firstSentence) !== -1, 'the morning card quotes the stage\'s own first sentence');
+ok(story.indexOf('>' + fixture.stage.narrative + '<') !== -1, 'the morning card quotes the stage\'s narrative whole');
 
 console.log('\n=== Honor, drawn from the bake ===\n');
 
@@ -1298,6 +1320,29 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
          ========================================== -->
     <section class="walk-story" id="walk-story" aria-label="A walk, from first light to dark">
       <a class="walk-story-skip" href="#after-walk-story">Skip the walk</a>
+      <svg class="ws-defs" aria-hidden="true" focusable="false">
+        <symbol id="ws-streets" viewBox="0 0 390 844">
+          <rect width="390" height="844" style="fill:var(--ws-map-land)"/>
+          <path d="M-10 70 150 40 220 150 110 250-10 215ZM240 600 400 560 400 760 290 790Z" style="fill:var(--ws-map-park)"/>
+          <path d="M-20 232C70 204 150 286 232 266S352 184 410 204" style="fill:none;stroke:var(--ws-map-water);stroke-width:26"/>
+          <g style="fill:none;stroke:var(--ws-map-road);stroke-linecap:round">
+            <path d="M-10 60 400 80M-10 370 400 350M-10 560 400 590M-10 770 400 740M20-10 10 860M230-10 250 860M360-10 372 860" style="stroke-width:3"/>
+            <path d="M-10 150 400 188M-10 690 400 632M62-10 92 860M306-10C284 290 334 500 292 860M-10 430 400 404" style="stroke-width:6"/>
+            <path d="M-20 520C100 500 262 540 410 470M150-10C172 200 118 420 192 860" style="stroke-width:13"/>
+          </g>
+        </symbol>
+        <symbol id="ws-i-walk" viewBox="0 0 24 24"><circle cx="13.5" cy="3.8" r="2" fill="currentColor" stroke="none"/><path d="M12.4 7.6 10.3 13.4l3.4 3.1 1.1 4.9M10.3 13.4 8.4 20.8M11.9 8.4 8.6 10.1 7.6 13.6M12.4 8.6l2.4 2.9 2.9.6" stroke-width="2.2"/></symbol>
+        <symbol id="ws-i-book" viewBox="0 0 24 24"><path d="M2.5 5.2c3.2-1.3 6.4-1.1 9.1.9v13.6c-2.7-1.9-5.9-2.1-9.1-.9zM21.5 5.2c-3.2-1.3-6.4-1.1-9.1.9v13.6c2.7-1.9 5.9-2.1 9.1-.9z" fill="currentColor" stroke="none"/></symbol>
+        <symbol id="ws-i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" stroke-width="3.2" stroke-dasharray="3.4 3.355" stroke-linecap="butt"/><path d="M12 4.8a7.2 7.2 0 1 0 0 14.4 7.2 7.2 0 1 0 0-14.4zm0 4.5a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 1 1 0-5.4z" fill="currentColor" fill-rule="evenodd" stroke="none"/></symbol>
+        <symbol id="ws-i-wave" viewBox="0 0 24 24"><path d="M3 10.5v3M6.5 8v8M10 4.5v15M13.5 8.5v7M17 6v12M20.5 10v4"/></symbol>
+        <symbol id="ws-i-brain" viewBox="0 0 24 24"><path d="M15.8 21v-3.1h2.1c.9 0 1.6-.7 1.6-1.6v-2.5l1.7-.7-1.8-3.3C19.1 5.9 16.1 3 12.1 3 7.8 3 4.5 6.3 4.5 10.6c0 2.3.9 4.2 2.6 5.6V21"/><path d="M9.2 9.6c-.1-1.3.9-2.3 2.1-2.3.5-.8 1.5-1.1 2.3-.7.9-.4 2 .1 2.2 1.1.9.3 1.3 1.3.9 2.1.4.8.1 1.7-.7 2-.2.9-1.2 1.4-2 1.1-.6.6-1.6.6-2.2.1-.9.2-1.8-.4-1.9-1.3-.8-.5-1.1-1.4-.7-2.1z" stroke-width="1.3"/></symbol>
+        <symbol id="ws-i-mic" viewBox="0 0 24 24"><rect x="8.8" y="2.8" width="6.4" height="11.6" rx="3.2"/><path d="M5.4 11.2a6.6 6.6 0 0 0 13.2 0M12 17.8v3.4M8.8 21.2h6.4"/></symbol>
+        <symbol id="ws-i-stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2.6" fill="currentColor" stroke="none"/></symbol>
+        <symbol id="ws-i-dots" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></g></symbol>
+        <symbol id="ws-i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke-width="2"/></symbol>
+        <symbol id="ws-i-leaf" viewBox="0 0 24 24"><path d="M4.5 19.5C4.2 10.9 9.8 5 20 4.5c.4 10-5.7 15.6-14.3 15.3zM4.5 19.5l8-8"/></symbol>
+        <symbol id="ws-i-mountain" viewBox="0 0 24 24"><path d="M1.8 19 8.4 9.6l3.4 4.8 2.7-3.5 7.7 8.1z"/></symbol>
+      </svg>
       <div class="walk-story-stage" data-sky="dawn">
         <div class="walk-story-atmosphere" aria-hidden="true">
           <div class="ws-sky ws-sky-dawn"></div>
@@ -1325,18 +1370,31 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             </div>
             <div class="walk-story-phone" aria-hidden="true">
               <div class="ws-screen ws-screen--path">
+                <p class="ws-status">6:12</p>
                 <img class="ws-app-logo" src="assets/pilgrim-logo.png" alt="" width="60" height="60">
                 <p class="ws-app-quote">Solvitur ambulando — it is solved by walking</p>
-                <div class="ws-app-spacer"></div>
-                <div class="ws-modes"><span>WANDER</span><span>HONOR</span><span>SEEK</span><i class="ws-modes-underline"></i></div>
-                <p class="ws-app-sub">walk · talk · meditate</p>
-                <span class="ws-app-button">Wander</span>
-                <div class="ws-app-tabs"><span class="is-on">Path</span><span>Journal</span><span>Settings</span></div>
-                <div class="ws-sheet">
+                <i class="ws-app-moon"></i>
+                <div class="ws-app-bottom">
+                  <div class="ws-modes"><span>WANDER</span><span>HONOR</span><span>SEEK</span><i class="ws-modes-sel"><i class="ws-modes-lit"><span>WANDER</span><span>HONOR</span><span>SEEK</span></i></i></div>
+                  <p class="ws-app-sub">walk · talk · meditate</p>
+                  <span class="ws-button">Wander</span>
+                  <div class="ws-tabs"><span class="is-on"><svg class="ws-icon"><use href="#ws-i-walk"/></svg>Path</span><span><svg class="ws-icon"><use href="#ws-i-book"/></svg>Journal</span><span><svg class="ws-icon"><use href="#ws-i-gear"/></svg>Settings</span></div>
+                </div>
+                <div class="ws-map-layer">
+                  <svg class="ws-map" viewBox="0 0 390 844"><use href="#ws-streets"/><circle class="ws-map-halo" cx="214" cy="300" r="22"/><circle class="ws-map-you" cx="214" cy="300" r="8"/></svg>
+                  <span class="ws-map-btn ws-map-btn--left"><svg class="ws-icon"><use href="#ws-i-dots"/></svg></span>
+                  <span class="ws-map-btn ws-map-btn--right"><svg class="ws-icon"><use href="#ws-i-x"/></svg></span>
+                </div>
+                <div class="ws-intention">
+                  <i class="ws-grabber"></i>
                   <p class="ws-sheet-title">Set Your Intention</p>
-                  <p class="ws-field"><span class="ws-placeholder">What purpose guides this walk?</span><span class="ws-typed"><span style="--i:0">w</span><span style="--i:1">a</span><span style="--i:2">t</span><span style="--i:3">e</span><span style="--i:4">r</span></span></p>
-                  <p class="ws-sheet-label">Recurring</p>
-                  <div class="ws-chips"><span class="ws-chip ws-chip--tapped">water</span><span class="ws-chip">light</span><span class="ws-chip">home</span></div>
+                  <p class="ws-field"><span class="ws-placeholder">What purpose guides this walk?</span><span class="ws-typed">water</span></p>
+                  <p class="ws-field-meta"><span><svg class="ws-icon"><use href="#ws-i-mic"/></svg>Voice</span><span class="ws-count"><span class="ws-before">0/140</span><span class="ws-after">5/140</span></span></p>
+                  <div class="ws-recurring">
+                    <p class="ws-sheet-label">Recurring</p>
+                    <div class="ws-chips"><span class="ws-chip ws-chip--tapped">water</span><span class="ws-chip">light</span><span class="ws-chip">home</span></div>
+                  </div>
+                  <p class="ws-sheet-buttons"><span>Cancel</span><span class="ws-set"><span class="ws-before">Set</span><span class="ws-after">Set</span></span></p>
                 </div>
               </div>
             </div>
@@ -1365,11 +1423,23 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             <p class="ws-said"><span style="--i:0">the</span> <span style="--i:1">light</span> <span style="--i:2">on</span> <span style="--i:3">the</span> <span style="--i:4">water</span> <span style="--i:5">keeps</span> <span style="--i:6">changing,</span> <span style="--i:7">and</span> <span style="--i:8">I</span> <span style="--i:9">keep</span> <span style="--i:10">trying</span> <span style="--i:11">to</span> <span style="--i:12">hold</span> <span style="--i:13">it</span> <span style="--i:14">still</span></p>
             <div class="walk-story-phone" aria-hidden="true">
               <div class="ws-screen ws-screen--walk">
-                <div class="ws-map"><svg viewBox="0 0 210 200"><path class="ws-map-route" d="M20 170 C60 140 80 180 120 150 S170 110 190 120"/><circle class="ws-map-you" cx="190" cy="120" r="6"/></svg></div>
+                <p class="ws-status">6:37</p>
+                <div class="ws-map-layer">
+                  <svg class="ws-map" viewBox="0 0 390 844"><use href="#ws-streets"/><path class="ws-map-route" d="M30 430 52 412 70 404 88 386 112 378 130 362 152 354 176 334 196 318 214 300"/><circle class="ws-map-halo" cx="214" cy="300" r="22"/><circle class="ws-map-you" cx="214" cy="300" r="8"/></svg>
+                  <span class="ws-map-btn ws-map-btn--left"><svg class="ws-icon"><use href="#ws-i-dots"/></svg></span>
+                  <span class="ws-map-btn ws-map-btn--right"><svg class="ws-icon"><use href="#ws-i-x"/></svg></span>
+                </div>
                 <div class="ws-stats-sheet">
+                  <i class="ws-grabber"></i>
                   <p class="ws-timer">24:31</p>
-                  <div class="ws-metrics"><span><b>21:04</b>Walk</span><span><b>0:12</b>Talk</span><span><b>3:15</b>Meditate</span></div>
-                  <div class="ws-actions"><span>Meditate</span><span class="ws-rec"><i class="ws-rec-dot"></i><span class="ws-rec-labels"><em class="ws-rec-idle">Record</em><em class="ws-rec-live">Stop</em></span></span><span>End</span></div>
+                  <p class="ws-intention-line">water</p>
+                  <p class="ws-stat-row"><span><b>1.71 km</b>Distance</span><span><b>2604</b>Steps</span><span><b>38 m</b>Ascent</span></p>
+                  <p class="ws-stat-row"><span><svg class="ws-icon"><use href="#ws-i-walk"/></svg><b>21:04</b>Walk</span><span><svg class="ws-icon"><use href="#ws-i-wave"/></svg><b>0:12</b>Talk</span><span><svg class="ws-icon"><use href="#ws-i-brain"/></svg><b>3:15</b>Meditate</span></p>
+                  <div class="ws-actions">
+                    <span class="ws-action ws-action--dawn"><svg class="ws-icon"><use href="#ws-i-brain"/></svg><span>Meditate</span></span>
+                    <span class="ws-action ws-action--rust"><i class="ws-rec-ring ws-rec-live"></i><span class="ws-rec-glyph"><svg class="ws-icon ws-rec-idle"><use href="#ws-i-mic"/></svg><i class="ws-meter ws-rec-live"><i></i><i></i><i></i><i></i><i></i></i></span><span class="ws-rec-labels"><em class="ws-rec-idle">Record</em><em class="ws-rec-live">Stop</em></span></span>
+                    <span class="ws-action ws-action--fog"><svg class="ws-icon"><use href="#ws-i-stop"/></svg><span>End</span></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1478,12 +1548,15 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             </div>
             <div class="walk-story-phone" aria-hidden="true">
               <div class="ws-screen ws-screen--card">
+                <p class="ws-status">7:48</p>
                 <div class="ws-card">
+                  <i class="ws-grabber"></i>
                   <p class="ws-card-theme">Entry</p>
-                  <p class="ws-card-narrative">Takijiri-oji stands at the confluence of two rivers, where pilgrims traditionally waded into the water to purify themselves before entering the divine realm.</p>
-                  <p class="ws-card-facts">3.6 km · 430 m up · 2 to 3 hours · moderate</p>
-                  <p class="ws-card-maps">maps saved for today</p>
-                  <span class="ws-app-button">walk</span>
+                  <p class="ws-card-narrative">Takijiri-oji stands at the confluence of two rivers, where pilgrims traditionally waded into the water to purify themselves before entering the divine realm. The climb from the river to Takahara is immediate and steep — the mountain makes no concessions to your arrival. By the time you reach the ridge, you understand: you have left the ordinary world behind.</p>
+                  <p class="ws-card-fact">3.6 km · 430 m up · 2 to 3 hours · moderate</p>
+                  <p class="ws-card-fact">clear, 18°C</p>
+                  <p class="ws-card-fact">maps saved for today</p>
+                  <span class="ws-button">walk</span>
                 </div>
               </div>
             </div>
@@ -1567,10 +1640,12 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
         <section class="walk-story-scene" id="scene-7" data-scene="home" data-sky="dusk" aria-labelledby="scene-7-title">
           <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
             <path class="ws-line" d="M780 780 C700 800 620 800 560 770 A40 40 0 1 1 480 770 A40 40 0 1 1 560 770" pathLength="1"/>
+            <g transform="translate(520 770) scale(.62)"><g class="ws-seal"><g transform="translate(-50 -50)"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></g></g></g>
             <g class="ws-dot" transform="translate(560 770)"><circle r="6"/></g>
           </svg>
           <svg class="walk-story-line walk-story-line--portrait" viewBox="0 0 400 860" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
             <path class="ws-line" d="M130 760 C150 790 170 800 180 810 A20 20 0 1 1 140 810 A20 20 0 1 1 180 810" pathLength="1"/>
+            <g transform="translate(160 810) scale(.3)"><g class="ws-seal"><g transform="translate(-50 -50)"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></g></g></g>
             <g class="ws-dot" transform="translate(180 810)"><circle r="6"/></g>
           </svg>
           <div class="walk-story-front">
@@ -1581,10 +1656,20 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             </div>
             <div class="walk-story-phone" aria-hidden="true">
               <div class="ws-screen ws-screen--summary">
-                <svg class="ws-summary-route" viewBox="0 0 200 120"><path class="ws-summary-path" d="M20 96 C60 60 90 104 130 70 S170 30 184 40"/><circle class="ws-relic" cx="58" cy="82" r="6"/><circle class="ws-relic" cx="118" cy="76" r="6"/><circle class="ws-relic" cx="170" cy="38" r="6"/></svg>
-                <p class="ws-recording">the light on the water keeps changing, and I keep trying to hold it still</p>
-                <div class="ws-seal">
-                  <svg viewBox="0 0 100 100"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></svg>
+                <p class="ws-status">17:52</p>
+                <div class="ws-summary">
+                  <div class="ws-nav"><p class="ws-nav-title">October 16, 2026</p><span class="ws-done">Done</span></div>
+                  <div class="ws-summary-map">
+                    <svg viewBox="0 0 390 320"><use href="#ws-streets" width="390" height="844" transform="translate(0 -60) scale(.5)"/><use href="#ws-streets" width="390" height="844" transform="translate(390 -60) scale(-.5 .5)"/><path class="ws-summary-path" d="M72 262 90 250 106 244 120 230 138 222 154 206 172 198 186 184 206 176 222 160 242 152 260 140 278 134 296 120 314 110 330 96" pathLength="1"/><path class="ws-summary-talk" style="--a:0.188;--b:0.3239" d="M120 230 138 222 154 206" pathLength="1"/><circle class="ws-summary-still" style="--at:0.5927" cx="222" cy="160" r="20"/><circle class="ws-summary-end" cx="72" cy="262" r="5"/></svg>
+                    <img class="ws-relic" style="--at:0.1244;left:27.18%;top:76.25%" src="assets/reliquary/photo-1.jpg" alt="" loading="lazy">
+                    <img class="ws-relic" style="--at:0.4508;left:47.69%;top:57.5%" src="assets/reliquary/photo-2.jpg" alt="" loading="lazy">
+                    <img class="ws-relic" style="--at:0.8656;left:75.9%;top:37.5%" src="assets/reliquary/photo-3.jpg" alt="" loading="lazy">
+                  </div>
+                  <div class="ws-intention-card"><svg class="ws-icon"><use href="#ws-i-leaf"/></svg><p>water</p></div>
+                  <div class="ws-elevation"><svg viewBox="0 0 358 34" preserveAspectRatio="none"><path class="ws-elev-fill" d="M0 32C40 30 70 26 100 22S150 12 180 14 240 6 270 5 330 3 358 4V34H0Z"/><path class="ws-elev-line" d="M0 32C40 30 70 26 100 22S150 12 180 14 240 6 270 5 330 3 358 4"/></svg><p><span>92 m</span><svg class="ws-icon"><use href="#ws-i-mountain"/></svg><span>341 m</span></p></div>
+                  <p class="ws-journey">You walked, spoke your mind, and found stillness.</p>
+                  <p class="ws-summary-timer">2:41:08</p>
+                  <p class="ws-stat-row"><span><b>3.60 km</b>Distance</span><span><b>5212</b>Steps</span><span><b>430 m</b>Elevation</span></p>
                 </div>
               </div>
             </div>
@@ -1612,7 +1697,16 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             </div>
             <div class="walk-story-phone" aria-hidden="true">
               <div class="ws-screen ws-screen--share">
-                <svg class="ws-share-route" viewBox="0 0 320 72"><path class="ws-share-path" d="M8 52 C 48 18, 84 64, 124 42 C 156 24, 176 14, 210 26 C 244 38, 268 54, 296 34" pathLength="1"/><circle class="ws-share-walker" cx="296" cy="34" r="3.5"/></svg>
+                <p class="ws-status">21:06</p>
+                <div class="ws-share-open">
+                  <p class="ws-share-orn" style="--i:0">❦</p>
+                  <p class="ws-share-kicker" style="--i:1">Friday, October 16</p>
+                  <p class="ws-share-place" style="--i:2">Tanabe</p>
+                  <p class="ws-share-weather" style="--i:3">Clear · waxing crescent ☽ · 18°C</p>
+                  <p class="ws-share-epigraph" style="--i:4">“the light on the water keeps changing, and I keep trying to hold it still”</p>
+                  <p class="ws-share-doors" style="--i:5"><span class="ws-pill ws-pill--solid">▶&nbsp;&nbsp;walk with me</span><span class="ws-pill">as it happened · 2h 41m</span><span class="ws-pill"><img src="assets/pilgrim-logo.png" alt="" width="20" height="20">walk this</span></p>
+                </div>
+                <p class="ws-safari">walk.pilgrimapp.org</p>
               </div>
             </div>
           </div>
@@ -1777,7 +1871,7 @@ Expected: no matches, `exit 1`.
   gap: 3rem 6%;
 }
 .walk-story-copy { flex: 1 1 22rem; max-width: 36rem; }
-.walk-story-phone { flex: 0 0 auto; width: min(260px, 70vw); aspect-ratio: 9 / 19.5; }
+.walk-story-phone { flex: 0 0 auto; width: min(300px, 76vw); }
 .ws-act--right { flex: 1 1 18rem; }
 .ws-said { flex: 1 1 100%; }
 
@@ -1867,93 +1961,307 @@ Expected: no matches, `exit 1`.
 .ws-moon-disc { fill: currentColor; opacity: 0.08; }
 .ws-moon-lit { fill: currentColor; opacity: 0.85; }
 
+/* --- The phones' map and status bar. --- */
+
+:root {
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  --ws-status-icons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 13'%3E%3Crect x='0' y='8' width='3.2' height='4.2' rx='1'/%3E%3Crect x='4.6' y='5.8' width='3.2' height='6.4' rx='1'/%3E%3Crect x='9.2' y='3.4' width='3.2' height='8.8' rx='1'/%3E%3Crect x='13.8' y='1' width='3.2' height='11.2' rx='1'/%3E%3Cpath d='M30 12.4 27.7 9.8a3.4 3.4 0 0 1 4.6 0Z'/%3E%3Cpath d='M25.4 7.5a6.6 6.6 0 0 1 9.2 0M22.8 4.8a10.3 10.3 0 0 1 14.4 0' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3Crect x='46.5' y='1' width='24' height='11' rx='3.6' fill='none' stroke='black' stroke-opacity='.4'/%3E%3Crect x='48.5' y='3' width='20' height='7' rx='2'/%3E%3Cpath d='M72 4.6a2 2 0 0 1 0 3.8Z' fill-opacity='.45'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] {
+  --ws-map-land: #221E18;
+  --ws-map-road: #332D25;
+  --ws-map-park: #232A20;
+  --ws-map-water: #1D2A2B;
+}
+
 /* --- The phone. Every string on it is the app's own (the markup test
-   cites each); its colours are the page's, so it follows the theme. --- */
+   cites each), and its colours are the page's, so it follows the theme.
+
+   It is drawn in the app's own points. The phone is a size container and
+   --pt is one point of a 390 × 844 iPhone screen, so each number below is
+   the SwiftUI source's number: a 17-point button is 17 points on a phone
+   of any size, and nothing outgrows the phone as the phone shrinks. --- */
+
+.ws-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 .walk-story-phone {
+  --pt: calc(100cqw / 412);
+  --ws-bezel: #1D1915;
+  container-type: inline-size;
   position: relative;
-  border-radius: 36px;
-  padding: 9px;
-  background: #16120F;
-  box-shadow: 0 60px 100px -40px rgba(24, 16, 8, 0.55), 0 24px 44px -26px rgba(24, 16, 8, 0.45);
+  aspect-ratio: 412 / 866;
+  border-radius: 16% / 7.6%;
+  background: var(--ws-bezel);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 60px 100px -40px rgba(24, 16, 8, 0.55),
+    0 24px 44px -26px rgba(24, 16, 8, 0.45);
 }
 [data-theme="dark"] .walk-story-phone {
-  background: #050505;
-  box-shadow: 0 60px 100px -40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --ws-bezel: #0B0A09;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 60px 100px -40px rgba(0, 0, 0, 0.8);
 }
+/* The action button and the volume rocker on the left, power on the right. */
+.walk-story-phone::before,
+.walk-story-phone::after { content: ''; position: absolute; width: 0.8%; }
+.walk-story-phone::before {
+  right: 100%;
+  top: 17%;
+  height: 23%;
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(var(--ws-bezel) 0 14%, transparent 14% 29%, var(--ws-bezel) 29% 61%, transparent 61% 69%, var(--ws-bezel) 69%);
+}
+.walk-story-phone::after { left: 100%; top: 27%; height: 11%; border-radius: 0 2px 2px 0; background: var(--ws-bezel); }
+
 .ws-screen {
-  position: relative;
-  height: 100%;
-  border-radius: 28px;
+  position: absolute;
+  inset: calc(11 * var(--pt));
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12% 7% 7%;
+  clip-path: inset(0 round calc(55 * var(--pt)));
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: clamp(9px, 1.35vh, 13px);
+  font-size: calc(12 * var(--pt));
+  line-height: 1.2;
 }
-.ws-app-logo { width: 24%; height: auto; border-radius: 22%; }
-.ws-app-quote { font-family: var(--font-display); font-size: 1.5em; line-height: 1.2; text-align: center; color: var(--ink-fog); margin: 8% 0 0; }
-.ws-app-spacer { flex: 1 1 auto; }
-.ws-modes { position: relative; width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; font-size: 0.82em; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-fog); padding-bottom: 0.5em; }
-.ws-modes span:first-child { color: var(--stone); }
-.ws-modes-underline { position: absolute; left: 0; bottom: 0; width: 33.333%; height: 2px; background: var(--stone); }
-.ws-app-sub { font-size: 0.8em; color: var(--ink-fog); margin: 5% 0; }
-.ws-app-button { display: block; width: 100%; padding: 0.85em 0; border-radius: 0.75em; background: var(--stone); color: var(--parchment); text-align: center; font-weight: 700; }
-.ws-app-tabs { display: flex; justify-content: space-around; width: 100%; margin-top: 7%; font-size: 0.72em; color: var(--ink-fog); }
-.ws-app-tabs .is-on { color: var(--stone); font-weight: 700; }
-.ws-sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 9% 8% 12%; border-radius: 1.3em 1.3em 0 0; background: var(--parchment-secondary); box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.14); }
-.ws-sheet-title { font-family: var(--font-display); font-size: 1.6em; text-align: center; margin: 0 0 7%; }
-.ws-field { position: relative; min-height: 1.7em; padding: 0.4em 0; border-bottom: 1px solid var(--stone); font-family: var(--font-display); font-size: 1.2em; margin: 0; }
-.ws-placeholder { position: absolute; left: 0; top: 0.4em; color: var(--ink-fog); }
-.ws-sheet-label { font-size: 0.72em; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-fog); margin: 9% 0 3%; }
-.ws-chips { display: flex; flex-wrap: wrap; gap: 0.45em; }
-.ws-chip { position: relative; padding: 0.35em 0.85em; border: 1px solid var(--stone); border-radius: 999px; font-family: var(--font-display); font-size: 1.05em; }
-.ws-chip--tapped::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; background: var(--stone); opacity: 0.22; }
+:where(.ws-screen) p { margin: 0; }
+/* The Dynamic Island and the home indicator. */
+.ws-screen::before,
+.ws-screen::after { content: ''; position: absolute; z-index: 5; left: 50%; }
+.ws-screen::before {
+  top: calc(11 * var(--pt));
+  width: calc(125 * var(--pt));
+  height: calc(37 * var(--pt));
+  margin-left: calc(-62.5 * var(--pt));
+  border-radius: calc(19 * var(--pt));
+  background: #000;
+}
+.ws-screen::after {
+  bottom: calc(8 * var(--pt));
+  width: calc(139 * var(--pt));
+  height: calc(5 * var(--pt));
+  margin-left: calc(-69.5 * var(--pt));
+  border-radius: calc(3 * var(--pt));
+  background: currentColor;
+}
+.ws-status {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(59 * var(--pt));
+  padding: 0 calc(30 * var(--pt)) 0 calc(50 * var(--pt));
+  font: 600 calc(17 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+.ws-status::after {
+  content: '';
+  width: calc(78 * var(--pt));
+  height: calc(13 * var(--pt));
+  background: currentColor;
+  -webkit-mask: var(--ws-status-icons) center / contain no-repeat;
+  mask: var(--ws-status-icons) center / contain no-repeat;
+}
+.ws-icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ws-grabber { position: absolute; top: calc(6 * var(--pt)); left: 50%; width: calc(36 * var(--pt)); height: calc(5 * var(--pt)); margin-left: calc(-18 * var(--pt)); border-radius: calc(3 * var(--pt)); background: var(--fog); }
+.ws-button {
+  display: block;
+  padding: calc(12 * var(--pt)) 0;
+  border-radius: calc(12 * var(--pt));
+  background: var(--stone);
+  color: var(--parchment);
+  font-weight: 700;
+  font-size: calc(17 * var(--pt));
+  text-align: center;
+}
 
-.ws-screen--walk { padding: 0; }
-.ws-map { position: relative; flex: 1 1 auto; width: 100%; background: linear-gradient(160deg, var(--parchment-tertiary), var(--parchment-secondary)); }
-.ws-map svg { position: absolute; left: 8%; top: 12%; width: 84%; height: 82%; }
-.ws-map-route { fill: none; stroke: var(--stone); stroke-width: 3; stroke-linecap: round; }
-.ws-map-you { fill: var(--stone); }
-.ws-stats-sheet { width: 100%; padding: 7% 7% 10%; border-radius: 1.3em 1.3em 0 0; background: var(--parchment); box-shadow: 0 -10px 26px rgba(0, 0, 0, 0.1); text-align: center; }
-.ws-timer { font-size: 2.4em; font-weight: 300; letter-spacing: 0.02em; margin: 0; }
-.ws-metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin: 7% 0; font-size: 0.72em; color: var(--ink-fog); }
-.ws-metrics b { display: block; font-size: 1.4em; font-weight: 400; color: var(--ink); }
-.ws-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45em; font-size: 0.78em; }
-.ws-actions > span { padding: 0.75em 0; border-radius: 0.65em; background: var(--parchment-secondary); }
-.ws-rec { display: flex; align-items: center; justify-content: center; gap: 0.4em; }
-.ws-rec-dot { width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--rust); }
-.ws-rec-labels { display: grid; }
-.ws-rec-labels em { grid-area: 1 / 1; font-style: normal; }
+/* 01 — the Path tab (Scenes/Home/WalkStartView.swift). */
+.ws-app-logo { position: absolute; top: calc(128 * var(--pt)); left: 50%; width: calc(96 * var(--pt)); height: auto; margin-left: calc(-48 * var(--pt)); border-radius: calc(22 * var(--pt)); }
+.ws-app-quote { position: absolute; top: calc(250 * var(--pt)); left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); line-height: 1.25; text-align: center; text-wrap: balance; color: var(--fog); }
+.ws-app-moon { position: absolute; top: calc(360 * var(--pt)); left: 50%; width: calc(220 * var(--pt)); height: calc(220 * var(--pt)); margin-left: calc(-110 * var(--pt)); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fog) 30%, transparent), transparent); }
+.ws-app-moon::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(40 * var(--pt)); height: calc(40 * var(--pt)); margin: calc(-20 * var(--pt)); border-radius: 50%; box-shadow: inset calc(5 * var(--pt)) 0 0 color-mix(in srgb, var(--fog) 85%, transparent); }
+.ws-app-bottom { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(22 * var(--pt)); }
+.ws-modes { --m: calc(clamp(0, (var(--hold, 1) - 0.1) / 0.15, 2) - clamp(0, (var(--hold, 1) - 0.4) / 0.075, 2)); position: relative; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); padding-bottom: calc(6 * var(--pt)); font-weight: 700; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 55%, transparent); }
+/* The selection is a window that slides under the labels, carrying the
+   stone underline and a stone copy of the row, so the lit word travels
+   with the line: a transform, never a colour change. */
+.ws-modes-sel { position: absolute; font-style: normal; left: 0; top: 0; bottom: 0; width: calc(108.67 * var(--pt)); overflow: hidden; transform: translateX(calc(var(--m) * 116.67 * var(--pt))); }
+.ws-modes-sel::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(2 * var(--pt)); background: linear-gradient(90deg, var(--stone), color-mix(in srgb, var(--stone) 20%, transparent)); }
+.ws-modes-lit { display: grid; grid-template-columns: repeat(3, calc(108.67 * var(--pt))); column-gap: calc(8 * var(--pt)); width: calc(342 * var(--pt)); color: var(--stone); font-style: normal; transform: translateX(calc(var(--m) * -116.67 * var(--pt))); }
+.ws-app-sub { margin: calc(8 * var(--pt)) 0 calc(16 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-app-bottom .ws-button { --press: calc(clamp(0, (var(--hold, 1) - 0.55) / 0.02, 1) - clamp(0, (var(--hold, 1) - 0.58) / 0.02, 1)); border-radius: calc(14 * var(--pt)); transform: scale(calc(1 - 0.04 * var(--press))); }
+.ws-tabs { display: flex; width: calc(274 * var(--pt)); margin: calc(25 * var(--pt)) auto 0; padding: calc(4 * var(--pt)); border-radius: calc(31 * var(--pt)); background: color-mix(in srgb, var(--parchment) 55%, #fff); box-shadow: 0 calc(8 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.1); font: 500 calc(10 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+[data-theme="dark"] .ws-tabs { background: var(--parchment-tertiary); }
+.ws-tabs span { flex: 1; display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--pt)); padding: calc(7 * var(--pt)) 0 calc(6 * var(--pt)); border-radius: calc(27 * var(--pt)); }
+.ws-tabs .ws-icon { font-size: calc(26 * var(--pt)); }
+.ws-tabs .is-on { background: var(--parchment-secondary); color: var(--stone); }
 
-.ws-screen--video { padding: 0; background: #000; }
+/* The walk screen: the map, its two corner buttons, the walked line. */
+.ws-map-layer { position: absolute; inset: 0; background: var(--ws-map-land); }
+/* iOS dims what a sheet covers; the dim rises with the sheet. */
+.ws-screen--path .ws-map-layer::after { content: ''; position: absolute; inset: 0; background: rgba(20, 14, 8, 0.2); }
+.ws-map { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
+.ws-map-route { fill: none; stroke: var(--moss); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-map-halo { fill: var(--dawn); opacity: 0.22; }
+.ws-map-you { fill: var(--dawn); stroke: var(--parchment); stroke-width: 3; }
+.ws-map-btn { position: absolute; top: calc(70 * var(--pt)); display: grid; place-items: center; width: calc(36 * var(--pt)); height: calc(36 * var(--pt)); border-radius: 50%; background: color-mix(in srgb, var(--parchment) 88%, transparent); box-shadow: 0 calc(2 * var(--pt)) calc(10 * var(--pt)) rgba(0, 0, 0, 0.12); font-size: calc(17 * var(--pt)); }
+.ws-map-btn--left { left: calc(16 * var(--pt)); }
+.ws-map-btn--right { right: calc(16 * var(--pt)); }
+
+/* The intention sheet (Scenes/ActiveWalk/IntentionSettingView.swift),
+   at its medium detent: iOS floats it clear of the edges. */
+.ws-intention {
+  position: absolute;
+  left: calc(8 * var(--pt));
+  right: calc(8 * var(--pt));
+  bottom: calc(8 * var(--pt));
+  height: calc(330 * var(--pt));
+  padding: calc(24 * var(--pt)) calc(24 * var(--pt)) 0;
+  border-radius: calc(44 * var(--pt));
+  background: var(--parchment);
+  box-shadow: 0 calc(-4 * var(--pt)) calc(30 * var(--pt)) rgba(0, 0, 0, 0.18);
+}
+.ws-sheet-title { font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--ink) 80%, transparent); }
+.ws-field { display: grid; margin-top: calc(24 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--parchment-secondary) 50%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-field > span { grid-area: 1 / 1; }
+.ws-placeholder { color: var(--fog); }
+.ws-field-meta { display: flex; justify-content: space-between; margin-top: calc(8 * var(--pt)); color: var(--fog); }
+.ws-field-meta .ws-icon { margin-right: calc(6 * var(--pt)); vertical-align: -0.15em; }
+.ws-count { display: grid; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-count > span,
+.ws-set > span { grid-area: 1 / 1; }
+.ws-recurring { margin-top: calc(16 * var(--pt)); }
+.ws-sheet-label { margin-bottom: calc(8 * var(--pt)); color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-chips { display: flex; flex-wrap: wrap; gap: calc(8 * var(--pt)); }
+.ws-chip { position: relative; padding: calc(6 * var(--pt)) calc(12 * var(--pt)); border-radius: 999px; background: color-mix(in srgb, var(--moss) 15%, transparent); color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.ws-chip--tapped::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--moss); opacity: 0; }
+.ws-sheet-buttons { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(24 * var(--pt)); display: flex; justify-content: space-between; font-weight: 700; font-size: calc(17 * var(--pt)); color: var(--fog); }
+.ws-set { display: grid; }
+.ws-set .ws-before { color: color-mix(in srgb, var(--fog) 30%, transparent); }
+.ws-set .ws-after { color: var(--stone); }
+
+/* 02 — the stats sheet (Scenes/ActiveWalk/WalkStatsSheet.swift, expanded). */
+.ws-stats-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: calc(33 * var(--pt)) calc(16 * var(--pt)) calc(34 * var(--pt));
+  border-radius: calc(20 * var(--pt)) calc(20 * var(--pt)) 0 0;
+  background: var(--parchment);
+  box-shadow: 0 calc(-6 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+.ws-timer { font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ws-intention-line { margin-top: calc(4 * var(--pt)); color: color-mix(in srgb, var(--fog) 60%, transparent); }
+.ws-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(24 * var(--pt)); margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-stat-row b { display: block; margin-bottom: calc(2 * var(--pt)); font-weight: 400; font-size: calc(20 * var(--pt)); font-variant-numeric: tabular-nums; color: var(--ink); }
+.ws-stat-row .ws-icon { display: block; margin: 0 auto calc(4 * var(--pt)); font-size: calc(14 * var(--pt)); color: var(--stone); }
+.ws-actions { display: flex; justify-content: center; gap: calc(24 * var(--pt)); margin-top: calc(32 * var(--pt)); }
+.ws-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(6 * var(--pt)); width: calc(88 * var(--pt)); height: calc(88 * var(--pt)); border: calc(1.5 * var(--pt)) solid; border-radius: 50%; }
+.ws-action .ws-icon { font-size: calc(24 * var(--pt)); }
+.ws-action--dawn { color: var(--dawn); background: color-mix(in srgb, var(--dawn) 6%, transparent); }
+.ws-action--rust { color: var(--rust); background: color-mix(in srgb, var(--rust) 6%, transparent); }
+.ws-action--fog { color: var(--fog); background: color-mix(in srgb, var(--fog) 6%, transparent); }
+.ws-action--fog .ws-icon { fill: currentColor; stroke: none; }
+/* Recording: the ring thickens to 2.5 and the fill deepens to 15%, drawn
+   as a layer that fades in rather than a border that repaints. */
+.ws-rec-ring { position: absolute; inset: calc(-1.5 * var(--pt)); border: calc(2.5 * var(--pt)) solid; border-radius: 50%; background: color-mix(in srgb, var(--rust) 10%, transparent); }
+.ws-rec-glyph,
+.ws-rec-labels { display: grid; place-items: center; }
+.ws-rec-glyph > *,
+.ws-rec-labels > * { grid-area: 1 / 1; }
+.ws-rec-labels em { font-style: normal; }
+.ws-meter { display: flex; align-items: center; gap: calc(3 * var(--pt)); height: calc(24 * var(--pt)); }
+.ws-meter i { width: calc(3 * var(--pt)); height: 100%; border-radius: calc(2 * var(--pt)); background: currentColor; transform: scaleY(var(--lvl, 0.5)); }
+.ws-meter i:nth-child(1) { --lvl: 0.35; }
+.ws-meter i:nth-child(2) { --lvl: 0.7; }
+.ws-meter i:nth-child(3) { --lvl: 1; }
+.ws-meter i:nth-child(4) { --lvl: 0.6; }
+.ws-meter i:nth-child(5) { --lvl: 0.3; }
+
+.ws-screen--video { background: #000; color: #fff; }
+.ws-screen--video::after { display: none; }
 .ws-video { width: 100%; height: 100%; object-fit: cover; }
 
-.ws-screen--card { justify-content: center; background: var(--parchment-secondary); }
-.ws-card { width: 100%; padding: 10% 8%; border-radius: 1.1em; background: var(--parchment); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1); }
-.ws-card-theme { font-family: var(--font-display); font-size: 1.8em; margin: 0 0 4%; }
-.ws-card-narrative { font-family: var(--font-display); font-size: 1.08em; line-height: 1.4; margin: 0 0 7%; }
-.ws-card-facts { font-size: 0.8em; color: var(--ink-fog); margin: 0 0 3%; }
-.ws-card-maps { font-size: 0.76em; color: var(--moss); margin: 0 0 8%; }
+/* 04 — the morning card (Scenes/Honor/StageMorningCard.swift), a large
+   sheet over the dimmed screen behind it. */
+.ws-screen--card { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+.ws-screen--card .ws-status { color: #fff; }
+.ws-card {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16 * var(--pt));
+  padding: calc(34 * var(--pt)) calc(16 * var(--pt)) calc(50 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+}
+.ws-card-theme { font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); }
+.ws-card-narrative { font-family: var(--font-display); font-size: calc(17 * var(--pt)); line-height: 1.3; }
+.ws-card-fact { margin-top: calc(-8 * var(--pt)); color: var(--fog); }
+.ws-card-narrative + .ws-card-fact { margin-top: 0; }
+.ws-card .ws-button { margin-top: auto; }
 
-.ws-screen--summary { justify-content: flex-start; gap: 6%; padding: 10% 6%; }
-.ws-summary-route { width: 100%; height: auto; border-radius: 0.9em; background: var(--parchment-secondary); }
-.ws-summary-path { fill: none; stroke: var(--stone); stroke-width: 3; stroke-linecap: round; }
-.ws-relic { fill: var(--rust); stroke: var(--parchment); stroke-width: 2; }
-.ws-recording { display: flex; gap: 0.6em; width: 100%; font-family: var(--font-display); font-size: 1.05em; line-height: 1.35; margin: 0; }
-.ws-recording::before { content: ''; flex: 0 0 0.35em; border-radius: 0.2em; background: var(--dawn); }
-.ws-seal { position: relative; width: 48%; margin-top: auto; }
-.ws-seal svg { display: block; width: 100%; height: auto; }
-.ws-seal-ink { fill: none; stroke: #B5452F; }
+/* 07 — the walk summary (Scenes/WalkSummary/WalkSummaryView.swift), top
+   of its scroll: the map with the photos where they were taken, the
+   intention, the elevation, the line the app writes, the time. */
+.ws-screen--summary { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+.ws-screen--summary .ws-status { color: #fff; }
+.ws-summary {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  padding: 0 calc(16 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+  text-align: center;
+}
+.ws-nav { position: relative; height: calc(84 * var(--pt)); }
+.ws-nav-title { padding-top: calc(32 * var(--pt)); font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); }
+.ws-done { position: absolute; right: calc(4 * var(--pt)); top: calc(20 * var(--pt)); padding: calc(12 * var(--pt)) calc(16 * var(--pt)); border-radius: 999px; background: var(--parchment-secondary); font-size: calc(17 * var(--pt)); color: var(--stone); }
+.ws-summary-map { position: relative; height: calc(320 * var(--pt)); margin: 0 calc(-16 * var(--pt)); -webkit-mask: radial-gradient(closest-side, #000 72%, transparent); mask: radial-gradient(closest-side, #000 72%, transparent); }
+.ws-summary-map svg { display: block; width: 100%; height: 100%; }
+.ws-summary-path,
+.ws-summary-talk { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-summary-path { stroke: var(--moss); }
+.ws-summary-talk { stroke: var(--rust); }
+.ws-summary-still { fill: color-mix(in srgb, var(--dawn) 60%, transparent); stroke: var(--dawn); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.ws-summary-end { fill: var(--parchment); stroke: var(--ink); stroke-width: 2; opacity: 0.6; }
+.ws-relic { position: absolute; width: calc(30 * var(--pt)); height: calc(30 * var(--pt)); margin: calc(-15 * var(--pt)) 0 0 calc(-15 * var(--pt)); border: calc(2 * var(--pt)) solid var(--parchment); border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 calc(5 * var(--pt)) color-mix(in srgb, var(--dawn) 30%, transparent); }
+.ws-intention-card { display: grid; justify-items: center; gap: calc(8 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--moss) 6%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-intention-card .ws-icon { font-size: calc(14 * var(--pt)); color: var(--moss); }
+.ws-elevation { margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-elevation svg { display: block; width: 100%; height: calc(34 * var(--pt)); }
+.ws-elev-fill { fill: color-mix(in srgb, var(--stone) 18%, transparent); }
+.ws-elev-line { fill: none; stroke: var(--stone); stroke-width: 1.5; }
+.ws-elevation p { white-space: nowrap; display: flex; justify-content: space-between; align-items: center; margin-top: calc(4 * var(--pt)); }
+.ws-elevation .ws-icon { font-size: calc(18 * var(--pt)); }
+.ws-journey { margin-top: calc(16 * var(--pt)); padding: 0 calc(24 * var(--pt)); font-family: var(--font-display); font-size: calc(17 * var(--pt)); text-wrap: balance; color: var(--fog); }
+.ws-summary-timer { margin-top: calc(12 * var(--pt)); font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; }
 
-.ws-screen--share { justify-content: center; }
-.ws-share-route { width: 90%; height: auto; }
-.ws-share-path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
-.ws-share-walker { fill: var(--ink); }
+/* 08 — the shared walk as it opens in Safari (pilgrim-worker
+   src/generators/html-template.ts, the departure chapter). */
+.ws-screen--share { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt)); text-align: center; }
+.ws-share-orn { font-size: calc(22 * var(--pt)); opacity: 0.45; }
+.ws-share-kicker { margin-top: calc(16 * var(--pt)); font-size: calc(11 * var(--pt)); letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.5; white-space: nowrap; }
+.ws-share-kicker::before,
+.ws-share-kicker::after { content: ''; display: inline-block; width: calc(34 * var(--pt)); height: 1px; margin: 0 calc(12 * var(--pt)); background: currentColor; opacity: 0.35; vertical-align: middle; }
+.ws-share-place { margin-top: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 400; font-size: calc(46 * var(--pt)); line-height: 1.06; }
+.ws-share-weather { margin-top: calc(12 * var(--pt)); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55; }
+.ws-share-epigraph { margin-top: calc(30 * var(--pt)); font-family: var(--font-display); font-style: italic; font-size: calc(20 * var(--pt)); line-height: 1.55; opacity: 0.85; }
+.ws-share-doors { display: grid; gap: calc(10 * var(--pt)); width: 100%; margin-top: calc(40 * var(--pt)); }
+.ws-pill { display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--pt)); padding: calc(13 * var(--pt)) 0; border: 1px solid currentColor; border-radius: 999px; font-size: calc(12 * var(--pt)); letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+.ws-pill--solid { background: var(--ink); color: var(--parchment); border-color: var(--ink); opacity: 1; }
+.ws-pill img { width: calc(20 * var(--pt)); height: calc(20 * var(--pt)); border-radius: calc(5 * var(--pt)); }
+.ws-safari { position: absolute; left: calc(16 * var(--pt)); right: calc(16 * var(--pt)); bottom: calc(26 * var(--pt)); padding: calc(14 * var(--pt)) 0; border-radius: 999px; background: color-mix(in srgb, var(--parchment-secondary) 85%, #fff); box-shadow: 0 calc(4 * var(--pt)) calc(20 * var(--pt)) rgba(0, 0, 0, 0.12); font: 500 calc(15 * var(--pt)) / 1.2 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; letter-spacing: 0; opacity: 0.9; }
+[data-theme="dark"] .ws-safari { background: var(--parchment-tertiary); }
 
 /* Scene 06's traces keep the look css/traces-glyphs.css gives them. */
 .ws-act--traces { display: flex; gap: 2.5rem; justify-content: center; }
@@ -1993,9 +2301,10 @@ and the privacy cards become nine scenes of one walk. Without any story
 script the page is complete: every act reads var(--hold, 1), so each
 scene stands in its finished state on its own sky. The wisp, the cairn
 and the store badges moved verbatim; the Reliquary now follows the
-story; the removed sections' inline CSS went with them. The phones quote only
-the app's own strings, each cited in the markup test, and the Honor
-stage is the bake's output byte for byte.
+story; the removed sections' inline CSS went with them. The phones are
+the app's real screens, drawn in its own points, and quote only its own
+strings (scene 08's, the shared page's), each cited in the markup test.
+The Honor stage is the bake's output byte for byte.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 EOF
@@ -2151,12 +2460,12 @@ Expected: FAIL on the new timing and script checks.
     left: auto;
     right: 4%;
     top: auto;
-    bottom: 3%;
-    height: 38%;
+    bottom: calc(4% + 3.6rem + env(safe-area-inset-bottom, 0px));
+    height: 36%;
     transform: translateY(calc((0.5 - var(--hold, 1)) * 10px));
   }
   .walk-story--pinned .ws-act--right { left: auto; right: 4%; width: 56%; top: auto; bottom: 7%; transform: none; }
-  .walk-story--pinned .ws-said { left: 6%; width: 52%; top: 49%; bottom: auto; }
+  .walk-story--pinned .ws-said { left: 6%; width: 50%; top: 49%; bottom: auto; }
   .walk-story--pinned .walk-story-rail { right: 2%; gap: 10px; }
   .walk-story-copy h2 { font-size: clamp(1.9rem, 8.6vw, 2.6rem); }
 }
@@ -2172,13 +2481,18 @@ Expected: FAIL on the new timing and script checks.
 .ws-moment-mark { transform: scale(calc(0.85 + 0.15 * clamp(0, (var(--hold, 1) - var(--at)) / 0.06, 1))); }
 .ws-closing { opacity: clamp(0, calc((var(--hold, 1) - 0.92) / 0.05), 1); }
 
-/* 01 — the mode row's underline runs WANDER → HONOR → SEEK and home,
-   then the intention sheet rises and a Recurring chip fills the field. */
-.ws-modes-underline { transform: translateX(calc((clamp(0, (var(--hold, 1) - 0.1) / 0.15, 2) - clamp(0, (var(--hold, 1) - 0.4) / 0.075, 2)) * 100%)); }
-.ws-sheet { transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.58) / 0.08, 1)) * 105%)); }
-.ws-chip--tapped::after { opacity: calc(0.22 * clamp(0, (var(--hold, 1) - 0.62) / 0.04, 1)); }
-.ws-placeholder { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.66) / 0.02, 1)); }
-.ws-typed span { opacity: clamp(0, calc((var(--hold, 1) - 0.66) / 0.24 * 5 - var(--i)), 1); }
+/* 01 — the mode row's selection runs WANDER → HONOR → SEEK and home;
+   Wander is pressed, the walk opens under the intention sheet, and a
+   Recurring word is tapped: the app fills the field with it at once. */
+.ws-screen--path .ws-map-layer { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.05), 1); }
+.ws-screen--path .ws-map-layer::after { opacity: clamp(0, calc((var(--hold, 1) - 0.64) / 0.1), 1); }
+.ws-intention { transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.64) / 0.1, 1)) * 110%)); }
+.ws-chip--tapped::after { opacity: calc(0.3 * (clamp(0, (var(--hold, 1) - 0.78) / 0.01, 1) - clamp(0, (var(--hold, 1) - 0.8) / 0.01, 1))); }
+.ws-intention .ws-before,
+.ws-placeholder,
+.ws-recurring { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.8) / 0.02, 1)); }
+.ws-intention .ws-after,
+.ws-typed { opacity: clamp(0, calc((var(--hold, 1) - 0.8) / 0.02), 1); }
 
 /* 02 — recording starts at 0.25; what was said writes itself in after. */
 .ws-pin { opacity: clamp(0, calc((var(--hold, 1) - 0.25) / 0.04), 1); }
@@ -2187,7 +2501,7 @@ Expected: FAIL on the new timing and script checks.
 .ws-said span { opacity: clamp(0, calc((var(--hold, 1) - 0.35) / 0.5 * 15 - var(--i)), 1); }
 
 /* 04 — the morning card settles in first. */
-.ws-card { opacity: clamp(0, calc((var(--hold, 1) - 0.04) / 0.1), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.04) / 0.1, 1)) * 16px)); }
+.ws-card { opacity: clamp(0, calc((var(--hold, 1) - 0.04) / 0.1), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.04) / 0.1, 1)) * 16 * var(--pt))); }
 
 /* 05 — the fog drifts, the crescent leans. Nothing is revealed: the
    page's only reveal is the hidden clearing, and only stillness opens it. */
@@ -2197,22 +2511,40 @@ Expected: FAIL on the new timing and script checks.
 /* 06 — the wisp brightens as the line passes it. */
 .ws-act--traces .wisp-well { opacity: calc(0.55 + 0.45 * clamp(0, (var(--hold, 1) - 0.2) / 0.3, 1)); }
 
-/* 07 — the seal presses. */
-.ws-seal { opacity: clamp(0, calc((var(--hold, 1) - 0.7) / 0.08), 1); transform: scale(calc(1.15 - 0.15 * clamp(0, (var(--hold, 1) - 0.7) / 0.08, 1))); }
+/* 07 — once the line has closed its ring, the seal presses into it. */
+.ws-seal { transform-box: fill-box; transform-origin: center; opacity: clamp(0, calc((var(--hold, 1) - 0.86) / 0.08), 1); transform: scale(calc(1.15 - 0.15 * clamp(0, (var(--hold, 1) - 0.86) / 0.08, 1))); }
+.ws-seal-ink { fill: none; stroke: #C4553A; }
 
-/* 08 — someone, later, follows your line; the share page draws its route. */
+/* 07 — the summary's own reveal: the line draws, coloured by what you
+   were doing, the photos surface where they were taken, then the words
+   and the time. */
+.ws-summary { --draw: clamp(0, (var(--hold, 1) - 0.05) / 0.4, 1); }
+.ws-summary-path { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - var(--draw)); }
+.ws-summary-talk { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--draw) - var(--a)) / (var(--b) - var(--a)), 1)); }
+.ws-relic,
+.ws-summary-still { opacity: clamp(0, calc((var(--draw) - var(--at)) / 0.08), 1); transform: scale(calc(0.6 + 0.4 * clamp(0, (var(--draw) - var(--at)) / 0.08, 1))); }
+.ws-intention-card,
+.ws-elevation { opacity: clamp(0, calc((var(--hold, 1) - 0.5) / 0.08), 1); }
+.ws-journey { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.08), 1); }
+.ws-summary-timer,
+.ws-summary .ws-stat-row { opacity: clamp(0, calc((var(--hold, 1) - 0.68) / 0.08), 1); }
+
+/* 08 — someone, later, follows your line; the shared page opens as it
+   does in the browser, each line rising in after the last. */
 .ws-follower { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--hold, 1) - 0.3) / 0.6, 1)); }
-.ws-share-path { stroke-dasharray: 1 1; stroke-dashoffset: calc(1 - clamp(0, (var(--hold, 1) - 0.05) / 0.7, 1)); }
-.ws-share-walker { opacity: clamp(0, calc((var(--hold, 1) - 0.75) / 0.08), 1); }
+.ws-share-open > * { --t: calc(0.05 + var(--i) * 0.07); opacity: clamp(0, calc((var(--hold, 1) - var(--t)) / 0.12), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - var(--t)) / 0.12, 1)) * 12 * var(--pt))); }
 
 /* Loops run only on the scene on stage, and never under reduced motion. */
 .walk-story--pinned .walk-story-scene.is-active .ws-ring { animation: ws-breath 5.5s ease-in-out infinite; }
-.walk-story--pinned .walk-story-scene.is-active .ws-rec-dot { animation: ws-rec 1.6s ease-in-out infinite; }
+.walk-story--pinned .walk-story-scene.is-active .ws-meter i { animation: ws-level var(--beat, 0.9s) ease-in-out var(--lag, 0s) infinite alternate; }
+.ws-meter i:nth-child(2n) { --beat: 0.62s; }
+.ws-meter i:nth-child(3n) { --lag: -0.4s; }
+.ws-meter i:nth-child(5) { --beat: 0.75s; --lag: -0.2s; }
 @keyframes ws-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
-@keyframes ws-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes ws-level { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .walk-story .ws-ring, .walk-story .ws-rec-dot { animation: none; }
+  .walk-story .ws-ring, .walk-story .ws-meter i { animation: none; }
 }
 ```
 
@@ -3048,13 +3380,13 @@ Open underdog.ai at the same sizes and set the two side by side. Fix anything th
 Check these first. A dry run of Tasks 1–5 at 562×915 (portrait geometry) showed three of them:
 - Scene 04's copy (up to 58% of the height in portrait) runs into the earlier scenes' faint lines, which start at 51%.
 - The pill sits on the Takijiri-oji label.
-- The morning card's narrative fills the phone edge to edge.
+- Scene 02's spoken words cross the faint lines of scenes 01 and 02.
 
-Tighten the portrait Honor copy, or move its three captions under the phone; keep the pill clear of the stage's foot; and give the card room to breathe.
+Tighten the portrait Honor copy, or move its three captions under the phone; keep the pill clear of the stage's foot; and move scene 02's words clear of the line.
 
 - [ ] **Step 4: Phones against the app**
 
-Set each phone frame beside the same screen from the app's demo mode. Use `docs/screenshots/` in pilgrim-ios, or the ScreenshotTests capture. Every string must match. The markup test already asserts they are the app's; this step checks they look like it too.
+Set each phone frame beside the same screen from the app's demo mode. Use `docs/screenshots/` in pilgrim-ios (01 Path, 02 active walk, 04 summary), or the ScreenshotTests capture, and for scene 08 open https://walk.pilgrimapp.org/9mYhRL7GWx at 390×844. Every string must match. The markup test already asserts where each comes from; this step checks the phones look like the screens: the same proportions (a 17-point button is about 4% of the phone's height), the Dynamic Island, the status bar, and nothing larger than the app draws it. Check at 1440×900 and at 390×844, in light and dark.
 
 - [ ] **Step 5: Stacked, reduced motion and keyboard**
 
@@ -3093,9 +3425,12 @@ Spec: docs/superpowers/specs/2026-09-24-one-walk-story-design.md · Plan: docs/s
 2. **Inactive scenes are hidden with `opacity: 0` and `pointer-events: none`,** not `visibility: hidden`, so screen readers still reach them. The focus rule keeps focus out of faded scenes.
 3. **Scenes live inside the sticky stage.** Pinned, all nine fill the stage and only the active front shows. Each carries its own phone and line, so no separate slots are needed.
 4. **Scene 02's transcript is a caption on the page.** The app transcribes after the walk, and the same words appear on scene 07's summary.
-5. **Every reveal scrubs both ways,** including scene 08's share route.
+5. **Every reveal scrubs both ways,** including scene 08's shared page rising in.
 6. **The contrast check is its own test,** `js/walk-story-contrast.test.js`. The two existing sweeps cover the seasonal parchment and the hour-wash, which the story's skies replace.
 7. **The two line geometries switch by CSS media query** (`max-width: 720px`), not JavaScript.
+8. **The phones are the app's real screens, drawn in its own points** (each phone a size container, every size the SwiftUI source's number), so no button outgrows its phone.
+9. **Scene 07's seal presses into the line's ring on the page.** The app's summary shows no seal; the goshuin lives in the Journal.
+10. **Scene 08's phone is the shared walk page,** quoting pilgrim-worker's template.
 
 ## Frame budget (Chrome, 4× CPU throttle)
 <worstFrameMs and longestTaskMs for light / dark / star at 1440×900, 1920×1080, 1024×768 and 390×844, from Task 8 Step 2>
