@@ -32,7 +32,7 @@
 
 ## Decisions this plan makes beyond the spec (flag in the PR)
 
-1. **Skies are per scene, not per hour.** The spec interpolated an hour continuously. But text colour can't crossfade mid-read, so a sky darkening under a scene's fixed ink would drop it below AA partway through. So each scene has its own sky (dawn, dawn, day, day, day, golden, dusk, night, night), and skies blend only inside the crossfade between scenes, where the text is fading too. The arc from dawn to night is unchanged.
+1. **Skies are per scene, not per hour.** The spec interpolated an hour continuously. But text colour can't crossfade mid-read, so a sky darkening under a scene's fixed ink would drop it below AA partway through. So each scene has its own sky (dawn, dawn, day, day, day, golden, dusk, night, night), and skies blend only inside the crossfade between scenes, where the text is fading too. The arc from dawn to night is unchanged. The core therefore exposes `skyWeights(p, n)` and `layerOpacities(weights)` in place of the spec's `hourFor` and `atmosphereWeights(hour)`.
 2. **Inactive scenes use `opacity: 0` and `pointer-events: none`, not `visibility: hidden`.** Hidden would take eight of nine scenes away from screen readers and keyboard users. The focus rule (focusing anything in a scene brings that scene on stage) keeps focus out of faded scenes.
 3. **Scenes live inside the sticky stage.** Pinned, all nine fill the stage and only the active scene's front shows. Stacked, they flow normally. Each scene carries its own phone and line, so no separate "slots" are needed.
 4. **Scene 02's transcript is a caption on the page, not text on the phone.** The app transcribes after the walk (WhisperKit), so the active-walk screen shows the recording ("Stop", the Talk timer), and the same words appear in scene 07's summary, where the app really shows them.
@@ -49,14 +49,14 @@
 | `scripts/fixtures/nakahechi-stage-00.json` | New. The Kumano Kodō Nakahechi stage 1 route, moments and facts, copied from open-pilgrimages v1.12.0 (ODbL). |
 | `scripts/bake-honor-stage.js` | New. Projects the fixture into the Honor scene's SVG, in both geometries. |
 | `scripts/bake-honor-stage.test.js` | New. The bake's tests. |
-| `css/walk-story.css` | New. Sky tokens and fills, scene ink, stacked layout, copy, phone mocks, pinned layout, acts. |
+| `css/walk-story.css` | New. Sky tokens and fills, scene ink, stacked layout, copy, phone mocks, pinned layout, acts, and the walker's rest while pinned. |
 | `js/walk-story-contrast.test.js` | New. AA for every scene over its own sky; the night is really night. |
 | `index.html` | The story replaces six sections, the Reliquary follows it, dead inline CSS goes, the stylesheet and scripts are linked, and the copy and metadata are made honest. |
 | `js/walk-story-markup.test.js` | New. The markup held to the core, the bake, the app's strings, and the spec. |
 | `js/walk-story.js` | New. Pinning, measuring, the easing loop, per-frame writes, rail, pill, focus, video, the cairn demo, and the reach event. |
 | `js/traces-cairn.js` | Exposes `TracesCairn.demo()`, and skips its own observer inside the pinned story. |
 | `js/clearing.js`, `js/clearing-core.js`, `js/clearing-core.test.js`, `js/clearing-wiring.test.js` | The door is keyed by `[data-seek-door]`, the zones follow the new page, and each zone matches exactly one element. |
-| `js/main.js`, `css/styles.css` | The page walker and scroll tracker rest under `body.walk-story-pinned`; dead practice, walkwithme and traces-cards CSS is removed. |
+| `js/main.js` | The page walker and scroll tracker skip their updates under `body.walk-story-pinned`. `css/styles.css` is not touched: /sunpath shares it, and `js/sunpath-budget.test.js` pins its weight. |
 | `llms.txt` | Features, privacy posture and the dataset's licence, made accurate. |
 | `js/page-weight.test.js` | The index baseline, raised deliberately. |
 
@@ -68,7 +68,7 @@ Run this from the repo root:
 for t in js/*.test.js scripts/*.test.js; do node "$t" > /tmp/ws-test.log 2>&1 || { echo "FAIL $t"; tail -5 /tmp/ws-test.log; }; done; echo done
 ```
 
-`scripts/bake-collective-routes.test.js` fails on any checkout without a sibling `../open-pilgrimages`, and it fails the same way on `main`. Every other file must pass after every task.
+`scripts/bake-collective-routes.test.js` fails on any checkout without a sibling `../open-pilgrimages`, and it fails the same way on `main`. Every other file must pass after every task. That includes `js/sunpath-budget.test.js`: /sunpath loads `css/styles.css` and `js/main.js`, so their weight is pinned from another page's spec.
 
 ---
 
@@ -221,7 +221,7 @@ eq(C.honorReveal(C.HONOR.inkEnd).ink, 1, 'the ink reaches Takahara at the end of
 C.HONOR.momentFracs.forEach(function (frac, i) {
   const at = frac * C.HONOR.inkEnd;
   if (at > 0) eq(C.honorReveal(at - 0.001).moments[i].t, 0, 'moment ' + (i + 1) + ' is not showing before the ink reaches it');
-  eq(C.honorReveal(at + C.HONOR.momentFade).moments[i].t, 1, 'moment ' + (i + 1) + ' is fully showing one fade later');
+  near(C.honorReveal(at + C.HONOR.momentFade).moments[i].t, 1, 'moment ' + (i + 1) + ' is fully showing one fade later', 1e-9);
   near(C.honorReveal(at).ink, frac, 'moment ' + (i + 1) + ' surfaces when the ink stands at its own fraction', 1e-12);
 });
 eq(C.honorReveal(0.919).closing, false, 'the closing line waits');
@@ -591,6 +591,9 @@ console.log('\n=== the SVG ===\n');
   eq((svg.match(/class="ws-moment-mark"/g) || []).length, 3,
     name + ': each marker scales on an inner group, so its scale cannot replace its position');
   ok(svg.indexOf('class="ws-dot"') !== -1, name + ': the walker dot rides inside the stage\'s own group');
+  ok(svg.indexOf('vector-effect') === -1, name + ': no non-scaling stroke, which would part the ink from the dot');
+  ok(svg.indexOf('style="--ws-route-scale:' + a.placements[name].scale + '"') !== -1,
+    name + ': the group carries its scale, so the stroke can be divided by it');
 });
 
 const src = fs.readFileSync(path.join(__dirname, 'bake-honor-stage.js'), 'utf8');
@@ -630,7 +633,10 @@ Create `scripts/bake-honor-stage.js`:
  * translated and scaled, never distorted, so its first point sits on
  * the previous scene's end point. The ink reveals by path length, so
  * each moment is placed at its fraction of the polyline's length — the
- * ink and the marker arrive together.
+ * ink and the marker arrive together. No non-scaling stroke: with it,
+ * browsers lay pathLength dashes out in screen space while the dot is
+ * placed in user space, and the ink and the dot come apart. The group
+ * carries its scale so the stylesheet can divide the stroke by it.
  */
 
 'use strict';
@@ -720,6 +726,7 @@ function bake(fixture) {
     const tx = round1(g.start[0] - s * local[0][0]);
     const ty = round1(g.start[1] - s * local[0][1]);
     placements[name] = {
+      scale: s,
       transform: 'translate(' + tx + ' ' + ty + ') scale(' + s + ')',
       dotRadius: round1(DOT_PX / s),
       start: g.start,
@@ -743,9 +750,9 @@ function svgFor(baked, name) {
   const p = baked.placements[name];
   const end = baked.localEnd;
   const lines = [
-    '<g class="ws-honor-route" transform="' + p.transform + '">',
-    '  <path class="ws-honor-theirs" d="' + baked.d + '" pathLength="1" vector-effect="non-scaling-stroke"/>',
-    '  <path class="ws-line ws-honor-yours" d="' + baked.d + '" pathLength="1" vector-effect="non-scaling-stroke"/>',
+    '<g class="ws-honor-route" style="--ws-route-scale:' + p.scale + '" transform="' + p.transform + '">',
+    '  <path class="ws-honor-theirs" d="' + baked.d + '" pathLength="1"/>',
+    '  <path class="ws-line ws-honor-yours" d="' + baked.d + '" pathLength="1"/>',
     '  <g class="ws-dot" transform="translate(' + end[0] + ' ' + end[1] + ')"><circle r="' + p.dotRadius + '"/></g>',
     '</g>'
   ];
@@ -783,9 +790,13 @@ Run: `node scripts/bake-honor-stage.test.js`
 Expected: `ALL PASS: N`
 
 Run: `node scripts/bake-honor-stage.js | grep -v '<path'`
-Expected: the landscape group opens with `translate(1250 594.3) scale(2.7)` and the portrait group with `translate(84 665.4) scale(0.9)`, with markers at `--at:0`, `--at:0.0822` and `--at:0.8764`.
+Expected: the landscape group opens with `style="--ws-route-scale:2.7" transform="translate(1250 594.3) scale(2.7)"` and the portrait group with `style="--ws-route-scale:0.9" transform="translate(84 665.4) scale(0.9)"`, with markers at `--at:0`, `--at:0.0822` and `--at:0.8764`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Run the whole suite**
+
+Run the suite from *Running the tests*. Expected: only `scripts/bake-collective-routes.test.js` fails.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add scripts/fixtures/nakahechi-stage-00.json scripts/bake-honor-stage.js scripts/bake-honor-stage.test.js
@@ -923,6 +934,10 @@ ok(/\[data-theme="dark"\] \.walk-story-scene[\s\S]*?--ws-ink:\s*var\(--ws-ink-da
   'dark mode takes the dark-sky ink everywhere');
 ok(/\.walk-story-scene\s*\{\s*color:\s*var\(--ws-ink\);/.test(css), 'scene text is the scene\'s ink');
 ok(/body\.constellation \.walk-story-atmosphere\s*\{\s*display:\s*none;/.test(css), 'star mode: the starfield is the sky');
+ok(/\.walk-story-scene \.traces-card-title\s*\{\s*color:\s*var\(--ws-ink\)/.test(css),
+  'scene 06\'s moved titles take the scene\'s ink, not moss and rust');
+ok(/\.walk-story-scene \.traces-card p\.wisp-energy\s*\{\s*color:\s*var\(--ws-muted\) !important/.test(css),
+  'scene 06\'s captions take the muted ink, over the colour js/traces-cairn.js sets inline');
 
 console.log('\n=== the night is really night ===\n');
 
@@ -1042,6 +1057,15 @@ Create `css/walk-story.css`:
 /* Star mode: the starfield is the story's sky. */
 body.constellation .walk-story-atmosphere { display: none; }
 body.constellation .walk-story-scene { background: transparent; }
+
+/* Scene 06 moves the wisp and the cairn in with the page's own colours
+   (moss, rust, the energy's hue). On the golden sky those fall under
+   AA, so inside the story they take the scene's ink. js/traces-cairn.js
+   sets the wisp's name colour inline, hence !important there; the word
+   carries the energy's identity, and the glyph keeps its colour. */
+.walk-story-scene .traces-card-title { color: var(--ws-ink); }
+.walk-story-scene .traces-card p.cairn-counter,
+.walk-story-scene .traces-card p.wisp-energy { color: var(--ws-muted) !important; }
 ```
 
 - [ ] **Step 4: Run it and watch it pass**
@@ -1078,7 +1102,6 @@ At the end of this task the page is complete without any story JavaScript. The n
 **Files:**
 - Modify: `index.html`. Six sections are cut and the story is inserted; the stylesheet is linked; dead inline CSS is removed.
 - Modify: `css/walk-story.css` (append the stacked layout, copy, lines and phones)
-- Modify: `css/styles.css` (remove the dead `.practice*`, `.traces-cards` and `.walkwithme*` rules)
 - Modify: `js/page-weight.test.js` (the index baseline)
 - Test: `js/walk-story-markup.test.js`
 
@@ -1188,7 +1211,8 @@ let at = -1;
 while ((at = html.indexOf('<!-- Footprint divider -->', at + 1)) !== -1) dividers.push(at);
 ok(dividers.every(function (d, i) { return i === 0 || html.slice(dividers[i - 1], d).indexOf('<section') !== -1; }),
   'no two footprint dividers stand back to back');
-ok(!/\.(journey|privacy-feature)[\w-]*\s*\{/.test(html), 'the journey and privacy-card styles left with their sections');
+ok(!/\.(journey|privacy-feature|privacy-section)[\w-]*\s*[{>]/.test(html), 'the journey and privacy styles left with their sections');
+ok(story.indexOf('vector-effect') === -1, 'no dash-revealed path uses a non-scaling stroke, which would part ink from dot');
 ok(!/\.seek-door(\s|::|\s*\{)/.test(html), 'the retired seek door\'s section styles are gone (its form classes stay)');
 
 console.log('\n=== the phones quote the app ===\n');
@@ -1381,9 +1405,9 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
         <!-- 04 · Honor -->
         <section class="walk-story-scene" id="scene-4" data-scene="honor" data-sky="day" aria-labelledby="scene-4-title">
           <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-            <g class="ws-honor-route" transform="translate(1250 594.3) scale(2.7)">
-              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1" vector-effect="non-scaling-stroke"/>
-              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1" vector-effect="non-scaling-stroke"/>
+            <g class="ws-honor-route" style="--ws-route-scale:2.7" transform="translate(1250 594.3) scale(2.7)">
+              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
               <g class="ws-dot" transform="translate(100 0)"><circle r="2.2"/></g>
             </g>
             <g class="ws-moment" style="--at:0" transform="translate(1250 830)">
@@ -1409,9 +1433,9 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             </g>
           </svg>
           <svg class="walk-story-line walk-story-line--portrait" viewBox="0 0 400 860" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-            <g class="ws-honor-route" transform="translate(84 665.4) scale(0.9)">
-              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1" vector-effect="non-scaling-stroke"/>
-              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1" vector-effect="non-scaling-stroke"/>
+            <g class="ws-honor-route" style="--ws-route-scale:0.9" transform="translate(84 665.4) scale(0.9)">
+              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
               <g class="ws-dot" transform="translate(100 0)"><circle r="6.7"/></g>
             </g>
             <g class="ws-moment" style="--at:0" transform="translate(84 744)">
@@ -1603,8 +1627,6 @@ Create `walk-story.partial.html` at the repo root. The script in Step 4 fills th
             <g class="ws-dot" transform="translate(200 785)"><circle r="6"/></g>
           </svg>
           <svg class="walk-story-line walk-story-line--portrait" viewBox="0 0 400 860" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-            <circle class="ws-moon-disc" cx="352" cy="40" r="16"/>
-            <path class="ws-moon-lit" data-cx="352" data-cy="40" data-r="16" d="M352 24 A16 16 0 0 1 352 56 A0.00 16 0 0 0 352 24Z"/>
             <path class="ws-line" d="M40 836 C34 838 28 840 24 840" pathLength="1"/>
             <g class="ws-dot" transform="translate(24 840)"><circle r="6"/></g>
           </svg>
@@ -1695,24 +1717,20 @@ In `index.html`'s `<head>`, add this line directly after `<link rel="stylesheet"
 ```
 
 Then, in `index.html`'s inline `<style>` block, delete these rules. Their sections are gone.
-- `.journey`, `.journey h2`, `.journey-inner`, `.journey-caption`, `.journey-pair`, `.journey-single` and `.journey-screenshot`, including their occurrences inside `@media` blocks. Delete any `@media` block left empty.
+- `.journey`, `.journey h2`, `.journey-inner`, `.journey-caption`, `.journey-pair`, `.journey-single` and `.journey-screenshot`, including their occurrences inside `@media` blocks and their `[data-theme="dark"]` variants (there is a `[data-theme="dark"] .journey-screenshot`). Delete any `@media` block left empty.
 - `.journey-cta`.
 - `.privacy-features`, `.privacy-feature`, `.privacy-feature-icon`, `.privacy-feature h3` and `.privacy-feature p`, including the `@media` occurrence.
 - `.seek-door` itself, `.seek-door::before, .seek-door::after`, `.seek-door::before`, `.seek-door::after`, `.seek-door h2` and `.seek-door p`.
+- `.privacy-section`, `.privacy-section h2` and `.privacy-section > .section-inner > .body-text`.
 
 **Keep** `.seek-door-crescent`, `@keyframes seek-door-breath` (the clearing's rider breathes with it; `js/clearing-wiring.test.js` asserts this), `.seek-door-label`, `.seek-door-field` and its descendants, `.seek-door-submit`, and every `.store-badges`, `.app-store-badge` and `.google-play-badge` rule.
 
-In `css/styles.css`, delete these rules. Only the removed sections used them.
-- `.practice`, `.practice-grid`, `.practice-card`, `.practice-card-icon`, `.practice-card h3`, `.practice-card p` and the four `.practice-card--*` rules, plus the `.practice-grid` entry inside the `@media (max-width: 768px)` block.
-- `.traces-cards`.
-- Every `.walkwithme*` rule, including its `@media (prefers-reduced-motion: reduce)` block.
-
-**Keep** `.traces`, `.traces-inner`, `.traces-heading`, `.traces-lede` and every `.traces-card*` rule, because the Reliquary and scene 06 still use them.
+Do **not** touch `css/styles.css`. Its `.practice*` and `.walkwithme*` rules are dead after this task, but /sunpath shares the file, and `js/sunpath-budget.test.js` pins /sunpath's weight within ±0.25 KB. `.traces-cards` is still live: the Reliquary uses `traces-cards traces-cards--single`. The PR lists the dead rules as a known leftover.
 
 Verify:
 
 ```bash
-grep -nE '\.(journey|privacy-feature|practice|walkwithme|traces-cards)\b|\.seek-door(\s|::|\s*\{)' index.html css/styles.css; echo "exit $?"
+grep -nE '\.(journey|privacy-feature|privacy-section)\b|\.seek-door(\s|::|\s*\{)' index.html; echo "exit $?"
 ```
 
 Expected: no matches, `exit 1`.
@@ -1830,7 +1848,13 @@ Expected: no matches, `exit 1`.
 
 /* --- The line --- */
 
-.ws-line { fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ws-line { fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+/* The Honor stage is drawn scaled; its stroke is divided back by the
+   scale the bake puts on the group, so it matches every other line.
+   (A non-scaling stroke would lay pathLength dashes out in screen space
+   and part the ink from its dot.) */
+.ws-honor-route .ws-line { stroke-width: calc(2.25 / var(--ws-route-scale, 1)); }
+.ws-honor-route .ws-honor-theirs { stroke-width: calc(2 / var(--ws-route-scale, 1)); }
 .ws-dot > circle,
 .ws-pin circle,
 .ws-moment circle { fill: currentColor; }
@@ -1839,7 +1863,7 @@ Expected: no matches, `exit 1`.
 .ws-moment-label { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.04em; fill: currentColor; }
 .ws-moment-ja { font-size: 12px; fill: currentColor; opacity: 0.8; }
 .ws-crescent { fill: none; stroke: var(--dawn); stroke-width: 2.5; stroke-linecap: round; }
-.ws-follower { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; opacity: 0.45; vector-effect: non-scaling-stroke; }
+.ws-follower { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; opacity: 0.45; }
 .ws-moon-disc { fill: currentColor; opacity: 0.08; }
 .ws-moon-lit { fill: currentColor; opacity: 0.85; }
 
@@ -1949,8 +1973,8 @@ In `js/page-weight.test.js`, set `'index.html':` to the measured `Y`, and add th
 ```js
   // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md):
   // nine scenes, each with its copy, an HTML phone and its line in two
-  // geometries, replace six sections; the removed sections' inline and
-  // shared CSS went with them. Raised again as each task lands.
+  // geometries, replace six sections; the removed sections' inline CSS
+  // went with them. Raised again as each task lands.
 ```
 
 Run: `node js/page-weight.test.js`. Expected: it passes.
@@ -1960,7 +1984,7 @@ Run: `node js/page-weight.test.js`. Expected: it passes.
 Run the suite from *Running the tests*. Expected: only `scripts/bake-collective-routes.test.js` fails. Serve the page with `python3 -m http.server 8765` and open `http://localhost:8765/`. With no story JS yet, all nine scenes should stack, each on its own sky, with phones and lines in their finished state.
 
 ```bash
-git add index.html css/walk-story.css css/styles.css js/walk-story-markup.test.js js/page-weight.test.js
+git add index.html css/walk-story.css js/walk-story-markup.test.js js/page-weight.test.js
 git commit -F - <<'EOF'
 feat(walk-story): the story replaces six sections, stacked and finished
 
@@ -1969,7 +1993,7 @@ and the privacy cards become nine scenes of one walk. Without any story
 script the page is complete: every act reads var(--hold, 1), so each
 scene stands in its finished state on its own sky. The wisp, the cairn
 and the store badges moved verbatim; the Reliquary now follows the
-story; the removed sections' CSS went with them. The phones quote only
+story; the removed sections' inline CSS went with them. The phones quote only
 the app's own strings, each cited in the markup test, and the Honor
 stage is the bake's output byte for byte.
 
@@ -2024,6 +2048,15 @@ ok(wiring.length > 0, 'js/walk-story.js exists (a script tag pointing at a 404 i
 ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingClientRect') && /function measure\(\)[\s\S]*getBoundingClientRect/.test(wiring),
   'the only layout read is in measure(), never in the frame loop');
 ok(/window\.innerWidth !== width/.test(wiring), 'height-only resizes (iOS toolbar) are ignored');
+ok(/behavior: smooth \? 'smooth' : 'instant'/.test(wiring),
+  'a focus jump is instant: the page\'s own scroll-behavior: smooth would animate "auto"');
+ok(/CSS\.supports\('height', '100svh'\)/.test(wiring), 'no svh, no pinning: the story would collapse');
+ok(/function settle\(\)[\s\S]*story-reach-end/.test(wiring) && !/function render\(p\)[\s\S]*?story-reach-end[\s\S]*?function settle/.test(wiring),
+  'the reach event fires where the reader comes to rest, never mid-traversal');
+ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story--pinned \.walk-story-stage\s*\{[^}]*overflow/.test(css),
+  'the story clips, not the stage, so the 100lvh sky reaches below it');
+ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
+  'will-change on the sky layers and only the active phone: six promoted layers at most');
 ```
 
 Run: `node js/walk-story-markup.test.js`
@@ -2036,10 +2069,14 @@ Expected: FAIL on the new timing and script checks.
    fill one sticky stage; each scene's front is shown by opacity, its
    line stays once walked, and the five skies crossfade behind. The
    stage's frame is 100svh and its sky 100lvh: dvh follows Safari's
-   toolbar and would reflow the stage as it collapses. --- */
+   toolbar and would reflow the stage as it collapses. The stage must
+   not clip, or the 100lvh sky stops at the 100svh edge and the page's
+   parchment shows beneath it once the toolbar folds away; the story
+   clips instead, and overflow: clip makes no scroll container, so
+   sticky still works. Scenes already clip themselves. --- */
 
-.walk-story--pinned { height: calc(9 * 1.4 * 100svh); }
-.walk-story--pinned .walk-story-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.walk-story--pinned { height: calc(9 * 1.4 * 100svh); overflow: clip; }
+.walk-story--pinned .walk-story-stage { position: sticky; top: 0; height: 100svh; }
 .walk-story--pinned .walk-story-atmosphere { display: block; position: absolute; top: 0; left: 0; right: 0; height: 100lvh; }
 .walk-story--pinned .ws-sky { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
 .walk-story--pinned .walk-story-scene { position: absolute; inset: 0; min-height: 0; padding: 0; background: none; }
@@ -2056,8 +2093,9 @@ Expected: FAIL on the new timing and script checks.
   height: 72%;
   max-height: 720px;
   transform: translate(-50%, calc(-50% + (0.5 - var(--hold, 1)) * 18px));
-  will-change: transform;
 }
+/* At most six promoted layers: the five skies and the one phone moving. */
+.walk-story--pinned .walk-story-scene.is-active .walk-story-phone { will-change: transform; }
 .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
 .walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
 .walk-story--pinned .ws-said { position: absolute; left: 8%; width: 40%; bottom: 17%; }
@@ -2185,11 +2223,12 @@ Expected: FAIL on the new timing and script checks.
  * after js/walk-story-core.js; both defer, so order in the document is
  * order of execution.
  *
- * Without this file, with reduced motion, or on a viewport under 560px
- * tall, the story stays nine stacked sections in their finished states:
- * every act in css/walk-story.css reads var(--hold, 1) and nothing sets
- * --hold. Pinned, the only per-frame writes are --hold on scenes whose
- * hold changed, opacity on fronts, lines and the five sky layers, and a
+ * Without this file, with reduced motion, without sticky or svh, or on a
+ * viewport under 560px tall, the story stays nine stacked sections in
+ * their finished states: every act in css/walk-story.css reads
+ * var(--hold, 1) and nothing sets --hold. Pinned, each frame first reads
+ * every moving dot's point, then writes: --hold on scenes whose hold
+ * changed, opacity on fronts, lines and the five sky layers, and a
  * transform on each moving dot. The only layout read is measure().
  */
 
@@ -2206,24 +2245,25 @@ Expected: FAIL on the new timing and script checks.
   var n = scenes.length;
   var reduceMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var video = root.querySelector('.ws-video');
 
   paintMoon();
+  wireTapToPlay();
 
-  var canPin = !reduceMotion && n === C.SCENES.length && window.innerHeight >= 560 &&
-    'IntersectionObserver' in window && window.CSS && CSS.supports('position', 'sticky');
-  if (!canPin) {
-    wireTapToPlay();
-    return;
-  }
-
-  root.classList.add('walk-story--pinned');
+  // Without svh (iOS 15.0–15.3) or sticky, the pinned heights would be
+  // invalid and the story would collapse to nothing; it stays stacked.
+  var capable = !reduceMotion && n === C.SCENES.length &&
+    'IntersectionObserver' in window && window.CSS &&
+    CSS.supports('position', 'sticky') && CSS.supports('height', '100svh');
+  if (!capable) return;
 
   var stage = root.querySelector('.walk-story-stage');
   var skies = Array.prototype.slice.call(root.querySelectorAll('.ws-sky'));
   var rail = Array.prototype.slice.call(root.querySelectorAll('.walk-story-rail a'));
   var pill = root.querySelector('.walk-story-pill');
   var pillText = pill && pill.querySelector('.ws-pill-label');
-  var video = root.querySelector('.ws-video');
+  var skip = root.querySelector('.walk-story-skip');
+  var after = document.getElementById('after-walk-story');
   var videoScene = video ? scenes.indexOf(video.closest('.walk-story-scene')) : -1;
   var tracesScene = sceneIndex('traces');
   var portraitQuery = window.matchMedia('(max-width: 720px)');
@@ -2239,6 +2279,7 @@ Expected: FAIL on the new timing and script checks.
         return path && dot ? {
           path: path,
           dot: dot,
+          home: dot.getAttribute('transform'),
           length: 0,
           portrait: svg.classList.contains('walk-story-line--portrait')
         } : null;
@@ -2249,6 +2290,7 @@ Expected: FAIL on the new timing and script checks.
     };
   });
 
+  var pinned = false;
   var top = 0, height = 0, stageHeight = 0, width = 0;
   var target = 0, shown = 0, raf = 0, lastT = 0;
   var current = -1, inView = false, demoed = false, reachedEnd = false;
@@ -2276,18 +2318,16 @@ Expected: FAIL on the new timing and script checks.
     target = C.storyProgress(window.scrollY, top, height, stageHeight);
   }
 
-  function moveDots(j, hold) {
+  function pointsFor(j, hold) {
     var ink = C.lineInk(C.SCENES[j].id, hold);
-    state[j].tracks.forEach(function (t) {
-      if (!t.length) return;
-      var pt = t.path.getPointAtLength(ink * t.length);
-      t.dot.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
+    return state[j].tracks.map(function (t) {
+      return t.length ? t.path.getPointAtLength(ink * t.length) : null;
     });
   }
 
   function syncVideo() {
     if (!video) return;
-    if (inView && current === videoScene) {
+    if (pinned && inView && current === videoScene) {
       var played = video.play();
       if (played && played.catch) played.catch(function () {});
     } else if (!video.paused) {
@@ -2321,15 +2361,25 @@ Expected: FAIL on the new timing and script checks.
 
   function render(p) {
     var at = C.sceneAt(p, n);
-    for (var j = 0; j < n; j++) {
-      var s = state[j];
+    var moved = [];
+    var j, s;
+    // Read every moving dot's point first, then write: a geometry read
+    // after a --hold write would force a style recalc inside the frame.
+    for (j = 0; j < n; j++) {
+      var hold = Math.round(C.holdLocal(C.clamp(p * n - j, 0, 1)) * 10000) / 10000;
+      if (hold !== state[j].hold) moved.push({ j: j, hold: hold, points: pointsFor(j, hold) });
+    }
+    moved.forEach(function (m) {
+      scenes[m.j].style.setProperty('--hold', m.hold);
+      state[m.j].tracks.forEach(function (t, k) {
+        var pt = m.points[k];
+        if (pt) t.dot.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
+      });
+      state[m.j].hold = m.hold;
+    });
+    for (j = 0; j < n; j++) {
+      s = state[j];
       var l = p * n - j;
-      var hold = Math.round(C.holdLocal(C.clamp(l, 0, 1)) * 10000) / 10000;
-      if (hold !== s.hold) {
-        scenes[j].style.setProperty('--hold', hold);
-        moveDots(j, hold);
-        s.hold = hold;
-      }
       var front = Math.round(C.frontOpacity(l, j, n) * 1000) / 1000;
       if (front !== s.frontOpacity) {
         s.frontEl.style.opacity = front;
@@ -2337,7 +2387,7 @@ Expected: FAIL on the new timing and script checks.
       }
       var line = C.lineOpacity(j, at.index);
       if (line !== s.lineOpacity) {
-        for (var k = 0; k < s.lines.length; k++) s.lines[k].style.opacity = line;
+        for (var q = 0; q < s.lines.length; q++) s.lines[q].style.opacity = line;
         s.lineOpacity = line;
       }
     }
@@ -2350,12 +2400,20 @@ Expected: FAIL on the new timing and script checks.
       }
     }
     if (at.index !== current) setCurrent(at.index);
-    var activeHold = state[at.index].hold;
-    if (at.index === tracesScene && activeHold > 0 && !demoed && window.TracesCairn) {
+  }
+
+  // Events fire only where the reader comes to rest: a skip, a fling or
+  // a reload that lands below the story passes through without counting.
+  function settle() {
+    var run = height - stageHeight;
+    if (run <= 0) return;
+    var raw = (window.scrollY - top) / run;
+    if (!demoed && tracesScene !== -1 && window.TracesCairn &&
+        raw >= C.holdStartProgress(tracesScene, n) && raw < (tracesScene + 1) / n) {
       demoed = true;
       window.TracesCairn.demo();
     }
-    if (at.index === n - 1 && activeHold > 0 && !reachedEnd) {
+    if (!reachedEnd && raw >= C.holdStartProgress(n - 1, n) && raw <= 1) {
       reachedEnd = true;
       if (window.umami) window.umami.track('story-reach-end');
     }
@@ -2372,8 +2430,12 @@ Expected: FAIL on the new timing and script checks.
     shown += (target - shown) * (1 - Math.pow(0.86, dt / 16.667));
     if (Math.abs(target - shown) < 0.0005) shown = target;
     render(shown);
-    if (shown !== target) raf = window.requestAnimationFrame(frame);
-    else lastT = 0;
+    if (shown !== target) {
+      raf = window.requestAnimationFrame(frame);
+    } else {
+      lastT = 0;
+      settle();
+    }
   }
 
   function request() {
@@ -2389,17 +2451,14 @@ Expected: FAIL on the new timing and script checks.
     measure();
     shown = target;
     render(shown);
+    settle();
   }
 
-  // iOS fires resize as its toolbar collapses; only a width change can
-  // move the layout, so height-only resizes are ignored.
-  function onResize() {
-    if (window.innerWidth !== width) snap();
-  }
-
+  // The page's html { scroll-behavior: smooth } would animate 'auto',
+  // so a jump that must land now says 'instant'.
   function scrollToScene(i, smooth) {
     var y = top + C.holdStartProgress(i, n) * (height - stageHeight) + 1;
-    window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'auto' });
+    window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'instant' });
     if (!smooth) {
       onScroll();
       shown = target;
@@ -2407,8 +2466,75 @@ Expected: FAIL on the new timing and script checks.
     }
   }
 
+  function enter() {
+    if (inView) return;
+    inView = true;
+    document.body.classList.add('walk-story-pinned');
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    shown = target;
+    render(shown);
+    settle();
+    syncVideo();
+  }
+
+  function leave() {
+    if (!inView) return;
+    inView = false;
+    document.body.classList.remove('walk-story-pinned');
+    window.removeEventListener('scroll', onScroll);
+    syncVideo();
+  }
+
+  function pin() {
+    pinned = true;
+    root.classList.add('walk-story--pinned');
+    snap();
+    var y = window.scrollY;
+    if (y + window.innerHeight > top && y < top + height) enter();
+  }
+
+  // Back to the stacked story: every inline value the frame loop wrote
+  // comes off, so the stylesheet's finished states show again.
+  function unpin() {
+    leave();
+    pinned = false;
+    root.classList.remove('walk-story--pinned');
+    if (raf) { window.cancelAnimationFrame(raf); raf = 0; }
+    lastT = 0;
+    scenes.forEach(function (scene, j) {
+      var s = state[j];
+      scene.style.removeProperty('--hold');
+      scene.classList.remove('is-active');
+      s.frontEl.style.opacity = '';
+      s.lines.forEach(function (el) { el.style.opacity = ''; });
+      s.tracks.forEach(function (t) { t.dot.setAttribute('transform', t.home); });
+      s.hold = -1;
+      s.frontOpacity = -1;
+      s.lineOpacity = -1;
+    });
+    skies.forEach(function (el, i) { el.style.opacity = ''; skyOpacity[i] = -1; });
+    rail.forEach(function (a) { a.removeAttribute('aria-current'); });
+    stage.setAttribute('data-sky', 'dawn');
+    current = -1;
+  }
+
+  // iOS fires resize as its toolbar collapses, changing only the height,
+  // and the story's svh-based height does not move with it, so that
+  // resize is ignored. A real layout change moves the width or the
+  // story's height; a short viewport (a phone turned sideways) unpins.
+  function onResize() {
+    var tall = window.innerHeight >= 560;
+    if (tall !== pinned) {
+      if (tall) pin(); else unpin();
+      return;
+    }
+    if (pinned && (window.innerWidth !== width || root.offsetHeight !== height)) snap();
+  }
+
   rail.forEach(function (a, i) {
     a.addEventListener('click', function (e) {
+      if (!pinned) return;
       e.preventDefault();
       scrollToScene(i, true);
     });
@@ -2416,38 +2542,44 @@ Expected: FAIL on the new timing and script checks.
 
   if (pill) {
     pill.addEventListener('click', function (e) {
+      if (!pinned) return;
       e.preventDefault();
       scrollToScene(Math.min(n - 1, current + 1), true);
+    });
+  }
+
+  // Skipping means skipping: no smooth ride through 12.6 screens.
+  if (skip && after) {
+    skip.addEventListener('click', function (e) {
+      if (!pinned) return;
+      e.preventDefault();
+      after.setAttribute('tabindex', '-1');
+      window.scrollTo({ top: top + height, behavior: 'instant' });
+      after.focus({ preventScroll: true });
     });
   }
 
   // A focused element must never sit in a faded scene: tabbing into a
   // scene brings that scene on stage first.
   root.addEventListener('focusin', function (e) {
+    if (!pinned) return;
     var scene = e.target.closest ? e.target.closest('.walk-story-scene') : null;
     var i = scene ? scenes.indexOf(scene) : -1;
     if (i !== -1 && i !== current) scrollToScene(i, false);
   });
 
   new IntersectionObserver(function (entries) {
-    var was = inView;
-    inView = entries[0].isIntersecting;
-    document.body.classList.toggle('walk-story-pinned', inView);
-    if (inView && !was) {
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-      shown = target;
-      render(shown);
-    } else if (!inView && was) {
-      window.removeEventListener('scroll', onScroll);
-    }
-    syncVideo();
+    if (!pinned) return;
+    if (entries[entries.length - 1].isIntersecting) enter(); else leave();
   }).observe(root);
 
-  snap();
   window.addEventListener('resize', onResize, { passive: true });
-  window.addEventListener('load', snap, { once: true });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(snap);
+  window.addEventListener('load', function () { if (pinned) snap(); }, { once: true });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { if (pinned) snap(); });
+  }
+
+  if (window.innerHeight >= 560) pin();
 
   function paintMoon() {
     if (typeof window.getMoonPhase !== 'function') return;
@@ -2460,14 +2592,14 @@ Expected: FAIL on the new timing and script checks.
 
   // Unpinned, the meditation video shows its poster and plays on a tap.
   function wireTapToPlay() {
-    var v = root.querySelector('.ws-video');
-    if (!v) return;
-    v.addEventListener('click', function () {
-      if (v.paused) {
-        var played = v.play();
+    if (!video) return;
+    video.addEventListener('click', function () {
+      if (root.classList.contains('walk-story--pinned')) return;
+      if (video.paused) {
+        var played = video.play();
         if (played && played.catch) played.catch(function () {});
       } else {
-        v.pause();
+        video.pause();
       }
     });
   }
@@ -2528,7 +2660,7 @@ EOF
 - Modify: `js/clearing-core.js` (`ZONES`, lines 89–97)
 - Modify: `js/clearing-core.test.js`, `js/clearing-wiring.test.js`
 - Modify: `js/main.js` (`initScrollTracker`, and `onScrollOrResize` in `initPageWalker`)
-- Modify: `css/styles.css` (the rest rule)
+- Modify: `css/walk-story.css` (the rest rule)
 - Modify: `js/walk-story-markup.test.js` (the integration checks)
 
 **Interfaces:**
@@ -2577,8 +2709,8 @@ ok(cairnSrc.indexOf("closest('.walk-story--pinned')") !== -1,
 const mainSrc = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
 eq((mainSrc.match(/classList\.contains\('walk-story-pinned'\)/g) || []).length, 2,
   'the scroll tracker and the page walker both rest while the story is pinned');
-const stylesCss = fs.readFileSync(path.join(ROOT, 'css', 'styles.css'), 'utf8');
-ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(stylesCss),
+const storyCss = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(storyCss),
   'the walker and the tracker fade while the ink line is the companion');
 ```
 
@@ -2681,7 +2813,7 @@ In `initPageWalker`'s `onScrollOrResize`, make this its first statement:
       if (document.body.classList.contains('walk-story-pinned')) return;
 ```
 
-Append to `css/styles.css`:
+Append to `css/walk-story.css`. Not `css/styles.css`: /sunpath shares that file and pins its weight.
 
 ```css
 /* The walk story's ink line is the page's companion while it is pinned;
@@ -2702,7 +2834,7 @@ Expected: all three print `ALL PASS`.
 
 - [ ] **Step 6: Run the suite, check it in a browser, commit**
 
-Run the suite from *Running the tests* and `node js/page-weight.test.js`; raise baselines only if a page's weight moved, and only for those pages.
+Run the suite from *Running the tests*, including `node js/page-weight.test.js` and `node js/sunpath-budget.test.js`. `js/main.js` grew by two lines on every page that loads it. Raise a page-weight baseline only where a page moved, and only for that page. /sunpath's budget must still hold within its ±0.25 KB.
 
 In the browser:
 - **the cairn:** one stone settles when scene 06 takes the stage, not earlier;
@@ -2710,7 +2842,7 @@ In the browser:
 - **the clearing:** below the story, one fog patch appears; the crescent rides only after the story ends, and stillness reveals it.
 
 ```bash
-git add js/traces-cairn.js js/clearing.js js/clearing-core.js js/clearing-core.test.js js/clearing-wiring.test.js js/main.js css/styles.css js/walk-story-markup.test.js js/page-weight.test.js
+git add js/traces-cairn.js js/clearing.js js/clearing-core.js js/clearing-core.test.js js/clearing-wiring.test.js js/main.js css/walk-story.css js/walk-story-markup.test.js js/page-weight.test.js
 git commit -F - <<'EOF'
 feat(walk-story): the cairn, the clearing and the walker make room
 
@@ -2861,41 +2993,64 @@ No code changes unless verification finds a defect. If it does, fix it test-firs
 
 Run: `python3 -m http.server 8765` from the repo root, in the background. Then open `http://localhost:8765/` with `new_page`.
 
-- [ ] **Step 2: The frame budget, in light, dark and star modes**
+- [ ] **Step 2: The frame budget, in every theme and size**
 
-For each theme:
-1. Set the theme in the page with `evaluate_script`. For light: `document.documentElement.removeAttribute('data-theme'); document.body.classList.remove('constellation')`. For dark: `document.documentElement.setAttribute('data-theme','dark')`. For star: dark, plus `document.body.classList.add('constellation')`.
-2. At 1440×900 (`resize_page`), throttle the CPU 4× with `emulate`.
-3. Run `performance_start_trace`, then scroll the whole story in `evaluate_script`:
+Run each theme (`light`, `dark`, `star`) at each size: 1440×900, 1920×1080, 1024×768 (the 721–1024 px layout) and 390×844.
+
+1. `resize_page` to the size.
+2. Set the theme the way the page does, so star mode really starts its starfield (`window.Universe.activate()` runs only on load). `evaluate_script` → `() => localStorage.setItem('theme', 'star')` (or `'light'` / `'dark'`), then `navigate_page` with `type: 'reload'`.
+3. Throttle the CPU 4× with `emulate` (`cpuThrottlingRate: 4`).
+4. `performance_start_trace` with `reload: false` and `autoStop: false`. By default it reloads the page, which drops the theme, and stops after 5 s, before the scroll has run.
+5. Scroll the whole story in `evaluate_script`, measuring frames in the page, since the trace summary does not report a worst frame. Scrolling is `behavior: 'instant'`, because the page's `html { scroll-behavior: smooth }` would animate each step and the loop would never reach the end:
 
    ```js
    async () => {
      const s = document.querySelector('.walk-story');
      const top = s.getBoundingClientRect().top + scrollY;
      const end = top + s.offsetHeight;
+     let last = performance.now(), worst = 0, frames = 0, longTasks = 0, longest = 0;
+     const po = new PerformanceObserver(list => {
+       list.getEntries().forEach(e => { longTasks++; longest = Math.max(longest, e.duration); });
+     });
+     try { po.observe({ type: 'longtask' }); } catch (e) {}
      for (let y = top - 200; y <= end; y += 40) {
-       scrollTo(0, y);
-       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+       scrollTo({ top: y, behavior: 'instant' });
+       await new Promise(r => requestAnimationFrame(r));
+       const now = performance.now();
+       worst = Math.max(worst, now - last);
+       last = now;
+       frames++;
      }
+     po.disconnect();
+     return { frames, worstFrameMs: Math.round(worst), longTasks, longestTaskMs: Math.round(longest), endedAt: Math.round(scrollY), storyEnd: Math.round(end) };
    }
    ```
 
-4. Run `performance_stop_trace` and `performance_analyze_insight`.
+   Check that `endedAt` is at least `storyEnd − 50`, i.e. the scroll really reached the end.
+6. `performance_stop_trace`, then `performance_analyze_insight` on any long task it names.
 
-**Pass:** no long task over 50 ms and no frame over 32 ms after the first paint. Record the numbers for each theme.
+**Pass:** `worstFrameMs` ≤ 32 and `longestTaskMs` ≤ 50 in every theme at every size. Record the twelve results.
 
 - [ ] **Step 3: The screenshot matrix**
 
-For every scene, at 1440×900 and 390×844, in light, dark and star modes:
-1. Scroll to the middle of its hold: `scrollTo(0, top + ((i + 0.5) / 9) * (s.offsetHeight - innerHeight))`.
+For every scene, at 1440×900, 1920×1080, 1024×768 and 390×844, in light, dark and star modes (theme set as in Step 2):
+1. Scroll to the middle of its hold: `scrollTo({ top: top + ((i + 0.5) / 9) * (s.offsetHeight - innerHeight), behavior: 'instant' })`.
 2. Wait about 1 s for the easing to settle.
 3. Take a screenshot.
 
 Open underdog.ai at the same sizes and set the two side by side. Fix anything that reads unfinished beside it:
 - overlaps (the phone over a Honor label, the pill over text);
-- cramped copy;
+- cramped or clipped copy (scene 09 has the most);
 - a line under text;
-- a moon over the kicker.
+- a line that stops short of its dot at 1920 px (the non-scaling-stroke failure);
+- past scenes' faint layers cluttering a later scene.
+
+Check these first. A dry run of Tasks 1–5 at 562×915 (portrait geometry) showed three of them:
+- Scene 04's copy (up to 58% of the height in portrait) runs into the earlier scenes' faint lines, which start at 51%.
+- The pill sits on the Takijiri-oji label.
+- The morning card's narrative fills the phone edge to edge.
+
+Tighten the portrait Honor copy, or move its three captions under the phone; keep the pill clear of the stage's foot; and give the card room to breathe.
 
 - [ ] **Step 4: Phones against the app**
 
@@ -2904,12 +3059,16 @@ Set each phone frame beside the same screen from the app's demo mode. Use `docs/
 - [ ] **Step 5: Stacked, reduced motion and keyboard**
 
 1. **No JS:** `navigate_page` with an `initScript` of `Object.defineProperty(window, 'WalkStoryCore', { value: undefined, writable: false });`.
-   **Expected:** nine stacked, finished scenes, each on its own sky.
-2. **Reduced motion:** use `initScript` `const m = matchMedia; window.matchMedia = q => q.includes('prefers-reduced-motion') ? { matches: true, addListener(){}, removeListener(){} } : m(q);`.
+   **Expected:** nine stacked, finished scenes, each on its own sky. The console shows one TypeError, from `js/walk-story-core.js` assigning the read-only global; that is this test's doing, not a defect.
+2. **Rotation:** at 390×844 scroll into scene 04, then `resize_page` to 844×390.
+   **Expected:** the story unpins to the stacked layout, with nothing clipped. Resize back and it pins again at the same scene.
+3. **Reduced motion:** use `initScript` `const m = matchMedia; window.matchMedia = q => q.includes('prefers-reduced-motion') ? { matches: true, addListener(){}, removeListener(){} } : m(q);`.
    **Expected:** the same stacked story, and the video plays only on a tap.
-3. **Keyboard:** reload normally and Tab through the story.
-   **Expected:** the skip link appears on focus; the rail dots announce "Scene N of 9: Name"; focusing the seek input or the cairn brings its scene on stage; the pill leaves the tab order at scene 9.
-4. **The clearing:** scroll below the story.
+4. **Keyboard:** reload normally and Tab through the story.
+   **Expected:** the skip link appears on focus, and activating it jumps past the story at once. The rail dots announce "Scene N of 9: Name". Focusing the seek input or the cairn brings its scene on stage immediately. The pill leaves the tab order at scene 9.
+5. **Events:** with umami's `track` stubbed to log (`window.umami = { track: e => console.log('umami', e) }`), skip the story, then fling through it.
+   **Expected:** no `story-reach-end`. Then scroll to scene 09 and stop: exactly one.
+6. **The clearing:** scroll below the story.
    **Expected:** one fog patch; the crescent rides only after the story ends; stillness reveals it.
 
 - [ ] **Step 6: Run the whole suite one last time**
@@ -2930,18 +3089,24 @@ Spec: docs/superpowers/specs/2026-09-24-one-walk-story-design.md · Plan: docs/s
 **Merge after pilgrim-landing #25** (the privacy policy), which itself waits on pilgrim-worker #45 being deployed. Scene 09 links to /privacy.
 
 ## Decisions beyond the spec
-1. **Skies are per scene.** They blend only in the crossfades between scenes, because text colour can't change mid-read without dropping below AA.
+1. **Skies are per scene.** They blend only in the crossfades between scenes, because text colour can't change mid-read without dropping below AA. So the core exposes `skyWeights` and `layerOpacities` instead of the spec's `hourFor` and `atmosphereWeights`.
 2. **Inactive scenes are hidden with `opacity: 0` and `pointer-events: none`,** not `visibility: hidden`, so screen readers still reach them. The focus rule keeps focus out of faded scenes.
-3. **Scene 02's transcript is a caption on the page.** The app transcribes after the walk, and the same words appear on scene 07's summary.
-4. **Every reveal scrubs both ways,** including scene 08's share route.
+3. **Scenes live inside the sticky stage.** Pinned, all nine fill the stage and only the active front shows. Each carries its own phone and line, so no separate slots are needed.
+4. **Scene 02's transcript is a caption on the page.** The app transcribes after the walk, and the same words appear on scene 07's summary.
+5. **Every reveal scrubs both ways,** including scene 08's share route.
+6. **The contrast check is its own test,** `js/walk-story-contrast.test.js`. The two existing sweeps cover the seasonal parchment and the hour-wash, which the story's skies replace.
+7. **The two line geometries switch by CSS media query** (`max-width: 720px`), not JavaScript.
 
-## Frame budget (Chrome, 4× CPU throttle, 1440×900)
-<light / dark / star: longest task, worst frame — from Task 8 Step 2>
+## Frame budget (Chrome, 4× CPU throttle)
+<worstFrameMs and longestTaskMs for light / dark / star at 1440×900, 1920×1080, 1024×768 and 390×844, from Task 8 Step 2>
+
+## Known leftover
+`css/styles.css` still carries the dead `.practice*` and `.walkwithme*` rules. /sunpath shares the file, and `js/sunpath-budget.test.js` pins its weight to its own spec's figure, so removing them belongs with a sunpath budget update, not with this PR.
 
 ## Verified
-- Screenshot matrix: 9 scenes × 2 sizes × light/dark/star, against underdog.ai
+- Screenshot matrix: 9 scenes × 4 sizes × light/dark/star, against underdog.ai
 - Phone frames against the app's demo-mode screens
-- No-JS, reduced-motion and keyboard walkthroughs
+- No-JS, rotation, reduced-motion, keyboard and event walkthroughs
 - The hidden clearing still appears
 - All tests pass except `scripts/bake-collective-routes.test.js`, which needs a sibling `../open-pilgrimages` and fails the same way on main
 
