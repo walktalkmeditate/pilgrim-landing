@@ -102,6 +102,7 @@
       s.hold = -1;   // re-place every dot in the geometry now on screen
       s.lineOpacity = -1;
     });
+    current = -1;    // and re-apply the scene, whose pill may dock by width
     target = C.storyProgress(window.scrollY, top, height, stageHeight);
   }
 
@@ -133,6 +134,7 @@
     if (pill) {
       var label = C.pillLabel(i);
       pill.classList.toggle('is-hidden', !label);
+      pill.classList.toggle('is-docked', i > 0 || compact);
       if (label) {
         pillText.textContent = label;
         pill.setAttribute('href', '#scene-' + (i + 2));
@@ -303,6 +305,7 @@
     skies.forEach(function (el, i) { el.style.opacity = ''; skyOpacity[i] = -1; });
     root.style.removeProperty('--ws-label-k');
     rail.forEach(function (a) { a.removeAttribute('aria-current'); });
+    if (pill) pill.classList.remove('is-docked');
     stage.setAttribute('data-sky', 'dawn');
     current = -1;
   }

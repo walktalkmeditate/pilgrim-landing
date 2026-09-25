@@ -166,6 +166,30 @@ const sceneBlock = function (n) {
   const from = story.indexOf('id="scene-' + n + '"');
   return story.slice(from, story.indexOf('<div class="walk-story-front">', from));
 };
+['landscape', 'portrait'].forEach(function (g) {
+  let prevEnd = null;
+  for (let n = 1; n <= 9; n++) {
+    const block = sceneBlock(n);
+    const from = block.indexOf('walk-story-line--' + g);
+    const svg = block.slice(from, block.indexOf('</svg>', from));
+    let start, end;
+    if (n === 4) {
+      start = baked.placements[g].start;
+      end = baked.placements[g].end;
+    } else {
+      const nums = svg.match(/<path class="ws-line" d="([^"]+)"/)[1].match(/-?[\d.]+/g).map(Number);
+      start = nums.slice(0, 2);
+      end = nums.slice(-2);
+      const dot = svg.match(/<g class="ws-dot" transform="translate\(([-\d.]+) ([-\d.]+)\)"/);
+      ok(!!dot && +dot[1] === end[0] && +dot[2] === end[1], g + ' · scene ' + n + ': the walker rests where its line ends');
+    }
+    if (prevEnd) {
+      ok(Math.abs(start[0] - prevEnd[0]) < 0.5 && Math.abs(start[1] - prevEnd[1]) < 0.5,
+        g + ' · scene ' + n + ' starts where scene ' + (n - 1) + ' ended  (' + start + ' vs ' + prevEnd + ')');
+    }
+    prevEnd = end;
+  }
+});
 Array.from(sceneBlock(7).matchAll(/class="ws-line" d="M[\d. ]+C[\d. ]+ ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) A/g)).forEach(function (m, i) {
   ok(Math.abs(+m[1] - +m[3]) <= 3 && +m[2] < +m[4],
     'scene 7 (' + (i ? 'portrait' : 'landscape') + '): the approach arrives heading down, as the ring\'s first arc leaves, so the ink never hooks');
@@ -232,6 +256,31 @@ ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story-
   'the story clips, not the stage, so the 100lvh sky reaches below it');
 ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
   'will-change on the sky layers and only the active phone: six promoted layers at most');
+
+console.log('\n=== the frame ===\n');
+
+function mediaBlock(query) {
+  const i = css.indexOf('@media ' + query + ' {');
+  if (i === -1) return '';
+  let depth = 0, j = css.indexOf('{', i);
+  for (; j < css.length; j++) {
+    if (css[j] === '{') depth++;
+    else if (css[j] === '}' && --depth === 0) break;
+  }
+  return css.slice(i, j);
+}
+ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*inset:\s*0 max\(0px, calc\(50% - \d+px\)\)/.test(css),
+  'a wide screen holds copy and phone in one centred frame instead of spreading them to its edges');
+ok(/\.walk-story-copy h2\s*\{[^}]*text-wrap:\s*balance/.test(css) && /\.ws-said\s*\{[^}]*text-wrap:\s*balance/.test(css),
+  'headlines and the spoken words balance their lines, so no word is left alone');
+ok(/\.walk-story--pinned \.ws-closing\s*\{[^}]*position:\s*absolute/.test(css),
+  'scene 04\'s closing line takes no room while it waits, so the copy has no hole mid-hold');
+ok(/\.walk-story--pinned \.ws-said\s*\{[^}]*left:\s*6%/.test(mediaBlock('(max-width: 1024px) and (min-width: 721px)')),
+  'between 721 and 1024px the spoken words keep the copy\'s left edge');
+ok(/\.walk-story-copy \.store-badges\s*\{[^}]*justify-content:\s*flex-start/.test(css),
+  'the store badges line up with the copy\'s left edge');
+ok(/\.walk-story-pill\.is-docked\s*\{[^}]*right:/.test(css) && /classList\.toggle\('is-docked'/.test(wiring),
+  'after the opening the pill docks to the corner, clear of the line');
 
 console.log('\n=== the story\'s neighbours ===\n');
 

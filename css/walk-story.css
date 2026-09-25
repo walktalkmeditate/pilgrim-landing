@@ -158,24 +158,30 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story-copy h2 {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(2.3rem, 4.4vw, 4.25rem);
+  font-size: clamp(2.3rem, 4.4vw, 5.25rem);
   line-height: 1.03;
   letter-spacing: -0.012em;
   margin: 0 0 1.2rem;
+  text-wrap: balance;
 }
 .walk-story-copy h2 em { font-style: italic; font-weight: 400; }
-.ws-body { font-size: clamp(1.05rem, 1.3vw, 1.22rem); line-height: 1.62; max-width: 34ch; margin: 0 0 1rem; }
+.ws-body { font-size: clamp(1.05rem, 1.3vw, 1.22rem); line-height: 1.62; max-width: 34ch; margin: 0 0 1rem; text-wrap: pretty; }
+@media (min-width: 1280px) {
+  .ws-body { max-width: 40ch; }
+}
 .ws-aside,
 .ws-caption,
 .ws-said { font-style: italic; color: var(--ws-muted); }
 .ws-caption { font-size: 0.98rem; margin: 0.3rem 0; }
 .ws-closing { font-family: var(--font-display); font-size: clamp(1.25rem, 1.8vw, 1.6rem); font-style: italic; margin: 1.1rem 0; }
-.ws-said { font-family: var(--font-display); font-size: clamp(1.1rem, 1.5vw, 1.35rem); max-width: 30ch; margin: 0; }
+.ws-said { font-family: var(--font-display); font-size: clamp(1.1rem, 1.5vw, 1.35rem); max-width: 30ch; margin: 0; text-wrap: balance; }
 /* Text links only: scene 09's store badges are links in the copy too. */
 .walk-story-copy p a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 .ws-list { list-style: none; padding: 0; margin: 1rem 0; }
 .ws-list li { margin: 0.3rem 0; }
 .ws-begin { font-family: var(--font-display); font-size: 1.3rem; font-style: italic; margin: 1.4rem 0 0.8rem; }
+/* The page centres its store badges; in the story they keep the copy's edge. */
+.walk-story-copy .store-badges { justify-content: flex-start; margin: 0.6rem 0 0; }
 .ws-seek-form { margin-top: 1.4rem; }
 .ws-sr {
   position: absolute;
@@ -576,7 +582,10 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story--pinned .ws-moment-ja { transform: scale(var(--ws-label-k, 1)); transition: opacity 0.5s var(--ws-ease); }
 .walk-story--pinned .walk-story-scene:not(.is-active) .ws-moment-label,
 .walk-story--pinned .walk-story-scene:not(.is-active) .ws-moment-ja { opacity: 0; }
-.walk-story--pinned .walk-story-front { position: absolute; inset: 0; display: block; opacity: 0; pointer-events: none; }
+/* The fronts sit in one centred frame at most 1560px wide, so a wide
+   screen holds the copy and the phone together instead of spreading
+   them to its edges. The line, the rail and the pill keep the stage. */
+.walk-story--pinned .walk-story-front { position: absolute; inset: 0 max(0px, calc(50% - 780px)); display: block; opacity: 0; pointer-events: none; }
 .walk-story--pinned .walk-story-scene.is-active .walk-story-front { pointer-events: auto; }
 
 .walk-story--pinned .walk-story-copy { position: absolute; left: 8%; width: 36%; top: 50%; transform: translateY(-50%); max-width: none; }
@@ -594,6 +603,9 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
 .walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
 .walk-story--pinned .ws-said { position: absolute; left: 8%; width: 40%; bottom: 17%; }
+/* Scene 04's closing line waits for the end of the hold; while it waits
+   it must not hold open a hole in the copy, so it hangs below it. */
+.walk-story--pinned .ws-closing { position: absolute; top: 100%; left: 0; right: 0; margin: 0.9rem 0 0; }
 
 .walk-story--pinned .walk-story-rail {
   display: flex;
@@ -633,11 +645,30 @@ body.constellation .walk-story-scene { background: transparent; }
   text-decoration: none;
   box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.35);
   transition: opacity 0.4s var(--ws-ease);
+  animation: ws-pill-rise 0.5s var(--ws-ease);
 }
 .walk-story-pill.is-hidden { opacity: 0; pointer-events: none; }
+/* Once the walk is under way the pill docks to the corner, where the line
+   never goes, and aligns with the rail. It moves by fading out where it
+   was and rising in where it lands: position never animates. */
+.walk-story--pinned .walk-story-pill.is-docked {
+  left: auto;
+  right: 3%;
+  bottom: calc(3% + env(safe-area-inset-bottom, 0px));
+  transform: none;
+  padding: 0.7em 1.25em;
+  font-size: 0.9rem;
+  animation-name: ws-pill-dock;
+}
+@keyframes ws-pill-rise { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes ws-pill-dock { from { opacity: 0; transform: translateY(10px); } }
 
 @media (max-width: 1024px) and (min-width: 721px) {
   .walk-story--pinned .walk-story-copy { left: 6%; width: 42%; }
+  .walk-story--pinned .ws-said { left: 6%; width: 42%; }
+  /* The line's viewBox is at its smallest here, so the Honor climb comes
+     nearest the corner; a compact pill keeps clear of it. */
+  .walk-story--pinned .walk-story-pill.is-docked { font-size: 0.85rem; padding: 0.6em 1.1em; }
   .walk-story--pinned .walk-story-phone { height: 60%; }
 }
 
