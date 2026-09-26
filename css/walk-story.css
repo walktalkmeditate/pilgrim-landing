@@ -752,9 +752,11 @@ body.constellation .walk-story-scene { background: transparent; }
   .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.5rem 1rem; }
 }
 @media (min-width: 1600px) {
-  /* At full size Honor's headline needs a little more room to set in two
-     lines, not three; its phone, at 62%, leaves it. */
+  /* At full size the three longest headlines need a little more room to
+     set in two lines, not three: Honor's phone, at 62%, leaves it, Seek
+     has no phone, and Home's starts well right of it. */
   .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { width: 41%; }
+  .walk-story--pinned .walk-story-scene:is([data-scene="seek"], [data-scene="home"]) .walk-story-copy { width: 43%; }
 }
 
 @media (max-width: 1024px) and (min-width: 721px) {
