@@ -350,6 +350,11 @@ ok(/\.walk-story--pinned \.ws-said\s*\{[^}]*left:\s*6%/.test(mediaBlock('(max-wi
   'between 721 and 1024px the spoken words keep the copy\'s left edge');
 ok(/\.walk-story-copy \.store-badges\s*\{[^}]*justify-content:\s*flex-start/.test(css),
   'the store badges line up with the copy\'s left edge');
+const shortStage = mediaBlock('(min-width: 721px) and (max-height: 840px)');
+ok(/\[data-scene="yours-alone"\] \.walk-story-copy\s*\{[^}]*top:/.test(shortStage) && /\.ws-list li\s*\{/.test(shortStage),
+  'on a short laptop stage the finale tightens and rides higher, so its badges end above scene 07\'s ring');
+ok(!/(ws-list|ws-begin|store-badges|ws-aside|ws-caption|ws-closing|ws-body)[^{}]*\{[^}]*display:\s*none/.test(css),
+  'no stage hides the privacy lines, the call to act, or any of the copy: a short stage compacts it instead');
 ok(/\.walk-story-pill\.is-docked\s*\{[^}]*right:/.test(css) && /classList\.toggle\('is-docked'/.test(wiring),
   'after the opening the pill docks to the corner, clear of the line');
 

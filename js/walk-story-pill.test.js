@@ -15,10 +15,11 @@
      moment and label is read from index.html, in the geometry that
      viewport draws, and mapped to the screen by the SVG's own
      viewBox and preserveAspectRatio;
-   - at six viewports, with and without a desktop scrollbar, nothing
-     meets the pill: docked, against every scene it docks in and every
-     walked line before it; and on a desktop, the centred "Begin
-     walking" of scene 01 against scene 01's own line.
+   - at eleven viewports, short laptops among them, with and without a
+     desktop scrollbar, nothing meets the pill: docked, against every
+     scene it docks in and every walked line before it; and on a
+     desktop, the centred "Begin walking" of scene 01 against scene
+     01's own line.
    ============================================= */
 
 'use strict';
@@ -52,7 +53,10 @@ const CLEAR_PX = 2;
 // A desktop browser may take a classic scrollbar from the stage's width.
 const SCROLLBAR_PX = 15;
 
-const VIEWPORTS = [[1920, 1080], [1440, 900], [1024, 768], [562, 915], [390, 844], [375, 667]];
+// The short laptop stages are listed too: there the line takes a larger
+// share of the height, and the corner the pill docks in is nearer to it.
+const VIEWPORTS = [[1920, 1080], [1440, 900], [1024, 768], [562, 915], [390, 844], [375, 667],
+  [1440, 789], [1536, 730], [1280, 720], [1366, 650], [1280, 600]];
 
 // --- the stylesheet, cascaded per viewport ---
 
@@ -109,10 +113,9 @@ function specificity(sel) {
 
 const RULES = parseCss(css);
 
-// The declarations that reach the pill at a viewport and theme, docked
-// (scenes 02–08, and 01 on a phone) or not (the hero, scene 01).
-function pillStyle(vw, vh, theme, docked) {
-  const targets = ['.walk-story--pinned .walk-story-pill'].concat(docked ? ['.walk-story--pinned .walk-story-pill.is-docked'] : []);
+// The declarations that reach an element, named by the selectors that
+// target it, at a viewport and theme.
+function cascade(targets, vw, vh, theme) {
   const hits = [];
   RULES.forEach(function (r, order) {
     if (!r.media.every(function (q) { return mediaMatches(q, vw, vh); })) return;
@@ -127,6 +130,13 @@ function pillStyle(vw, vh, theme, docked) {
   });
   hits.sort(function (a, b) { return a.spec - b.spec || a.order - b.order; });
   return hits.reduce(function (acc, h) { return Object.assign(acc, h.d); }, {});
+}
+
+// The pill, docked (scenes 02–08, and 01 on a phone) or not (the hero,
+// scene 01).
+function pillStyle(vw, vh, theme, docked) {
+  const targets = ['.walk-story--pinned .walk-story-pill'].concat(docked ? ['.walk-story--pinned .walk-story-pill.is-docked'] : []);
+  return cascade(targets, vw, vh, theme);
 }
 
 function px(value, fontPx) {
@@ -454,6 +464,58 @@ VIEWPORTS.forEach(function (v) {
         const hero = pillBox(vw, vh, W, theme, C.pillLabel(0), false);
         report(collisions(hero, W, vh, geometry, 1, 1), hero, at + ' · ' + theme + ': "' + C.pillLabel(0) + '", centred in scene 1,');
       }
+    });
+  });
+});
+
+console.log('\n=== on a desktop, nothing the walk draws meets a phone ===\n');
+
+// A phone is centred on its left and top, in the front's centred frame,
+// at a height the stage sets and a ceiling caps, and it rides by its hold
+// (half the transform's travel either way). Scene 04's phone sits further
+// left. Every walked line stays drawn, so a phone is checked against its
+// own scene's whole line and every scene before it.
+const FRAME_HALF = cssNumber(/\.walk-story--pinned \.walk-story-front \{[^}]*inset: 0 max\(0px, calc\(50% - (\d+)px\)\)/);
+const PHONE_ASPECT = (function () {
+  const m = /\.walk-story-phone \{[^}]*aspect-ratio: (\d+) \/ (\d+);/.exec(css);
+  return m ? +m[1] / +m[2] : NaN;
+})();
+const phoneScenes = C.SCENES.map(function (_, i) { return i + 1; }).filter(function (n) {
+  const from = story.indexOf('id="scene-' + n + '"');
+  const to = n < C.SCENES.length ? story.indexOf('id="scene-' + (n + 1) + '"') : story.length;
+  return story.slice(from, to).indexOf('class="walk-story-phone"') !== -1;
+});
+
+function pct(value) {
+  const m = /^([\d.]+)%$/.exec(value || '');
+  if (!m) throw new Error('expected a percentage: ' + value);
+  return +m[1] / 100;
+}
+
+function phoneBox(vw, vh, W, honor) {
+  const targets = ['.walk-story--pinned .walk-story-phone'].concat(honor ? ['.walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone'] : []);
+  const s = cascade(targets, vw, vh, 'light');
+  const ride = /\* ([\d.]+)px\)\)$/.exec(s.transform || '');
+  if (!ride) throw new Error('the phone is expected to ride by its hold: ' + s.transform);
+  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const height = Math.min(pct(s.height) * vh, px(s['max-height'], ROOT_PX));
+  const width = height * PHONE_ASPECT;
+  const cx = inset + pct(s.left) * (W - 2 * inset);
+  const cy = pct(s.top) * vh;
+  const travel = +ride[1] / 2;
+  return [cx - width / 2, cy - height / 2 - travel, cx + width / 2, cy + height / 2 + travel];
+}
+
+ok(FRAME_HALF > 0 && PHONE_ASPECT > 0 && phoneScenes.length >= 4,
+  'the frame, the phone\'s shape and the scenes that carry one are read from the page  (' + FRAME_HALF + ', ' + PHONE_ASPECT.toFixed(3) + ', scenes ' + phoneScenes.join(' ') + ')');
+VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
+  const vw = v[0], vh = v[1];
+  [0, SCROLLBAR_PX].forEach(function (bar) {
+    const W = vw - bar;
+    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    phoneScenes.forEach(function (n) {
+      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
+      report(collisions(phone, W, vh, 'landscape', 1, n), phone, at + ': scene ' + n + '\'s phone, through its whole ride,');
     });
   });
 });

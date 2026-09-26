@@ -72,7 +72,9 @@ const BASELINE_KB = {
   // into the core, where it is tested.
   // +0.63 (109.06): the docked pill's chip tokens, the phone finale's moon,
   // and the line's quieter past on a phone.
-  'index.html':                                 109.06,
+  // +0.53 (109.59): a short laptop stage (1366x650, 1280x720) compacts the
+  // copy instead of running it into the line.
+  'index.html':                                 109.59,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

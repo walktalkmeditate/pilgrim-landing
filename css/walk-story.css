@@ -640,10 +640,12 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story--pinned .walk-story-scene.is-active .walk-story-front { pointer-events: auto; }
 
 .walk-story--pinned .walk-story-copy { position: absolute; left: 8%; width: 36%; top: 50%; transform: translateY(-50%); max-width: none; }
+/* The phone stands a little above the middle: the line walks the stage's
+   lowest sixth, and a phone centred on a wide screen would reach it. */
 .walk-story--pinned .walk-story-phone {
   position: absolute;
   left: 68%;
-  top: 50%;
+  top: 48%;
   width: auto;
   height: 72%;
   max-height: 720px;
@@ -717,11 +719,37 @@ body.constellation .walk-story-scene { background: transparent; }
 @keyframes ws-pill-rise { from { opacity: 0; transform: translate(-50%, 10px); } }
 @keyframes ws-pill-dock { from { opacity: 0; transform: translateY(10px); } }
 
-@media (min-width: 721px) and (min-height: 700px) {
+@media (min-width: 721px) and (min-height: 841px) {
   /* The finale's copy is the tallest; centred, its store badges would
      sit on scene 07's ring beneath them, so it rides a little higher.
-     A shorter stage has no headroom to give: lifted, it would clip. */
+     A shorter stage compacts it instead (below). */
   .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: calc(50% - 1.75rem); }
+}
+/* A laptop's short stage (1366×650, 1280×720, a MacBook Air's 1440×789):
+   the line keeps the lowest sixth of the stage at any height, so the copy
+   has less room above it than 1440×900 gives. Nothing is dropped: the
+   type and its spacing follow the height, the copy rides higher, and the
+   phones stand a little shorter. */
+@media (min-width: 721px) and (max-height: 840px) {
+  .walk-story--pinned .walk-story-copy { top: 45%; }
+  .walk-story--pinned .ws-kicker { margin-bottom: min(1.25rem, 2.2svh); }
+  .walk-story--pinned .walk-story-copy h2 { font-size: clamp(2.1rem, min(4.4vw, 8.2svh), 5.25rem); margin-bottom: min(1.2rem, 2svh); }
+  .walk-story--pinned .ws-said { bottom: 14%; }
+  .walk-story--pinned .walk-story-phone { height: 64%; }
+  /* Honor's question hangs below its copy, so the copy rides higher. */
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { top: 43%; }
+  .walk-story--pinned .ws-closing { margin-top: 0.4rem; }
+  /* The finale is the tallest copy and ends in the call to act, above
+     scene 07's ring: its spacing, its lead-in and its badges tighten, and
+     all four privacy lines stay. */
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 41.5%; }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .ws-body { line-height: 1.5; margin-bottom: min(1rem, 1.4svh); }
+  .walk-story--pinned .ws-list { margin: min(1rem, 1.4svh) 0; }
+  .walk-story--pinned .ws-list li { margin: 0; line-height: 1.45; }
+  .walk-story--pinned .ws-begin { font-size: 1.15rem; margin: min(1.4rem, 2svh) 0 min(0.8rem, 1.2svh); }
+  .walk-story--pinned .walk-story-copy .store-badges { margin-top: 0.3rem; }
+  .walk-story--pinned .walk-story-copy .store-badges .app-store-badge,
+  .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.5rem 1rem; }
 }
 @media (min-width: 1600px) {
   /* At full size Honor's headline needs a little more room to set in two
