@@ -814,18 +814,33 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
   .walk-story--pinned .walk-story-phone { height: min(60%, 72vw); }
 }
 /* Up to 1000px wide the corner beside the Honor climb is smaller than the
-   pill at any aspect, so the pill docks above the line: the climb rises
-   340 of the viewBox's 1600, 0.2125 of the width. A phone near square
-   would reach down to it there, so the phone takes the larger of two
-   heights that keep it a rem clear of the pill. One ends its right edge
-   left of the pill: 29vw from its centre at 68% to the pill's edge at
-   97%, less the pill, the rem and a classic scrollbar, times 4.2, its
-   height over its half-width. The other ends its foot, riding low, above
-   the pill: twice the 52% below its centre, less the pill's offset and
-   height, the ride and the rem. Upright, 72vw still sets it. */
+   pill at any aspect, so on a stage taller than it is wide the pill docks
+   above the line: the climb rises 340 of the viewBox's 1600, 0.2125 of
+   the width. A phone near square would reach down to it there, so the
+   phone takes the larger of two heights that keep it a rem clear of the
+   pill. One ends its right edge left of the pill: 29vw from its centre
+   at 68% to the pill's edge at 97%, less the pill, the rem and a classic
+   scrollbar, times 4.2, its height over its half-width. The other ends
+   its foot, riding low, above the pill: twice the 52% below its centre,
+   less the pill's offset and height, the ride and the rem. Upright, 72vw
+   still sets it. */
 @media (min-width: 721px) and (max-width: 1000px) {
   .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(21.25vw + 1rem); }
   .walk-story--pinned .walk-story-phone { height: min(60%, 72vw, max((29vw - 9.1rem) * 4.2, 2 * (52% - 21.25vw - 5.125rem))); }
+}
+/* That room above the line runs out on a stage as wide as it is tall or
+   wider: the line's right end rises to the rail and scene 06's traces,
+   which stand on the stage's middle. There the pill docks above them
+   (the traces reach 124px over the middle), where nothing is drawn. */
+@media (min-width: 721px) and (max-width: 1000px) and (min-aspect-ratio: 1/1) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(50% + 9rem); }
+}
+/* Under 800px a short stage's column is narrower than the finale's badges
+   side by side and its longest privacy line, so they wrap and the copy
+   runs off the stage's top. The finale has no phone beside it and its
+   moon rises right of 62%, so its column widens to half the stage. */
+@media (min-width: 721px) and (max-width: 800px) and (max-height: 840px) {
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { width: 50%; }
 }
 
 /* A phone: the copy spans the top; beneath it the line keeps the left

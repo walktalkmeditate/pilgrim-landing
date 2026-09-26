@@ -15,11 +15,15 @@
      moment and label is read from index.html, in the geometry that
      viewport draws, and mapped to the screen by the SVG's own
      viewBox and preserveAspectRatio;
-   - at two dozen viewports, short laptops and tablets among them, with
-     and without a desktop scrollbar, nothing meets the pill: docked,
-     against every scene it docks in and every walked line before it;
-     and on a desktop, the centred "Begin walking" of scene 01 against
-     scene 01's own line.
+   - at thirty viewports, short laptops, tablets and short windows among
+     them, with and without a desktop scrollbar, nothing meets the pill:
+     docked, against every scene it docks in and every walked line
+     before it, the rail's links and scene 06's traces; and on a
+     desktop, the centred "Begin walking" of scene 01 against scene 01's
+     own line;
+   - on a desktop or tablet, no phone meets the line, the docked pill or
+     the copy beside it, and the finale's copy, estimated from its text,
+     stands whole between the stage's top and the walked lines.
    ============================================= */
 
 'use strict';
@@ -61,11 +65,14 @@ const SCROLLBAR_PX = 15;
 // upright and landscape (half of a 1512 to 1728px MacBook screen in split
 // view among them), where the corner beside the Honor climb is too small
 // for the pill and a phone may reach down to where it docks instead, from
-// the narrowest to one whose corner is free again.
+// the narrowest to one whose corner is free again; and the short windows
+// of that band, where the rail and scene 06's traces fill the stage's
+// middle and the finale has the least room.
 const VIEWPORTS = [[1920, 1080], [1440, 900], [1024, 768], [562, 915], [390, 844], [375, 667],
   [1440, 789], [1536, 730], [1280, 720], [1366, 650], [1280, 600],
   [768, 1024], [810, 1080], [820, 1180], [834, 1194], [744, 1133], [1024, 1366],
-  [725, 600], [760, 900], [800, 640], [840, 900], [864, 1000], [900, 1000], [1000, 1000], [1010, 1330]];
+  [725, 600], [760, 900], [800, 640], [840, 900], [864, 1000], [900, 1000], [1000, 1000], [1010, 1330],
+  [725, 720], [760, 620], [810, 600], [980, 700], [1000, 580]];
 
 // --- the stylesheet, cascaded per viewport ---
 
@@ -522,15 +529,17 @@ function pct(value) {
   return +m[1] / 100;
 }
 
-// A phone's height: %, vw, rem and px, added, subtracted and scaled by
-// plain numbers, in calc(), min(), max() and parentheses. Its % is of the
-// stage (100svh, the viewport's height here). Anything else fails loudly.
-function phoneHeight(value, vw, vh) {
-  const src = (value || '').replace(/\s+/g, '');
-  const tokens = src.match(/(?:calc|min|max)?\(|[\d.]+(?:%|vw|rem|px)?|[-+*,)]/g) || [];
-  if (tokens.join('') !== src) throw new Error('unreadable height: ' + value);
+// A length: %, vw, svh, rem, em and px, added, subtracted and scaled by
+// plain numbers, in calc(), min(), max(), clamp() and parentheses, with
+// env() insets at 0 (see the viewport check above). `on` gives what % is
+// of, the viewport (vw, vh; 100svh is the viewport's height here) and the
+// em. Anything else fails loudly.
+function cssLength(value, on) {
+  const src = String(value || '').replace(/env\([^()]*\)/g, '0px').replace(/\s+/g, '');
+  const tokens = src.match(/(?:calc|min|max|clamp)?\(|[\d.]+(?:%|vw|svh|rem|em|px)?|[-+*,)]/g) || [];
+  if (!src || tokens.join('') !== src) throw new Error('unreadable length: ' + value);
   let i = 0;
-  function fail() { throw new Error('unreadable height: ' + value); }
+  function fail() { throw new Error('unreadable length: ' + value); }
   function sum() {
     let v = product();
     while (tokens[i] === '+' || tokens[i] === '-') v = tokens[i++] === '+' ? v + product() : v - product();
@@ -546,17 +555,21 @@ function phoneHeight(value, vw, vh) {
     if (/\($/.test(t)) {
       const args = [sum()];
       while (tokens[i] === ',') { i++; args.push(sum()); }
-      if (tokens[i++] !== ')' || (args.length > 1 && !/^(min|max)\($/.test(t))) fail();
-      return t === 'min(' ? Math.min.apply(null, args) : t === 'max(' ? Math.max.apply(null, args) : args[0];
+      if (tokens[i++] !== ')') fail();
+      if (t === 'min(') return Math.min.apply(null, args);
+      if (t === 'max(') return Math.max.apply(null, args);
+      if (t === 'clamp(' && args.length === 3) return Math.max(args[0], Math.min(args[1], args[2]));
+      if (args.length > 1) fail();
+      return args[0];
     }
-    const m = /^([\d.]+)(%|vw|rem|px)?$/.exec(t);
-    if (!m) fail();
-    const unit = { '%': vh / 100, vw: vw / 100, rem: ROOT_PX, px: 1 };
-    return +m[1] * (m[2] ? unit[m[2]] : 1);
+    const m = /^([\d.]+)(%|vw|svh|rem|em|px)?$/.exec(t);
+    const unit = m && { '%': on.pct / 100, vw: on.vw / 100, svh: on.vh / 100, rem: ROOT_PX, em: on.em, px: 1 }[m[2] || 'px'];
+    if (!m || unit === undefined) fail();
+    return +m[1] * (m[2] ? unit : 1);
   }
-  const height = sum();
-  if (i !== tokens.length) fail();
-  return height;
+  const length = sum();
+  if (i !== tokens.length || isNaN(length)) fail();
+  return length;
 }
 
 function phoneBox(vw, vh, W, honor) {
@@ -565,7 +578,7 @@ function phoneBox(vw, vh, W, honor) {
   const ride = /\* ([\d.]+)px\)\)$/.exec(s.transform || '');
   if (!ride) throw new Error('the phone is expected to ride by its hold: ' + s.transform);
   const inset = Math.max(0, W / 2 - FRAME_HALF);
-  const height = Math.min(phoneHeight(s.height, vw, vh), px(s['max-height'], ROOT_PX));
+  const height = Math.min(cssLength(s.height, { pct: vh, vw: vw, vh: vh }), px(s['max-height'], ROOT_PX));
   const width = height * PHONE_ASPECT;
   const cx = inset + pct(s.left) * (W - 2 * inset);
   const cy = pct(s.top) * vh;
@@ -590,8 +603,9 @@ VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
 console.log('\n=== on a desktop or tablet, the docked pill keeps clear of every phone ===\n');
 
 // Where the pill cannot dock beside the Honor climb (a stage 721 to
-// 1000px wide), it docks above the line, where a phone may reach down to
-// it; so each phone is checked against the pill of its own scene.
+// 1000px wide), it docks above the line, or above the rail on a stage as
+// wide as it is tall, and a phone may reach to either; so each phone is
+// checked against the pill of its own scene.
 VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
   const vw = v[0], vh = v[1];
   [0, SCROLLBAR_PX].forEach(function (bar) {
@@ -603,6 +617,68 @@ VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
       ok(!boxesOverlap(grow(pill, CLEAR_PX), phone), at + ': scene ' + n + '\'s docked pill at [' + pill.map(Math.round).join(', ') +
         '] keeps clear of its phone at [' + phone.map(Math.round).join(', ') + ']');
     });
+  });
+});
+
+console.log('\n=== the docked pill keeps clear of the rail, and of scene 06\'s traces ===\n');
+
+// The rail: its links stacked at the stage's right, centred on its top,
+// each dot reaching out to its ::before, the link's hit area. The pill
+// stays out of that reach, or a tap meant for one lands on the other.
+const RAIL_LINKS = ((story.match(/<nav class="walk-story-rail"[\s\S]*?<\/nav>/) || [''])[0].match(/<a /g) || []).length;
+
+function railBox(vw, vh, W) {
+  const s = cascade(['.walk-story--pinned .walk-story-rail'], vw, vh, 'light');
+  const dot = cascade(['.walk-story-rail a'], vw, vh, 'light');
+  const reach = cascade(['.walk-story-rail a::before'], vw, vh, 'light').inset.split(/\s+/).map(function (v) {
+    if (!/^-[\d.]+px$/.test(v)) throw new Error('the rail\'s reach is expected as negative px: ' + v);
+    return -parseFloat(v);
+  });
+  if (s.transform !== 'translateY(-50%)') throw new Error('the rail is expected to centre on its top: ' + s.transform);
+  const len = function (v, of) { return cssLength(v, { pct: of, vw: vw, vh: vh }); };
+  const height = RAIL_LINKS * len(dot.height) + (RAIL_LINKS - 1) * len(s.gap);
+  const right = W - len(s.right, W);
+  const cy = len(s.top, vh);
+  return [right - len(dot.width) - reach[1], cy - height / 2 - reach[0], right + reach[1], cy + height / 2 + reach[0]];
+}
+
+// Scene 06's act: its two cards, centred in their column (52% to 84% of
+// the front) on the stage's middle, and grown by the act's scale about
+// that centre. The cards are Chrome's 217 by 184px with the cairn at its
+// first stone; its longest count, "108 stones · eternal", widens them to
+// about 222. On a phone the act stands in the grid, above the pill's row.
+const TRACES_PX = [224, 184];
+
+function tracesBox(vw, vh, W) {
+  const s = cascade(['.walk-story--pinned .ws-act--right', '.walk-story--pinned .ws-act--traces'], vw, vh, 'light');
+  const scale = /^translateY\(-50%\) scale\(([\d.]+)\)$/.exec(s.transform || '');
+  if (!scale || s['transform-origin'] !== '50% 50%') throw new Error('the traces are expected to centre on their top and grow about their middle: ' + s.transform);
+  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const cx = inset + (pct(s.left) + pct(s.width) / 2) * (W - 2 * inset);
+  const cy = pct(s.top) * vh;
+  const half = [TRACES_PX[0] * scale[1] / 2, TRACES_PX[1] * scale[1] / 2];
+  return [cx - half[0], cy - half[1], cx + half[0], cy + half[1]];
+}
+
+ok(RAIL_LINKS === C.SCENES.length, 'the rail carries a link for each of the ' + C.SCENES.length + ' scenes  (' + RAIL_LINKS + ')');
+VIEWPORTS.forEach(function (v) {
+  const vw = v[0], vh = v[1];
+  const compact = vw <= 720;
+  const label = C.SCENES.map(function (_, i) { return C.pillLabel(i); }).filter(function (l, i) {
+    return l && (compact || i > 0);
+  }).sort(function (a, b) { return b.length - a.length; })[0];
+  [0, SCROLLBAR_PX].forEach(function (bar) {
+    if (compact && bar) return;
+    const W = vw - bar;
+    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    const pill = pillBox(vw, vh, W, 'light', label, true);
+    const rail = railBox(vw, vh, W);
+    ok(!boxesOverlap(grow(pill, CLEAR_PX), rail), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
+      '] keeps clear of the rail\'s reach at [' + rail.map(Math.round).join(', ') + ']');
+    if (compact) return;
+    const traces = tracesBox(vw, vh, W);
+    ok(!boxesOverlap(grow(pill, CLEAR_PX), traces), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
+      '] keeps clear of scene 06\'s traces at [' + traces.map(Math.round).join(', ') + ']');
   });
 });
 
@@ -648,6 +724,119 @@ VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
           ' column (right edge ' + Math.round(edge) + ', phone from ' + Math.round(phone[0]) + ')');
       });
     });
+  });
+});
+
+console.log('\n=== on a desktop or tablet, the finale stands whole on the stage ===\n');
+
+// Scene 09's copy is the story's tallest: the privacy lines and the call
+// to act. A short stage compacts it and hides none of it (the markup
+// test), so it must still fit: below the stage's top, and above every
+// walked line (scene 07's ring rises nearest). Its height is estimated
+// from its own text and the cascade. Each block is wrapped word by word
+// at the width Chrome sets its type, in em a character, rounded up: the
+// kicker's tracked capitals 0.837, the light headline 0.363, the body
+// 0.386 (and its ch 0.477, rounded down), the list 0.375 to 0.413, the
+// link and its arrow 0.422, the italic lead-in 0.394. The badges are
+// their contents, 137 and 110 by 30px, and their padding.
+const FINALE_EM = { kicker: 0.86, headline: 0.364, body: 0.39, list: 0.42, link: 0.43, leadIn: 0.4, ch: 0.47 };
+const BADGE_PX = [[137, 30], [110, 30]];
+// The finale's height in Chrome (getBoundingClientRect, no scrollbar).
+const FINALE_CHROME = [[1920, 1080, 664.3], [1366, 650, 450.2], [1280, 600, 435.1], [1024, 768, 473.2], [768, 1024, 666.7], [725, 600, 444.2]];
+const BODY_TYPE = decls(/\nbody \{([^}]*)\}/.exec(fs.readFileSync(path.join(ROOT, 'css', 'styles.css'), 'utf8'))[1]);
+const INLINE_CSS = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+const BADGE = decls(/\.app-store-badge,\s*\.google-play-badge \{([^}]*)\}/.exec(INLINE_CSS)[1]);
+const BADGE_ROW = decls(/\n\s*\.store-badges \{([^}]*)\}/.exec(INLINE_CSS)[1]);
+const finale = (function () {
+  const from = story.indexOf('id="scene-9"');
+  return story.slice(from, story.indexOf('</section>', from));
+})();
+
+function plainText(markup) {
+  return markup.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, '·').replace(/\s+/g, ' ').trim();
+}
+function finaleText(re) {
+  const m = re.exec(finale);
+  if (!m) throw new Error('scene 09 is missing ' + re);
+  return plainText(m[1]);
+}
+
+// Lines of text set word by word in `width`, a character `em` wide.
+function wrappedLines(text, em, fontPx, width) {
+  let lines = 1, used = 0;
+  text.split(' ').forEach(function (word) {
+    const w = word.length * em * fontPx;
+    if (used && used + em * fontPx + w > width) { lines++; used = w; }
+    else used += (used ? em * fontPx : 0) + w;
+  });
+  return lines;
+}
+
+// A block's top and bottom margins, from `margin` and its longhands.
+function margins(s, len) {
+  const all = (s.margin || '0').split(/\s+(?![^(]*\))/);
+  return [len(s['margin-top'] || all[0]), len(s['margin-bottom'] || all[all.length > 2 ? 2 : 0])];
+}
+
+function finaleBox(vw, vh, W) {
+  const style = function (what, base) { return cascade(base.concat(sceneTargets('yours-alone', what)), vw, vh, 'light'); };
+  const len = function (v, of, em) { return cssLength(v, { pct: of, vw: vw, vh: vh, em: em }); };
+  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const copy = style('.walk-story-copy', []);
+  if (copy.transform !== 'translateY(-50%)') throw new Error('the copy is expected to centre on its top: ' + copy.transform);
+  const col = len(copy.width, W - 2 * inset);
+  const left = inset + len(copy.left, W - 2 * inset);
+  const bodyPx = len(BODY_TYPE['font-size']), bodyLh = +BODY_TYPE['line-height'];
+  const blocks = [];
+  function text(what, base, source, em, measure) {
+    const s = style(what, base);
+    const font = s['font-size'] ? len(s['font-size']) : bodyPx;
+    const width = measure ? Math.min(col, measure(s, font)) : col;
+    const lh = +(s['line-height'] || bodyLh);
+    blocks.push({ h: wrappedLines(source, em, font, width) * font * lh, m: margins(s, len) });
+  }
+  text('.ws-kicker', ['.ws-kicker'], finaleText(/<p class="ws-kicker">([\s\S]*?)<\/p>/), FINALE_EM.kicker);
+  text('.walk-story-copy h2', ['.walk-story-copy h2'], finaleText(/<h2[^>]*>([\s\S]*?)<\/h2>/), FINALE_EM.headline);
+  text('.ws-body', ['.ws-body'], finaleText(/<p class="ws-body">([\s\S]*?)<\/p>/), FINALE_EM.body, function (s, font) {
+    return len(s['max-width'].replace(/ch$/, 'em'), 0, FINALE_EM.ch * font);
+  });
+  const list = style('.ws-list', ['.ws-list']), item = style('.ws-list li', ['.ws-list li']);
+  const itemM = margins(item, len), listM = margins(list, len);
+  const items = (/<ul class="ws-list">([\s\S]*?)<\/ul>/.exec(finale) || ['', ''])[1].split('</li>').map(plainText).filter(Boolean);
+  if (items.length < 4) throw new Error('scene 09 is expected to list its four privacy lines');
+  blocks.push({
+    h: items.reduce(function (a, t) { return a + wrappedLines(t, FINALE_EM.list, bodyPx, col) * bodyPx * +(item['line-height'] || bodyLh); }, 0) +
+      (items.length - 1) * Math.max(itemM[0], itemM[1]),
+    m: [Math.max(listM[0], itemM[0]), Math.max(listM[1], itemM[1])]
+  });
+  blocks.push({ h: wrappedLines(finaleText(/<p><a href="\/privacy">([\s\S]*?)<\/a><\/p>/), FINALE_EM.link, bodyPx, col) * bodyPx * bodyLh, m: [0, 0] });
+  text('.ws-begin', ['.ws-begin'], finaleText(/<p class="ws-begin">([\s\S]*?)<\/p>/), FINALE_EM.leadIn);
+  const row = Object.assign({}, BADGE_ROW, style('.walk-story-copy .store-badges', ['.walk-story-copy .store-badges']));
+  const badge = Object.assign({}, BADGE, style('.walk-story-copy .store-badges .app-store-badge', []));
+  const pad = badge.padding.split(/\s+/).map(function (v) { return len(v); });
+  const gap = len(row.gap);
+  const oneRow = row['flex-wrap'] === 'nowrap' || BADGE_PX[0][0] + BADGE_PX[1][0] + 4 * pad[1] + gap <= col;
+  const badgeH = BADGE_PX[0][1] + 2 * pad[0];
+  blocks.push({ h: oneRow ? badgeH : 2 * badgeH + gap, m: margins(row, len) });
+  const height = blocks.reduce(function (a, b, i) { return a + b.h + (i ? Math.max(blocks[i - 1].m[1], b.m[0]) : 0); }, 0);
+  const cy = len(copy.top, vh);
+  return [left, cy - height / 2, left + col, cy + height / 2];
+}
+
+// The estimate must hold Chrome's finale, or the checks below are too kind.
+FINALE_CHROME.forEach(function (c) {
+  const box = finaleBox(c[0], c[1], c[0]);
+  ok(box[3] - box[1] >= c[2] - 0.5, 'at ' + c[0] + 'x' + c[1] + ' the estimated finale, ' + Math.round(box[3] - box[1]) +
+    'px tall, holds the ' + c[2] + 'px Chrome sets');
+});
+VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
+  const vw = v[0], vh = v[1];
+  [0, SCROLLBAR_PX].forEach(function (bar) {
+    const W = vw - bar;
+    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    const box = finaleBox(vw, vh, W);
+    ok(box[1] >= 0, at + ': the finale\'s copy starts ' + Math.round(box[1]) + 'px below the stage\'s top');
+    report(collisions(box, W, vh, 'landscape', 1, C.SCENES.length), box, at + ': the finale\'s copy');
   });
 });
 

@@ -97,7 +97,13 @@ const BASELINE_KB = {
   // box, an upright tablet caps its phones by width and docks the pill
   // above the line, and pinning reads a 100svh probe, not innerHeight
   // (css/walk-story.css +0.35, js/walk-story.js +0.16).
-  'index.html':                                 113.15,
+  // +0.64 (113.79): the ink turn's rules for the rail and the walked
+  // lines (css/walk-story.css +0.08) and the finale's line on sharing
+  // (index.html +0.02); between 721 and 1000px wide the pill docks where
+  // the line, the rail and the traces leave it room, the phones stand
+  // clear of it, and a narrow short stage widens the finale's column
+  // (css/walk-story.css +0.53).
+  'index.html':                                 113.79,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
