@@ -83,7 +83,11 @@ const BASELINE_KB = {
   // +0.74 (112.35): the frame budget. The clearing's rider reads no layout
   // while the story is pinned (js/clearing.js), and the story's frame reads
   // the scroll position before it writes and writes only what has moved.
-  'index.html':                                 112.35,
+  // +0.63 (112.98): 0.32 carried in from the rotation and resize fixes
+  // (js/walk-story.js); the final review's layout fixes: the skip link's
+  // own hiding box, and an upright tablet's phone cap and pill dock
+  // (css/walk-story.css, +0.31).
+  'index.html':                                 112.98,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

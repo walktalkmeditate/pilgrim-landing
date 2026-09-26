@@ -55,8 +55,12 @@ const SCROLLBAR_PX = 15;
 
 // The short laptop stages are listed too: there the line takes a larger
 // share of the height, and the corner the pill docks in is nearer to it.
+// So are iPads upright (768 to 834 wide): the 721–1024px layout on a
+// stage taller than it is wide, where a phone sized by the height is
+// widest against its column.
 const VIEWPORTS = [[1920, 1080], [1440, 900], [1024, 768], [562, 915], [390, 844], [375, 667],
-  [1440, 789], [1536, 730], [1280, 720], [1366, 650], [1280, 600]];
+  [1440, 789], [1536, 730], [1280, 720], [1366, 650], [1280, 600],
+  [768, 1024], [810, 1080], [820, 1180], [834, 1194]];
 
 // --- the stylesheet, cascaded per viewport ---
 
@@ -79,7 +83,7 @@ function parseCss(text) {
       } else {
         const end = src.indexOf('}', i);
         if (!discard) {
-          rules.push({ selectors: prelude.split(',').map(function (s) { return s.trim(); }), body: src.slice(i, end), media: media });
+          rules.push({ selectors: splitSelectors(prelude), body: src.slice(i, end), media: media });
         }
         i = end + 1;
       }
@@ -89,8 +93,24 @@ function parseCss(text) {
   return rules;
 }
 
+// A selector list splits on its top-level commas only: :is(a, b) is one.
+function splitSelectors(prelude) {
+  const out = [];
+  let depth = 0, from = 0;
+  for (let k = 0; k < prelude.length; k++) {
+    const ch = prelude.charAt(k);
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (ch === ',' && depth === 0) { out.push(prelude.slice(from, k).trim()); from = k + 1; }
+  }
+  out.push(prelude.slice(from).trim());
+  return out;
+}
+
 function mediaMatches(query, vw, vh) {
   return query.split(/\s+and\s+/).every(function (cond) {
+    const ratio = /^\((min|max)-aspect-ratio:\s*(\d+)\s*\/\s*(\d+)\)$/.exec(cond.trim());
+    if (ratio) return ratio[1] === 'min' ? vw * +ratio[3] >= vh * +ratio[2] : vw * +ratio[3] <= vh * +ratio[2];
     const m = /^\((min|max)-(width|height):\s*(\d+)px\)$/.exec(cond.trim());
     if (!m) return false;
     const v = m[2] === 'width' ? vw : vh;
@@ -145,15 +165,20 @@ function px(value, fontPx) {
   return +m[1] * (m[2] === 'rem' ? ROOT_PX : m[2] === 'em' ? fontPx : 1);
 }
 
-// right/bottom: a percentage of the stage, maybe inside calc() with an
-// env() inset, which is 0 here (see the viewport check below).
-function offset(value, extent) {
+// right/bottom: a sum of a percentage of the stage, px, rem and vw, maybe
+// inside calc() with an env() inset, which is 0 here (see the viewport
+// check below).
+function offset(value, extent, vw) {
   const stripped = value.replace(/env\([^)]*\)\)?/g, '0px');
-  const pct = stripped.match(/([\d.]+)%/g) || [];
-  const pxs = stripped.match(/([\d.]+)px/g) || [];
-  if (!pct.length && !pxs.length) throw new Error('unreadable offset: ' + value);
-  return pct.reduce(function (a, p) { return a + parseFloat(p) / 100 * extent; }, 0) +
-    pxs.reduce(function (a, p) { return a + parseFloat(p); }, 0);
+  const terms = stripped.match(/[\d.]+(%|px|rem|vw)/g) || [];
+  if (!terms.length) throw new Error('unreadable offset: ' + value);
+  return terms.reduce(function (a, t) {
+    const v = parseFloat(t);
+    if (/%$/.test(t)) return a + v / 100 * extent;
+    if (/rem$/.test(t)) return a + v * ROOT_PX;
+    if (/vw$/.test(t)) return a + v / 100 * vw;
+    return a + v;
+  }, 0);
 }
 
 function pillBox(vw, vh, W, theme, label, docked) {
@@ -164,13 +189,13 @@ function pillBox(vw, vh, W, theme, label, docked) {
   const gap = px(s.gap, font);
   const width = 2 * padX + label.length * EM_PER_CHAR * font + gap + ARROW_EM * font;
   const height = 2 * padY + LINE_EM * font;
-  const bottom = vh - offset(s.bottom, vh);
+  const bottom = vh - offset(s.bottom, vh, vw);
   if (s.left === 'auto' && s.transform === 'none') {
-    const right = W - offset(s.right, W);
+    const right = W - offset(s.right, W, vw);
     return [right - width, bottom - height, right, bottom];
   }
   if (/^translateX?\(-50%/.test(s.transform || '')) {
-    const centre = offset(s.left, W);
+    const centre = offset(s.left, W, vw);
     return [centre - width / 2, bottom - height, centre + width / 2, bottom];
   }
   throw new Error('the pill is expected to sit by right and bottom, or centred on left: ' + s.left + ' / ' + s.transform);
@@ -492,13 +517,21 @@ function pct(value) {
   return +m[1] / 100;
 }
 
+// A phone's height: a percentage of the stage (100svh, the viewport's
+// height here), maybe capped by the width in min(P%, Nvw).
+function phoneHeight(value, vw, vh) {
+  const capped = /^min\(([\d.]+%),\s*([\d.]+)vw\)$/.exec(value || '');
+  if (capped) return Math.min(pct(capped[1]) * vh, +capped[2] / 100 * vw);
+  return pct(value) * vh;
+}
+
 function phoneBox(vw, vh, W, honor) {
   const targets = ['.walk-story--pinned .walk-story-phone'].concat(honor ? ['.walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone'] : []);
   const s = cascade(targets, vw, vh, 'light');
   const ride = /\* ([\d.]+)px\)\)$/.exec(s.transform || '');
   if (!ride) throw new Error('the phone is expected to ride by its hold: ' + s.transform);
   const inset = Math.max(0, W / 2 - FRAME_HALF);
-  const height = Math.min(pct(s.height) * vh, px(s['max-height'], ROOT_PX));
+  const height = Math.min(phoneHeight(s.height, vw, vh), px(s['max-height'], ROOT_PX));
   const width = height * PHONE_ASPECT;
   const cx = inset + pct(s.left) * (W - 2 * inset);
   const cy = pct(s.top) * vh;
@@ -516,6 +549,70 @@ VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
     phoneScenes.forEach(function (n) {
       const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
       report(collisions(phone, W, vh, 'landscape', 1, n), phone, at + ': scene ' + n + '\'s phone, through its whole ride,');
+    });
+  });
+});
+
+console.log('\n=== on a desktop or tablet, the docked pill keeps clear of every phone ===\n');
+
+// Where the pill cannot dock under the line (a tablet upright draws the
+// line in a thin band along the foot), it docks above it, beneath the
+// phone; so each phone is checked against the pill of its own scene.
+VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
+  const vw = v[0], vh = v[1];
+  [0, SCROLLBAR_PX].forEach(function (bar) {
+    const W = vw - bar;
+    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    phoneScenes.filter(function (n) { return n > 1 && C.pillLabel(n - 1); }).forEach(function (n) {
+      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
+      const pill = pillBox(vw, vh, W, 'light', C.pillLabel(n - 1), true);
+      ok(!boxesOverlap(grow(pill, CLEAR_PX), phone), at + ': scene ' + n + '\'s docked pill at [' + pill.map(Math.round).join(', ') +
+        '] keeps clear of its phone at [' + phone.map(Math.round).join(', ') + ']');
+    });
+  });
+});
+
+console.log('\n=== on a desktop or tablet, no phone meets the copy beside it ===\n');
+
+// The copy is a column at the stage's left, set by its left and width
+// (scene 02's spoken words share it); a caption may run to the column's
+// edge, so a phone stands clear of the whole column, by a rem.
+const COPY_CLEAR_PX = 16;
+
+function sceneTargets(scene, what) {
+  const own = '[data-scene="' + scene + '"]';
+  const out = ['.walk-story--pinned ' + what];
+  RULES.forEach(function (r) {
+    r.selectors.forEach(function (sel) {
+      const m = /^\.walk-story--pinned \.walk-story-scene(\[[^\]]+\]|:is\((.*)\)) (.+)$/.exec(sel);
+      if (m && m[3] === what && (m[1] === own || splitSelectors(m[2] || '').indexOf(own) !== -1)) out.push(sel);
+    });
+  });
+  return out;
+}
+
+function columnRight(vw, vh, W, scene, what) {
+  const s = cascade(sceneTargets(scene, what), vw, vh, 'light');
+  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  return inset + (pct(s.left) + pct(s.width)) * (W - 2 * inset);
+}
+
+VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
+  const vw = v[0], vh = v[1];
+  [0, SCROLLBAR_PX].forEach(function (bar) {
+    const W = vw - bar;
+    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    phoneScenes.forEach(function (n) {
+      const scene = C.SCENES[n - 1].id;
+      const phone = phoneBox(vw, vh, W, scene === 'honor');
+      const from = story.indexOf('id="scene-' + n + '"');
+      const block = story.slice(from, n < C.SCENES.length ? story.indexOf('id="scene-' + (n + 1) + '"') : story.length);
+      ['.walk-story-copy'].concat(block.indexOf('class="ws-said"') !== -1 ? ['.ws-said'] : []).forEach(function (what) {
+        const edge = columnRight(vw, vh, W, scene, what);
+        const gap = phone[0] - edge;
+        ok(gap >= COPY_CLEAR_PX, at + ': scene ' + n + '\'s phone stands ' + Math.round(gap) + 'px clear of its ' + what +
+          ' column (right edge ' + Math.round(edge) + ', phone from ' + Math.round(phone[0]) + ')');
+      });
     });
   });
 });

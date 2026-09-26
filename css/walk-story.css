@@ -694,7 +694,12 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 }
 /* At most six promoted layers: the five skies and the one phone moving. */
 .walk-story--pinned .walk-story-scene.is-active .walk-story-phone { will-change: transform; }
-.walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
+/* A tall phone would reach the Honor stage's climb, so it stands left of
+   it; at 1024px and under the line is drawn smaller and the copy needs
+   the room. */
+@media (min-width: 1025px) {
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
+}
 .walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
 /* The act is static, so it grows by transform: 280px of cards would
    float small in a column this wide. */
@@ -807,7 +812,17 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
      nearest the corner; a compact pill keeps clear of it, even when a
      classic scrollbar narrows the stage (js/walk-story-pill.test.js). */
   .walk-story--pinned .walk-story-pill.is-docked { font-size: 0.85rem; padding: 0.6em 0.95em; }
-  .walk-story--pinned .walk-story-phone { height: 60%; }
+  /* Upright, a phone sized by the height alone would reach over the copy,
+     so the width caps it. The short stage's 64% also matches at 1024x768;
+     this block comes after it, so 60% holds there. */
+  .walk-story--pinned .walk-story-phone { height: min(60%, 72vw); }
+}
+/* Upright, the line is a thin band along the stage's foot with no corner
+   free, so the pill docks above it, beneath the phone. The band's right
+   end (the Honor climb) rises 340 of the viewBox's 1600, 0.2125 of the
+   width. */
+@media (min-width: 721px) and (max-width: 1024px) and (max-aspect-ratio: 3/4) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(21.25vw + 1rem); }
 }
 
 /* A phone: the copy spans the top; beneath it the line keeps the left
