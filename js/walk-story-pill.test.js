@@ -23,7 +23,10 @@
      own line;
    - on a desktop or tablet, no phone meets the line, the docked pill or
      the copy beside it, and the finale's copy, estimated from its text,
-     stands whole between the stage's top and the walked lines.
+     stands whole between the stage's top and the walked lines;
+   - and every one of those promises holds on a grid of stages between
+     the named ones, 721 to 1920px wide by 560 to 1200 tall and phones,
+     whose failures are told as bands.
    ============================================= */
 
 'use strict';
@@ -119,7 +122,11 @@ function splitSelectors(prelude) {
   return out;
 }
 
-function mediaMatches(query, vw, vh) {
+// A media query list matches when any of its queries does.
+function mediaMatches(list, vw, vh) {
+  return list.split(/\s*,\s*/).some(function (query) { return queryMatches(query, vw, vh); });
+}
+function queryMatches(query, vw, vh) {
   return query.split(/\s+and\s+/).every(function (cond) {
     const ratio = /^\((min|max)-aspect-ratio:\s*(\d+)\s*\/\s*(\d+)\)$/.exec(cond.trim());
     if (ratio) return ratio[1] === 'min' ? vw * +ratio[3] >= vh * +ratio[2] : vw * +ratio[3] <= vh * +ratio[2];
@@ -439,80 +446,99 @@ function holds(outer, inner) {
     ']  ([' + box.map(function (v) { return v.toFixed(1); }).join(', ') + '])');
 });
 
-// Every mark scenes from..to draw, checked against one pill box.
-function collisions(pill, W, vh, geometry, from, to) {
+// --- what the walk draws, on screen ---
+
+// Each scene's drawings are read from the page once; each stage maps them
+// to the screen once, and every box checked there shares the result.
+const drawn = {};
+function sceneDrawings(n, geometry) {
+  const key = n + geometry;
+  if (!drawn[key]) {
+    const svg = sceneSvg(n, geometry);
+    drawn[key] = { tag: svg.slice(0, svg.indexOf('>') + 1), d: drawings(svg, geometry) };
+  }
+  return drawn[key];
+}
+
+let screenStage = null, screenMarks = {};
+function onScreen(n, geometry, W, vh) {
+  if (screenStage !== W + 'x' + vh) { screenStage = W + 'x' + vh; screenMarks = {}; }
+  const key = n + geometry;
+  if (screenMarks[key]) return screenMarks[key];
+  const scene = sceneDrawings(n, geometry);
+  const view = toScreen(scene.tag, W, vh);
+  const k = C.labelScale(view.s);
+  const lines = scene.d.lines.map(function (l) {
+    if (!(l.half > 0)) throw new Error('scene ' + n + ': no stroke width for ' + l.what);
+    const pts = l.pts.map(view.map);
+    const xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
+    return { what: l.what, reach: l.half * view.s, pts: pts, bounds: [Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys)] };
+  });
+  const circles = scene.d.circles.map(function (c) { return { what: c.what, c: view.map(c.c), r: c.r * view.s }; });
+  const labels = scene.d.labels.map(function (l) {
+    const a = view.map([l.origin[0] + k * l.box[0], l.origin[1] + k * l.box[1]]);
+    const b = view.map([l.origin[0] + k * l.box[2], l.origin[1] + k * l.box[3]]);
+    return { what: l.what, box: [a[0], a[1], b[0], b[1]] };
+  });
+  return (screenMarks[key] = { lines: lines, circles: circles, labels: labels });
+}
+
+// Every mark scenes from..to draw, checked against one box.
+function collisions(box, W, vh, geometry, from, to) {
   const hits = [];
   let checked = 0;
   for (let n = from; n <= to; n++) {
-    const svg = sceneSvg(n, geometry);
-    const view = toScreen(svg.slice(0, svg.indexOf('>') + 1), W, vh);
-    const d = drawings(svg, geometry);
-    d.lines.forEach(function (l) {
-      if (!(l.half > 0)) throw new Error('scene ' + n + ': no stroke width for ' + l.what);
-      const box = grow(pill, l.half * view.s + CLEAR_PX);
-      const pts = l.pts.map(view.map);
-      for (let i = 1; i < pts.length; i++) {
-        if (segmentHits(pts[i - 1], pts[i], box)) { hits.push('scene ' + n + ' ' + l.what + ' near (' + pts[i].map(Math.round) + ')'); break; }
+    const marks = onScreen(n, geometry, W, vh);
+    marks.lines.forEach(function (l) {
+      const near = grow(box, l.reach + CLEAR_PX);
+      checked++;
+      if (!boxesOverlap(grow(near, 1), l.bounds)) return;
+      for (let i = 1; i < l.pts.length; i++) {
+        if (segmentHits(l.pts[i - 1], l.pts[i], near)) { hits.push('scene ' + n + ' ' + l.what + ' near (' + l.pts[i].map(Math.round) + ')'); break; }
       }
+    });
+    marks.circles.forEach(function (c) {
+      if (circleHits(c.c, c.r + CLEAR_PX, box)) hits.push('scene ' + n + ' ' + c.what + ' at (' + c.c.map(Math.round) + ')');
       checked++;
     });
-    d.circles.forEach(function (c) {
-      if (circleHits(view.map(c.c), c.r * view.s + CLEAR_PX, pill)) hits.push('scene ' + n + ' ' + c.what + ' at (' + view.map(c.c).map(Math.round) + ')');
-      checked++;
-    });
-    const k = C.labelScale(view.s);
-    d.labels.forEach(function (l) {
-      const a = view.map([l.origin[0] + k * l.box[0], l.origin[1] + k * l.box[1]]);
-      const b = view.map([l.origin[0] + k * l.box[2], l.origin[1] + k * l.box[3]]);
-      if (boxesOverlap(grow([a[0], a[1], b[0], b[1]], CLEAR_PX), pill)) hits.push('scene ' + n + ' label ' + l.what);
+    marks.labels.forEach(function (l) {
+      if (boxesOverlap(grow(l.box, CLEAR_PX), box)) hits.push('scene ' + n + ' label ' + l.what);
       checked++;
     });
   }
   return { hits: hits, checked: checked };
 }
 
-function report(result, pill, what) {
-  ok(result.checked > 0 && result.hits.length === 0,
-    what + ' at [' + pill.map(Math.round).join(', ') + '] meets none of ' + result.checked + ' marks' +
+function report(check, kind, result, box, what) {
+  check(kind, result.checked > 0 && result.hits.length === 0,
+    what + ' at [' + box.map(Math.round).join(', ') + '] meets none of ' + result.checked + ' marks' +
     (result.hits.length ? '  — ' + result.hits.slice(0, 4).join('; ') : ''));
 }
 
-console.log('\n=== nothing the walk draws meets the pill ===\n');
-
-VIEWPORTS.forEach(function (v) {
-  const vw = v[0], vh = v[1];
-  const compact = vw <= 720;
-  const geometry = compact ? 'portrait' : 'landscape';
-  // A desktop docks from scene 02 and a phone from scene 01; every walked
-  // line stays drawn, so a docked scene is checked against all before it.
-  const docked = C.SCENES.map(function (_, i) { return i; }).filter(function (i) {
-    return C.pillLabel(i) && (compact || i > 0);
-  });
-  const label = docked.map(C.pillLabel).sort(function (a, b) { return b.length - a.length; })[0];
-  const last = Math.max.apply(null, docked) + 1;
-  [0, SCROLLBAR_PX].forEach(function (bar) {
-    if (compact && bar) return;
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
-    ['light', 'dark'].forEach(function (theme) {
-      const pill = pillBox(vw, vh, W, theme, label, true);
-      report(collisions(pill, W, vh, geometry, 1, last), pill, at + ' · ' + theme + ': "' + label + '" docked through scenes 1–' + last);
-      if (!compact) {
-        const hero = pillBox(vw, vh, W, theme, C.pillLabel(0), false);
-        report(collisions(hero, W, vh, geometry, 1, 1), hero, at + ' · ' + theme + ': "' + C.pillLabel(0) + '", centred in scene 1,');
-      }
-    });
-  });
-});
-
-console.log('\n=== on a desktop, nothing the walk draws meets a phone ===\n');
+// --- the other boxes on the stage ---
 
 // A phone is centred on its left and top, in the front's centred frame,
 // at a height the stage sets and a ceiling caps, and it rides by its hold
 // (half the transform's travel either way). Scene 04's phone sits further
-// left. Every walked line stays drawn, so a phone is checked against its
-// own scene's whole line and every scene before it.
-const FRAME_HALF = cssNumber(/\.walk-story--pinned \.walk-story-front \{[^}]*inset: 0 max\(0px, calc\(50% - (\d+)px\)\)/);
+// left.
+// The front's frame: its side inset, read from its inset shorthand.
+function splitTopLevel(value) {
+  const out = [];
+  let depth = 0, from = 0;
+  for (let k = 0; k < value.length; k++) {
+    const ch = value.charAt(k);
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (ch === ' ' && depth === 0) { if (k > from) out.push(value.slice(from, k)); from = k + 1; }
+  }
+  out.push(value.slice(from));
+  return out;
+}
+function frameInset(vw, vh, W) {
+  const sides = splitTopLevel(cascade(['.walk-story--pinned .walk-story-front'], vw, vh, 'light').inset || '');
+  if (sides.length !== 2) throw new Error('the front is expected to set its inset as block and inline: ' + sides.join(' '));
+  return cssLength(sides[1], { pct: W, vw: vw, vh: vh });
+}
 const PHONE_ASPECT = (function () {
   const m = /\.walk-story-phone \{[^}]*aspect-ratio: (\d+) \/ (\d+);/.exec(css);
   return m ? +m[1] / +m[2] : NaN;
@@ -577,50 +603,15 @@ function phoneBox(vw, vh, W, honor) {
   const s = cascade(targets, vw, vh, 'light');
   const ride = /\* ([\d.]+)px\)\)$/.exec(s.transform || '');
   if (!ride) throw new Error('the phone is expected to ride by its hold: ' + s.transform);
-  const inset = Math.max(0, W / 2 - FRAME_HALF);
-  const height = Math.min(cssLength(s.height, { pct: vh, vw: vw, vh: vh }), px(s['max-height'], ROOT_PX));
+  const inset = frameInset(vw, vh, W);
+  const on = { pct: vh, vw: vw, vh: vh };
+  const height = Math.min(cssLength(s.height, on), cssLength(s['max-height'], on));
   const width = height * PHONE_ASPECT;
   const cx = inset + pct(s.left) * (W - 2 * inset);
   const cy = pct(s.top) * vh;
   const travel = +ride[1] / 2;
   return [cx - width / 2, cy - height / 2 - travel, cx + width / 2, cy + height / 2 + travel];
 }
-
-ok(FRAME_HALF > 0 && PHONE_ASPECT > 0 && phoneScenes.length >= 4,
-  'the frame, the phone\'s shape and the scenes that carry one are read from the page  (' + FRAME_HALF + ', ' + PHONE_ASPECT.toFixed(3) + ', scenes ' + phoneScenes.join(' ') + ')');
-VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
-  const vw = v[0], vh = v[1];
-  [0, SCROLLBAR_PX].forEach(function (bar) {
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
-    phoneScenes.forEach(function (n) {
-      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
-      report(collisions(phone, W, vh, 'landscape', 1, n), phone, at + ': scene ' + n + '\'s phone, through its whole ride,');
-    });
-  });
-});
-
-console.log('\n=== on a desktop or tablet, the docked pill keeps clear of every phone ===\n');
-
-// Where the pill cannot dock beside the Honor climb (a stage 721 to
-// 1000px wide), it docks above the line, or above the rail on a stage as
-// wide as it is tall, and a phone may reach to either; so each phone is
-// checked against the pill of its own scene.
-VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
-  const vw = v[0], vh = v[1];
-  [0, SCROLLBAR_PX].forEach(function (bar) {
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
-    phoneScenes.filter(function (n) { return n > 1 && C.pillLabel(n - 1); }).forEach(function (n) {
-      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
-      const pill = pillBox(vw, vh, W, 'light', C.pillLabel(n - 1), true);
-      ok(!boxesOverlap(grow(pill, CLEAR_PX), phone), at + ': scene ' + n + '\'s docked pill at [' + pill.map(Math.round).join(', ') +
-        '] keeps clear of its phone at [' + phone.map(Math.round).join(', ') + ']');
-    });
-  });
-});
-
-console.log('\n=== the docked pill keeps clear of the rail, and of scene 06\'s traces ===\n');
 
 // The rail: its links stacked at the stage's right, centred on its top,
 // each dot reaching out to its ::before, the link's hit area. The pill
@@ -653,36 +644,12 @@ function tracesBox(vw, vh, W) {
   const s = cascade(['.walk-story--pinned .ws-act--right', '.walk-story--pinned .ws-act--traces'], vw, vh, 'light');
   const scale = /^translateY\(-50%\) scale\(([\d.]+)\)$/.exec(s.transform || '');
   if (!scale || s['transform-origin'] !== '50% 50%') throw new Error('the traces are expected to centre on their top and grow about their middle: ' + s.transform);
-  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const inset = frameInset(vw, vh, W);
   const cx = inset + (pct(s.left) + pct(s.width) / 2) * (W - 2 * inset);
   const cy = pct(s.top) * vh;
   const half = [TRACES_PX[0] * scale[1] / 2, TRACES_PX[1] * scale[1] / 2];
   return [cx - half[0], cy - half[1], cx + half[0], cy + half[1]];
 }
-
-ok(RAIL_LINKS === C.SCENES.length, 'the rail carries a link for each of the ' + C.SCENES.length + ' scenes  (' + RAIL_LINKS + ')');
-VIEWPORTS.forEach(function (v) {
-  const vw = v[0], vh = v[1];
-  const compact = vw <= 720;
-  const label = C.SCENES.map(function (_, i) { return C.pillLabel(i); }).filter(function (l, i) {
-    return l && (compact || i > 0);
-  }).sort(function (a, b) { return b.length - a.length; })[0];
-  [0, SCROLLBAR_PX].forEach(function (bar) {
-    if (compact && bar) return;
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
-    const pill = pillBox(vw, vh, W, 'light', label, true);
-    const rail = railBox(vw, vh, W);
-    ok(!boxesOverlap(grow(pill, CLEAR_PX), rail), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
-      '] keeps clear of the rail\'s reach at [' + rail.map(Math.round).join(', ') + ']');
-    if (compact) return;
-    const traces = tracesBox(vw, vh, W);
-    ok(!boxesOverlap(grow(pill, CLEAR_PX), traces), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
-      '] keeps clear of scene 06\'s traces at [' + traces.map(Math.round).join(', ') + ']');
-  });
-});
-
-console.log('\n=== on a desktop or tablet, no phone meets the copy beside it ===\n');
 
 // The copy is a column at the stage's left, set by its left and width
 // (scene 02's spoken words share it); a caption may run to the column's
@@ -703,31 +670,9 @@ function sceneTargets(scene, what) {
 
 function columnRight(vw, vh, W, scene, what) {
   const s = cascade(sceneTargets(scene, what), vw, vh, 'light');
-  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const inset = frameInset(vw, vh, W);
   return inset + (pct(s.left) + pct(s.width)) * (W - 2 * inset);
 }
-
-VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
-  const vw = v[0], vh = v[1];
-  [0, SCROLLBAR_PX].forEach(function (bar) {
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
-    phoneScenes.forEach(function (n) {
-      const scene = C.SCENES[n - 1].id;
-      const phone = phoneBox(vw, vh, W, scene === 'honor');
-      const from = story.indexOf('id="scene-' + n + '"');
-      const block = story.slice(from, n < C.SCENES.length ? story.indexOf('id="scene-' + (n + 1) + '"') : story.length);
-      ['.walk-story-copy'].concat(block.indexOf('class="ws-said"') !== -1 ? ['.ws-said'] : []).forEach(function (what) {
-        const edge = columnRight(vw, vh, W, scene, what);
-        const gap = phone[0] - edge;
-        ok(gap >= COPY_CLEAR_PX, at + ': scene ' + n + '\'s phone stands ' + Math.round(gap) + 'px clear of its ' + what +
-          ' column (right edge ' + Math.round(edge) + ', phone from ' + Math.round(phone[0]) + ')');
-      });
-    });
-  });
-});
-
-console.log('\n=== on a desktop or tablet, the finale stands whole on the stage ===\n');
 
 // Scene 09's copy is the story's tallest: the privacy lines and the call
 // to act. A short stage compacts it and hides none of it (the markup
@@ -742,7 +687,8 @@ console.log('\n=== on a desktop or tablet, the finale stands whole on the stage 
 const FINALE_EM = { kicker: 0.86, headline: 0.364, body: 0.39, list: 0.42, link: 0.43, leadIn: 0.4, ch: 0.47 };
 const BADGE_PX = [[137, 30], [110, 30]];
 // The finale's height in Chrome (getBoundingClientRect, no scrollbar).
-const FINALE_CHROME = [[1920, 1080, 664.3], [1366, 650, 450.2], [1280, 600, 435.1], [1024, 768, 473.2], [768, 1024, 666.7], [725, 600, 444.2]];
+const FINALE_CHROME = [[1920, 1080, 664.3], [1440, 900, 616.6], [1920, 1000, 525.3], [1440, 880, 492], [1366, 650, 450.2],
+  [1280, 600, 417.8], [1024, 768, 473.2], [768, 1024, 666.7], [725, 600, 432.6], [991, 560, 434.3], [1920, 560, 426], [721, 560, 428.5]];
 const BODY_TYPE = decls(/\nbody \{([^}]*)\}/.exec(fs.readFileSync(path.join(ROOT, 'css', 'styles.css'), 'utf8'))[1]);
 const INLINE_CSS = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
 const BADGE = decls(/\.app-store-badge,\s*\.google-play-badge \{([^}]*)\}/.exec(INLINE_CSS)[1]);
@@ -781,7 +727,7 @@ function margins(s, len) {
 function finaleBox(vw, vh, W) {
   const style = function (what, base) { return cascade(base.concat(sceneTargets('yours-alone', what)), vw, vh, 'light'); };
   const len = function (v, of, em) { return cssLength(v, { pct: of, vw: vw, vh: vh, em: em }); };
-  const inset = Math.max(0, W / 2 - FRAME_HALF);
+  const inset = frameInset(vw, vh, W);
   const copy = style('.walk-story-copy', []);
   if (copy.transform !== 'translateY(-50%)') throw new Error('the copy is expected to centre on its top: ' + copy.transform);
   const col = len(copy.width, W - 2 * inset);
@@ -823,20 +769,232 @@ function finaleBox(vw, vh, W) {
   return [left, cy - height / 2, left + col, cy + height / 2];
 }
 
+ok(frameInset(1920, 1080, 1920) === 180 && PHONE_ASPECT > 0 && phoneScenes.length >= 4,
+  'the frame, the phone\'s shape and the scenes that carry one are read from the page  (' + frameInset(1920, 1080, 1920) + 'px a side at 1920x1080, ' +
+  PHONE_ASPECT.toFixed(3) + ', scenes ' + phoneScenes.join(' ') + ')');
+ok(RAIL_LINKS === C.SCENES.length, 'the rail carries a link for each of the ' + C.SCENES.length + ' scenes  (' + RAIL_LINKS + ')');
 // The estimate must hold Chrome's finale, or the checks below are too kind.
 FINALE_CHROME.forEach(function (c) {
   const box = finaleBox(c[0], c[1], c[0]);
   ok(box[3] - box[1] >= c[2] - 0.5, 'at ' + c[0] + 'x' + c[1] + ' the estimated finale, ' + Math.round(box[3] - box[1]) +
     'px tall, holds the ' + c[2] + 'px Chrome sets');
 });
-VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
-  const vw = v[0], vh = v[1];
+
+// --- the promises, one stage at a time ---
+
+// Each reports to check(kind, cond, label). The kind names the promise,
+// so the grid below can say where each one breaks.
+const KIND = {
+  pill: 'the docked pill meets a walked line, marker or label',
+  hero: 'the centred "Begin walking" meets scene 01\'s line',
+  phone: 'a phone meets a walked line',
+  pillPhone: 'the docked pill meets its scene\'s phone',
+  rail: 'the docked pill meets the rail\'s reach',
+  traces: 'the docked pill meets scene 06\'s traces',
+  copy: 'a phone stands within a rem of its copy',
+  finaleTop: 'the finale\'s copy starts above the stage',
+  finale: 'the finale\'s copy meets a walked line'
+};
+
+// The stage, and on a desktop the stage less a classic scrollbar.
+function stages(vw, vh, visit) {
   [0, SCROLLBAR_PX].forEach(function (bar) {
-    const W = vw - bar;
-    const at = vw + 'x' + vh + (bar ? ' (scrollbar)' : '');
+    if (vw <= 720 && bar) return;
+    visit(vw - bar, vw + 'x' + vh + (bar ? ' (scrollbar)' : ''));
+  });
+}
+
+// The widest label the pill carries docked: a desktop docks from scene 02,
+// a phone from scene 01.
+function dockedScenes(compact) {
+  return C.SCENES.map(function (_, i) { return i; }).filter(function (i) { return C.pillLabel(i) && (compact || i > 0); });
+}
+function dockedLabel(compact) {
+  return dockedScenes(compact).map(C.pillLabel).sort(function (a, b) { return b.length - a.length; })[0];
+}
+
+// Every walked line stays drawn, so a docked scene is checked against all
+// before it.
+function checkPill(vw, vh, check, themes) {
+  const compact = vw <= 720;
+  const geometry = compact ? 'portrait' : 'landscape';
+  const label = dockedLabel(compact);
+  const last = Math.max.apply(null, dockedScenes(compact)) + 1;
+  stages(vw, vh, function (W, at) {
+    themes.forEach(function (theme) {
+      const pill = pillBox(vw, vh, W, theme, label, true);
+      report(check, KIND.pill, collisions(pill, W, vh, geometry, 1, last), pill, at + ' · ' + theme + ': "' + label + '" docked through scenes 1–' + last);
+      if (!compact) {
+        const hero = pillBox(vw, vh, W, theme, C.pillLabel(0), false);
+        report(check, KIND.hero, collisions(hero, W, vh, geometry, 1, 1), hero, at + ' · ' + theme + ': "' + C.pillLabel(0) + '", centred in scene 1,');
+      }
+    });
+  });
+}
+
+// A phone is checked against its own scene's whole line and every scene
+// before it.
+function checkPhones(vw, vh, check) {
+  if (vw <= 720) return;
+  stages(vw, vh, function (W, at) {
+    phoneScenes.forEach(function (n) {
+      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
+      report(check, KIND.phone, collisions(phone, W, vh, 'landscape', 1, n), phone, at + ': scene ' + n + '\'s phone, through its whole ride,');
+    });
+  });
+}
+
+// Where the pill cannot dock beside the Honor climb (a stage 721 to
+// 1000px wide), it docks above the line, or above the rail on a stage as
+// wide as it is tall, and a phone may reach to either; so each phone is
+// checked against the pill of its own scene.
+function checkPillPhones(vw, vh, check) {
+  if (vw <= 720) return;
+  stages(vw, vh, function (W, at) {
+    phoneScenes.filter(function (n) { return n > 1 && C.pillLabel(n - 1); }).forEach(function (n) {
+      const phone = phoneBox(vw, vh, W, C.SCENES[n - 1].id === 'honor');
+      const pill = pillBox(vw, vh, W, 'light', C.pillLabel(n - 1), true);
+      check(KIND.pillPhone, !boxesOverlap(grow(pill, CLEAR_PX), phone), at + ': scene ' + n + '\'s docked pill at [' + pill.map(Math.round).join(', ') +
+        '] keeps clear of its phone at [' + phone.map(Math.round).join(', ') + ']');
+    });
+  });
+}
+
+function checkRailTraces(vw, vh, check) {
+  const compact = vw <= 720;
+  const label = dockedLabel(compact);
+  stages(vw, vh, function (W, at) {
+    const pill = pillBox(vw, vh, W, 'light', label, true);
+    const rail = railBox(vw, vh, W);
+    check(KIND.rail, !boxesOverlap(grow(pill, CLEAR_PX), rail), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
+      '] keeps clear of the rail\'s reach at [' + rail.map(Math.round).join(', ') + ']');
+    if (compact) return;
+    const traces = tracesBox(vw, vh, W);
+    check(KIND.traces, !boxesOverlap(grow(pill, CLEAR_PX), traces), at + ': the docked pill at [' + pill.map(Math.round).join(', ') +
+      '] keeps clear of scene 06\'s traces at [' + traces.map(Math.round).join(', ') + ']');
+  });
+}
+
+function checkPhoneCopy(vw, vh, check) {
+  if (vw <= 720) return;
+  stages(vw, vh, function (W, at) {
+    phoneScenes.forEach(function (n) {
+      const scene = C.SCENES[n - 1].id;
+      const phone = phoneBox(vw, vh, W, scene === 'honor');
+      const from = story.indexOf('id="scene-' + n + '"');
+      const block = story.slice(from, n < C.SCENES.length ? story.indexOf('id="scene-' + (n + 1) + '"') : story.length);
+      ['.walk-story-copy'].concat(block.indexOf('class="ws-said"') !== -1 ? ['.ws-said'] : []).forEach(function (what) {
+        const edge = columnRight(vw, vh, W, scene, what);
+        const gap = phone[0] - edge;
+        check(KIND.copy, gap >= COPY_CLEAR_PX, at + ': scene ' + n + '\'s phone stands ' + Math.round(gap) + 'px clear of its ' + what +
+          ' column (right edge ' + Math.round(edge) + ', phone from ' + Math.round(phone[0]) + ')');
+      });
+    });
+  });
+}
+
+function checkFinale(vw, vh, check) {
+  if (vw <= 720) return;
+  stages(vw, vh, function (W, at) {
     const box = finaleBox(vw, vh, W);
-    ok(box[1] >= 0, at + ': the finale\'s copy starts ' + Math.round(box[1]) + 'px below the stage\'s top');
-    report(collisions(box, W, vh, 'landscape', 1, C.SCENES.length), box, at + ': the finale\'s copy');
+    check(KIND.finaleTop, box[1] >= 0, at + ': the finale\'s copy starts ' + Math.round(box[1]) + 'px below the stage\'s top');
+    report(check, KIND.finale, collisions(box, W, vh, 'landscape', 1, C.SCENES.length), box, at + ': the finale\'s copy');
+  });
+}
+
+const named = function (kind, cond, label) { ok(cond, label); };
+[
+  ['nothing the walk draws meets the pill', function (vw, vh, check) { checkPill(vw, vh, check, ['light', 'dark']); }],
+  ['on a desktop, nothing the walk draws meets a phone', checkPhones],
+  ['on a desktop or tablet, the docked pill keeps clear of every phone', checkPillPhones],
+  ['the docked pill keeps clear of the rail, and of scene 06\'s traces', checkRailTraces],
+  ['on a desktop or tablet, no phone meets the copy beside it', checkPhoneCopy],
+  ['on a desktop or tablet, the finale stands whole on the stage', checkFinale]
+].forEach(function (section) {
+  console.log('\n=== ' + section[0] + ' ===\n');
+  VIEWPORTS.forEach(function (v) { section[1](v[0], v[1], named); });
+});
+
+console.log('\n=== every stage between: a grid ===\n');
+
+// The viewports above are the ones people use; the grid is every stage
+// between them, so a band where a promise breaks cannot hide between two
+// named sizes: 721 to 1920px wide by 560 (the shortest stage that pins)
+// to 1200 tall, and phones from 360 to 430 wide. Its failures are told
+// by promise, as bands of stages. The pill's dark rules are colours only,
+// so the grid checks its box once and that it is the same in the dark.
+function steps(from, to, by) {
+  const out = [];
+  for (let v = from; v < to; v += by) out.push(v);
+  return out.concat([to]);
+}
+const GRIDS = [
+  { name: 'desktop and tablet', widths: steps(721, 1920, 30), heights: steps(560, 1200, 40) },
+  { name: 'phone', widths: steps(360, 430, 35), heights: steps(640, 932, 73) }
+];
+
+function darkPill(vw, vh, check) {
+  stages(vw, vh, function (W, at) {
+    [true, false].forEach(function (docked) {
+      const label = docked ? dockedLabel(vw <= 720) : C.pillLabel(0);
+      const light = pillBox(vw, vh, W, 'light', label, docked), dark = pillBox(vw, vh, W, 'dark', label, docked);
+      check('the dark pill\'s box differs from the light one\'s', light.join() === dark.join(), at + ': the pill is where it is in the light');
+    });
+  });
+}
+
+// Runs of failing widths, and the heights that share them.
+function bands(grid, failing) {
+  const rows = grid.heights.map(function (h) {
+    const runs = [];
+    let start = null, prev = null;
+    grid.widths.concat([null]).forEach(function (w) {
+      const bad = w !== null && (w + 'x' + h) in failing;
+      if (bad && start === null) start = w;
+      if (!bad && start !== null) { runs.push(start === prev ? String(start) : start + '–' + prev); start = null; }
+      if (bad) prev = w;
+    });
+    return runs.join(', ');
+  });
+  const out = [];
+  rows.forEach(function (runs, i) {
+    if (!runs) return;
+    const last = out[out.length - 1];
+    if (last && last.runs === runs && rows[i - 1] === runs) last.to = grid.heights[i];
+    else out.push({ runs: runs, from: grid.heights[i], to: grid.heights[i] });
+  });
+  return out.map(function (b) { return b.runs + ' wide × ' + (b.from === b.to ? b.from : b.from + '–' + b.to) + ' tall'; }).join('; ');
+}
+
+GRIDS.forEach(function (grid) {
+  const failing = {};
+  let stagesChecked = 0, clean = 0, checks = 0;
+  grid.heights.forEach(function (vh) {
+    grid.widths.forEach(function (vw) {
+      let whole = true;
+      const check = function (kind, cond, label) {
+        checks++;
+        if (cond) return;
+        whole = false;
+        (failing[kind] = failing[kind] || {})[vw + 'x' + vh] = label;
+      };
+      checkPill(vw, vh, check, ['light']);
+      darkPill(vw, vh, check);
+      checkPhones(vw, vh, check);
+      checkPillPhones(vw, vh, check);
+      checkRailTraces(vw, vh, check);
+      checkPhoneCopy(vw, vh, check);
+      checkFinale(vw, vh, check);
+      stagesChecked++;
+      if (whole) clean++;
+    });
+  });
+  ok(clean === stagesChecked, grid.name + ' grid: ' + clean + ' of ' + stagesChecked + ' stages keep every promise  (' +
+    grid.widths.length + ' widths × ' + grid.heights.length + ' heights, ' + checks + ' checks)');
+  Object.keys(failing).forEach(function (kind) {
+    const cells = Object.keys(failing[kind]);
+    ok(false, grid.name + ' grid: ' + kind + ' at ' + cells.length + ' stages: ' + bands(grid, failing[kind]) +
+      '  — e.g. ' + failing[kind][cells[0]]);
   });
 });
 

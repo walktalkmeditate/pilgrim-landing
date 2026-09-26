@@ -386,11 +386,14 @@ ok(/\.walk-story-stage:is\(\[data-sky="dusk"\], \[data-sky="night"\]\) :is\(\.wa
 
 console.log('\n=== the frame ===\n');
 
+// Every @media block whose query list holds `query`, alone or among others.
 function mediaBlock(query) {
   const blocks = [];
   let i = -1;
-  while ((i = css.indexOf('@media ' + query + ' {', i + 1)) !== -1) {
-    let depth = 0, j = css.indexOf('{', i);
+  while ((i = css.indexOf('@media ', i + 1)) !== -1) {
+    const open = css.indexOf('{', i);
+    if (css.slice(i + 7, open).split(',').map(function (q) { return q.trim(); }).indexOf(query) === -1) continue;
+    let depth = 0, j = open;
     for (; j < css.length; j++) {
       if (css[j] === '{') depth++;
       else if (css[j] === '}' && --depth === 0) break;
@@ -399,8 +402,8 @@ function mediaBlock(query) {
   }
   return blocks.join('\n');
 }
-ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*inset:\s*0 max\(0px, calc\(50% - \d+px\)\)/.test(css),
-  'a wide screen holds copy and phone in one centred frame instead of spreading them to its edges');
+ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*inset:\s*0 max\(0px, calc\(50% - min\(\d+px, [\d.]+svh\)\)\)/.test(css),
+  'a wide screen holds copy and phone in one centred frame instead of spreading them to its edges, and past 16:9 the frame keeps to the line');
 ok(/\.walk-story-copy h2\s*\{[^}]*text-wrap:\s*balance/.test(css) && /\.ws-said\s*\{[^}]*text-wrap:\s*balance/.test(css),
   'headlines and the spoken words balance their lines, so no word is left alone');
 ok(/\.walk-story--pinned \.ws-closing\s*\{[^}]*position:\s*absolute/.test(css),

@@ -670,8 +670,11 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .walk-story--pinned .walk-story-scene:not(.is-active) .ws-moment-ja { opacity: 0; }
 /* The fronts sit in one centred frame at most 1560px wide, so a wide
    screen holds the copy and the phone together instead of spreading
-   them to its edges. The line, the rail and the pill keep the stage. */
-.walk-story--pinned .walk-story-front { position: absolute; inset: 0 max(0px, calc(50% - 780px)); display: block; opacity: 0; pointer-events: none; }
+   them to its edges. Past 16:9 the line is sized by the height and
+   centred, so the frame keeps to its width (88.89svh a side), and the
+   phones stand where they do over a 16:9 line, clear of its climbs. The
+   line, the rail and the pill keep the stage. */
+.walk-story--pinned .walk-story-front { position: absolute; inset: 0 max(0px, calc(50% - min(780px, 88.89svh))); display: block; opacity: 0; pointer-events: none; }
 .walk-story--pinned .walk-story-scene.is-active .walk-story-front { pointer-events: auto; }
 
 .walk-story--pinned .walk-story-copy { position: absolute; left: 8%; width: 36%; top: 50%; transform: translateY(-50%); max-width: none; }
@@ -690,9 +693,10 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .walk-story--pinned .walk-story-scene.is-active .walk-story-phone { will-change: transform; }
 /* A tall phone would reach the Honor stage's climb, so it stands left of
    it; at 1024px and under the line is drawn smaller and the copy needs
-   the room. */
+   the room. Just past 1024px a tall stage's phone would stand within a
+   rem of the copy, so the width caps it (67vw). */
 @media (min-width: 1025px) {
-  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; }
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; max-height: min(720px, 67vw); }
 }
 .walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
 /* The act is static, so it grows by transform: 280px of cards would
@@ -778,10 +782,16 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
   /* Honor's question hangs below its copy, so the copy rides higher. */
   .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { top: 43%; }
   .walk-story--pinned .ws-closing { margin-top: 0.4rem; }
-  /* The finale is the tallest copy and ends in the call to act, above
-     scene 07's ring: its spacing, its lead-in and its badges tighten, and
-     all four privacy lines stay. */
-  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 41.5%; }
+}
+/* The finale is the tallest copy and ends in the call to act, above
+   scene 07's ring. On a short stage, and on a wide one under 1040px tall
+   (from 13:8 the line is drawn so large that the ring rises under the
+   badges), its spacing, its lead-in and its badges tighten, and all four
+   privacy lines stay. Its column widens to half the frame, so the badges
+   hold one row and no privacy line wraps: it has no phone, and its moon
+   stands right of 62%. */
+@media (min-width: 721px) and (max-height: 840px), (min-width: 721px) and (max-height: 1040px) and (min-aspect-ratio: 13/8) {
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 41.5%; width: 50%; }
   .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .ws-body { line-height: 1.5; margin-bottom: min(1rem, 1.4svh); }
   .walk-story--pinned .ws-list { margin: min(1rem, 1.4svh) 0; }
   .walk-story--pinned .ws-list li { margin: 0; line-height: 1.45; }
@@ -789,6 +799,15 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
   .walk-story--pinned .walk-story-copy .store-badges { margin-top: 0.3rem; }
   .walk-story--pinned .walk-story-copy .store-badges .app-store-badge,
   .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.5rem 1rem; }
+}
+/* On the shortest stages that pin (under 620px) the finale's headline,
+   body and badges set a step tighter still. */
+@media (min-width: 721px) and (max-height: 620px) {
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 40.5%; }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy h2 { font-size: clamp(2.1rem, min(4.4vw, 7svh), 5.25rem); }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .ws-body { line-height: 1.4; }
+  .walk-story--pinned .walk-story-copy .store-badges .app-store-badge,
+  .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.4rem 0.9rem; }
 }
 @media (min-width: 1600px) {
   /* At full size the three longest headlines need a little more room to
@@ -801,17 +820,19 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 @media (max-width: 1024px) and (min-width: 721px) {
   .walk-story--pinned .walk-story-copy { left: 6%; width: 42%; }
   .walk-story--pinned .ws-said { left: 6%; width: 42%; }
-  /* The line's viewBox is at its smallest here, so the Honor climb comes
-     nearest the corner; a compact pill keeps clear of it, even when a
-     classic scrollbar narrows the stage (js/walk-story-pill.test.js). The
-     line is sized by the width, so the corner is measured in it too, and
-     a taller stage does not lift the pill into the climb (2.25vw is 3% of
-     a 1024x768 stage). */
-  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(2.25vw + env(safe-area-inset-bottom, 0px)); font-size: 0.85rem; padding: 0.6em 0.95em; }
   /* Upright, a phone sized by the height alone would reach over the copy,
      so the width caps it. The short stage's 64% also matches at 1024x768;
      this block comes after it, so 60% holds there. */
   .walk-story--pinned .walk-story-phone { height: min(60%, 72vw); }
+}
+/* Up to 1140px the line's viewBox is small enough that the Honor climb
+   comes near the corner; a compact pill keeps clear of it, even when a
+   classic scrollbar narrows the stage (js/walk-story-pill.test.js). The
+   line is sized by the width, so the corner is measured in it too, and
+   a taller stage does not lift the pill into the climb (2.25vw is 3% of
+   a 1024x768 stage). */
+@media (min-width: 721px) and (max-width: 1140px) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(2.25vw + env(safe-area-inset-bottom, 0px)); font-size: 0.85rem; padding: 0.6em 0.95em; }
 }
 /* Up to 1000px wide the corner beside the Honor climb is smaller than the
    pill at any aspect, so on a stage taller than it is wide the pill docks
@@ -834,13 +855,6 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
    (the traces reach 124px over the middle), where nothing is drawn. */
 @media (min-width: 721px) and (max-width: 1000px) and (min-aspect-ratio: 1/1) {
   .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(50% + 9rem); }
-}
-/* Under 800px a short stage's column is narrower than the finale's badges
-   side by side and its longest privacy line, so they wrap and the copy
-   runs off the stage's top. The finale has no phone beside it and its
-   moon rises right of 62%, so its column widens to half the stage. */
-@media (min-width: 721px) and (max-width: 800px) and (max-height: 840px) {
-  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { width: 50%; }
 }
 
 /* A phone: the copy spans the top; beneath it the line keeps the left
