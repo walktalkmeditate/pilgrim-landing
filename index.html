@@ -742,16 +742,8 @@
       font-weight: 700;
     }
 
-    /* Seek doorway — the one section that withholds. Fog rolls over the
-       parchment; the heading emerges from it. */
-    .seek-door-crescent {
-      color: var(--dawn);
-      width: 46px;
-      height: 46px;
-      margin: 0 auto var(--padding-md);
-      animation: seek-door-breath 5.5s ease-in-out infinite;
-    }
-
+    /* The way into /seek, in the walk story's scene 05. Its breath is
+       the clearing rider's (.clearing-breath). */
     @keyframes seek-door-breath {
       0%, 100% { opacity: 0.5; transform: scale(0.96); }
       50%      { opacity: 1;   transform: scale(1.03); }
@@ -916,7 +908,6 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .seek-door-crescent { animation: none; opacity: 0.85; }
       .clearing-rider { display: none; }
       .clearing-glyph { transition: opacity 0.8s ease; filter: none; transform: none; }
     }

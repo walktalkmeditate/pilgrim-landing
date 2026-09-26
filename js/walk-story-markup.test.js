@@ -90,6 +90,9 @@ ok(dividers.every(function (d, i) { return i === 0 || html.slice(dividers[i - 1]
 ok(!/\.(journey|privacy-feature|privacy-section)[\w-]*\s*[{>]/.test(html), 'the journey and privacy styles left with their sections');
 ok(story.indexOf('vector-effect') === -1, 'no dash-revealed path uses a non-scaling stroke, which would part ink from dot');
 ok(!/\.seek-door(\s|::|\s*\{)/.test(html), 'the retired seek door\'s section styles are gone (its form classes stay)');
+ok(html.indexOf('seek-door-crescent') === -1, 'the retired door\'s crescent left with it: no element wears it');
+ok(/@keyframes seek-door-breath/.test(html) && /\.clearing-breath\s*\{[^}]*animation:\s*seek-door-breath/.test(html),
+  'the breath it lent the clearing\'s rider stays');
 
 console.log('\n=== the phones quote the app ===\n');
 
