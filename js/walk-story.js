@@ -9,7 +9,8 @@
  * the scroll position and every moving dot's point, then writes: --hold on
  * scenes whose hold changed, opacity on fronts, lines, the rail and the five
  * sky layers, and a transform on each moving dot. The scroll listener only
- * asks for a frame. The only layout read is measure().
+ * asks for a frame. Boxes are read in measure(), and on resize the
+ * story's and the 100svh probe's heights; a frame reads no box.
  */
 
 (function () {

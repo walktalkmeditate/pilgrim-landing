@@ -83,6 +83,11 @@ rail.forEach(function (m, i) {
 console.log('\n=== naming ===\n');
 
 eq(count(html, 'class="story section"'), 1, '"Why Pilgrim exists" is still the only .story');
+const storyCssText = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+const wiringText = fs.readFileSync(path.join(ROOT, 'js', 'walk-story.js'), 'utf8');
+const modifiers = Array.from(new Set(Array.from(story.matchAll(/\bwalk-story-[a-z]+--[a-z-]+/g)).map(function (m) { return m[0]; })));
+ok(modifiers.every(function (m) { return storyCssText.indexOf(m) !== -1 || wiringText.indexOf(m) !== -1; }),
+  'every walk-story modifier class the markup wears is styled or read  (' + modifiers.join(', ') + ')');
 ok(!/class="story"/.test(html), 'nothing is a bare .story');
 ok(!/\sclass="[^"]*\breveal\b/.test(story), 'nothing in the story waits on the page\'s one-shot .reveal observer');
 
@@ -186,7 +191,9 @@ ok(!/\[data-theme="dark"\] \.ws-screen--share/.test(phoneCssAll), 'the shared pa
   ok(new RegExp(t[0] + ':\\s*' + t[1], 'i').test(sharePage),
     'the shared page keeps pilgrim-worker\'s light ' + t[0] + ' ' + t[1] + ': a dawn walk\'s page is served light');
 });
-const lightMap = (phoneCssAll.match(/:root \{\s*--ws-map-land[\s\S]*?\}/) || [''])[0];
+const lightMap = rule(':root');
+eq(count(phoneCssAll, ':root {'), 1, 'the light tokens are one :root block');
+eq(count(phoneCssAll, '\n[data-theme="dark"] {'), 1, 'and the dark tokens one [data-theme="dark"] block');
 ['land', 'road', 'park', 'water'].forEach(function (k) {
   const want = (lightMap.match(new RegExp('--ws-map-' + k + ':\\s*(#[0-9A-F]{6})', 'i')) || [])[1];
   ok(!!want && new RegExp('--ws-map-' + k + ':\\s*' + want, 'i').test(sharePage),
@@ -310,6 +317,9 @@ ok(css.indexOf('var(--hold, 1) / ' + C.HONOR.inkEnd + ',') !== -1, 'Honor inks o
 ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the closing line waits for ' + C.HONOR.closingAt);
 ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
 ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
+const pinnedHeight = css.match(/\.walk-story--pinned \{ height: calc\((\d+) \* ([\d.]+) \* 100svh\)/);
+ok(!!pinnedHeight && +pinnedHeight[1] === C.SCENES.length && Math.round(+pinnedHeight[2] * 100) === C.SCENE_VH,
+  'the pinned story is ' + C.SCENES.length + ' scenes of ' + C.SCENE_VH + 'svh, the core\'s SCENE_VH  (' + (pinnedHeight && pinnedHeight.slice(1).join(' x ')) + ')');
 // A path revealed by dashoffset over pathLength 1 with a gap of 1 leaves
 // a zero-length dash at its far end while hidden, and a round cap paints
 // it: a dot announcing where the line will end. A gap of 2 puts the next
@@ -341,7 +351,7 @@ ok(domTag && html.indexOf('src="js/moon.js"') < html.indexOf(domTag[0]), 'moon.j
 const wiring = fs.existsSync(path.join(ROOT, 'js', 'walk-story.js')) ? fs.readFileSync(path.join(ROOT, 'js', 'walk-story.js'), 'utf8') : '';
 ok(wiring.length > 0, 'js/walk-story.js exists (a script tag pointing at a 404 is silent)');
 ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingClientRect') && /function measure\(\)[\s\S]*getBoundingClientRect/.test(wiring),
-  'the only layout read is in measure(), never in the frame loop');
+  'getBoundingClientRect appears once, in measure()');
 // innerHeight follows Safari's toolbar; the story's height is in svh.
 // Deciding pinned or stacked by innerHeight flips a phone near 560px as
 // the toolbar moves, so the decision reads a 100svh probe instead.

@@ -33,6 +33,12 @@
   --ws-pill-edge: rgba(44, 36, 30, 0.2);
   --ws-pill-ink: #2C241E;
   --ws-pill-drop: rgba(0, 0, 0, 0.35);
+  /* The phones' map and status bar. */
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  --ws-status-icons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 13'%3E%3Crect x='0' y='8' width='3.2' height='4.2' rx='1'/%3E%3Crect x='4.6' y='5.8' width='3.2' height='6.4' rx='1'/%3E%3Crect x='9.2' y='3.4' width='3.2' height='8.8' rx='1'/%3E%3Crect x='13.8' y='1' width='3.2' height='11.2' rx='1'/%3E%3Cpath d='M30 12.4 27.7 9.8a3.4 3.4 0 0 1 4.6 0Z'/%3E%3Cpath d='M25.4 7.5a6.6 6.6 0 0 1 9.2 0M22.8 4.8a10.3 10.3 0 0 1 14.4 0' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3Crect x='46.5' y='1' width='24' height='11' rx='3.6' fill='none' stroke='black' stroke-opacity='.4'/%3E%3Crect x='48.5' y='3' width='20' height='7' rx='2'/%3E%3Cpath d='M72 4.6a2 2 0 0 1 0 3.8Z' fill-opacity='.45'/%3E%3C/svg%3E");
 }
 
 [data-theme="dark"] {
@@ -51,6 +57,10 @@
   --ws-pill-edge: rgba(240, 235, 225, 0.2);
   --ws-pill-ink: #F0EBE1;
   --ws-pill-drop: rgba(0, 0, 0, 0.6);
+  --ws-map-land: #221E18;
+  --ws-map-road: #332D25;
+  --ws-map-park: #232A20;
+  --ws-map-water: #1D2A2B;
 }
 
 /* --- Skies: the atmosphere's five layers when pinned, each scene's own
@@ -292,22 +302,6 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .walk-story--pinned .ws-moon-pinned { display: inline; }
 .ws-moon-disc { fill: currentColor; opacity: 0.08; }
 .ws-moon-lit { fill: currentColor; opacity: 0.85; }
-
-/* --- The phones' map and status bar. --- */
-
-:root {
-  --ws-map-land: #E6DDCC;
-  --ws-map-road: #F7F2E9;
-  --ws-map-park: #D9DDC6;
-  --ws-map-water: #C3CFCC;
-  --ws-status-icons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 13'%3E%3Crect x='0' y='8' width='3.2' height='4.2' rx='1'/%3E%3Crect x='4.6' y='5.8' width='3.2' height='6.4' rx='1'/%3E%3Crect x='9.2' y='3.4' width='3.2' height='8.8' rx='1'/%3E%3Crect x='13.8' y='1' width='3.2' height='11.2' rx='1'/%3E%3Cpath d='M30 12.4 27.7 9.8a3.4 3.4 0 0 1 4.6 0Z'/%3E%3Cpath d='M25.4 7.5a6.6 6.6 0 0 1 9.2 0M22.8 4.8a10.3 10.3 0 0 1 14.4 0' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3Crect x='46.5' y='1' width='24' height='11' rx='3.6' fill='none' stroke='black' stroke-opacity='.4'/%3E%3Crect x='48.5' y='3' width='20' height='7' rx='2'/%3E%3Cpath d='M72 4.6a2 2 0 0 1 0 3.8Z' fill-opacity='.45'/%3E%3C/svg%3E");
-}
-[data-theme="dark"] {
-  --ws-map-land: #221E18;
-  --ws-map-road: #332D25;
-  --ws-map-park: #232A20;
-  --ws-map-water: #1D2A2B;
-}
 
 /* --- The phone. Every string on it is the app's own (the markup test
    cites each), and its colours are the page's, so it follows the theme.
@@ -634,7 +628,6 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .ws-pill--solid { background: var(--ink); color: var(--parchment); border-color: var(--ink); opacity: 1; }
 .ws-pill img { width: calc(20 * var(--pt)); height: calc(20 * var(--pt)); border-radius: calc(5 * var(--pt)); }
 .ws-safari { position: absolute; left: calc(16 * var(--pt)); right: calc(16 * var(--pt)); bottom: calc(26 * var(--pt)); padding: calc(14 * var(--pt)) 0; border-radius: 999px; background: color-mix(in srgb, var(--parchment-secondary) 85%, #fff); box-shadow: 0 calc(4 * var(--pt)) calc(20 * var(--pt)) rgba(0, 0, 0, 0.12); font: 500 calc(15 * var(--pt)) / 1.2 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; letter-spacing: 0; opacity: 0.9; }
-/* Scene 06's traces keep the look css/traces-glyphs.css gives them. */
 /* Scene 06's traces keep the look css/traces-glyphs.css gives them, not
    the list rules css/styles.css gives their cards (hairlines, padding).
    The wisp is 40px tall and the cairn 96, so each icon box is given the
