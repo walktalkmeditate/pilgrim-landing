@@ -61,8 +61,9 @@ function el(name, docTop) {
     name: name,
     classList: classList(name),
     style: new Proxy({}, { set: function (t, k, v) { log.push({ kind: 'write', what: name + '.' + String(k) }); t[k] = v; return true; } }),
+    on: {},
     setAttribute: function () {},
-    addEventListener: function () {},
+    addEventListener: function (type, fn) { (this.on[type] = this.on[type] || []).push(fn); },
     appendChild: function (c) { return c; },
     querySelector: function (sel) { return children[sel] || (children[sel] = el(name + ' ' + sel)); },
     querySelectorAll: function () { return []; },
@@ -178,6 +179,15 @@ doorAt(false);
 f = frame();
 ok(!rider.classList.contains('is-riding'), 'the door back in view, the crescent stops riding');
 eq(reads(f), 0, 'and reads nothing to know it');
+
+console.log('\n=== revealed, the clearing stops watching the door ===\n');
+
+const doorWatch = observers.filter(function (o) { return /^0px 0px \d{6,}px 0px$/.test(o.opts.rootMargin || ''); })[0];
+const fog = created.filter(function (e) { return e.name === 'fog'; })[0];
+eq(doorWatch.targets.length, 1, 'until then the door is watched');
+(fog.on.click || []).forEach(function (fn) { fn(); });
+ok(fog.classList.contains('is-revealed'), 'a tap on the fog reveals the clearing');
+eq(doorWatch.targets.length, 0, 'and the door\'s observer is disconnected with it');
 
 console.log('\n---');
 if (failed) {

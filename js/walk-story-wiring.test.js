@@ -46,6 +46,8 @@ const log = [];
 const windowListeners = {};
 const intoView = [];
 const observers = [];
+const tracked = [];
+let demos = 0;
 let rafs = new Map(), rafId = 0, clock = 0;
 
 function note(kind, what) { log.push({ kind: kind, what: what }); }
@@ -141,6 +143,8 @@ FakeIO.prototype.disconnect = function () { this.targets = []; };
 
 const win = {
   WalkStoryCore: C,
+  umami: { track: function (e) { tracked.push(e); } },
+  TracesCairn: { demo: function () { demos++; } },
   CSS: { supports: function () { return true; } },
   IntersectionObserver: FakeIO,
   matchMedia: function (q) {
@@ -187,6 +191,11 @@ function onStage() {
 }
 function turn(w, h) { world.w = w; world.h = h; fire('resize'); }
 function run() { return 9 * 1.4 * world.h - world.h; }
+function lastJump() {
+  const jumps = log.filter(function (e) { return e.kind === 'scrollTo'; });
+  return jumps.length ? jumps[jumps.length - 1].what.split(' ')[0] : null;
+}
+const UPRIGHT_RUN = 9 * 1.4 * 844 - 844;
 
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'walk-story.js'), 'utf8'), {
   window: win, document: doc, CSS: win.CSS, IntersectionObserver: FakeIO
@@ -200,6 +209,9 @@ ok(isPinned(), 'a tall phone pins the story at load');
 world.scrollY = STORY_TOP;
 rootObserver().cb([{ target: root, isIntersecting: true }]);
 ok((windowListeners.scroll || []).length === 1, 'entering the story listens to the scroll');
+fire('scroll');
+fire('scroll');
+eq(rafs.size, 1, 'two scrolls before a frame ask for one frame, not two easing loops');
 
 log.length = 0;
 let handlerReads = 0;
@@ -221,18 +233,32 @@ log.forEach(function (e) {
   if (e.kind === 'frame') perFrame.push([]);
   else if (perFrame.length) perFrame[perFrame.length - 1].push(e);
 });
-const readFirst = perFrame.every(function (f) {
-  const read = f.findIndex(function (e) { return e.kind === 'read' && e.what === 'scrollY'; });
-  const write = f.findIndex(function (e) { return e.kind === 'write'; });
-  return read !== -1 && (write === -1 || read < write);
+// Every read in a frame, not just the first, comes before its first
+// write: settle() re-reading the scroll position at rest would force a
+// layout after render's writes.
+const readsFirst = perFrame.every(function (f) {
+  const kinds = f.map(function (e) { return e.kind; });
+  const lastRead = kinds.lastIndexOf('read');
+  const firstWrite = kinds.indexOf('write');
+  return kinds.indexOf('read') !== -1 && (firstWrite === -1 || lastRead < firstWrite);
 });
-ok(perFrame.length > 20 && readFirst,
-  'every frame reads the scroll position before its first write  (' + perFrame.length + ' frames)');
+ok(perFrame.length > 20 && readsFirst,
+  'every frame does all its reading, the scroll position first, before its first write  (' + perFrame.length + ' frames)');
 ok(perFrame.every(function (f) { return f.every(function (e) { return e.kind !== 'read' || e.what === 'scrollY'; }); }),
   'and reads no element\'s layout');
 eq(onStage(), 3, 'the reader rests on scene 04');
-const restHold = Math.round(C.holdLocal(C.sceneAt(C.storyProgress(goal, STORY_TOP, 9 * 1.4 * world.h, world.h), 9).local) * 10000) / 10000;
-eq(scenes[3].style['--hold'], String(restHold), 'at rest scene 04\'s --hold is exact, not a thousandth short');
+function holdAt(y) {
+  return Math.round(C.holdLocal(C.sceneAt(C.storyProgress(y, STORY_TOP, 9 * 1.4 * world.h, world.h), 9).local) * 10000) / 10000;
+}
+eq(scenes[3].style['--hold'], String(holdAt(goal)), 'at rest scene 04\'s --hold is exact');
+// A sub-pixel step snaps straight to rest, so the rest frame alone has to
+// write the new value.
+world.scrollY = goal + 0.3;
+fire('scroll');
+frames();
+ok(holdAt(goal + 0.3) !== holdAt(goal), 'a 0.3px nudge moves the hold  (' + holdAt(goal) + ' to ' + holdAt(goal + 0.3) + ')');
+eq(scenes[3].style['--hold'], String(holdAt(goal + 0.3)), 'and --hold lands on it exactly: at rest every value is written');
+eq(demos + tracked.length, 0, 'resting on scene 04 plays no cairn demo and counts no end');
 
 /* ---------- turning the phone ---------- */
 
@@ -245,12 +271,30 @@ eq(intoView.length && JSON.stringify(intoView[intoView.length - 1].opts), '{"blo
   'at once, from its top: the page\'s smooth scrolling would animate it');
 eq(lineObserver().targets.length, 9, 'stacked, the scene on the viewport\'s middle line is watched');
 reportLine(3);
-world.scrollY = 8958;   // the browser moved it, as Task 8's walkthrough saw
+// The browser moves the scroll position under a layout change (Task 8's
+// walkthrough saw 8958). Here it lands in scene 09's pinned range, where
+// settling before the jump would count the story's end.
+world.scrollY = STORY_TOP + 8.5 / 9 * UPRIGHT_RUN;
 turn(390, 844);
 ok(isPinned(), 'upright again, the story pins again');
 eq(onStage(), 3, 'on scene 04, where the reader was');
 eq(world.scrollY, C.sceneScrollTop(3, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at the start of its hold');
+eq(lastJump(), 'instant', 'by an instant jump: the page\'s smooth scrolling would animate it');
+eq(tracked.length, 0, 'the end is not counted at the position the jump leaves, in scene 09');
 eq(lineObserver().targets.length, 0, 'pinned, the middle line is no longer watched');
+
+turn(844, 390);
+reportLine(3);
+world.scrollY = STORY_TOP + 5.5 / 9 * UPRIGHT_RUN;   // inside scene 06's hold
+turn(390, 844);
+eq(onStage(), 3, 'moved into scene 06 this time, it still lands on scene 04');
+eq(demos, 0, 'and the cairn demo does not play at the position the jump leaves');
+
+console.log('\n=== turned back before the stacked page reports, the kept scene holds ===\n');
+
+turn(844, 390);
+turn(390, 844);   // the middle-line observer has not delivered yet
+eq(onStage(), 3, 'unpinning seeds the watch with the scene it kept, scene 04');
 
 console.log('\n=== read on while stacked, and the story resumes there ===\n');
 
@@ -260,6 +304,7 @@ reportLine(5);   // the reader scrolled on to scene 06, stacked
 turn(390, 844);
 eq(onStage(), 5, 'the story pins on the stacked scene being read, scene 06');
 eq(world.scrollY, C.sceneScrollTop(5, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at the start of its hold');
+eq(demos, 1, 'where the reader now rests, the cairn demo plays, once');
 
 console.log('\n=== above the story, a turn leaves the reader where they are ===\n');
 
@@ -273,6 +318,15 @@ eq(intoView.length, seen, 'sideways in the hero, nothing is scrolled into view')
 lineObserver().cb(lineObserver().targets.map(function (t) { return { target: t, isIntersecting: false }; }));
 turn(390, 844);
 eq(world.scrollY, 200, 'and upright again the reader is still in the hero');
+
+console.log('\n=== resting on scene 09 counts the end, once ===\n');
+
+rootObserver().cb([{ target: root, isIntersecting: true }]);
+world.scrollY = C.sceneScrollTop(8, 9, STORY_TOP, 9 * 1.4 * 844, 844) + 200;
+fire('scroll');
+frames();
+eq(onStage(), 8, 'the reader rests on scene 09');
+eq(tracked.join(','), 'story-reach-end', 'and the end is counted there, once');
 
 console.log('\n---');
 if (failed) {
