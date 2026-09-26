@@ -278,6 +278,16 @@ ok(story.indexOf('data-umami-event="enter-seek"') !== -1, 'scene 5 carries the w
 ok(/<video class="ws-video"[^>]*poster="assets\/screenshots\/03_meditation\.png"/.test(story),
   'the meditation video has a poster for Low Power Mode and reduced motion');
 ok(/<link rel="stylesheet" href="css\/walk-story\.css">/.test(html), 'the story\'s stylesheet is linked');
+// Stacked (no JS, reduced motion, a short viewport) nothing clips the
+// story, so a link moved off by a transform would still show above it.
+const cssRules = Array.from(phoneCssAll.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^}]*)\}/g))
+  .map(function (m) { return { sel: m[1].trim(), body: m[2] }; });
+const skipHidden = cssRules.filter(function (r) { return r.sel === '.walk-story-skip:not(:focus)'; })[0];
+ok(!!skipHidden && /width:\s*1px/.test(skipHidden.body) && /height:\s*1px/.test(skipHidden.body) &&
+  /overflow:\s*hidden/.test(skipHidden.body) && /clip-path:\s*inset\(50%\)/.test(skipHidden.body),
+  'the skip link is visually hidden unless focused, in every layout: a 1px box, clipped, not moved off by a transform');
+ok(cssRules.every(function (r) { return r.sel.indexOf('.walk-story-skip') === -1 || !/transform:\s*translate/.test(r.body); }),
+  'nothing hides the skip link by translating it, which only the pinned story\'s clip would cover');
 
 console.log('\n=== CSS timings are the core\'s ===\n');
 

@@ -241,9 +241,17 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: 0.85rem;
-  transform: translateY(-300%);
 }
-.walk-story-skip:focus { transform: none; }
+/* Stacked, nothing clips the story, so the link is hidden by its own box
+   until it takes focus. */
+.walk-story-skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* On a night sky the page's own badge colours sink; lift them. */
 .walk-story-scene[data-sky="night"] .app-store-badge,
