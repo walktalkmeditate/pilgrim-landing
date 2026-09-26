@@ -219,6 +219,13 @@ C.honorReveal(0).moments.forEach(function (m) {
 ok(story.indexOf(fixture.stage.closing) !== -1, 'the closing line is the dataset\'s own');
 ok(story.indexOf('On iPhone. Coming to Android.') !== -1, 'Honor says where it runs');
 ok(story.indexOf('https://github.com/walktalkmeditate/open-pilgrimages') !== -1, 'the stage credits its dataset');
+// A screen reader reads the page in English; a Japanese name outside a
+// lang="ja" span is read with English rules, or skipped.
+const srList = (story.match(/<ol class="ws-sr">[\s\S]*?<\/ol>/) || [''])[0];
+const jaSpans = srList.match(/<span lang="ja">[^<]+<\/span>/g) || [];
+eq(jaSpans.length, 3, 'the listed waypoints wrap their Japanese names in lang="ja"');
+ok(srList.length > 0 && !/[぀-ヿ㐀-鿿]/.test(srList.replace(/<span lang="ja">[^<]+<\/span>/g, '')),
+  'and no Japanese in the list is left outside one');
 
 console.log('\n=== the line\'s own shapes ===\n');
 
