@@ -91,6 +91,44 @@ C.SCENES.forEach(function (s, i) {
   });
 });
 
+console.log('\n=== star mode: the starfield is the sky ===\n');
+
+// css/styles.css paints star mode's ground; the story's skies step aside
+// for it and its text takes the dark theme's light ink.
+const siteCss = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
+const starGround = (/body\.constellation \{\s*background: (#[0-9a-f]{6}) !important;/i.exec(siteCss) || [])[1];
+ok(!!starGround, 'star mode\'s ground is read from css/styles.css  (' + starGround + ')');
+[['ink', dark['ws-ink-darksky']], ['muted', dark['ws-muted-darksky']]].forEach(function (pair) {
+  const r = contrast(parse(pair[1]).rgb, parse(starGround).rgb);
+  ok(r >= 4.5, 'star · every scene · ' + pair[0] + ' on the starfield ≥ 4.5:1  (' + r.toFixed(2) + ')');
+});
+
+console.log('\n=== the docked pill is a button on every sky it docks on ===\n');
+
+// It docks from scene 01 on a phone, so every scene but the finale. Its
+// label must read on its own fill, and the chip must stand off the sky
+// by its fill or by its hairline, drawn over the fill.
+const pillSkies = C.SCENES.filter(function (s) { return C.pillLabel(C.SCENES.indexOf(s)); })
+  .map(function (s) { return s.sky; })
+  .filter(function (s, i, a) { return a.indexOf(s) === i; });
+[['light', light], ['dark', dark], ['star', dark]].forEach(function (pair) {
+  const scheme = pair[0], t = pair[1];
+  ok(!!t['ws-pill-bg'] && !!t['ws-pill-edge'] && !!t['ws-pill-ink'], scheme + ': the pill has a fill, a hairline and an ink');
+  if (!t['ws-pill-bg'] || !t['ws-pill-edge'] || !t['ws-pill-ink']) return;
+  const fill = parse(t['ws-pill-bg']).rgb;
+  const edge = over(parse(t['ws-pill-edge']), parse(t['ws-pill-bg']));
+  const label = contrast(parse(t['ws-pill-ink']).rgb, fill);
+  if (scheme !== 'star') ok(label >= 4.5, scheme + ': "Keep walking" on the pill ≥ 4.5:1  (' + label.toFixed(2) + ')');
+  const grounds = scheme === 'star' ? [['starfield', parse(starGround).rgb]] : [].concat.apply([], pillSkies.map(function (s) {
+    const base = parse(t['ws-' + s + '-base']);
+    return [[s + ' sky', base.rgb], [s + ' glow', over(parse(t['ws-' + s + '-glow']), base)]];
+  }));
+  grounds.forEach(function (g) {
+    const r = Math.max(contrast(fill, g[1]), contrast(edge, g[1]));
+    ok(r >= 1.2, scheme + ': the pill stands off the ' + g[0] + ' ≥ 1.2:1  (' + r.toFixed(2) + ')');
+  });
+});
+
 console.log('\n=== the stylesheet switches ink where this test assumes ===\n');
 
 ok(/\.walk-story-scene\[data-sky="dusk"\],\s*\.walk-story-scene\[data-sky="night"\][\s\S]*?--ws-ink:\s*var\(--ws-ink-darksky\)/.test(css),
