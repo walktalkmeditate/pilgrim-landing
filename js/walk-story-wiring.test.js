@@ -45,7 +45,9 @@ const STORY_TOP = 1480;   // on an upright phone
 // The page above the story reflows with the width: narrower is taller.
 function storyTop() { return world.w <= 720 ? STORY_TOP : world.w < 1200 ? 1600 : 1210; }
 const STACKED_SCENE = 700;
-const world = { w: 390, h: 844, scrollY: 0 };
+// h is innerHeight, which follows Safari's toolbar; svh is 100svh, the
+// small viewport's height, which does not.
+const world = { w: 390, h: 844, svh: 844, scrollY: 0 };
 const log = [];
 const windowListeners = {};
 const intoView = [];
@@ -91,6 +93,7 @@ function el(name, opts) {
     attrs: {},
     classList: classList(name, opts.classes),
     style: style(name),
+    appendChild: function (child) { return child; },
     getAttribute: function (k) { return k in this.attrs ? this.attrs[k] : null; },
     setAttribute: function (k, v) { note('write', name + '@' + k); this.attrs[k] = String(v); },
     removeAttribute: function (k) { if (k in this.attrs) note('write', name + '@-' + k); delete this.attrs[k]; },
@@ -167,6 +170,9 @@ const win = {
 };
 const doc = {
   querySelector: function (sel) { return sel === '.walk-story' ? root : null; },
+  // The one element the story creates and measures here is its 100svh
+  // probe (the star clearings are made only when .ws-clearings exists).
+  createElement: function (tag) { return el('created-' + tag, { offsetHeight: function () { return world.svh; } }); },
   getElementById: function () { return el('after'); },
   body: { classList: classList('body') },
   documentElement: { getAttribute: function () { return null; } }
@@ -193,7 +199,8 @@ function reportLine(k) {
 function onStage() {
   return scenes.map(function (s) { return s.classList.contains('is-active'); }).indexOf(true);
 }
-function turn(w, h) { world.w = w; world.h = h; fire('resize'); }
+function turn(w, h) { world.w = w; world.h = h; world.svh = h; fire('resize'); }
+function toolbar(h) { world.h = h; fire('resize'); }
 function run() { return 9 * 1.4 * world.h - world.h; }
 function lastJump() {
   const jumps = log.filter(function (e) { return e.kind === 'scrollTo'; });
@@ -348,6 +355,27 @@ eq(intoView.length, seen, 'sideways in the hero, nothing is scrolled into view')
 lineObserver().cb(lineObserver().targets.map(function (t) { return { target: t, isIntersecting: false }; }));
 turn(390, 844);
 eq(world.scrollY, 200, 'and upright again the reader is still in the hero');
+
+console.log('\n=== Safari\'s toolbar never pins or unpins the story ===\n');
+
+// An SE: its small viewport is 548px tall, and with the toolbar folded
+// away the window is 620. The story's height is in svh, so pinning by
+// innerHeight would flip it, and the page's height with it, as the
+// toolbar moves.
+turn(375, 548);
+ok(!isPinned(), 'a 548px small viewport stacks the story');
+const jumpsBefore = log.filter(function (e) { return e.kind === 'scrollTo'; }).length + intoView.length;
+toolbar(620);
+ok(!isPinned(), 'the toolbar folding away (innerHeight 620, 100svh still 548) leaves it stacked');
+toolbar(548);
+ok(!isPinned(), 'and its return leaves it stacked');
+eq(log.filter(function (e) { return e.kind === 'scrollTo'; }).length + intoView.length, jumpsBefore, 'the toolbar moves the reader nowhere');
+eq(world.scrollY, 200, 'the reader is still in the hero');
+turn(390, 844);
+ok(isPinned(), 'a tall phone pins it again');
+toolbar(760);
+ok(isPinned(), 'and its toolbar showing (innerHeight 760, 100svh 844 is the layout) keeps it pinned');
+toolbar(844);
 
 console.log('\n=== resting on scene 09 counts the end, once ===\n');
 

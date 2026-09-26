@@ -329,7 +329,16 @@ const wiring = fs.existsSync(path.join(ROOT, 'js', 'walk-story.js')) ? fs.readFi
 ok(wiring.length > 0, 'js/walk-story.js exists (a script tag pointing at a 404 is silent)');
 ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingClientRect') && /function measure\(\)[\s\S]*getBoundingClientRect/.test(wiring),
   'the only layout read is in measure(), never in the frame loop');
-ok(/window\.innerWidth !== width/.test(wiring), 'height-only resizes (iOS toolbar) are ignored');
+// innerHeight follows Safari's toolbar; the story's height is in svh.
+// Deciding pinned or stacked by innerHeight flips a phone near 560px as
+// the toolbar moves, so the decision reads a 100svh probe instead.
+const resizeBody = (wiring.match(/function onResize\(\) \{[\s\S]*?\n  \}/) || [''])[0];
+const loadDecision = (wiring.match(/\n  if \([^\n]*\) pin\(\); else watchLine\(-1\);/) || [''])[0];
+ok(resizeBody.length > 0 && loadDecision.length > 0 && !/innerHeight/.test(resizeBody + loadDecision),
+  'neither a resize nor the first load decides pinned or stacked by innerHeight, which Safari\'s toolbar changes');
+ok(/\.ws-svh\s*\{[^}]*height:\s*100svh/.test(css) && /className = 'ws-svh'/.test(wiring) && /\.offsetHeight >= 560/.test(wiring),
+  'they read the small viewport\'s height, a 100svh probe, against 560px');
+ok(/window\.innerWidth !== width/.test(resizeBody), 'a width change that stays pinned re-measures, and keeps its scene');
 ok(/behavior: smooth \? 'smooth' : 'instant'/.test(wiring),
   'a focus jump is instant: the page\'s own scroll-behavior: smooth would animate "auto"');
 ok(/CSS\.supports\('height', '100svh'\)/.test(wiring), 'no svh, no pinning: the story would collapse');

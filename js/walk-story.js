@@ -49,6 +49,12 @@
   var tracesScene = sceneIndex('traces');
   var portraitQuery = window.matchMedia('(max-width: 720px)');
   var clearings = root.querySelector('.ws-clearings');
+  // Pinned or stacked is decided by the small viewport's height, 100svh,
+  // which Safari's toolbar never changes. innerHeight follows the toolbar,
+  // so a phone near 560px would flip the story, and the page's height with
+  // it, as the toolbar moved.
+  var svhProbe = root.appendChild(document.createElement('div'));
+  svhProbe.className = 'ws-svh';
 
   var state = scenes.map(function (scene) {
     var svgs = Array.prototype.slice.call(scene.querySelectorAll('.walk-story-line'));
@@ -378,14 +384,18 @@
     watchLine(keep);
   }
 
-  // iOS fires resize as its toolbar collapses, changing only the height,
-  // and the story's svh-based height does not move with it, so that
-  // resize is ignored. A real layout change moves the width or the
-  // story's height, and keeps the scene on stage (the page above reflows,
-  // so the old scroll position means another scene); a short viewport (a
-  // phone turned sideways) unpins.
+  function tallEnough() {
+    return svhProbe.offsetHeight >= 560;
+  }
+
+  // iOS fires resize as its toolbar collapses, changing only innerHeight;
+  // 100svh and the story's height stay put, so that resize changes
+  // nothing. A real layout change moves the width or the story's height,
+  // and keeps the scene on stage (the page above reflows, so the old
+  // scroll position means another scene); a short viewport (a phone
+  // turned sideways) unpins.
   function onResize() {
-    var tall = window.innerHeight >= 560;
+    var tall = tallEnough();
     if (tall !== pinned) {
       if (tall) pin(); else unpin();
       return;
@@ -442,7 +452,7 @@
     document.fonts.ready.then(function () { if (pinned) snap(); });
   }
 
-  if (window.innerHeight >= 560) pin(); else watchLine(-1);
+  if (tallEnough()) pin(); else watchLine(-1);
 
   function paintMoon() {
     if (typeof window.getMoonPhase !== 'function') return;

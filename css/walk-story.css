@@ -143,6 +143,8 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 
 .walk-story { position: relative; }
 .walk-story-stage { position: relative; }
+/* js/walk-story.js reads this to decide pinned or stacked. */
+.ws-svh { position: absolute; top: 0; left: 0; width: 0; height: 100svh; visibility: hidden; pointer-events: none; }
 .walk-story-atmosphere,
 .walk-story-rail,
 .walk-story-pill { display: none; }
