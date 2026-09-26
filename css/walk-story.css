@@ -115,7 +115,9 @@ body.constellation .walk-story-scene { background: transparent; }
 .ws-clearings { display: none; }
 body.constellation .walk-story--pinned .ws-clearings { display: block; position: absolute; inset: 0; pointer-events: none; }
 .ws-clearings > div { position: absolute; inset: 0; opacity: 0; }
-.ws-clearings i { position: absolute; border-radius: 1rem; background: var(--ws-star-ground); box-shadow: 0 0 1rem 0.75rem var(--ws-star-ground); }
+/* Wider than the text by 1rem a side: a star just before a line's first
+   letter reads as a bullet. */
+.ws-clearings i { position: absolute; box-sizing: content-box; margin-left: -1rem; padding: 0 1rem; border-radius: 1rem; background: var(--ws-star-ground); box-shadow: 0 0 1rem 0.75rem var(--ws-star-ground); }
 body.constellation :is(.ws-moment-label, .ws-moment-ja) { paint-order: stroke; stroke: var(--ws-star-ground); stroke-width: 4px; stroke-linejoin: round; }
 /* Dark bezels and black shadows vanish on black: a rim of starlight. */
 body.constellation .walk-story-phone { box-shadow: inset 0 0 0 1px rgba(220, 215, 255, 0.2), 0 0 0 1px rgba(220, 215, 255, 0.06), 0 40px 90px -30px rgba(120, 130, 210, 0.25); }
