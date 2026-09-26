@@ -479,6 +479,16 @@ const llms = fs.readFileSync(path.join(ROOT, 'llms.txt'), 'utf8');
 });
 ok(/Honor/.test(html.slice(html.indexOf('"featureList"'), html.indexOf('"screenshot"'))), 'the feature list names Honor');
 ok(/data ODbL/.test(llms), 'llms.txt gives the dataset\'s real data licence');
+// Search snippets and link previews read these, not the JSON-LD: they
+// carry its framing, each within what its field shows.
+[['meta description', /<meta name="description" content="([^"]*)"/, 160],
+ ['og:description', /<meta property="og:description" content="([^"]*)"/, 200],
+ ['twitter:description', /<meta name="twitter:description" content="([^"]*)"/, 200]].forEach(function (f) {
+  const text = (html.match(f[1]) || [])[1] || '';
+  ok(/Anonymous/.test(text) && /walks stored on your device, shared only when you choose/.test(text),
+    'the ' + f[0] + ' says what the JSON-LD does: anonymous, walks stored on your device, shared only by choice');
+  ok(text.length > 0 && text.length <= f[2], 'the ' + f[0] + ' fits in ' + f[2] + ' characters  (' + text.length + ')');
+});
 
 console.log('\n---');
 if (failed) {
