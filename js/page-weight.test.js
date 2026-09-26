@@ -63,10 +63,17 @@ const BASELINE_KB = {
   // curated offset — the inline styles, and the rider's seasonal breath.
   // Same trade traces made: the app's actual drawing, priced in the open,
   // not a lighter imitation.
-  // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md):
-  // nine scenes, each with its copy, an HTML phone and its line in two
-  // geometries, replace six sections; the removed sections' inline CSS
-  // went with them. Raised again as each task lands.
+  // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md),
+  // +29.65 over 83.50 in all: index.html +5.04, css/walk-story.css 14.51,
+  // js/walk-story.js 5.69, js/walk-story-core.js 3.73, js/clearing.js
+  // +0.42, js/traces-cairn.js +0.14, js/universe.js +0.08, js/main.js +0.06.
+  // Step by step:
+  // +24.30 (107.80): nine scenes, each with its copy, an HTML phone and its
+  // line in two geometries, replace six sections, whose inline CSS went
+  // with them (index.html +4.95); the stacked story's stylesheet, then the
+  // pinned stage, its easing loop and the pure core (css 11.96, js 4.54,
+  // core 2.62); the cairn's demo and the clearing's new zones
+  // (traces-cairn.js +0.14, clearing.js +0.05, main.js +0.06).
   // +0.63 (108.43): the dark phones' palette (the app's fog, a black sheet
   // backdrop, the shared page kept light) and the labels' scale moving
   // into the core, where it is tested.
@@ -81,13 +88,16 @@ const BASELINE_KB = {
   // text and dresses the phones, rail, moon and fog for a starfield; the
   // starfield wraps as the page scrolls (js/universe.js, +0.09).
   // +0.74 (112.35): the frame budget. The clearing's rider reads no layout
-  // while the story is pinned (js/clearing.js), and the story's frame reads
-  // the scroll position before it writes and writes only what has moved.
-  // +0.63 (112.98): 0.32 carried in from the rotation and resize fixes
-  // (js/walk-story.js); the final review's layout fixes: the skip link's
-  // own hiding box, and an upright tablet's phone cap and pill dock
-  // (css/walk-story.css, +0.31).
-  'index.html':                                 112.98,
+  // while the story is pinned (js/clearing.js +0.36), and the story's frame
+  // reads the scroll position before it writes (js/walk-story.js +0.13,
+  // the core +0.20).
+  // +0.80 (113.15): a phone turned sideways and back, or a window
+  // narrowed while pinned, keeps its scene (js/walk-story.js +0.36, the
+  // core -0.05); the final review's fixes: the skip link hides in its own
+  // box, an upright tablet caps its phones by width and docks the pill
+  // above the line, and pinning reads a 100svh probe, not innerHeight
+  // (css/walk-story.css +0.35, js/walk-story.js +0.16).
+  'index.html':                                 113.15,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
