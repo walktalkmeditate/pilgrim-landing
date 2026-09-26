@@ -222,11 +222,22 @@
   }
 
   var demoShown = false;
+  var demoTimer = 0;
 
   function demo() {
     if (demoShown || !els.stack) return;
     demoShown = true;
-    setTimeout(function () { animatePlacement(placeStone()); }, 600);
+    demoTimer = setTimeout(function () {
+      demoTimer = 0;
+      animatePlacement(placeStone());
+    }, 600);
+  }
+
+  // A reader's own stone makes the demonstration moot: one still pending
+  // would land a stone nobody placed, just after theirs.
+  function cancelDemo() {
+    demoShown = true;
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = 0; }
   }
 
   function initCairn() {
@@ -241,6 +252,7 @@
     var holdDelay = null, holdRepeat = null;
 
     function place() {
+      cancelDemo();
       var result = placeStone();
       animatePlacement(result);
       setTimeout(function () { playChime(result.stones); }, reduceMotion ? 0 : IMPACT_MS);
