@@ -293,6 +293,9 @@ ok(/<svg class="wisp"/.test(story) && story.indexOf('id="cairn-stack"') !== -1, 
 ok(story.indexOf('data-umami-event="click-app-store"') !== -1 && story.indexOf('data-umami-event="click-google-play"') !== -1,
   'scene 9 carries both store badges, events unchanged');
 ok(story.indexOf('href="/privacy"') !== -1, 'scene 9 links the privacy policy');
+const finale = story.slice(story.indexOf('id="scene-9"'), story.indexOf('</section>', story.indexOf('id="scene-9"')));
+ok(finale.indexOf('What you make on a walk stays on your phone, unless you choose to share it.') !== -1,
+  'scene 9 says what stays on the phone, and that sharing is the walker\'s choice');
 ok(story.indexOf('data-umami-event="walk-with-me-demo"') !== -1, 'scene 8 carries the demo walk');
 ok(story.indexOf('data-umami-event="enter-seek"') !== -1, 'scene 5 carries the way into /seek');
 ok(/<video class="ws-video"[^>]*poster="assets\/screenshots\/03_meditation\.png"/.test(story),
