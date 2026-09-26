@@ -142,6 +142,43 @@ console.log('\n=== the phones quote the app ===\n');
 ok(story.indexOf('What are you walking with') === -1, 'no invented intention prompt');
 ok(story.indexOf('>' + fixture.stage.narrative + '<') !== -1, 'the morning card quotes the stage\'s narrative whole');
 
+console.log('\n=== the phones wear the app\'s colours ===\n');
+
+const phoneCssAll = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+function rule(selector) {
+  const i = phoneCssAll.indexOf(selector + ' {');
+  return i === -1 ? '' : phoneCssAll.slice(i, phoneCssAll.indexOf('}', i));
+}
+// pilgrim-ios Pilgrim/Support Files/Assets.xcassets/fog.colorset: the
+// site's own --fog is a paler decorative token (#B8AFA2 / #6B6359), about
+// half the contrast the app draws its secondary text in.
+ok(/--fog:\s*#8A8175/i.test(rule('.ws-screen')),
+  'the phones draw fog in the app\'s light fog.colorset, #8A8175, not the site\'s paler token');
+ok(/--fog:\s*#948E88/i.test(rule('[data-theme="dark"] .ws-screen')),
+  'and in dark, the app\'s dark fog.colorset, #948E88');
+// iOS dims what a sheet covers toward black in both appearances; in dark
+// the page's --ink is the light ink, so a mix toward it would lighten.
+ok(/background:\s*color-mix\(in srgb, #000 \d+%, var\(--parchment\)\)/.test(
+  rule('[data-theme="dark"] .ws-screen--card,\n[data-theme="dark"] .ws-screen--summary')),
+  'in dark, the morning card\'s and the summary\'s backdrop dims toward black, as the app draws it');
+// pilgrim-worker src/generators/walk-character.ts getPageTheme: only a
+// night walk's page is dark, whatever the viewer's scheme. This walk set
+// out at dawn, so the page it shares is light, in the template's own
+// light palette (src/generators/html-template.ts :root).
+const shareDark = rule('[data-theme="dark"] .ws-screen--share');
+[['--parchment', '#F5F0E8'], ['--parchment-secondary', '#EDE6D8'], ['--parchment-tertiary', '#E4DBCB'], ['--ink', '#2C241E']].forEach(function (t) {
+  ok(new RegExp(t[0] + ':\\s*' + t[1], 'i').test(shareDark),
+    'in dark, the shared page keeps pilgrim-worker\'s light ' + t[0] + ' ' + t[1] + ': a dawn walk\'s page is served light');
+});
+const lightMap = (phoneCssAll.match(/:root \{\s*--ws-map-land[\s\S]*?\}/) || [''])[0];
+['land', 'road', 'park', 'water'].forEach(function (k) {
+  const want = (lightMap.match(new RegExp('--ws-map-' + k + ':\\s*(#[0-9A-F]{6})', 'i')) || [])[1];
+  ok(!!want && new RegExp('--ws-map-' + k + ':\\s*' + want, 'i').test(shareDark),
+    'in dark, the shared page\'s map keeps the light ' + k + ' (' + want + ')');
+});
+ok(/color-scheme:\s*light/.test(shareDark), 'in dark, the shared page is a light page to the browser too');
+ok(!/\[data-theme="dark"\] \.ws-safari/.test(phoneCssAll), 'Safari\'s bar is never darkened over the light shared page');
+
 console.log('\n=== Honor, drawn from the bake ===\n');
 
 const baked = B.bake(fixture);

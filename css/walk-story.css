@@ -298,7 +298,10 @@ body.constellation .walk-story-scene { background: transparent; }
 }
 .walk-story-phone::after { left: 100%; top: 27%; height: 11%; border-radius: 0 2px 2px 0; background: var(--ws-bezel); }
 
+/* The page's --fog is a pale decorative token; the app draws its
+   secondary text in its own fog.colorset, about twice as strong. */
 .ws-screen {
+  --fog: #8A8175;
   position: absolute;
   inset: calc(11 * var(--pt));
   overflow: hidden;
@@ -309,6 +312,7 @@ body.constellation .walk-story-scene { background: transparent; }
   font-size: calc(12 * var(--pt));
   line-height: 1.2;
 }
+[data-theme="dark"] .ws-screen { --fog: #948E88; }
 :where(.ws-screen) p { margin: 0; }
 /* The Dynamic Island and the home indicator. */
 .ws-screen::before,
@@ -485,6 +489,10 @@ body.constellation .walk-story-scene { background: transparent; }
 /* 04 — the morning card (Scenes/Honor/StageMorningCard.swift), a large
    sheet over the dimmed screen behind it. */
 .ws-screen--card { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+/* iOS dims what a sheet covers toward black; in dark the page's ink is
+   the light one, so the light mix above would lighten it instead. */
+[data-theme="dark"] .ws-screen--card,
+[data-theme="dark"] .ws-screen--summary { background: color-mix(in srgb, #000 55%, var(--parchment)); }
 .ws-screen--card .ws-status { color: #fff; }
 .ws-card {
   position: absolute;
@@ -541,6 +549,21 @@ body.constellation .walk-story-scene { background: transparent; }
 /* 08 — the shared walk as it opens in Safari (pilgrim-worker
    src/generators/html-template.ts, the departure chapter). */
 .ws-screen--share { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt)); text-align: center; }
+/* The worker chooses the page's theme from the walk's own hour
+   (walk-character.ts getPageTheme: only a night walk is dark), not from
+   whoever opens it. This walk set out at dawn, so its page is light in
+   every theme here, in the template's own light palette. */
+[data-theme="dark"] .ws-screen--share {
+  --parchment: #F5F0E8;
+  --parchment-secondary: #EDE6D8;
+  --parchment-tertiary: #E4DBCB;
+  --ink: #2C241E;
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  color-scheme: light;
+}
 /* The departure chapter opens over the walk's own map under a parchment
    veil, as the live page does. */
 .ws-share-map::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--parchment) 72%, transparent); }
@@ -557,8 +580,6 @@ body.constellation .walk-story-scene { background: transparent; }
 .ws-pill--solid { background: var(--ink); color: var(--parchment); border-color: var(--ink); opacity: 1; }
 .ws-pill img { width: calc(20 * var(--pt)); height: calc(20 * var(--pt)); border-radius: calc(5 * var(--pt)); }
 .ws-safari { position: absolute; left: calc(16 * var(--pt)); right: calc(16 * var(--pt)); bottom: calc(26 * var(--pt)); padding: calc(14 * var(--pt)) 0; border-radius: 999px; background: color-mix(in srgb, var(--parchment-secondary) 85%, #fff); box-shadow: 0 calc(4 * var(--pt)) calc(20 * var(--pt)) rgba(0, 0, 0, 0.12); font: 500 calc(15 * var(--pt)) / 1.2 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; letter-spacing: 0; opacity: 0.9; }
-[data-theme="dark"] .ws-safari { background: var(--parchment-tertiary); }
-
 /* Scene 06's traces keep the look css/traces-glyphs.css gives them. */
 /* Scene 06's traces keep the look css/traces-glyphs.css gives them, not
    the list rules css/styles.css gives their cards (hairlines, padding).
