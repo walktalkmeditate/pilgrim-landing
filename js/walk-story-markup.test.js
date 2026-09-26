@@ -230,7 +230,13 @@ const sceneBlock = function (n) {
 Array.from(sceneBlock(7).matchAll(/class="ws-line" d="M[\d. ]+C[\d. ]+ ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) A/g)).forEach(function (m, i) {
   ok(Math.abs(+m[1] - +m[3]) <= 3 && +m[2] < +m[4],
     'scene 7 (' + (i ? 'portrait' : 'landscape') + '): the approach arrives heading down, as the ring\'s first arc leaves, so the ink never hooks');
+  // On a desktop the approach travels left along the ground and must turn
+  // a right angle into the ring; a short last handle makes that a hairpin.
+  if (!i) ok(+m[4] - +m[2] >= 60, 'scene 7 (landscape): the approach\'s last handle is long enough (' + (+m[4] - +m[2]) + ') to curl into the ring, not kink');
 });
+const finalePortrait = sceneBlock(9).slice(sceneBlock(9).indexOf('walk-story-line--portrait'));
+ok(/class="ws-moon-lit" data-cx="[\d.]+" data-cy="[\d.]+" data-r="[\d.]+"/.test(finalePortrait) && /class="ws-moon-halo"/.test(finalePortrait),
+  'on a phone the finale has its moon too, painted to tonight\'s phase, so it does not end on empty sky');
 const followers = Array.from(sceneBlock(8).matchAll(/class="ws-follower" d="([^"]+)"/g)).map(function (m) { return m[1]; });
 const walked = Array.from(sceneBlock(8).matchAll(/class="ws-line" d="([^"]+)"/g)).map(function (m) { return m[1]; });
 eq(followers.length, 2, 'scene 8 has a follower in each geometry');
@@ -269,6 +275,14 @@ ok(css.indexOf('var(--hold, 1) / ' + C.HONOR.inkEnd + ',') !== -1, 'Honor inks o
 ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the closing line waits for ' + C.HONOR.closingAt);
 ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
 ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
+// A path revealed by dashoffset over pathLength 1 with a gap of 1 leaves
+// a zero-length dash at its far end while hidden, and a round cap paints
+// it: a dot announcing where the line will end. A gap of 2 puts the next
+// dash past the end.
+['.ws-line', '.ws-follower', '.ws-summary-path', '.ws-summary-talk'].forEach(function (sel) {
+  const m = new RegExp(sel.replace('.', '\\.') + ' \\{[^}]*stroke-dasharray: 1 ([\\d.]+);').exec(css);
+  ok(!!m && +m[1] >= 2, sel + ' reveals with a dash of 1 and a gap of 2 or more, so no dot waits at its end  (' + (m && m[1]) + ')');
+});
 ok(new RegExp('\\.ws-moment-label \\{[^}]*font-size: ' + C.LABEL_PX + 'px').test(css),
   'the labels are set at ' + C.LABEL_PX + 'px, the size labelScale counter-scales from');
 

@@ -1379,7 +1379,7 @@
         <!-- 07 · Home · dusk -->
         <section class="walk-story-scene" id="scene-7" data-scene="home" data-sky="dusk" aria-labelledby="scene-7-title">
           <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-            <path class="ws-line" d="M780 780 C700 800 560 740 560 770 A40 40 0 1 1 480 770 A40 40 0 1 1 560 770" pathLength="1"/>
+            <path class="ws-line" d="M780 780 C650 780 560 690 560 770 A40 40 0 1 1 480 770 A40 40 0 1 1 560 770" pathLength="1"/>
             <g transform="translate(520 770) scale(.62)"><g class="ws-seal"><g transform="translate(-50 -50)"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></g></g></g>
             <g class="ws-dot" transform="translate(560 770)"><circle r="6"/></g>
           </svg>
@@ -1466,6 +1466,12 @@
             <g class="ws-dot" transform="translate(200 785)"><circle r="6"/></g>
           </svg>
           <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <defs>
+              <radialGradient id="ws-moon-halo-p"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset=".45" stop-color="currentColor" stop-opacity=".07"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+            </defs>
+            <circle class="ws-moon-halo" cx="380" cy="700" r="90" fill="url(#ws-moon-halo-p)"/>
+            <circle class="ws-moon-disc" cx="380" cy="700" r="30"/>
+            <path class="ws-moon-lit" data-cx="380" data-cy="700" data-r="30" d="M380 670 A30 30 0 0 1 380 730 A0.00 30 0 0 0 380 670Z"/>
             <path class="ws-line" d="M40 836 C34 838 28 840 24 840" pathLength="1"/>
             <g class="ws-dot" transform="translate(24 840)"><circle r="6"/></g>
           </svg>

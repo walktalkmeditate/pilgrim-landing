@@ -70,7 +70,9 @@ const BASELINE_KB = {
   // +0.63 (108.43): the dark phones' palette (the app's fog, a black sheet
   // backdrop, the shared page kept light) and the labels' scale moving
   // into the core, where it is tested.
-  'index.html':                                 108.43,
+  // +0.63 (109.06): the docked pill's chip tokens, the phone finale's moon,
+  // and the line's quieter past on a phone.
+  'index.html':                                 109.06,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

@@ -88,9 +88,15 @@ eq(C.lineOpacity(2, 5), C.PAST_LINE_OPACITY, 'walked lines stay, quieter');
 eq(C.lineOpacity(5, 5), 1, 'the line being walked is full');
 eq(C.lineOpacity(6, 5), 0, 'lines not yet walked are not drawn');
 ok(C.PAST_LINE_OPACITY_COMPACT < C.PAST_LINE_OPACITY, 'on a phone, walked lines step further back');
-eq(C.lineOpacity(2, 5, true), C.PAST_LINE_OPACITY_COMPACT, 'on a phone a walked line takes the quieter opacity');
+ok(C.PAST_LINE_OPACITY_FAR_COMPACT < C.PAST_LINE_OPACITY_COMPACT && C.PAST_LINE_OPACITY_FAR_COMPACT <= 0.08,
+  'and older ones further still, to a trace  (' + C.PAST_LINE_OPACITY_FAR_COMPACT + ')');
+eq(C.lineOpacity(4, 5, true), C.PAST_LINE_OPACITY_COMPACT, 'on a phone the scene just walked keeps the quieter opacity');
+eq(C.lineOpacity(2, 5, true), C.PAST_LINE_OPACITY_FAR_COMPACT,
+  'on a phone an older line fades to a trace: a narrow screen folds the whole walk into one knot');
+eq(C.lineOpacity(0, 7, true), C.PAST_LINE_OPACITY_FAR_COMPACT, 'even the first line, by scene 08');
 eq(C.lineOpacity(5, 5, true), 1, 'on a phone the line being walked is still full');
-eq(C.lineOpacity(7, 8, true), 0, 'on a phone the finale\'s copy fills the screen, so the walked line is put away');
+eq(C.lineOpacity(7, 8, true), C.PAST_LINE_OPACITY_COMPACT, 'on a phone the finale keeps the line home, which runs below its copy');
+eq(C.lineOpacity(6, 8, true), 0, 'but the older lines run under the finale\'s copy, so they are put away');
 eq(C.lineOpacity(8, 8, true), 1, 'on a phone the finale keeps its own last metres and the walker');
 eq(C.lineOpacity(7, 8), C.PAST_LINE_OPACITY, 'on a desktop the finale keeps the whole walk');
 

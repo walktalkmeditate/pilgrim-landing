@@ -18,6 +18,7 @@
   var LINE_INK_END = 0.85;
   var PAST_LINE_OPACITY = 0.35;
   var PAST_LINE_OPACITY_COMPACT = 0.2;
+  var PAST_LINE_OPACITY_FAR_COMPACT = 0.07;
   // The moments' labels are SVG text set at LABEL_PX in the viewBox, so
   // they shrink with it; on screen they never read below LABEL_MIN_PX.
   var LABEL_PX = 13;
@@ -82,14 +83,17 @@
     return 1;
   }
 
-  // On a phone the walked line shares a narrow screen with the copy, so
-  // it steps further back; in the finale, whose copy fills the screen,
-  // it is put away, and only the last metres and the walker remain.
+  // On a phone the walked line shares a narrow screen with the copy and
+  // folds back over itself, so only the scene just walked stays at the
+  // quieter opacity and older lines fade to a trace. In the finale, whose
+  // copy fills the screen, the older lines are put away; the line home
+  // runs below the copy and leads to the walker.
   function lineOpacity(j, current, compact) {
     if (j > current) return 0;
     if (j === current) return 1;
     if (!compact) return PAST_LINE_OPACITY;
-    return current === SCENES.length - 1 ? 0 : PAST_LINE_OPACITY_COMPACT;
+    if (j === current - 1) return PAST_LINE_OPACITY_COMPACT;
+    return current === SCENES.length - 1 ? 0 : PAST_LINE_OPACITY_FAR_COMPACT;
   }
 
   function skyWeights(p, n) {
@@ -186,6 +190,7 @@
     LINE_INK_END: LINE_INK_END,
     PAST_LINE_OPACITY: PAST_LINE_OPACITY,
     PAST_LINE_OPACITY_COMPACT: PAST_LINE_OPACITY_COMPACT,
+    PAST_LINE_OPACITY_FAR_COMPACT: PAST_LINE_OPACITY_FAR_COMPACT,
     LABEL_PX: LABEL_PX,
     LABEL_MIN_PX: LABEL_MIN_PX,
     SKIES: SKIES,
