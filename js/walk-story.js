@@ -372,14 +372,18 @@
   // iOS fires resize as its toolbar collapses, changing only the height,
   // and the story's svh-based height does not move with it, so that
   // resize is ignored. A real layout change moves the width or the
-  // story's height; a short viewport (a phone turned sideways) unpins.
+  // story's height, and keeps the scene on stage (the page above reflows,
+  // so the old scroll position means another scene); a short viewport (a
+  // phone turned sideways) unpins.
   function onResize() {
     var tall = window.innerHeight >= 560;
     if (tall !== pinned) {
       if (tall) pin(); else unpin();
       return;
     }
-    if (pinned && (window.innerWidth !== width || root.offsetHeight !== height)) snap();
+    if (pinned && (window.innerWidth !== width || root.offsetHeight !== height)) {
+      snap(inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1);
+    }
   }
 
   rail.forEach(function (a, i) {

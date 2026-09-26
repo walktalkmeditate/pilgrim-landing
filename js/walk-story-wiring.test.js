@@ -16,7 +16,9 @@
      on nearly every scroll. The handler now only asks for a frame, and
      each frame reads before it writes.
    - Turning a phone sideways and back landed on another scene: the raw
-     scroll position means a different scene stacked and pinned.
+     scroll position means a different scene stacked and pinned. A width
+     change that stays pinned (a tablet turned, a window narrowed) drifted
+     the same way, as the page above the story reflowed.
    ============================================= */
 
 'use strict';
@@ -39,7 +41,9 @@ function eq(actual, expected, label) {
 
 /* ---------- the fake browser ---------- */
 
-const STORY_TOP = 1480;
+const STORY_TOP = 1480;   // on an upright phone
+// The page above the story reflows with the width: narrower is taller.
+function storyTop() { return world.w <= 720 ? STORY_TOP : world.w < 1200 ? 1600 : 1210; }
 const STACKED_SCENE = 700;
 const world = { w: 390, h: 844, scrollY: 0 };
 const log = [];
@@ -111,15 +115,15 @@ function isPinned() { return root.classList.contains('walk-story--pinned'); }
 const scenes = C.SCENES.map(function (s, k) {
   return el('scene-' + (k + 1), {
     one: { '.walk-story-front': el('front-' + (k + 1)) },
-    onIntoView: function () { world.scrollY = STORY_TOP + k * STACKED_SCENE; }
+    onIntoView: function () { world.scrollY = storyTop() + k * STACKED_SCENE; }
   });
 });
-const stage = el('stage', { docTop: function () { return STORY_TOP; }, offsetHeight: function () { return isPinned() ? world.h : 9 * STACKED_SCENE; } });
+const stage = el('stage', { docTop: storyTop, offsetHeight: function () { return isPinned() ? world.h : 9 * STACKED_SCENE; } });
 const lineGeometry = { viewBox: { baseVal: { width: 1600, height: 900 } } };
 const pillLabel = el('pill-label');
 const pill = el('pill', { one: { '.ws-pill-label': pillLabel } });
 root = el('story', {
-  docTop: function () { return STORY_TOP; },
+  docTop: storyTop,
   offsetHeight: function () { return isPinned() ? 9 * 1.4 * world.h : 9 * STACKED_SCENE; },
   one: {
     '.walk-story-stage': stage,
@@ -305,6 +309,19 @@ turn(390, 844);
 eq(onStage(), 5, 'the story pins on the stacked scene being read, scene 06');
 eq(world.scrollY, C.sceneScrollTop(5, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at the start of its hold');
 eq(demos, 1, 'where the reader now rests, the cairn demo plays, once');
+
+console.log('\n=== a pinned window narrowed keeps its scene ===\n');
+
+turn(1440, 900);
+world.scrollY = C.sceneScrollTop(3, 9, storyTop(), 9 * 1.4 * 900, 900);
+fire('scroll');
+frames();
+eq(onStage(), 3, 'at 1440x900 the reader rests at the start of scene 04');
+turn(1024, 900);
+eq(onStage(), 3, 'narrowed to 1024 and still pinned, the story stays on scene 04');
+eq(world.scrollY, C.sceneScrollTop(3, 9, storyTop(), 9 * 1.4 * 900, 900),
+  'at the start of its hold, with the page above it reflowed taller');
+eq(lastJump(), 'instant', 'by an instant jump');
 
 console.log('\n=== above the story, a turn leaves the reader where they are ===\n');
 
