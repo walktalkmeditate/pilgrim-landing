@@ -247,7 +247,14 @@ const fogStops = Array.from(fogScene.matchAll(/<radialGradient id="ws-fog[^"]*">
 eq(fogStops.length, 4, 'scene 5 has its four fog gradients');
 ok(fogStops.every(function (g) { return g.indexOf('currentColor') === -1 && /stop-color:\s*var\(--ws-fog\)/.test(g); }),
   'the fog is paler than the sky: its gradients take --ws-fog, never the ink (currentColor)');
-eq(count(fogScene, '<ellipse'), (fogScene.match(/<g class="ws-fog-bank">[\s\S]*?<\/g>/g) || []).join('').split('<ellipse').length - 1,
+// A gradient that reaches nothing exactly at its ellipse's edge leaves a
+// faint textured seam along the edge (Chrome, both themes); fading out
+// just inside the shape leaves none.
+ok(fogStops.every(function (g) {
+  const last = (g.match(/<stop offset="([\d.]+)"[^>]*stop-opacity="0"\/>/) || [])[1];
+  return last !== undefined && +last < 1;
+}), 'every fog gradient has faded to nothing inside its ellipse, not at its edge');
+eq(count(fogScene, '<ellipse'),(fogScene.match(/<g class="ws-fog-bank">[\s\S]*?<\/g>/g) || []).join('').split('<ellipse').length - 1,
   'every fog ellipse drifts in the bank, so none is left behind');
 const storyCssForFog = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
 ok(/:not\(\.is-active\) \.ws-fog-bank\s*\{[^}]*opacity:\s*0/.test(storyCssForFog), 'the fog lifts once its scene has passed');
