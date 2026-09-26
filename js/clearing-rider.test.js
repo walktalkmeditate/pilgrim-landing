@@ -189,6 +189,75 @@ eq(doorWatch.targets.length, 1, 'until then the door is watched');
 ok(fog.classList.contains('is-revealed'), 'a tap on the fog reveals the clearing');
 eq(doorWatch.targets.length, 0, 'and the door\'s observer is disconnected with it');
 
+console.log('\n=== contentRects treats inline <svg> as an obstacle, lowercase tagName included ===\n');
+
+// The Reliquary's route map is an inline <svg> holding pin markup
+// (children, no text of its own). In a real HTML document that
+// element's tagName reports lowercase "svg". This drives the same
+// placement search clearing-core.test.js exercises directly on
+// placementPct, but through contentRects, to prove the DOM-reading
+// side recognises the tag it is actually handed rather than the
+// upper-cased form other replaced elements happen to share.
+
+function fakeEl(tagName, rect, kids) {
+  return {
+    tagName: tagName,
+    children: kids || [],
+    textContent: '',
+    closest: function () { return null; },
+    classList: { add: function () {}, remove: function () {}, toggle: function () {}, contains: function () { return false; } },
+    style: {},
+    setAttribute: function () {},
+    addEventListener: function () {},
+    appendChild: function (c) { return c; },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return kids || []; },
+    getBoundingClientRect: function () { return rect; }
+  };
+}
+
+const SVG_HOST_RECT = { top: 200, bottom: 1000, left: 0, right: 1000, width: 1000, height: 800 };
+const SVG_OBSTACLE_RECT = { top: 425, bottom: 455, left: 0, right: 500, width: 500, height: 30 };
+
+// A host with one zone, sized so the obstacle blocks the preferred
+// 30% band but a clear one exists at 20%: the same walk-outward search
+// clearing-core.test.js's placementPct table proves in isolation.
+function placedPctWithSvgTag(tagName) {
+  const svg = fakeEl(tagName, SVG_OBSTACLE_RECT, ['path']);
+  const svgHost = fakeEl('SECTION', SVG_HOST_RECT, [svg]);
+  const svgDoor = fakeEl('FORM', { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 });
+  let fogRef = null;
+  const svgDoc = {
+    readyState: 'complete',
+    querySelector: function (sel) {
+      if (sel === '[data-seek-door]') return svgDoor;
+      if (sel === '.reliquary.section') return svgHost;
+      return null;
+    },
+    createElement: function (tag) {
+      const e = fakeEl(tag.toUpperCase(), { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 });
+      if (tag === 'button') fogRef = e;
+      return e;
+    }
+  };
+  const svgWin = {
+    ClearingCore: Object.assign({}, core, { ZONES: [{ selector: '.reliquary.section', side: 'left', topPct: 30 }] }),
+    matchMedia: function () { return { matches: true }; },
+    innerWidth: 1000,
+    innerHeight: 800,
+    addEventListener: function () {},
+    removeEventListener: function () {}
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'clearing.js'), 'utf8'),
+    { window: svgWin, document: svgDoc, setTimeout: function () { return 1; }, clearTimeout: function () {} });
+  return fogRef.style.top;
+}
+
+eq(placedPctWithSvgTag('SVG'), '20%',
+  'sanity: an upper-case SVG tag with pins is already an obstacle the search walks around');
+eq(placedPctWithSvgTag('svg'), '20%',
+  'a real inline <svg> (lowercase tagName) with pins is an obstacle too, not a content-free band');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

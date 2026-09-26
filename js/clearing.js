@@ -36,7 +36,7 @@
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.closest('.clearing-fog') || el.closest('.clearing-status')) continue;
-      var solid = REPLACED[el.tagName] ||
+      var solid = REPLACED[el.tagName && el.tagName.toUpperCase()] ||
         (el.children.length === 0 && el.textContent.replace(/\s/g, '') !== '');
       if (!solid) continue;
       var r = el.getBoundingClientRect();
