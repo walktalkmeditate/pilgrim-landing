@@ -64,9 +64,9 @@ const BASELINE_KB = {
   // Same trade traces made: the app's actual drawing, priced in the open,
   // not a lighter imitation.
   // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md),
-  // +29.65 over 83.50 in all: index.html +5.04, css/walk-story.css 14.51,
+  // +30.49 over 83.50 in all: index.html +5.06, css/walk-story.css 15.32,
   // js/walk-story.js 5.69, js/walk-story-core.js 3.73, js/clearing.js
-  // +0.42, js/traces-cairn.js +0.14, js/universe.js +0.08, js/main.js +0.06.
+  // +0.41, js/traces-cairn.js +0.14, js/universe.js +0.08, js/main.js +0.06.
   // Step by step:
   // +24.30 (107.80): nine scenes, each with its copy, an HTML phone and its
   // line in two geometries, replace six sections, whose inline CSS went
@@ -103,7 +103,12 @@ const BASELINE_KB = {
   // the line, the rail and the traces leave it room, the phones stand
   // clear of it, and a narrow short stage widens the finale's column
   // (css/walk-story.css +0.53).
-  'index.html':                                 113.79,
+  // +0.20 (113.99): every stage from 721 to 1920 wide and 560 to 1200 tall
+  // keeps the pill, the phones and the finale clear: a smaller corner pill
+  // up to 1140px, the Honor phone capped by width, a frame no wider than
+  // the line past 16:9, and the finale compacted on short and wide stages
+  // (css/walk-story.css +0.20).
+  'index.html':                                 113.99,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
