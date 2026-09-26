@@ -94,8 +94,8 @@
   var railOpacity = -1;
 
   // Stacked, the scene across the viewport's middle is being read; a
-  // re-pin resumes there.
-  var onLine = [];
+  // re-pin resumes there. The first pin resumes on a linked scene.
+  var onLine = scenes.map(function (s, j) { return j === linked(); });
   var lineWatch = new IntersectionObserver(function (entries) {
     entries.forEach(function (e) { onLine[scenes.indexOf(e.target)] = e.isIntersecting; });
   }, { rootMargin: '-50% 0px -50% 0px' });
@@ -108,6 +108,17 @@
   function sceneIndex(id) {
     for (var i = 0; i < C.SCENES.length; i++) if (C.SCENES[i].id === id) return i;
     return -1;
+  }
+
+  // Pinned, every scene's box is the stage's, so the browser's own jump
+  // to #scene-5 lands on scene 01; the story follows the link instead.
+  // A text fragment (#:~:text=) and find-in-page still find a faded
+  // scene: they leave no hook to follow, a known limit of scenes stacked
+  // by opacity.
+  function linked() {
+    var m = /^#scene-(\d+)$/.exec(window.location.hash);
+    var i = m ? +m[1] - 1 : -1;
+    return i < n ? i : -1;
   }
 
   function measure() {
@@ -436,9 +447,15 @@
     }
   }
 
+  // A click with a modifier, or not the main button, keeps its browser
+  // meaning: the scene opens in a new tab or window, from its link.
+  function plainClick(e) {
+    return e.button === 0 && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey);
+  }
+
   rail.forEach(function (a, i) {
     a.addEventListener('click', function (e) {
-      if (!pinned) return;
+      if (!pinned || !plainClick(e)) return;
       e.preventDefault();
       scrollToScene(i, true);
     });
@@ -446,11 +463,16 @@
 
   if (pill) {
     pill.addEventListener('click', function (e) {
-      if (!pinned) return;
+      if (!pinned || !plainClick(e)) return;
       e.preventDefault();
       scrollToScene(Math.min(n - 1, current + 1), true);
     });
   }
+
+  window.addEventListener('hashchange', function () {
+    var i = linked();
+    if (pinned && i !== -1) scrollToScene(i, false);
+  });
 
   // Skipping means skipping: no smooth ride through 12.6 screens.
   if (skip && after) {

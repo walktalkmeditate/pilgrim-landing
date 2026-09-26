@@ -159,6 +159,7 @@ FakeIO.prototype.disconnect = function () { this.targets = []; };
 
 const win = {
   WalkStoryCore: C,
+  location: { hash: '' },
   umami: { track: function (e) { tracked.push(e); } },
   TracesCairn: { demo: function () { demos++; } },
   CSS: { supports: function () { return true; } },
@@ -228,9 +229,24 @@ function lastJump() {
 }
 const UPRIGHT_RUN = 9 * 1.4 * 844 - 844;
 
+// The page loads from a link to scene 05. Wherever the browser left the
+// reader before the story pinned (here, what pinned is scene 06's hold),
+// the story lands on the linked scene.
+win.location.hash = '#scene-5';
+world.scrollY = STORY_TOP + 5.5 / 9 * UPRIGHT_RUN;
+
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'walk-story.js'), 'utf8'), {
   window: win, document: doc, CSS: win.CSS, IntersectionObserver: FakeIO
 });
+
+/* ---------- a link to a scene ---------- */
+
+console.log('\n=== loaded from a link to a scene, the story lands on it ===\n');
+
+eq(onStage(), 4, 'loaded at #scene-5, the pinned story puts scene 05 on stage');
+eq(world.scrollY, C.sceneScrollTop(4, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at its hold start');
+eq(lastJump(), 'instant', 'at once');
+eq(demos + tracked.length, 0, 'where the reader was before, scene 06, no cairn demo plays and nothing is counted');
 
 /* ---------- the scroll path ---------- */
 
@@ -520,6 +536,40 @@ frames();
 turn(1440, 820);
 eq(world.scrollY - storyEnd(), -300, 'the story\'s end stays 300px above the window\'s top');
 eq(tracked.length + demos, eventsBelow, 'and nothing is counted there');
+
+/* ---------- links to a scene, followed on the page ---------- */
+
+console.log('\n=== a link to a scene followed on the page lands on it ===\n');
+
+win.location.hash = '#scene-3';
+fire('hashchange');
+eq(onStage(), 2, 'pinned, a change of address to #scene-3 puts scene 03 on stage');
+eq(world.scrollY, holdStart(2), 'at its hold start');
+eq(lastJump(), 'instant', 'at once');
+before = jumps();
+win.location.hash = '#after-walk-story';
+fire('hashchange');
+win.location.hash = '#scene-10';
+fire('hashchange');
+eq(jumps(), before, 'a link anywhere else, or to a scene that is not there, is the browser\'s');
+turn(1440, 500);
+before = jumps();
+win.location.hash = '#scene-4';
+fire('hashchange');
+eq(jumps(), before, 'stacked, the browser\'s own jump finds the scene');
+turn(1440, 820);
+
+console.log('\n=== a modified click keeps its browser meaning ===\n');
+
+before = jumps();
+['metaKey', 'ctrlKey', 'shiftKey', 'altKey'].forEach(function (k) {
+  const mods = {};
+  mods[k] = true;
+  ok(!click(railLinks[5], mods).defaultPrevented && !click(pill, mods).defaultPrevented,
+    'with ' + k.replace('Key', '') + ' held, the rail and the pill open their scene the browser\'s way');
+});
+ok(!click(railLinks[5], { button: 1 }).defaultPrevented, 'as does a click that is not the main button');
+eq(jumps(), before, 'and the story stays where it is');
 
 console.log('\n---');
 if (failed) {
