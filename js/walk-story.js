@@ -8,9 +8,10 @@
  * var(--hold, 1) and nothing sets --hold. Pinned, each frame first reads
  * the scroll position and every moving dot's point, then writes: --hold on
  * scenes whose hold changed, opacity on fronts, lines, the rail and the five
- * sky layers, and a transform on each moving dot. The scroll listener only
- * asks for a frame. Boxes are read in measure(), and on resize the
- * story's and the 100svh probe's heights; a frame reads no box.
+ * sky layers, and a transform on each moving dot. Inside the story the
+ * scroll listener only asks for a frame; outside it, one notes the scroll
+ * position. Boxes are read in measure(), and on resize the story's and the
+ * 100svh probe's heights; a frame reads no box.
  */
 
 (function () {
@@ -118,11 +119,16 @@
       var a = rectOf(el.firstElementChild), b = rectOf(el.lastElementChild);
       return { left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) };
     };
-    compact = portrait;
     width = window.innerWidth;
     top = rectOf(root).top + window.scrollY;
-    var stageBox = rectOf(stage);
     height = root.offsetHeight;
+    // Stacked, the story's box is all a resize needs.
+    if (!pinned) {
+      readScroll();
+      return;
+    }
+    compact = portrait;
+    var stageBox = rectOf(stage);
     stageHeight = stage.offsetHeight;
     var box = root.querySelector('.walk-story-line--' + (portrait ? 'portrait' : 'landscape')).viewBox.baseVal;
     var scale = Math.min(stage.offsetWidth / box.width, stageHeight / box.height);
@@ -150,6 +156,13 @@
   function readScroll() {
     scrollTop = window.scrollY;
     target = C.storyProgress(scrollTop, top, height, stageHeight);
+  }
+
+  // Outside the story a scroll only notes where the reader is, so that a
+  // resize knows where they were in the layout it replaces: by the resize
+  // event, a browser that anchors the page has already moved them.
+  function track() {
+    scrollTop = window.scrollY;
   }
 
   function pointsFor(j, hold) {
@@ -292,13 +305,24 @@
   }
 
   // A re-pin puts the stacked scene on stage: the old scroll position
-  // means another scene pinned.
-  function snap(scene) {
+  // means another scene pinned. A reader past the story stays past it.
+  function snap(scene, past) {
     measure();
     if (scene >= 0) scrollToScene(scene, false);
+    else keepPast(past);
     shown = target;
     render(shown);
     settle();
+  }
+
+  // Pinned, the story is 12.6 screens of 100svh, so a resize moves the
+  // page below it by 12.6 times the change, and pinning or unpinning by
+  // the difference between its two heights. past is how far past its end
+  // the reader was before; undefined, they were not past it.
+  function keepPast(past) {
+    if (past === undefined) return;
+    window.scrollTo({ top: top + height + past, behavior: 'instant' });
+    readScroll();
   }
 
   // The page's html { scroll-behavior: smooth } would animate 'auto',
@@ -317,6 +341,7 @@
     if (inView) return;
     inView = true;
     document.body.classList.add('walk-story-pinned');
+    window.removeEventListener('scroll', track);
     window.addEventListener('scroll', request, { passive: true });
     readScroll();
     shown = target;
@@ -330,6 +355,7 @@
     inView = false;
     document.body.classList.remove('walk-story-pinned');
     window.removeEventListener('scroll', request);
+    window.addEventListener('scroll', track, { passive: true });
     // Off screen nothing eases: land where the scroll left the story,
     // rather than write every frame ahead of other scripts' reads.
     if (raf) {
@@ -342,19 +368,19 @@
     syncVideo();
   }
 
-  function pin() {
+  function pin(past) {
     var resume = onLine.indexOf(true);
     lineWatch.disconnect();
     pinned = true;
     root.classList.add('walk-story--pinned');
-    snap(resume);
+    snap(resume, past);
     if (scrollTop + window.innerHeight > top && scrollTop < top + height) enter();
   }
 
   // Back to the stacked story: every inline value the frame loop wrote
   // comes off, so the stylesheet's finished states show again, and the
   // scene that was on stage stays in view.
-  function unpin() {
+  function unpin(past) {
     var keep = inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1;
     leave();
     pinned = false;
@@ -382,6 +408,8 @@
     stage.setAttribute('data-sky', 'dawn');
     current = -1;
     if (keep !== -1) scenes[keep].scrollIntoView({ block: 'start', behavior: 'instant' });
+    measure();
+    keepPast(past);
     watchLine(keep);
   }
 
@@ -394,15 +422,17 @@
   // nothing. A real layout change moves the width or the story's height,
   // and keeps the scene on stage (the page above reflows, so the old
   // scroll position means another scene); a short viewport (a phone
-  // turned sideways) unpins.
+  // turned sideways) unpins. A reader past the story keeps their distance
+  // from its end, stacked or pinned.
   function onResize() {
     var tall = tallEnough();
+    var scene = pinned ? (inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1) : onLine.indexOf(true);
+    var past = scene === -1 && scrollTop > top ? scrollTop - (top + height) : undefined;
     if (tall !== pinned) {
-      if (tall) pin(); else unpin();
-      return;
-    }
-    if (pinned && (window.innerWidth !== width || root.offsetHeight !== height)) {
-      snap(inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1);
+      if (tall) pin(past); else unpin(past);
+    } else if (window.innerWidth !== width || root.offsetHeight !== height) {
+      if (pinned) snap(scene, past);
+      else { measure(); keepPast(past); }
     }
   }
 
@@ -447,13 +477,17 @@
     if (entries[entries.length - 1].isIntersecting) enter(); else leave();
   }).observe(root);
 
-  window.addEventListener('resize', onResize, { passive: true });
-  window.addEventListener('load', function () { if (pinned) snap(); }, { once: true });
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(function () { if (pinned) snap(); });
+  // Fonts and images move the story's box, which a resize measures from.
+  function remeasure() {
+    if (pinned) snap(); else measure();
   }
 
-  if (tallEnough()) pin(); else watchLine(-1);
+  window.addEventListener('scroll', track, { passive: true });
+  window.addEventListener('resize', onResize, { passive: true });
+  window.addEventListener('load', remeasure, { once: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+
+  if (tallEnough()) pin(); else { measure(); watchLine(-1); }
 
   function paintMoon() {
     if (typeof window.getMoonPhase !== 'function') return;

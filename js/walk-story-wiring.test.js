@@ -472,6 +472,55 @@ eq(after.focused.length, 1, 'the skip link\'s focus is the browser\'s too');
 turn(390, 844);
 ok(isPinned(), 'upright again, the story pins');
 
+/* ---------- below the story ---------- */
+
+console.log('\n=== past the story, a resize keeps the reader where they were ===\n');
+
+// Pinned, the story is 12.6 screens of 100svh, so a window 80px shorter
+// moves everything under it up by 1008px.
+function storyEnd() { return storyTop() + (isPinned() ? 9 * 1.4 * world.h : 9 * STACKED_SCENE); }
+turn(1440, 900);
+world.scrollY = storyEnd() + 400;
+fire('scroll');
+frames();
+rootObserver().cb([{ target: root, isIntersecting: false }]);
+world.scrollY = storyEnd() + 600;   // reading on, in the Reliquary
+fire('scroll');
+const eventsBelow = tracked.length + demos;
+turn(1440, 820);
+ok(isPinned(), 'a window 80px shorter stays pinned');
+eq(world.scrollY - storyEnd(), 600, 'and the reader is still 600px past the story\'s end');
+eq(lastJump(), 'instant', 'by an instant jump');
+turn(1440, 500);
+ok(!isPinned(), 'a window 500px tall unpins');
+eq(world.scrollY - storyEnd(), 600, 'stacked, the reader is still 600px past its end');
+turn(1440, 900);
+ok(isPinned(), '900px tall again, it pins');
+eq(world.scrollY - storyEnd(), 600, 'and the reader is still 600px past its end');
+eq(tracked.length + demos, eventsBelow, 'no end is counted and no demo plays on the way');
+
+console.log('\n=== a browser that kept the reader in place is not second-guessed ===\n');
+
+// Chrome on Android keeps a turned page's content in place before the
+// resize event fires, so the scroll position then is already the new
+// layout's: the story works from where the reader was before it.
+let endWas = storyEnd();
+world.w = 1180; world.h = 820; world.svh = 820;
+world.scrollY += storyEnd() - endWas;
+fire('resize');
+eq(world.scrollY - storyEnd(), 600, 'a tablet turned keeps the reader 600px past the end, not moved again');
+
+console.log('\n=== on the story\'s last screen, a resize keeps the reader there ===\n');
+
+turn(1440, 900);
+world.scrollY = storyEnd() - 300;   // the last scene above, the Reliquary below
+rootObserver().cb([{ target: root, isIntersecting: true }]);
+fire('scroll');
+frames();
+turn(1440, 820);
+eq(world.scrollY - storyEnd(), -300, 'the story\'s end stays 300px above the window\'s top');
+eq(tracked.length + demos, eventsBelow, 'and nothing is counted there');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));

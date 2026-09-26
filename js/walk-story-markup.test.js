@@ -359,7 +359,7 @@ ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingCl
 // Deciding pinned or stacked by innerHeight flips a phone near 560px as
 // the toolbar moves, so the decision reads a 100svh probe instead.
 const resizeBody = (wiring.match(/function onResize\(\) \{[\s\S]*?\n  \}/) || [''])[0];
-const loadDecision = (wiring.match(/\n  if \([^\n]*\) pin\(\); else watchLine\(-1\);/) || [''])[0];
+const loadDecision = (wiring.match(/\n  if \([^\n]*\) pin\(\); else [^\n]*watchLine\(-1\);[^\n]*/) || [''])[0];
 ok(resizeBody.length > 0 && loadDecision.length > 0 && !/innerHeight/.test(resizeBody + loadDecision),
   'neither a resize nor the first load decides pinned or stacked by innerHeight, which Safari\'s toolbar changes');
 ok(/\.ws-svh\s*\{[^}]*height:\s*100svh/.test(css) && /className = 'ws-svh'/.test(wiring) && /\.offsetHeight >= 560/.test(wiring),

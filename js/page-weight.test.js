@@ -64,9 +64,9 @@ const BASELINE_KB = {
   // Same trade traces made: the app's actual drawing, priced in the open,
   // not a lighter imitation.
   // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md),
-  // +30.49 over 83.50 in all: index.html +5.06, css/walk-story.css 15.32,
-  // js/walk-story.js 5.69, js/walk-story-core.js 3.73, js/clearing.js
-  // +0.41, js/traces-cairn.js +0.14, js/universe.js +0.08, js/main.js +0.06.
+  // +31.03 over 83.50 in all: index.html +5.06, css/walk-story.css 15.32,
+  // js/walk-story.js 6.12, js/walk-story-core.js 3.73, js/clearing.js
+  // +0.42, js/traces-cairn.js +0.24, js/universe.js +0.08, js/main.js +0.06.
   // Step by step:
   // +24.30 (107.80): nine scenes, each with its copy, an HTML phone and its
   // line in two geometries, replace six sections, whose inline CSS went
@@ -108,7 +108,12 @@ const BASELINE_KB = {
   // up to 1140px, the Honor phone capped by width, a frame no wider than
   // the line past 16:9, and the finale compacted on short and wide stages
   // (css/walk-story.css +0.20).
-  'index.html':                                 113.99,
+  // +0.54 (114.53): the code review's fixes. A reader past the story
+  // keeps their distance from its end across a resize, a pin and an
+  // unpin (js/walk-story.js +0.43); a reader's own stone cancels the
+  // cairn's pending demo (js/traces-cairn.js +0.10); inline SVG is an
+  // obstacle to the clearing (js/clearing.js +0.01).
+  'index.html':                                 114.53,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
