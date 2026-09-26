@@ -377,6 +377,10 @@
       render(shown);
     }
     syncVideo();
+    // js/main.js's walker and distance skip every scroll while the story
+    // is pinned, and the scroll that left it came before the observer
+    // said so: one more brings them up to date.
+    window.dispatchEvent(new Event('scroll'));
   }
 
   function pin(past) {
@@ -393,7 +397,6 @@
   // scene that was on stage stays in view.
   function unpin(past) {
     var keep = inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1;
-    leave();
     pinned = false;
     root.classList.remove('walk-story--pinned');
     if (raf) { window.cancelAnimationFrame(raf); raf = 0; }
@@ -421,6 +424,7 @@
     if (keep !== -1) scenes[keep].scrollIntoView({ block: 'start', behavior: 'instant' });
     measure();
     keepPast(past);
+    leave();   // last, so the page catches up on the stacked story
     watchLine(keep);
   }
 
@@ -474,13 +478,16 @@
     if (pinned && i !== -1) scrollToScene(i, false);
   });
 
-  // Skipping means skipping: no smooth ride through 12.6 screens.
+  // Skipping means skipping: no smooth ride through 12.6 screens. It
+  // lands a pixel past the end: an observer counts an edge that only
+  // touches the window as in view, and offsetHeight rounds, so landing
+  // on the end could leave the story pinned with nothing in it showing.
   if (skip && after) {
     skip.addEventListener('click', function (e) {
       if (!pinned) return;
       e.preventDefault();
       after.setAttribute('tabindex', '-1');
-      window.scrollTo({ top: top + height, behavior: 'instant' });
+      window.scrollTo({ top: Math.ceil(top + height) + 1, behavior: 'instant' });
       after.focus({ preventScroll: true });
     });
   }

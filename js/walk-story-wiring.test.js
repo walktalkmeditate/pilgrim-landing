@@ -176,8 +176,16 @@ const win = {
     windowListeners[type] = (windowListeners[type] || []).filter(function (f) { return f !== fn; });
   },
   requestAnimationFrame: function (fn) { rafs.set(++rafId, fn); return rafId; },
-  cancelAnimationFrame: function (id) { rafs.delete(id); }
+  cancelAnimationFrame: function (id) { rafs.delete(id); },
+  // What js/main.js would see: the story's class and the body's.
+  dispatchEvent: function (e) {
+    dispatched.push({ type: e.type, story: isPinned(), body: doc.body.classList.contains('walk-story-pinned') });
+    fire(e.type);
+    return true;
+  }
 };
+const dispatched = [];
+function FakeEvent(type) { this.type = type; }
 const doc = {
   querySelector: function (sel) { return sel === '.walk-story' ? root : null; },
   // The one element the story creates and measures here is its 100svh
@@ -236,7 +244,7 @@ win.location.hash = '#scene-5';
 world.scrollY = STORY_TOP + 5.5 / 9 * UPRIGHT_RUN;
 
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'walk-story.js'), 'utf8'), {
-  window: win, document: doc, CSS: win.CSS, IntersectionObserver: FakeIO
+  window: win, document: doc, CSS: win.CSS, IntersectionObserver: FakeIO, Event: FakeEvent
 });
 
 /* ---------- a link to a scene ---------- */
@@ -468,7 +476,15 @@ ok(world.scrollY >= storyTop() + 9 * 1.4 * world.h, 'it lands at the story\'s en
 eq(lastJump(), 'instant', 'at once: no smooth ride through 12.6 screens');
 eq(after.attrs.tabindex, '-1', 'what follows the story can take focus');
 eq(JSON.stringify(after.focused), '[{"preventScroll":true}]', 'and takes it without a second scroll');
+// An observer counts a box whose edge only touches the window as in
+// view, and offsetHeight rounds: landing on the end, the story might
+// never leave, and the page's walker would stay hidden.
+ok(world.scrollY >= storyTop() + 9 * 1.4 * world.h + 1,
+  'it lands a pixel or more past the end, so the story\'s observer sees it leave  (' + world.scrollY + ')');
+dispatched.length = 0;
 rootObserver().cb([{ target: root, isIntersecting: false }]);
+eq(JSON.stringify(dispatched), '[{"type":"scroll","story":true,"body":false}]',
+  'leaving, the story gives the page one scroll, after it has let the walker and the distance go');
 
 console.log('\n=== unpinned, the links are the browser\'s ===\n');
 
@@ -487,6 +503,20 @@ eq(jumps(), before, 'and nothing the story does moves the reader, focus included
 eq(after.focused.length, 1, 'the skip link\'s focus is the browser\'s too');
 turn(390, 844);
 ok(isPinned(), 'upright again, the story pins');
+
+console.log('\n=== an unpin lets the page catch up on the stacked page ===\n');
+
+// No scene to keep and no distance past the end, so no scroll of the
+// story's own follows: the one it gives the page is all there is.
+world.scrollY = STORY_TOP - 400;   // the story's top in the window's lower half
+rootObserver().cb([{ target: root, isIntersecting: true }]);
+fire('scroll');
+frames();
+dispatched.length = 0;
+turn(844, 390);
+eq(JSON.stringify(dispatched), '[{"type":"scroll","story":false,"body":false}]',
+  'sideways, the page\'s one scroll comes once the story is stacked');
+turn(390, 844);
 
 /* ---------- below the story ---------- */
 
