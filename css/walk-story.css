@@ -619,14 +619,17 @@ body.constellation .walk-story-scene { background: transparent; }
 .walk-story--pinned .walk-story-atmosphere { display: block; position: absolute; top: 0; left: 0; right: 0; height: 100lvh; }
 .walk-story--pinned .ws-sky { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
 .walk-story--pinned .walk-story-scene { position: absolute; inset: 0; min-height: 0; padding: 0; background: none; }
-.walk-story--pinned .walk-story-line { opacity: 0; transition: opacity 0.6s var(--ws-ease); }
+.walk-story--pinned .walk-story-line { opacity: 0; }
 /* A walked line wears the sky it is under now, not the one it was drawn
    in: dawn's dark ink would sink into the night. --ws-stage-ink resolves
    on the stage, from the data-sky js/walk-story.js sets there, and the
-   switch is instant, like every ink change. Its labels step aside, and
-   their markers stay. The labels are SVG text and shrink with the
-   viewBox, so js/walk-story.js writes --ws-label-k to hold them at 11px
-   or more on screen; they scale about their marker. */
+   switch is instant, like every ink change; js/walk-story.js veils the
+   lines and the rail around it (WalkStoryCore.inkVeil), so the colour
+   changes while they are out of sight. The lines' opacity follows the
+   scroll (WalkStoryCore.lineOpacityAt), both ways. A walked line's labels
+   step aside, and their markers stay. The labels are SVG text and shrink
+   with the viewBox, so js/walk-story.js writes --ws-label-k to hold them
+   at 11px or more on screen; they scale about their marker. */
 .walk-story-stage { --ws-stage-ink: var(--ws-ink); }
 .walk-story--pinned .walk-story-scene:not(.is-active) .walk-story-line { color: var(--ws-stage-ink); }
 .walk-story--pinned .ws-moment-label,

@@ -18,7 +18,11 @@
   var LINE_INK_END = 0.85;
   var PAST_LINE_OPACITY = 0.35;
   var PAST_LINE_OPACITY_COMPACT = 0.2;
+  // Older lines on a phone fold back over the newer ones in a narrow
+  // column; at 0.07 they read as a trace of the walk, not a knot.
   var PAST_LINE_OPACITY_FAR_COMPACT = 0.07;
+  // Scenes either side of an ink turn where the lines are wholly veiled.
+  var INK_HIDE = 0.03;
   // The moments' labels are SVG text set at LABEL_PX in the viewBox, so
   // they shrink with it; on screen they never read below LABEL_MIN_PX.
   var LABEL_PX = 13;
@@ -29,6 +33,9 @@
   // take it below AA partway through. Skies blend only inside the
   // crossfade between scenes, where the text is fading too.
   var SKIES = ['dawn', 'day', 'golden', 'dusk', 'night'];
+  // The skies that take the light ink in the light theme; dark mode's ink
+  // is light everywhere (css/walk-story.css).
+  var DARK_SKIES = ['dusk', 'night'];
 
   var SCENES = [
     { id: 'set-out', name: 'Set out', sky: 'dawn' },
@@ -73,6 +80,10 @@
     return 1 - Math.pow(1 - t, 3);
   }
 
+  function smooth(t) {
+    return t * t * (3 - 2 * t);
+  }
+
   // The front (text, phone, acts) of scene j, given its own local
   // progress l = p*n - j. The first scene never fades in and the last
   // never fades out: the story opens already standing and ends at rest.
@@ -96,6 +107,41 @@
     return current === SCENES.length - 1 ? 0 : PAST_LINE_OPACITY_FAR_COMPACT;
   }
 
+  // Line j's opacity at progress p: lineOpacity through a hold, eased from
+  // scene b-1's to scene b's across the crossfade into b, like the fronts.
+  function lineOpacityAt(j, p, n, compact) {
+    var x = clamp(p, 0, 1) * n;
+    var b = Math.round(x);
+    if (b < 1 || b > n - 1 || Math.abs(x - b) >= FADE) return lineOpacity(j, sceneAt(p, n).index, compact);
+    var from = lineOpacity(j, b - 1, compact);
+    var to = lineOpacity(j, b, compact);
+    return from + (to - from) * smooth((x - b + FADE) / (2 * FADE));
+  }
+
+  // The boundaries where the stage's ink turns, light theme only.
+  function inkTurns(darkTheme) {
+    var turns = [];
+    if (darkTheme) return turns;
+    for (var b = 1; b < SCENES.length; b++) {
+      var was = DARK_SKIES.indexOf(SCENES[b - 1].sky) !== -1;
+      var now = DARK_SKIES.indexOf(SCENES[b].sky) !== -1;
+      if (was !== now) turns.push(b);
+    }
+    return turns;
+  }
+
+  // The walked lines and the rail wear the stage's ink, which changes in
+  // one frame, so across a turn's crossfade (x = p*n) they are veiled, and
+  // wholly within INK_HIDE of it, where the colour changes.
+  function inkVeil(x, turns) {
+    var v = 1;
+    for (var i = 0; i < turns.length; i++) {
+      var t = clamp((Math.abs(x - turns[i]) - INK_HIDE) / (FADE - INK_HIDE), 0, 1);
+      v = Math.min(v, smooth(t));
+    }
+    return v;
+  }
+
   function skyWeights(p, n) {
     var w = {};
     SKIES.forEach(function (s) { w[s] = 0; });
@@ -112,6 +158,8 @@
       from = SCENES[i - 1].sky;
       t = 0.5 + l / (2 * FADE);
     }
+    // Eased: a light sky and a dark one mix to mud halfway, so pass it fast.
+    t = smooth(t);
     w[from] += 1 - t;
     w[to] += t;
     return w;
@@ -191,6 +239,8 @@
     PAST_LINE_OPACITY: PAST_LINE_OPACITY,
     PAST_LINE_OPACITY_COMPACT: PAST_LINE_OPACITY_COMPACT,
     PAST_LINE_OPACITY_FAR_COMPACT: PAST_LINE_OPACITY_FAR_COMPACT,
+    INK_HIDE: INK_HIDE,
+    DARK_SKIES: DARK_SKIES,
     LABEL_PX: LABEL_PX,
     LABEL_MIN_PX: LABEL_MIN_PX,
     SKIES: SKIES,
@@ -202,6 +252,9 @@
     holdLocal: holdLocal,
     frontOpacity: frontOpacity,
     lineOpacity: lineOpacity,
+    lineOpacityAt: lineOpacityAt,
+    inkTurns: inkTurns,
+    inkVeil: inkVeil,
     skyWeights: skyWeights,
     layerOpacities: layerOpacities,
     honorReveal: honorReveal,

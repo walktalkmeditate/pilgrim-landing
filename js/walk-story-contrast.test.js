@@ -135,6 +135,15 @@ ok(/\.walk-story-scene\[data-sky="dusk"\],\s*\.walk-story-scene\[data-sky="night
   'dusk and night scenes take the dark-sky ink');
 ok(/\[data-theme="dark"\] \.walk-story-scene[\s\S]*?--ws-ink:\s*var\(--ws-ink-darksky\)/.test(css),
   'dark mode takes the dark-sky ink everywhere');
+// js/walk-story.js veils the walked lines where the stage's ink turns,
+// and the core finds those turns from its own list of dark skies; it
+// must be the stylesheet's list, or a turn would flip in plain sight.
+const darkInkRule = (css.match(/([^{}]*)\{\s*--ws-ink:\s*var\(--ws-ink-darksky\)/) || [])[1] || '';
+['scene', 'stage'].forEach(function (el) {
+  const skies = Array.from(darkInkRule.matchAll(new RegExp('\\.walk-story-' + el + '\\[data-sky="([a-z]+)"\\]', 'g'))).map(function (m) { return m[1]; }).sort();
+  const want = C.DARK_SKIES.slice().sort().join(',');
+  ok(skies.join(',') === want, 'the ' + el + ' takes the light ink on exactly the core\'s dark skies  (' + skies.join(',') + ' vs ' + want + ')');
+});
 ok(/\.walk-story-scene\s*\{\s*color:\s*var\(--ws-ink\);/.test(css), 'scene text is the scene\'s ink');
 ok(/body\.constellation \.walk-story-atmosphere\s*\{\s*display:\s*none;/.test(css), 'star mode: the starfield is the sky');
 ok(/\.walk-story-scene \.traces-card-title\s*\{\s*color:\s*var\(--ws-ink\)/.test(css),

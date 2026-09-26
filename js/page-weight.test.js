@@ -74,7 +74,10 @@ const BASELINE_KB = {
   // and the line's quieter past on a phone.
   // +0.53 (109.59): a short laptop stage (1366x650, 1280x720) compacts the
   // copy instead of running it into the line.
-  'index.html':                                 109.59,
+  // +0.95 (110.54): the walked lines follow the scroll instead of a timed
+  // fade, and are veiled where the light theme's ink turns, in the core
+  // where both are tested; the sky's crossfade is eased.
+  'index.html':                                 110.54,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

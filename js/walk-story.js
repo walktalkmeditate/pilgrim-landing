@@ -7,8 +7,8 @@
  * their finished states: every act in css/walk-story.css reads
  * var(--hold, 1) and nothing sets --hold. Pinned, each frame first reads
  * every moving dot's point, then writes: --hold on scenes whose hold
- * changed, opacity on fronts, lines and the five sky layers, and a
- * transform on each moving dot. The only layout read is measure().
+ * changed, opacity on fronts, lines, the rail and the five sky layers,
+ * and a transform on each moving dot. The only layout read is measure().
  */
 
 (function () {
@@ -38,6 +38,7 @@
 
   var stage = root.querySelector('.walk-story-stage');
   var skies = Array.prototype.slice.call(root.querySelectorAll('.ws-sky'));
+  var railEl = root.querySelector('.walk-story-rail');
   var rail = Array.prototype.slice.call(root.querySelectorAll('.walk-story-rail a'));
   var pill = root.querySelector('.walk-story-pill');
   var pillText = pill && pill.querySelector('.ws-pill-label');
@@ -74,6 +75,7 @@
   var target = 0, shown = 0, raf = 0, lastT = 0;
   var current = -1, inView = false, demoed = false, reachedEnd = false;
   var skyOpacity = skies.map(function () { return -1; });
+  var railOpacity = -1;
 
   function sceneIndex(id) {
     for (var i = 0; i < C.SCENES.length; i++) if (C.SCENES[i].id === id) return i;
@@ -145,8 +147,15 @@
     syncVideo();
   }
 
+  // The theme can change under a pinned story, so it is read per frame;
+  // an attribute, not layout.
+  function inkTurns() {
+    return C.inkTurns(document.documentElement.getAttribute('data-theme') === 'dark');
+  }
+
   function render(p) {
     var at = C.sceneAt(p, n);
+    var veil = C.inkVeil(p * n, inkTurns());
     var moved = [];
     var j, s;
     // Read every moving dot's point first, then write: a geometry read
@@ -171,7 +180,7 @@
         s.frontEl.style.opacity = front;
         s.frontOpacity = front;
       }
-      var line = C.lineOpacity(j, at.index, compact);
+      var line = Math.round(C.lineOpacityAt(j, p, n, compact) * veil * 1000) / 1000;
       if (line !== s.lineOpacity) {
         for (var q = 0; q < s.lines.length; q++) s.lines[q].style.opacity = line;
         s.lineOpacity = line;
@@ -184,6 +193,11 @@
         skies[i].style.opacity = o;
         skyOpacity[i] = o;
       }
+    }
+    var railNow = Math.round(veil * 1000) / 1000;
+    if (railEl && railNow !== railOpacity) {
+      railEl.style.opacity = railNow;
+      railOpacity = railNow;
     }
     if (at.index !== current) setCurrent(at.index);
   }
@@ -300,6 +314,8 @@
       s.lineOpacity = -1;
     });
     skies.forEach(function (el, i) { el.style.opacity = ''; skyOpacity[i] = -1; });
+    if (railEl) railEl.style.opacity = '';
+    railOpacity = -1;
     root.style.removeProperty('--ws-label-k');
     rail.forEach(function (a) { a.removeAttribute('aria-current'); });
     if (pill) pill.classList.remove('is-docked');

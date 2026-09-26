@@ -100,6 +100,68 @@ eq(C.lineOpacity(6, 8, true), 0, 'but the older lines run under the finale\'s co
 eq(C.lineOpacity(8, 8, true), 1, 'on a phone the finale keeps its own last metres and the walker');
 eq(C.lineOpacity(7, 8), C.PAST_LINE_OPACITY, 'on a desktop the finale keeps the whole walk');
 
+console.log('\n=== lineOpacityAt: the lines hand over with the scroll ===\n');
+
+// x = p * 9 is the story in scenes. Through a scene's hold every line
+// wears lineOpacity; across the crossfade into the next it eases from
+// one to the other, driven by the scroll like the fronts, both ways.
+[false, true].forEach(function (compact) {
+  const tag = compact ? 'phone' : 'desktop';
+  let holdsOk = true;
+  for (let i = 0; i < 9; i++) {
+    [C.FADE, 0.5, 1 - C.FADE].forEach(function (l) {
+      for (let j = 0; j < 9; j++) {
+        if (Math.abs(C.lineOpacityAt(j, (i + l) / 9, 9, compact) - C.lineOpacity(j, i, compact)) > 1e-12) holdsOk = false;
+      }
+    });
+  }
+  ok(holdsOk, tag + ': through every hold each line wears lineOpacity exactly');
+  let worst = 0;
+  const lastAt = [];
+  for (let k = 0; k <= 9000; k++) {
+    for (let j = 0; j < 9; j++) {
+      const o = C.lineOpacityAt(j, k / 9000, 9, compact);
+      if (k) worst = Math.max(worst, Math.abs(o - lastAt[j]));
+      lastAt[j] = o;
+    }
+  }
+  ok(worst < 0.01, tag + ': no line jumps: a 1/9000 scroll step moves none by 0.01 or more  (' + worst.toFixed(4) + ')');
+});
+near(C.lineOpacityAt(5, (6 - C.FADE) / 9, 9, false), 1, 'the line just walked is still whole as the crossfade begins');
+near(C.lineOpacityAt(5, (6 + C.FADE) / 9, 9, false), C.PAST_LINE_OPACITY, 'and has stepped back by the time the next hold begins');
+near(C.lineOpacityAt(6, (6 - C.FADE) / 9, 9, false), 0, 'the next scene\'s line arrives with its scene, from nothing');
+const midway = C.lineOpacityAt(5, 6 / 9, 9, false);
+ok(midway > C.PAST_LINE_OPACITY && midway < 1, 'at the boundary itself the hand-over is under way  (' + midway.toFixed(3) + ')');
+
+console.log('\n=== inkTurns and inkVeil: the ink changes out of sight ===\n');
+
+// In light the ink is dark on dawn, day and golden and light on dusk and
+// night, and the stage's ink, which the walked lines and the rail wear,
+// switches in one frame. They are veiled around that boundary so the
+// switch happens while they are hidden. Dark mode's ink never turns.
+ok(C.DARK_SKIES.indexOf('dusk') !== -1 && C.DARK_SKIES.indexOf('night') !== -1 && C.DARK_SKIES.length === 2,
+  'dusk and night are the skies that take the light ink in the light theme');
+eq(C.inkTurns(false).join(','), '6', 'in light the ink turns once, into scene 07\'s dusk');
+eq(C.inkTurns(true).length, 0, 'in dark it never turns');
+const turns = C.inkTurns(false);
+eq(C.inkVeil(6 - 1e-9, turns), 0, 'the last frame before the stage\'s ink switches is veiled');
+eq(C.inkVeil(6, turns), 0, 'and the first frame after it');
+near(C.inkVeil(6 - C.INK_HIDE, turns), 0, 'the veil is whole for INK_HIDE before the switch', 1e-12);
+near(C.inkVeil(6 + C.INK_HIDE, turns), 0, 'and for INK_HIDE after it, so a fast scroll steps over no visible frame', 1e-12);
+ok(C.INK_HIDE > 0 && C.INK_HIDE < C.FADE / 2, 'the veiled stretch is a small part of the crossfade  (' + C.INK_HIDE + ')');
+let veilHoldsOk = true, veilWorst = 0, lastVeil = 1;
+for (let k = 0; k <= 9000; k++) {
+  const x = k / 1000;
+  const v = C.inkVeil(x, turns);
+  if (x - Math.floor(x) >= C.FADE && x - Math.floor(x) <= 1 - C.FADE && v !== 1) veilHoldsOk = false;
+  veilWorst = Math.max(veilWorst, Math.abs(v - lastVeil));
+  lastVeil = v;
+  if (C.inkVeil(x, []) !== 1) veilHoldsOk = false;
+}
+ok(veilHoldsOk, 'no scene\'s hold is ever veiled, and nothing is veiled where the ink does not turn');
+ok(veilWorst < 0.05, 'the veil falls and lifts smoothly: a 1/9000 step moves it by less than 0.05  (' + veilWorst.toFixed(4) + ')');
+near(C.inkVeil(6 - 0.07, turns), C.inkVeil(6 + 0.07, turns), 'it lifts as it fell, so scrolling back up is the same veil in reverse', 1e-12);
+
 console.log('\n=== skyWeights and layerOpacities ===\n');
 
 function sum(w) { return Object.keys(w).reduce(function (a, k) { return a + w[k]; }, 0); }
@@ -111,7 +173,14 @@ for (let i = 0; i <= 900; i++) {
   prev = w;
 }
 ok(sumsOk, 'sky weights sum to 1 everywhere');
-ok(maxStep < 0.06, 'the sky never snaps: a 1/900 scroll step moves no weight by 0.06 or more  (' + maxStep.toFixed(4) + ')');
+// An eased blend is steepest halfway, at 1.5 times the linear rate
+// (0.042 per 1/900 step), so the bound is set just above that.
+ok(maxStep < 0.07, 'the sky never snaps: a 1/900 scroll step moves no weight by 0.07 or more  (' + maxStep.toFixed(4) + ')');
+// A linear blend of golden into dusk spends a long stretch as flat mud;
+// an eased one holds each sky longer and crosses the middle quickly.
+const quarter = C.skyWeights((6 - C.FADE / 2) / 9, 9);
+ok(quarter.dusk > 0 && quarter.dusk < 0.25, 'the crossfade eases: a quarter of the way in, the next sky has less than a quarter  (' + quarter.dusk.toFixed(3) + ')');
+near(C.skyWeights(6 / 9, 9).dusk, 0.5, 'and is even at the boundary', 1e-9);
 C.SCENES.forEach(function (s, i) {
   const w = C.skyWeights(C.holdStartProgress(i, 9) + 0.3 / 9, 9);
   eq(w[s.sky], 1, 'through scene ' + (i + 1) + '\'s hold the sky is its own: ' + s.sky);
