@@ -1469,9 +1469,11 @@
             <defs>
               <radialGradient id="ws-moon-halo-p"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset=".45" stop-color="currentColor" stop-opacity=".07"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
             </defs>
-            <circle class="ws-moon-halo" cx="380" cy="700" r="90" fill="url(#ws-moon-halo-p)"/>
-            <circle class="ws-moon-disc" cx="380" cy="700" r="30"/>
-            <path class="ws-moon-lit" data-cx="380" data-cy="700" data-r="30" d="M380 670 A30 30 0 0 1 380 730 A0.00 30 0 0 0 380 670Z"/>
+            <g class="ws-moon-pinned">
+              <circle class="ws-moon-halo" cx="380" cy="700" r="90" fill="url(#ws-moon-halo-p)"/>
+              <circle class="ws-moon-disc" cx="380" cy="700" r="30"/>
+              <path class="ws-moon-lit" data-cx="380" data-cy="700" data-r="30" d="M380 670 A30 30 0 0 1 380 730 A0.00 30 0 0 0 380 670Z"/>
+            </g>
             <path class="ws-line" d="M40 836 C34 838 28 840 24 840" pathLength="1"/>
             <g class="ws-dot" transform="translate(24 840)"><circle r="6"/></g>
           </svg>
