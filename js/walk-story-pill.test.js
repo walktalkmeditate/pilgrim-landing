@@ -15,11 +15,11 @@
      moment and label is read from index.html, in the geometry that
      viewport draws, and mapped to the screen by the SVG's own
      viewBox and preserveAspectRatio;
-   - at eleven viewports, short laptops among them, with and without a
-     desktop scrollbar, nothing meets the pill: docked, against every
-     scene it docks in and every walked line before it; and on a
-     desktop, the centred "Begin walking" of scene 01 against scene
-     01's own line.
+   - at two dozen viewports, short laptops and tablets among them, with
+     and without a desktop scrollbar, nothing meets the pill: docked,
+     against every scene it docks in and every walked line before it;
+     and on a desktop, the centred "Begin walking" of scene 01 against
+     scene 01's own line.
    ============================================= */
 
 'use strict';
@@ -55,12 +55,17 @@ const SCROLLBAR_PX = 15;
 
 // The short laptop stages are listed too: there the line takes a larger
 // share of the height, and the corner the pill docks in is nearer to it.
-// So are iPads upright (768 to 834 wide): the 721–1024px layout on a
+// So are iPads upright (744 to 1024 wide): the 721–1024px layout on a
 // stage taller than it is wide, where a phone sized by the height is
-// widest against its column.
+// widest against its column. And the stages of that layout between
+// upright and landscape (half of a 1512 to 1728px MacBook screen in split
+// view among them), where the corner beside the Honor climb is too small
+// for the pill and a phone may reach down to where it docks instead, from
+// the narrowest to one whose corner is free again.
 const VIEWPORTS = [[1920, 1080], [1440, 900], [1024, 768], [562, 915], [390, 844], [375, 667],
   [1440, 789], [1536, 730], [1280, 720], [1366, 650], [1280, 600],
-  [768, 1024], [810, 1080], [820, 1180], [834, 1194]];
+  [768, 1024], [810, 1080], [820, 1180], [834, 1194], [744, 1133], [1024, 1366],
+  [725, 600], [760, 900], [800, 640], [840, 900], [864, 1000], [900, 1000], [1000, 1000], [1010, 1330]];
 
 // --- the stylesheet, cascaded per viewport ---
 
@@ -517,12 +522,41 @@ function pct(value) {
   return +m[1] / 100;
 }
 
-// A phone's height: a percentage of the stage (100svh, the viewport's
-// height here), maybe capped by the width in min(P%, Nvw).
+// A phone's height: %, vw, rem and px, added, subtracted and scaled by
+// plain numbers, in calc(), min(), max() and parentheses. Its % is of the
+// stage (100svh, the viewport's height here). Anything else fails loudly.
 function phoneHeight(value, vw, vh) {
-  const capped = /^min\(([\d.]+%),\s*([\d.]+)vw\)$/.exec(value || '');
-  if (capped) return Math.min(pct(capped[1]) * vh, +capped[2] / 100 * vw);
-  return pct(value) * vh;
+  const src = (value || '').replace(/\s+/g, '');
+  const tokens = src.match(/(?:calc|min|max)?\(|[\d.]+(?:%|vw|rem|px)?|[-+*,)]/g) || [];
+  if (tokens.join('') !== src) throw new Error('unreadable height: ' + value);
+  let i = 0;
+  function fail() { throw new Error('unreadable height: ' + value); }
+  function sum() {
+    let v = product();
+    while (tokens[i] === '+' || tokens[i] === '-') v = tokens[i++] === '+' ? v + product() : v - product();
+    return v;
+  }
+  function product() {
+    let v = operand();
+    while (tokens[i] === '*') { i++; v *= operand(); }
+    return v;
+  }
+  function operand() {
+    const t = tokens[i++] || '';
+    if (/\($/.test(t)) {
+      const args = [sum()];
+      while (tokens[i] === ',') { i++; args.push(sum()); }
+      if (tokens[i++] !== ')' || (args.length > 1 && !/^(min|max)\($/.test(t))) fail();
+      return t === 'min(' ? Math.min.apply(null, args) : t === 'max(' ? Math.max.apply(null, args) : args[0];
+    }
+    const m = /^([\d.]+)(%|vw|rem|px)?$/.exec(t);
+    if (!m) fail();
+    const unit = { '%': vh / 100, vw: vw / 100, rem: ROOT_PX, px: 1 };
+    return +m[1] * (m[2] ? unit[m[2]] : 1);
+  }
+  const height = sum();
+  if (i !== tokens.length) fail();
+  return height;
 }
 
 function phoneBox(vw, vh, W, honor) {
@@ -555,9 +589,9 @@ VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
 
 console.log('\n=== on a desktop or tablet, the docked pill keeps clear of every phone ===\n');
 
-// Where the pill cannot dock under the line (a tablet upright draws the
-// line in a thin band along the foot), it docks above it, beneath the
-// phone; so each phone is checked against the pill of its own scene.
+// Where the pill cannot dock beside the Honor climb (a stage 721 to
+// 1000px wide), it docks above the line, where a phone may reach down to
+// it; so each phone is checked against the pill of its own scene.
 VIEWPORTS.filter(function (v) { return v[0] > 720; }).forEach(function (v) {
   const vw = v[0], vh = v[1];
   [0, SCROLLBAR_PX].forEach(function (bar) {

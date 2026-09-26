@@ -803,19 +803,29 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
   .walk-story--pinned .ws-said { left: 6%; width: 42%; }
   /* The line's viewBox is at its smallest here, so the Honor climb comes
      nearest the corner; a compact pill keeps clear of it, even when a
-     classic scrollbar narrows the stage (js/walk-story-pill.test.js). */
-  .walk-story--pinned .walk-story-pill.is-docked { font-size: 0.85rem; padding: 0.6em 0.95em; }
+     classic scrollbar narrows the stage (js/walk-story-pill.test.js). The
+     line is sized by the width, so the corner is measured in it too, and
+     a taller stage does not lift the pill into the climb (2.25vw is 3% of
+     a 1024x768 stage). */
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(2.25vw + env(safe-area-inset-bottom, 0px)); font-size: 0.85rem; padding: 0.6em 0.95em; }
   /* Upright, a phone sized by the height alone would reach over the copy,
      so the width caps it. The short stage's 64% also matches at 1024x768;
      this block comes after it, so 60% holds there. */
   .walk-story--pinned .walk-story-phone { height: min(60%, 72vw); }
 }
-/* Upright, the line is a thin band along the stage's foot with no corner
-   free, so the pill docks above it, beneath the phone. The band's right
-   end (the Honor climb) rises 340 of the viewBox's 1600, 0.2125 of the
-   width. */
-@media (min-width: 721px) and (max-width: 1024px) and (max-aspect-ratio: 3/4) {
+/* Up to 1000px wide the corner beside the Honor climb is smaller than the
+   pill at any aspect, so the pill docks above the line: the climb rises
+   340 of the viewBox's 1600, 0.2125 of the width. A phone near square
+   would reach down to it there, so the phone takes the larger of two
+   heights that keep it a rem clear of the pill. One ends its right edge
+   left of the pill: 29vw from its centre at 68% to the pill's edge at
+   97%, less the pill, the rem and a classic scrollbar, times 4.2, its
+   height over its half-width. The other ends its foot, riding low, above
+   the pill: twice the 52% below its centre, less the pill's offset and
+   height, the ride and the rem. Upright, 72vw still sets it. */
+@media (min-width: 721px) and (max-width: 1000px) {
   .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(21.25vw + 1rem); }
+  .walk-story--pinned .walk-story-phone { height: min(60%, 72vw, max((29vw - 9.1rem) * 4.2, 2 * (52% - 21.25vw - 5.125rem))); }
 }
 
 /* A phone: the copy spans the top; beneath it the line keeps the left
