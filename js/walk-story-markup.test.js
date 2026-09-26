@@ -372,6 +372,14 @@ ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story-
   'the story clips, not the stage, so the 100lvh sky reaches below it');
 ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
   'will-change on the sky layers and only the active phone: six promoted layers at most');
+// A custom property set on the stage is inherited by all ~580 elements
+// under it, so the stage's data-sky flipping an ink token there restyled
+// every one of them in the frame the light theme's ink turned. The
+// data-sky now picks the colour of the rail and the walked lines alone.
+ok(!/--ws-stage-ink/.test(css), 'no ink token hangs on the stage for everything under it to inherit');
+ok(!/\.walk-story-stage[^{]*\{[^}]*--ws-(ink|muted):/.test(css), 'the stage defines no ink tokens; each scene\'s ink is its own');
+ok(/\.walk-story-stage:is\(\[data-sky="dusk"\], \[data-sky="night"\]\) :is\(\.walk-story-rail, \.walk-story-scene:not\(\.is-active\) \.walk-story-line\)/.test(css),
+  'under dusk and night the stage\'s data-sky inks the rail and the walked lines, and nothing else');
 
 console.log('\n=== the frame ===\n');
 

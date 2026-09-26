@@ -146,11 +146,15 @@ ok(/\[data-theme="dark"\] \.walk-story-scene[\s\S]*?--ws-ink:\s*var\(--ws-ink-da
 // js/walk-story.js veils the walked lines where the stage's ink turns,
 // and the core finds those turns from its own list of dark skies; it
 // must be the stylesheet's list, or a turn would flip in plain sight.
+// The scenes switch by an ink token; the stage switches the walked lines
+// and the rail by their colour alone (a token there would restyle all
+// ~580 elements under it at each turn).
 const darkInkRule = (css.match(/([^{}]*)\{\s*--ws-ink:\s*var\(--ws-ink-darksky\)/) || [])[1] || '';
-['scene', 'stage'].forEach(function (el) {
-  const skies = Array.from(darkInkRule.matchAll(new RegExp('\\.walk-story-' + el + '\\[data-sky="([a-z]+)"\\]', 'g'))).map(function (m) { return m[1]; }).sort();
+const stageInkRule = ((css.match(/\.walk-story-stage:is\(([^)]*)\) :is\([^)]*\)[^{]*\{\s*color:\s*var\(--ws-ink-darksky\)/) || [])[1] || '');
+[['scene', darkInkRule, /\.walk-story-scene\[data-sky="([a-z]+)"\]/g], ['stage', stageInkRule, /\[data-sky="([a-z]+)"\]/g]].forEach(function (c) {
+  const skies = Array.from(c[1].matchAll(c[2])).map(function (m) { return m[1]; }).sort();
   const want = C.DARK_SKIES.slice().sort().join(',');
-  ok(skies.join(',') === want, 'the ' + el + ' takes the light ink on exactly the core\'s dark skies  (' + skies.join(',') + ' vs ' + want + ')');
+  ok(skies.join(',') === want, 'the ' + c[0] + ' takes the light ink on exactly the core\'s dark skies  (' + skies.join(',') + ' vs ' + want + ')');
 });
 ok(/\.walk-story-scene\s*\{\s*color:\s*var\(--ws-ink\);/.test(css), 'scene text is the scene\'s ink');
 ok(/body\.constellation \.walk-story-atmosphere\s*\{\s*display:\s*none;/.test(css), 'star mode: the starfield is the sky');
