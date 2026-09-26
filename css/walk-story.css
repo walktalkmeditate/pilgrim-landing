@@ -585,22 +585,26 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .ws-summary-timer { margin-top: calc(12 * var(--pt)); font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; }
 
 /* 08 — the shared walk as it opens in Safari (pilgrim-worker
-   src/generators/html-template.ts, the departure chapter). */
-.ws-screen--share { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt)); text-align: center; }
-/* The worker chooses the page's theme from the walk's own hour
-   (walk-character.ts getPageTheme: only a night walk is dark), not from
-   whoever opens it. This walk set out at dawn, so its page is light in
-   every theme here, in the template's own light palette. */
-[data-theme="dark"] .ws-screen--share {
+   src/generators/html-template.ts, the departure chapter). The worker
+   chooses the page's theme from the walk's own hour (walk-character.ts
+   getPageTheme: only a night walk is dark), not from whoever opens it.
+   This walk set out at dawn, so its page is light in every theme here,
+   in the template's own light palette, not the season's parchment. */
+.ws-screen--share {
   --parchment: #F5F0E8;
   --parchment-secondary: #EDE6D8;
-  --parchment-tertiary: #E4DBCB;
   --ink: #2C241E;
   --ws-map-land: #E6DDCC;
   --ws-map-road: #F7F2E9;
   --ws-map-park: #D9DDC6;
   --ws-map-water: #C3CFCC;
   color-scheme: light;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt));
+  text-align: center;
 }
 /* The departure chapter opens over the walk's own map under a parchment
    veil, as the live page does. */
@@ -914,7 +918,7 @@ body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6
 .walk-story--pinned .ws-fog-bank { transition: opacity 0.6s var(--ws-ease); }
 .walk-story--pinned .walk-story-scene:not(.is-active) .ws-fog-bank { opacity: 0; }
 /* On a dark sky the fog's dense heart would glow like a lamp; it thins. */
-[data-theme="dark"] .ws-fog-bank ellipse:last-child { opacity: 0.45; }
+[data-theme="dark"] .ws-fog-dense { opacity: 0.45; }
 .ws-crescent-lean { transform: rotate(calc(var(--lean) * clamp(0, (var(--hold, 1) - 0.2) / 0.6, 1))); }
 
 /* 06 — the wisp brightens as the line passes it. */

@@ -164,19 +164,22 @@ ok(/background:\s*color-mix\(in srgb, #000 \d+%, var\(--parchment\)\)/.test(
 // pilgrim-worker src/generators/walk-character.ts getPageTheme: only a
 // night walk's page is dark, whatever the viewer's scheme. This walk set
 // out at dawn, so the page it shares is light, in the template's own
-// light palette (src/generators/html-template.ts :root).
-const shareDark = rule('[data-theme="dark"] .ws-screen--share');
-[['--parchment', '#F5F0E8'], ['--parchment-secondary', '#EDE6D8'], ['--parchment-tertiary', '#E4DBCB'], ['--ink', '#2C241E']].forEach(function (t) {
-  ok(new RegExp(t[0] + ':\\s*' + t[1], 'i').test(shareDark),
-    'in dark, the shared page keeps pilgrim-worker\'s light ' + t[0] + ' ' + t[1] + ': a dawn walk\'s page is served light');
+// light palette (src/generators/html-template.ts :root), in every theme:
+// not the dark palette, and not the season's parchment js/seasonal.js
+// writes on the page in light.
+const sharePage = rule('.ws-screen--share');
+ok(!/\[data-theme="dark"\] \.ws-screen--share/.test(phoneCssAll), 'the shared page\'s palette is not scoped to one theme');
+[['--parchment', '#F5F0E8'], ['--parchment-secondary', '#EDE6D8'], ['--ink', '#2C241E']].forEach(function (t) {
+  ok(new RegExp(t[0] + ':\\s*' + t[1], 'i').test(sharePage),
+    'the shared page keeps pilgrim-worker\'s light ' + t[0] + ' ' + t[1] + ': a dawn walk\'s page is served light');
 });
 const lightMap = (phoneCssAll.match(/:root \{\s*--ws-map-land[\s\S]*?\}/) || [''])[0];
 ['land', 'road', 'park', 'water'].forEach(function (k) {
   const want = (lightMap.match(new RegExp('--ws-map-' + k + ':\\s*(#[0-9A-F]{6})', 'i')) || [])[1];
-  ok(!!want && new RegExp('--ws-map-' + k + ':\\s*' + want, 'i').test(shareDark),
-    'in dark, the shared page\'s map keeps the light ' + k + ' (' + want + ')');
+  ok(!!want && new RegExp('--ws-map-' + k + ':\\s*' + want, 'i').test(sharePage),
+    'the shared page\'s map keeps the light ' + k + ' (' + want + ')');
 });
-ok(/color-scheme:\s*light/.test(shareDark), 'in dark, the shared page is a light page to the browser too');
+ok(/color-scheme:\s*light/.test(sharePage), 'the shared page is a light page to the browser too');
 ok(!/\[data-theme="dark"\] \.ws-safari/.test(phoneCssAll), 'Safari\'s bar is never darkened over the light shared page');
 
 console.log('\n=== Honor, drawn from the bake ===\n');
@@ -254,6 +257,8 @@ ok(fogStops.every(function (g) {
   const last = (g.match(/<stop offset="([\d.]+)"[^>]*stop-opacity="0"\/>/) || [])[1];
   return last !== undefined && +last < 1;
 }), 'every fog gradient has faded to nothing inside its ellipse, not at its edge');
+eq(count(fogScene, '<ellipse class="ws-fog-dense"'), 2, 'each geometry\'s dense fog is named, so a dark sky can thin it whatever the markup\'s order');
+ok(/\[data-theme="dark"\] \.ws-fog-dense\s*\{[^}]*opacity/.test(phoneCssAll), 'on a dark sky the dense fog thins');
 eq(count(fogScene, '<ellipse'),(fogScene.match(/<g class="ws-fog-bank">[\s\S]*?<\/g>/g) || []).join('').split('<ellipse').length - 1,
   'every fog ellipse drifts in the bank, so none is left behind');
 const storyCssForFog = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
