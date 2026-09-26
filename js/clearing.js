@@ -113,7 +113,8 @@
     status.setAttribute('role', 'status');
     host.appendChild(status);
 
-    var rider = null, riderSvg = null, riderCircle = null;
+    var rider = null, riderSvg = null, riderCircle = null, riderAt = null;
+    var riding = false, doorPassed = false, doorWatch = null;
     var prevAngle = 90;
     var revealed = false;
     var raf = 0;
@@ -133,32 +134,56 @@
       riderCircle = rider.querySelector('circle');
     }
 
+    // Has the door left the viewport upward? This root runs from the
+    // viewport's top edge past the page's foot, so no jump skips it.
+    function watchDoor() {
+      if (!('IntersectionObserver' in window)) return;
+      doorWatch = new IntersectionObserver(function (entries) {
+        var e = entries[entries.length - 1];
+        doorPassed = !e.isIntersecting && e.boundingClientRect.bottom < 0;
+        requestFrame();
+      }, { rootMargin: '0px 0px 100000px 0px' });
+      doorWatch.observe(door);
+    }
+
+    // Reads, then writes. The pinned walk story writes every frame, so
+    // while it is pinned the rider reads nothing: a class check.
     function frame() {
       raf = 0;
       if (!rider || revealed) return;
 
-      var riding = door.getBoundingClientRect().bottom < 0;
-      rider.classList.toggle('is-riding', riding);
-      if (!riding) return;
+      var ride = !document.body.classList.contains('walk-story-pinned') && doorPassed;
+      var f = ride && fog.getBoundingClientRect();
+      if (ride && !riderAt) {
+        // Fixed to the viewport, it moves only on resize.
+        var r = rider.getBoundingClientRect();
+        riderAt = { x: r.left + r.width / 2, y: r.top + r.height / 2, viewH: window.innerHeight };
+      }
 
-      var r = rider.getBoundingClientRect();
-      var cx = r.left + r.width / 2;
-      var cy = r.top + r.height / 2;
-      var f = fog.getBoundingClientRect();
+      if (ride !== riding) {
+        riding = ride;
+        rider.classList.toggle('is-riding', ride);
+      }
+      if (!ride) return;
+
       var tx = f.left + f.width / 2;
       var ty = f.top + f.height / 2;
-
-      prevAngle = C.unwrapAngle(prevAngle, C.leanAngleDeg(cx, cy, tx, ty));
+      prevAngle = C.unwrapAngle(prevAngle, C.leanAngleDeg(riderAt.x, riderAt.y, tx, ty));
       riderSvg.style.transform = 'rotate(' + prevAngle.toFixed(1) + 'deg)';
 
-      var dx = tx - cx, dy = ty - cy;
-      var dash = C.dashFor(C.arcSpan(Math.sqrt(dx * dx + dy * dy), window.innerHeight));
+      var dx = tx - riderAt.x, dy = ty - riderAt.y;
+      var dash = C.dashFor(C.arcSpan(Math.sqrt(dx * dx + dy * dy), riderAt.viewH));
       riderCircle.style.strokeDasharray = dash.array;
       riderCircle.style.strokeDashoffset = dash.offset;
     }
 
     function requestFrame() {
       if (!raf) raf = window.requestAnimationFrame(frame);
+    }
+
+    function onResize() {
+      riderAt = null;
+      requestFrame();
     }
 
     var stillTimer = 0, hoverTimer = 0;
@@ -191,9 +216,11 @@
       status.textContent = 'A clearing, revealed.';
 
       if (io) io.disconnect();
+      if (doorWatch) doorWatch.disconnect();
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', requestFrame);
+      window.removeEventListener('resize', onResize);
       if (rider) rider.classList.remove('is-riding');
+      riding = false;
     }
 
     var io = ('IntersectionObserver' in window) ?
@@ -215,7 +242,8 @@
 
     if (!reduceMotion) {
       buildRider();
-      window.addEventListener('resize', requestFrame, { passive: true });
+      watchDoor();
+      window.addEventListener('resize', onResize, { passive: true });
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     if (rider) requestFrame();

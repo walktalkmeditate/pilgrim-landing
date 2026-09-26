@@ -102,6 +102,26 @@ const clearingSrc = fs.readFileSync(path.join(ROOT, 'js', 'clearing.js'), 'utf8'
 ok(clearingSrc.indexOf("querySelector('[data-seek-door]')") !== -1,
   'clearing.js finds the door by data-seek-door, not the retired .seek-door section');
 
+console.log('\n=== the rider reads no layout while the story moves ===\n');
+
+// The door sits on the walk story's pinned stage, which writes every
+// frame. Chrome's trace at 4x throttle blamed the rider's per-frame
+// door read for a forced layout on nearly every scroll through it.
+const riderFrame = (clearingSrc.match(/function frame\(\) \{[\s\S]*?\n    \}\n/) || [''])[0];
+const firstRead = riderFrame.indexOf('getBoundingClientRect');
+ok(riderFrame.length > 0 && firstRead !== -1, 'the rider\'s frame is found');
+ok(riderFrame.indexOf("classList.contains('walk-story-pinned')") !== -1 &&
+  riderFrame.indexOf("classList.contains('walk-story-pinned')") < firstRead,
+  'while the story is pinned the rider stops at a class check, before any layout read');
+ok(/doorWatch\.observe\(door\)/.test(clearingSrc) && /rootMargin: '0px 0px \d{6,}px 0px'/.test(clearingSrc),
+  'an observer, not a per-frame read, says when the door has left the viewport upward');
+const firstWrite = Math.min.apply(null, ['classList.toggle', '.style.'].map(function (w) {
+  const i = riderFrame.indexOf(w);
+  return i === -1 ? Infinity : i;
+}));
+ok(riderFrame.lastIndexOf('getBoundingClientRect') < firstWrite && riderFrame.lastIndexOf('innerHeight') < firstWrite,
+  'every read in the rider\'s frame comes before its first write');
+
 console.log('\n---');
 if (failed) {
   console.log('FAILED: ' + failed + ' of ' + (passed + failed));
