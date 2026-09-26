@@ -7,7 +7,7 @@
  * their finished states: every act in css/walk-story.css reads
  * var(--hold, 1) and nothing sets --hold. Pinned, each frame first reads
  * the scroll position and every moving dot's point, then writes: --hold on
- * scenes whose hold moved, opacity on fronts, lines, the rail and the five
+ * scenes whose hold changed, opacity on fronts, lines, the rail and the five
  * sky layers, and a transform on each moving dot. The scroll listener only
  * asks for a frame. The only layout read is measure().
  */
@@ -193,17 +193,16 @@
     return C.inkTurns(document.documentElement.getAttribute('data-theme') === 'dark');
   }
 
-  function render(p, atRest) {
+  function render(p) {
     var at = C.sceneAt(p, n);
     var veil = C.inkVeil(p * n, inkTurns());
     var moved = [];
     var j, s;
-    var eps = C.WRITE_EPS;
     // Read every moving dot's point first, then write: a geometry read
     // after a --hold write would force a style recalc inside the frame.
     for (j = 0; j < n; j++) {
       var hold = Math.round(C.holdLocal(C.clamp(p * n - j, 0, 1)) * 10000) / 10000;
-      if (C.shouldWrite(state[j].hold, hold, eps, atRest)) moved.push({ j: j, hold: hold, points: pointsFor(j, hold) });
+      if (hold !== state[j].hold) moved.push({ j: j, hold: hold, points: pointsFor(j, hold) });
     }
     moved.forEach(function (m) {
       scenes[m.j].style.setProperty('--hold', m.hold);
@@ -217,13 +216,13 @@
       s = state[j];
       var l = p * n - j;
       var front = Math.round(C.frontOpacity(l, j, n) * 1000) / 1000;
-      if (C.shouldWrite(s.frontOpacity, front, eps, atRest)) {
+      if (front !== s.frontOpacity) {
         s.frontEl.style.opacity = front;
         if (s.clearEl) s.clearEl.style.opacity = front;
         s.frontOpacity = front;
       }
       var line = Math.round(C.lineOpacityAt(j, p, n, compact) * veil * 1000) / 1000;
-      if (C.shouldWrite(s.lineOpacity, line, eps, atRest)) {
+      if (line !== s.lineOpacity) {
         for (var q = 0; q < s.lines.length; q++) s.lines[q].style.opacity = line;
         s.lineOpacity = line;
       }
@@ -231,13 +230,13 @@
     var layers = C.layerOpacities(C.skyWeights(p, n));
     for (var i = 0; i < skies.length; i++) {
       var o = Math.round(layers[i] * 1000) / 1000;
-      if (C.shouldWrite(skyOpacity[i], o, eps, atRest)) {
+      if (o !== skyOpacity[i]) {
         skies[i].style.opacity = o;
         skyOpacity[i] = o;
       }
     }
     var railNow = Math.round(veil * 1000) / 1000;
-    if (railEl && C.shouldWrite(railOpacity, railNow, eps, atRest)) {
+    if (railEl && railNow !== railOpacity) {
       railEl.style.opacity = railNow;
       railOpacity = railNow;
     }
@@ -272,9 +271,8 @@
     lastT = t;
     shown += (target - shown) * (1 - Math.pow(0.86, dt / 16.667));
     if (Math.abs(target - shown) < 0.0005) shown = target;
-    var atRest = shown === target;
-    render(shown, atRest);
-    if (!atRest) {
+    render(shown);
+    if (shown !== target) {
       raf = window.requestAnimationFrame(frame);
     } else {
       lastT = 0;
@@ -292,7 +290,7 @@
     measure();
     if (scene >= 0) scrollToScene(scene, false);
     shown = target;
-    render(shown, true);
+    render(shown);
     settle();
   }
 
@@ -304,7 +302,7 @@
     if (!smooth) {
       readScroll();
       shown = target;
-      render(shown, true);
+      render(shown);
     }
   }
 
@@ -315,7 +313,7 @@
     window.addEventListener('scroll', request, { passive: true });
     readScroll();
     shown = target;
-    render(shown, true);
+    render(shown);
     settle();
     syncVideo();
   }
