@@ -686,8 +686,9 @@ body.constellation .walk-story-scene { background: transparent; }
   .walk-story--pinned .walk-story-copy { left: 6%; width: 42%; }
   .walk-story--pinned .ws-said { left: 6%; width: 42%; }
   /* The line's viewBox is at its smallest here, so the Honor climb comes
-     nearest the corner; a compact pill keeps clear of it. */
-  .walk-story--pinned .walk-story-pill.is-docked { font-size: 0.85rem; padding: 0.6em 1.1em; }
+     nearest the corner; a compact pill keeps clear of it, even when a
+     classic scrollbar narrows the stage (js/walk-story-pill.test.js). */
+  .walk-story--pinned .walk-story-pill.is-docked { font-size: 0.85rem; padding: 0.6em 0.95em; }
   .walk-story--pinned .walk-story-phone { height: 60%; }
 }
 
