@@ -1046,6 +1046,20 @@
           <div class="ws-sky ws-sky-night"></div>
         </div>
         <div class="ws-clearings" aria-hidden="true"></div>
+        <!-- Before the scenes, so the keyboard meets them first; z-index 3
+             keeps them over the fronts. -->
+        <nav class="walk-story-rail" aria-label="Scenes">
+          <a href="#scene-1" aria-label="Scene 1 of 9: Set out"></a>
+          <a href="#scene-2" aria-label="Scene 2 of 9: Wander"></a>
+          <a href="#scene-3" aria-label="Scene 3 of 9: Stillness"></a>
+          <a href="#scene-4" aria-label="Scene 4 of 9: Honor"></a>
+          <a href="#scene-5" aria-label="Scene 5 of 9: Seek"></a>
+          <a href="#scene-6" aria-label="Scene 6 of 9: Traces"></a>
+          <a href="#scene-7" aria-label="Scene 7 of 9: Home"></a>
+          <a href="#scene-8" aria-label="Scene 8 of 9: Give"></a>
+          <a href="#scene-9" aria-label="Scene 9 of 9: Yours alone"></a>
+        </nav>
+        <a class="walk-story-pill" href="#scene-2"><span class="ws-pill-label">Begin walking</span> <span aria-hidden="true">↓</span></a>
 
         <!-- 01 · Set out · dawn -->
         <section class="walk-story-scene" id="scene-1" data-scene="set-out" data-sky="dawn" aria-labelledby="scene-1-title">
@@ -1501,19 +1515,6 @@
             </div>
           </div>
         </section>
-
-        <nav class="walk-story-rail" aria-label="Scenes">
-          <a href="#scene-1" aria-label="Scene 1 of 9: Set out"></a>
-          <a href="#scene-2" aria-label="Scene 2 of 9: Wander"></a>
-          <a href="#scene-3" aria-label="Scene 3 of 9: Stillness"></a>
-          <a href="#scene-4" aria-label="Scene 4 of 9: Honor"></a>
-          <a href="#scene-5" aria-label="Scene 5 of 9: Seek"></a>
-          <a href="#scene-6" aria-label="Scene 6 of 9: Traces"></a>
-          <a href="#scene-7" aria-label="Scene 7 of 9: Home"></a>
-          <a href="#scene-8" aria-label="Scene 8 of 9: Give"></a>
-          <a href="#scene-9" aria-label="Scene 9 of 9: Yours alone"></a>
-        </nav>
-        <a class="walk-story-pill" href="#scene-2"><span class="ws-pill-label">Begin walking</span> <span aria-hidden="true">↓</span></a>
       </div>
     </section>
     <div id="after-walk-story"></div>

@@ -63,6 +63,16 @@ story.split(/(?=<section class="walk-story-scene)/).slice(1).forEach(function (b
 
 console.log('\n=== the rail ===\n');
 
+// Tab order is DOM order: after scene 09, the pill would never be reached
+// tabbing forward, and the first Tab after the skip link would jump from
+// scene 01 to scene 04's first link.
+const firstScene = story.indexOf('<section class="walk-story-scene');
+ok(story.indexOf('<nav class="walk-story-rail"') !== -1 && story.indexOf('<nav class="walk-story-rail"') < firstScene,
+  'the rail comes before the first scene, so the keyboard meets it first');
+ok(story.indexOf('<a class="walk-story-pill"') !== -1 && story.indexOf('<a class="walk-story-pill"') < firstScene,
+  'and so does the pill');
+ok(story.indexOf('<a class="walk-story-skip"') < story.indexOf('<nav class="walk-story-rail"'),
+  'the skip link is still the story\'s first stop');
 const rail = Array.from(story.matchAll(/<a href="#scene-(\d)" aria-label="Scene (\d) of 9: ([^"]+)"><\/a>/g));
 eq(rail.length, 9, 'nine rail links');
 rail.forEach(function (m, i) {
@@ -431,6 +441,10 @@ eq((mainSrc.match(/classList\.contains\('walk-story-pinned'\)/g) || []).length, 
 const storyCss = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
 ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(storyCss),
   'the walker and the tracker fade while the ink line is the companion');
+// css/styles.css gives the figure pointer-events: auto, which beats the
+// none it would inherit from the faded walker.
+ok(/body\.walk-story-pinned \.page-walker-figure\s*\{[^}]*pointer-events:\s*none/.test(storyCss),
+  'the faded walker\'s figure takes no clicks while the story is pinned');
 
 console.log('\n=== the page claims only what the policy says ===\n');
 

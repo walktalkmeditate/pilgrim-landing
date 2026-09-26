@@ -997,3 +997,5 @@ body.walk-story-pinned .scroll-tracker {
   pointer-events: none;
   transition: opacity 0.4s ease;
 }
+/* css/styles.css sets the figure's own pointer-events: auto. */
+body.walk-story-pinned .page-walker-figure { pointer-events: none; }
