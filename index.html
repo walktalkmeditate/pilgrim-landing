@@ -14,11 +14,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pilgrim — A Walking Practice</title>
-  <meta name="description" content="Pilgrim is a privacy-first iPhone, iPad, and Android app for intentional walking. No leaderboards. No calorie goals. Just you, the path, and whatever arises.">
+  <meta name="description" content="A privacy-first walking and meditation app for iPhone, iPad, and Android. Anonymous, no accounts, walks stored on your device, shared only when you choose.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Pilgrim — A Walking Practice">
-  <meta property="og:description" content="A privacy-first iPhone, iPad, and Android app for intentional walking as creative practice.">
+  <meta property="og:description" content="Walking and meditation for iPhone, iPad, and Android: voice notes transcribed on-device, places hidden in fog, goshuin seals. Anonymous; walks stored on your device, shared only when you choose.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://pilgrimapp.org">
   <meta property="og:site_name" content="Pilgrim">
@@ -35,7 +35,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Pilgrim — A Walking Practice">
-  <meta name="twitter:description" content="A privacy-first iPhone, iPad, and Android app for intentional walking as creative practice.">
+  <meta name="twitter:description" content="Walking and meditation for iPhone, iPad, and Android: voice notes transcribed on-device, places hidden in fog, goshuin seals. Anonymous; walks stored on your device, shared only when you choose.">
   <meta name="twitter:image" content="https://pilgrimapp.org/assets/og-image.png">
 
   <!-- Favicon -->
@@ -57,7 +57,7 @@
     "operatingSystem": "iOS 18+, iPadOS 18+, Android 9+",
     "applicationCategory": "HealthApplication",
     "applicationSubCategory": "Walking Meditation",
-    "description": "Privacy-first walking and meditation companion for iPhone, iPad, and Android. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, seek places hidden in fog and revealed by stillness, earn digital goshuin seals. No accounts, no analytics, no cloud. Open source and free forever.",
+    "description": "Privacy-first walking and meditation companion for iPhone, iPad, and Android. Record voice notes transcribed on-device, meditate with guided prompts and ambient soundscapes, seek places hidden in fog and revealed by stillness, earn digital goshuin seals, and on iPhone walk in someone else's steps along the Camino, the Kumano Kodō and Shikoku's 88 temples. Anonymous, no accounts, walks stored on your device. Open source and free forever.",
     "url": "https://pilgrimapp.org",
     "downloadUrl": [
       "https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056",
@@ -91,11 +91,16 @@
       "Home Screen widget with a daily walking mantra",
       "Whispers — anonymous audio gifts placed along walking routes with proximity detection",
       "Cairns — virtual stone cairns placed at meaningful spots, stackable by other walkers across seven tiers",
-      "Walk Reliquary — pin photos from your walk to the route map with a ritual long-press gesture, fully opt-in, no photos stored or uploaded",
+      "Walk Reliquary — pin photos from your walk to the route map with a ritual long-press gesture, fully opt-in; photos stay in your library and upload only when you share a walk interactively",
+      "Three ways to walk — Wander with no aim, Seek places hidden in fog and revealed by stillness, and Honor a path someone else laid down (iPhone)",
+      "Honor pilgrimage stages from the open-pilgrimages dataset — the Camino de Santiago, the Kumano Kodō and Shikoku's 88 temples (iPhone)",
+      "Offline maps for saved pilgrimage stages (iPhone)",
+      "Walk with me — share a walk as a living page, with voices at the places they were spoken",
+      "Themes across walks — the words you return to, offered back as intentions",
       "On-device photo analysis via Vision framework enriches writing prompts with landscape, text, people, and color context",
       "No accounts required",
-      "No cloud storage — all data on-device",
-      "No analytics or telemetry",
+      "Walks stored on the device",
+      "No analytics or advertising SDKs",
       "Open source (GPLv3)"
     ],
     "screenshot": "https://pilgrimapp.org/assets/og-image.png",
@@ -150,7 +155,7 @@
         "name": "What is the best privacy-focused walking app?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim is a privacy-first walking and meditation companion for iPhone, iPad, and Android. It has no accounts, no analytics, no cloud storage, and no telemetry. Voice transcription runs entirely on-device (WhisperKit on iOS, whisper.cpp on Android). All data stays on your phone. It is open source (GPLv3) and free forever."
+          "text": "Pilgrim is a privacy-first walking and meditation companion for iPhone, iPad, and Android. It is anonymous: there are no accounts and no analytics or advertising SDKs, and your walks are stored on your device. Voice transcription runs entirely on-device (WhisperKit on iOS, whisper.cpp on Android). What you choose to share travels, and the privacy policy lists exactly what. It is open source (GPLv3) and free forever."
         }
       },
       {
@@ -182,7 +187,7 @@
         "name": "How can I record voice notes while walking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using OpenAI's Whisper model (WhisperKit on iOS, whisper.cpp on Android). Nothing is uploaded to any server. Your voice recordings and transcriptions stay on your phone."
+          "text": "Pilgrim lets you record voice notes during walks and transcribes them entirely on-device using OpenAI's Whisper model (WhisperKit on iOS, whisper.cpp on Android). No audio is sent anywhere to be transcribed. Your recordings and transcriptions stay on your phone unless you choose to share a walk."
         }
       },
       {
@@ -219,6 +224,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/traces-glyphs.css">
+  <link rel="stylesheet" href="css/walk-story.css">
   <link rel="stylesheet" href="css/animations.css">
 
   <style>
@@ -261,138 +267,6 @@
     .not-pilgrim-list strong {
       font-weight: 600;
       color: var(--stone);
-    }
-
-    /* =============================================
-       Screenshot Journey
-       ============================================= */
-    .journey {
-      padding-top: 3rem;
-      padding-bottom: 5rem;
-    }
-
-    .journey h2 {
-      margin-bottom: var(--padding-xl);
-    }
-
-    .journey-inner {
-      max-width: 640px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-    }
-
-    .journey-caption {
-      font-family: var(--font-display);
-      font-style: italic;
-      font-weight: 300;
-      font-size: 1.0625rem;
-      color: var(--stone);
-      text-align: center;
-      padding: 2.5rem var(--padding-md);
-      max-width: 420px;
-    }
-
-    .journey-pair {
-      display: flex;
-      gap: var(--padding-lg);
-      justify-content: center;
-      width: 100%;
-    }
-
-    .journey-single {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-    }
-
-    .journey-screenshot {
-      width: 100%;
-      max-width: 280px;
-      height: auto;
-      border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-      display: block;
-    }
-
-    [data-theme="dark"] .journey-screenshot {
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    @media (max-width: 768px) {
-      .journey-pair {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .journey-screenshot {
-        max-width: 260px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .journey-screenshot {
-        max-width: 220px;
-      }
-    }
-
-    /* =============================================
-       Privacy Section
-       ============================================= */
-    .privacy-section {
-      padding-top: 3rem;
-      padding-bottom: 5rem;
-    }
-
-    .privacy-section h2 {
-      margin-bottom: var(--padding-md);
-    }
-
-    .privacy-section > .section-inner > .body-text {
-      color: var(--stone);
-      max-width: 480px;
-      margin-bottom: var(--padding-xl);
-    }
-
-    .privacy-features {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--padding-lg);
-    }
-
-    .privacy-feature {
-      background: var(--parchment-secondary);
-      border-radius: var(--radius-md);
-      padding: var(--padding-lg);
-      transition: background-color 0.3s ease;
-    }
-
-    .privacy-feature-icon {
-      font-size: 1.375rem;
-      margin-bottom: var(--padding-sm);
-    }
-
-    .privacy-feature h3 {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 1rem;
-      color: var(--ink);
-      margin-bottom: var(--padding-xs);
-    }
-
-    .privacy-feature p {
-      font-family: var(--font-body);
-      font-size: 0.9375rem;
-      color: var(--stone);
-      line-height: 1.5;
-    }
-
-    @media (max-width: 768px) {
-      .privacy-features {
-        grid-template-columns: 1fr;
-      }
     }
 
     /* =============================================
@@ -471,11 +345,6 @@
     .store-badges .app-store-badge,
     .store-badges .google-play-badge {
       margin: 0;
-    }
-
-    .journey-cta {
-      text-align: center;
-      padding: var(--padding-xl) 0 0;
     }
 
     /* Goshuin */
@@ -873,59 +742,11 @@
       font-weight: 700;
     }
 
-    /* Seek doorway — the one section that withholds. Fog rolls over the
-       parchment; the heading emerges from it. */
-    .seek-door {
-      position: relative;
-      overflow: hidden;
-      text-align: center;
-      padding-top: 7rem;
-      padding-bottom: 7rem;
-    }
-
-    .seek-door::before,
-    .seek-door::after {
-      content: '';
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(48px);
-      background: radial-gradient(circle, var(--fog) 0%, transparent 70%);
-      opacity: 0.55;
-      pointer-events: none;
-    }
-
-    .seek-door::before {
-      width: 70vw; height: 60%;
-      top: -15%; left: -18vw;
-    }
-
-    .seek-door::after {
-      width: 60vw; height: 55%;
-      bottom: -18%; right: -15vw;
-    }
-
-    .seek-door-crescent {
-      color: var(--dawn);
-      width: 46px;
-      height: 46px;
-      margin: 0 auto var(--padding-md);
-      animation: seek-door-breath 5.5s ease-in-out infinite;
-    }
-
+    /* The way into /seek, in the walk story's scene 05. Its breath is
+       the clearing rider's (.clearing-breath). */
     @keyframes seek-door-breath {
       0%, 100% { opacity: 0.5; transform: scale(0.96); }
       50%      { opacity: 1;   transform: scale(1.03); }
-    }
-
-    .seek-door h2 {
-      font-style: italic;
-      margin-bottom: var(--padding-md);
-    }
-
-    .seek-door p {
-      color: var(--stone);
-      max-width: 460px;
-      margin: 0 auto var(--padding-lg);
     }
 
     .seek-door-label {
@@ -1087,7 +908,6 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .seek-door-crescent { animation: none; opacity: 0.85; }
       .clearing-rider { display: none; }
       .clearing-glyph { transition: opacity 0.8s ease; filter: none; transform: none; }
     }
@@ -1187,53 +1007,334 @@
     </div>
 
     <!-- ==========================================
-         4. The Practice
+         4. One walk, told by scroll — nine scenes, first light to night.
+            Stacked and finished without JS, with reduced motion, and on
+            short viewports; js/walk-story.js pins it. Spec:
+            docs/superpowers/specs/2026-09-24-one-walk-story-design.md
          ========================================== -->
-    <section class="practice section" aria-label="The Practice">
-      <div class="section-inner">
-        <h2 class="display-large reveal">Four moments of a walk</h2>
-
-        <div class="practice-grid">
-          <div class="practice-card practice-card--voice reveal reveal-delay-1">
-            <div class="practice-card-icon" aria-hidden="true">&#9834;</div>
-            <h3>Voice</h3>
-            <p>Speak a thought mid-walk. It's recorded, timestamped, and transcribed on your phone. No audio ever leaves your device.</p>
-          </div>
-
-          <div class="practice-card practice-card--stillness reveal reveal-delay-2">
-            <div class="practice-card-icon" aria-hidden="true">&#9675;</div>
-            <h3>Stillness</h3>
-            <p>A breathing circle guides you into meditation. Customizable rhythms. Voice guide packs with spoken prompts. Your meditation time is tracked separately from walking.</p>
-          </div>
-
-          <div class="practice-card practice-card--reflection reveal reveal-delay-3">
-            <div class="practice-card-icon" aria-hidden="true">&#10024;</div>
-            <h3>Reflection</h3>
-            <p>After your walk, six styles of writing prompts are generated from your own words and the photos you pinned. Copy them into ChatGPT, Claude, or any AI and turn a walk into writing.</p>
-          </div>
-
-          <div class="practice-card practice-card--privacy reveal reveal-delay-4">
-            <div class="practice-card-icon" aria-hidden="true">&#9670;</div>
-            <h3>Privacy</h3>
-            <p>No accounts. No analytics. No cloud. The App Store privacy label and the Play Store data safety form both disclose near-zero data collection — and the source code is public for anyone to verify.</p>
-          </div>
+    <section class="walk-story" id="walk-story" aria-label="A walk, from first light to dark">
+      <a class="walk-story-skip" href="#after-walk-story">Skip the walk</a>
+      <svg class="ws-defs" aria-hidden="true" focusable="false">
+        <symbol id="ws-streets" viewBox="0 0 390 844">
+          <rect width="390" height="844" style="fill:var(--ws-map-land)"/>
+          <path d="M-10 70 150 40 220 150 110 250-10 215ZM240 600 400 560 400 760 290 790Z" style="fill:var(--ws-map-park)"/>
+          <path d="M-20 232C70 204 150 286 232 266S352 184 410 204" style="fill:none;stroke:var(--ws-map-water);stroke-width:26"/>
+          <g style="fill:none;stroke:var(--ws-map-road);stroke-linecap:round">
+            <path d="M-10 60 400 80M-10 370 400 350M-10 560 400 590M-10 770 400 740M20-10 10 860M230-10 250 860M360-10 372 860" style="stroke-width:3"/>
+            <path d="M-10 150 400 188M-10 690 400 632M62-10 92 860M306-10C284 290 334 500 292 860M-10 430 400 404" style="stroke-width:6"/>
+            <path d="M-20 520C100 500 262 540 410 470M150-10C172 200 118 420 192 860" style="stroke-width:13"/>
+          </g>
+        </symbol>
+        <symbol id="ws-i-walk" viewBox="0 0 24 24"><circle cx="13.5" cy="3.8" r="2" fill="currentColor" stroke="none"/><path d="M12.4 7.6 10.3 13.4l3.4 3.1 1.1 4.9M10.3 13.4 8.4 20.8M11.9 8.4 8.6 10.1 7.6 13.6M12.4 8.6l2.4 2.9 2.9.6" stroke-width="2.2"/></symbol>
+        <symbol id="ws-i-book" viewBox="0 0 24 24"><path d="M2.5 5.2c3.2-1.3 6.4-1.1 9.1.9v13.6c-2.7-1.9-5.9-2.1-9.1-.9zM21.5 5.2c-3.2-1.3-6.4-1.1-9.1.9v13.6c2.7-1.9 5.9-2.1 9.1-.9z" fill="currentColor" stroke="none"/></symbol>
+        <symbol id="ws-i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" stroke-width="3.2" stroke-dasharray="3.4 3.355" stroke-linecap="butt"/><path d="M12 4.8a7.2 7.2 0 1 0 0 14.4 7.2 7.2 0 1 0 0-14.4zm0 4.5a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 1 1 0-5.4z" fill="currentColor" fill-rule="evenodd" stroke="none"/></symbol>
+        <symbol id="ws-i-wave" viewBox="0 0 24 24"><path d="M3 10.5v3M6.5 8v8M10 4.5v15M13.5 8.5v7M17 6v12M20.5 10v4"/></symbol>
+        <symbol id="ws-i-brain" viewBox="0 0 24 24"><path d="M15.8 21v-3.1h2.1c.9 0 1.6-.7 1.6-1.6v-2.5l1.7-.7-1.8-3.3C19.1 5.9 16.1 3 12.1 3 7.8 3 4.5 6.3 4.5 10.6c0 2.3.9 4.2 2.6 5.6V21"/><path d="M9.2 9.6c-.1-1.3.9-2.3 2.1-2.3.5-.8 1.5-1.1 2.3-.7.9-.4 2 .1 2.2 1.1.9.3 1.3 1.3.9 2.1.4.8.1 1.7-.7 2-.2.9-1.2 1.4-2 1.1-.6.6-1.6.6-2.2.1-.9.2-1.8-.4-1.9-1.3-.8-.5-1.1-1.4-.7-2.1z" stroke-width="1.3"/></symbol>
+        <symbol id="ws-i-mic" viewBox="0 0 24 24"><rect x="8.8" y="2.8" width="6.4" height="11.6" rx="3.2"/><path d="M5.4 11.2a6.6 6.6 0 0 0 13.2 0M12 17.8v3.4M8.8 21.2h6.4"/></symbol>
+        <symbol id="ws-i-stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2.6" fill="currentColor" stroke="none"/></symbol>
+        <symbol id="ws-i-dots" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></g></symbol>
+        <symbol id="ws-i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke-width="2"/></symbol>
+        <symbol id="ws-i-leaf" viewBox="0 0 24 24"><path d="M4.5 19.5C4.2 10.9 9.8 5 20 4.5c.4 10-5.7 15.6-14.3 15.3zM4.5 19.5l8-8"/></symbol>
+        <symbol id="ws-i-mountain" viewBox="0 0 24 24"><path d="M1.8 19 8.4 9.6l3.4 4.8 2.7-3.5 7.7 8.1z"/></symbol>
+      </svg>
+      <div class="walk-story-stage" data-sky="dawn">
+        <div class="walk-story-atmosphere" aria-hidden="true">
+          <div class="ws-sky ws-sky-dawn"></div>
+          <div class="ws-sky ws-sky-day"></div>
+          <div class="ws-sky ws-sky-golden"></div>
+          <div class="ws-sky ws-sky-dusk"></div>
+          <div class="ws-sky ws-sky-night"></div>
         </div>
-      </div>
-    </section>
+        <div class="ws-clearings" aria-hidden="true"></div>
+        <!-- Before the scenes, so the keyboard meets them first; z-index 3
+             keeps them over the fronts. -->
+        <nav class="walk-story-rail" aria-label="Scenes">
+          <a href="#scene-1" aria-label="Scene 1 of 9: Set out"></a>
+          <a href="#scene-2" aria-label="Scene 2 of 9: Wander"></a>
+          <a href="#scene-3" aria-label="Scene 3 of 9: Stillness"></a>
+          <a href="#scene-4" aria-label="Scene 4 of 9: Honor"></a>
+          <a href="#scene-5" aria-label="Scene 5 of 9: Seek"></a>
+          <a href="#scene-6" aria-label="Scene 6 of 9: Traces"></a>
+          <a href="#scene-7" aria-label="Scene 7 of 9: Home"></a>
+          <a href="#scene-8" aria-label="Scene 8 of 9: Give"></a>
+          <a href="#scene-9" aria-label="Scene 9 of 9: Yours alone"></a>
+        </nav>
+        <a class="walk-story-pill" href="#scene-2"><span class="ws-pill-label">Begin walking</span> <span aria-hidden="true">↓</span></a>
 
-    <!-- ==========================================
-         4.5. Traces — Whispers & Cairns
-         ========================================== -->
-    <section class="traces section" aria-label="Whispers and Cairns">
-      <div class="section-inner traces-inner">
-        <h2 class="display-large reveal traces-heading">The path remembers</h2>
-        <p class="body-text reveal traces-lede">
-          Most walks vanish the moment they end. Pilgrim gives you a way to leave something small behind — and to feel what other walkers left before you. No accounts. No identities. Just traces on the land.
-        </p>
+        <!-- 01 · Set out · dawn -->
+        <section class="walk-story-scene" id="scene-1" data-scene="set-out" data-sky="dawn" aria-labelledby="scene-1-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M140 830 C200 826 270 818 330 820" pathLength="1"/>
+            <g class="ws-dot" transform="translate(330 820)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M40 440 C44 460 52 480 60 500" pathLength="1"/>
+            <g class="ws-dot" transform="translate(60 500)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">01 · Set out</p>
+              <h2 id="scene-1-title">You set out with an <em>intention</em>.</h2>
+              <p class="ws-body">Before the first step, one line: what you are walking with. Then a way to walk. Wander, with no aim at all. Honor, in someone else's steps. Seek, toward what you don't know.</p>
+            </div>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--path">
+                <p class="ws-status">6:12</p>
+                <img class="ws-app-logo" src="assets/pilgrim-logo.png" alt="" width="60" height="60">
+                <p class="ws-app-quote"><span class="ws-w">Solvitur ambulando —<br>it is solved by walking</span><span class="ws-h">Where they walked,<br>you walk</span><span class="ws-s">What you seek<br>is seeking you</span></p>
+                <i class="ws-app-moon"></i>
+                <div class="ws-app-bottom">
+                  <div class="ws-modes"><span>WANDER</span><span>HONOR</span><span>SEEK</span><i class="ws-modes-lit"><b class="ws-w">WANDER</b><b class="ws-h">HONOR</b><b class="ws-s">SEEK</b></i></div>
+                  <p class="ws-app-sub"><span class="ws-w">walk · talk · meditate</span><span class="ws-h">walk in their steps</span><span class="ws-s">follow the unknown</span></p>
+                  <span class="ws-button"><span class="ws-w">Wander</span><span class="ws-h">Honor</span><span class="ws-s">Seek</span></span>
+                  <div class="ws-tabs"><span class="is-on"><svg class="ws-icon"><use href="#ws-i-walk"/></svg>Path</span><span><svg class="ws-icon"><use href="#ws-i-book"/></svg>Journal</span><span><svg class="ws-icon"><use href="#ws-i-gear"/></svg>Settings</span></div>
+                </div>
+                <div class="ws-map-layer">
+                  <svg class="ws-map" viewBox="0 0 390 844"><use href="#ws-streets"/><circle class="ws-map-halo" cx="214" cy="300" r="22"/><circle class="ws-map-you" cx="214" cy="300" r="8"/></svg>
+                  <span class="ws-map-btn ws-map-btn--left"><svg class="ws-icon"><use href="#ws-i-dots"/></svg></span>
+                  <span class="ws-map-btn ws-map-btn--right"><svg class="ws-icon"><use href="#ws-i-x"/></svg></span>
+                </div>
+                <div class="ws-intention">
+                  <i class="ws-grabber"></i>
+                  <p class="ws-sheet-title">Set Your Intention</p>
+                  <p class="ws-field"><span class="ws-placeholder">What purpose guides this walk?</span><span class="ws-typed">water</span></p>
+                  <p class="ws-field-meta"><span><svg class="ws-icon"><use href="#ws-i-mic"/></svg>Voice</span><span class="ws-count"><span class="ws-before">0/140</span><span class="ws-after">5/140</span></span></p>
+                  <div class="ws-recurring">
+                    <p class="ws-sheet-label">Recurring</p>
+                    <div class="ws-chips"><span class="ws-chip ws-chip--tapped">water</span><span class="ws-chip">light</span><span class="ws-chip">home</span></div>
+                  </div>
+                  <p class="ws-sheet-buttons"><span>Cancel</span><span class="ws-set"><span class="ws-before">Set</span><span class="ws-after">Set</span></span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="traces-cards">
-          <div class="traces-card reveal reveal-delay-1">
-            <div class="traces-card-icon traces-card-icon--whispers">
+        <!-- 02 · Wander -->
+        <section class="walk-story-scene" id="scene-2" data-scene="wander" data-sky="dawn" aria-labelledby="scene-2-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M330 820 C480 780 560 870 720 832 S1000 800 1180 834" pathLength="1"/>
+            <g class="ws-pin" transform="translate(594 839)"><circle r="4"/></g>
+            <g class="ws-dot" transform="translate(1180 834)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M60 500 C120 540 20 580 80 620 S150 680 110 720" pathLength="1"/>
+            <g class="ws-pin" transform="translate(70 560)"><circle r="4"/></g>
+            <g class="ws-dot" transform="translate(110 720)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">02 · Wander</p>
+              <h2 id="scene-2-title">You walk, and say it <em>out loud</em>.</h2>
+              <p class="ws-body">A thought arrives mid-stride. Tap once. It's recorded, pinned where you stood, and written down on your phone.</p>
+              <p class="ws-aside">No audio is sent anywhere to be transcribed.</p>
+            </div>
+            <p class="ws-said"><span style="--i:0">the</span> <span style="--i:1">light</span> <span style="--i:2">on</span> <span style="--i:3">the</span> <span style="--i:4">water</span> <span style="--i:5">keeps</span> <span style="--i:6">changing,</span> <span style="--i:7">and</span> <span style="--i:8">I</span> <span style="--i:9">keep</span> <span style="--i:10">trying</span> <span style="--i:11">to</span> <span style="--i:12">hold</span> <span style="--i:13">it</span> <span style="--i:14">still</span></p>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--walk">
+                <p class="ws-status">6:37</p>
+                <div class="ws-map-layer">
+                  <svg class="ws-map" viewBox="0 0 390 844"><use href="#ws-streets"/><path class="ws-map-route" d="M30 430 52 412 70 404 88 386 112 378 130 362 152 354 176 334 196 318 214 300"/><circle class="ws-map-halo" cx="214" cy="300" r="22"/><circle class="ws-map-you" cx="214" cy="300" r="8"/></svg>
+                  <span class="ws-map-btn ws-map-btn--left"><svg class="ws-icon"><use href="#ws-i-dots"/></svg></span>
+                  <span class="ws-map-btn ws-map-btn--right"><svg class="ws-icon"><use href="#ws-i-x"/></svg></span>
+                </div>
+                <div class="ws-stats-sheet">
+                  <i class="ws-grabber"></i>
+                  <p class="ws-timer">24:31</p>
+                  <p class="ws-intention-line">water</p>
+                  <p class="ws-stat-row"><span><b>1.71 km</b>Distance</span><span><b>2604</b>Steps</span><span><b>38 m</b>Ascent</span></p>
+                  <p class="ws-stat-row"><span><svg class="ws-icon"><use href="#ws-i-walk"/></svg><b>21:04</b>Walk</span><span><svg class="ws-icon"><use href="#ws-i-wave"/></svg><b>0:12</b>Talk</span><span><svg class="ws-icon"><use href="#ws-i-brain"/></svg><b>3:15</b>Meditate</span></p>
+                  <div class="ws-actions">
+                    <span class="ws-action ws-action--dawn"><svg class="ws-icon"><use href="#ws-i-brain"/></svg><span>Meditate</span></span>
+                    <span class="ws-action ws-action--rust"><i class="ws-rec-ring ws-rec-live"></i><span class="ws-rec-glyph"><svg class="ws-icon ws-rec-idle"><use href="#ws-i-mic"/></svg><i class="ws-meter ws-rec-live"><i></i><i></i><i></i><i></i><i></i></i></span><span class="ws-rec-labels"><em class="ws-rec-idle">Record</em><em class="ws-rec-live">Stop</em></span></span>
+                    <span class="ws-action ws-action--fog"><svg class="ws-icon"><use href="#ws-i-stop"/></svg><span>End</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 · Stillness -->
+        <section class="walk-story-scene" id="scene-3" data-scene="stillness" data-sky="day" aria-labelledby="scene-3-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M1180 834 C1200 836 1225 832 1250 830" pathLength="1"/>
+            <circle class="ws-ring" cx="1250" cy="830" r="14"/>
+            <g class="ws-dot" transform="translate(1250 830)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M110 720 C104 728 94 738 84 744" pathLength="1"/>
+            <circle class="ws-ring" cx="84" cy="744" r="10"/>
+            <g class="ws-dot" transform="translate(84 744)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">03 · Stillness</p>
+              <h2 id="scene-3-title">You stop, and <em>breathe</em>.</h2>
+              <p class="ws-body">A breathing circle in your own rhythm, a voice guide if you want one. Your stillness is counted apart from your walking.</p>
+            </div>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--video">
+                <video class="ws-video" src="assets/previews/02_meditation_preview.mp4" poster="assets/screenshots/03_meditation.png" muted loop playsinline preload="none"></video>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 · Honor -->
+        <section class="walk-story-scene" id="scene-4" data-scene="honor" data-sky="day" aria-labelledby="scene-4-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <g class="ws-honor-route" style="--ws-route-scale:2.7" transform="translate(1250 594.3) scale(2.7)">
+              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <g class="ws-dot" transform="translate(100 0)"><circle r="2.2"/></g>
+            </g>
+            <g class="ws-moment" style="--at:0" transform="translate(1250 830)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="-18" y="24" text-anchor="end">Takijiri-oji</text>
+                <text class="ws-moment-ja" x="-18" y="39" text-anchor="end" lang="ja">滝尻王子</text>
+              </g>
+            </g>
+            <g class="ws-moment" style="--at:0.0822" transform="translate(1271.6 818.1)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="-10" y="-30" text-anchor="end">Nezu-oji (remains)</text>
+                <text class="ws-moment-ja" x="-10" y="-15" text-anchor="end" lang="ja">不寝王子跡</text>
+              </g>
+            </g>
+            <g class="ws-moment" style="--at:0.8764" transform="translate(1518.4 594.8)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="-10" y="-18" text-anchor="end">Takahara</text>
+                <text class="ws-moment-ja" x="-10" y="-3" text-anchor="end" lang="ja">高原</text>
+              </g>
+            </g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <g class="ws-honor-route" style="--ws-route-scale:0.9" transform="translate(84 665.4) scale(0.9)">
+              <path class="ws-honor-theirs" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <path class="ws-line ws-honor-yours" d="M0 87.3 L0 88.4 L2.1 86.7 L1.1 84.8 L2.2 84.9 L3.8 83.1 L4 83.6 L4.8 83.1 L9.3 82.8 L11.8 80.1 L13.3 79.3 L16.6 80 L18.8 79.8 L22.9 78.3 L23.9 77.3 L28.2 76.2 L30.2 75.2 L31.1 74.1 L32.7 74 L33.5 62.3 L36.1 59.7 L39.5 57.7 L40.5 55.1 L48.7 53.1 L54.7 48.8 L58.4 44.9 L62.5 39.4 L62.8 39.9 L63.3 38.3 L62.9 38 L63.8 37.4 L65.3 34.2 L68.4 29.9 L70.2 28.3 L74.9 22 L76.5 21.5 L78.4 18.6 L79.5 15.2 L82.2 13.6 L84.1 11.3 L84.9 8 L87.8 3.6 L89.4 2.7 L91.1 2.6 L100 0" pathLength="1"/>
+              <g class="ws-dot" transform="translate(100 0)"><circle r="6.7"/></g>
+            </g>
+            <g class="ws-moment" style="--at:0" transform="translate(84 744)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="8" y="26" text-anchor="start">Takijiri-oji</text>
+                <text class="ws-moment-ja" x="8" y="41" text-anchor="start" lang="ja">滝尻王子</text>
+              </g>
+            </g>
+            <g class="ws-moment" style="--at:0.0822" transform="translate(91.2 740)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="30" y="-5" text-anchor="start">Nezu-oji (remains)</text>
+                <text class="ws-moment-ja" x="30" y="10" text-anchor="start" lang="ja">不寝王子跡</text>
+              </g>
+            </g>
+            <g class="ws-moment" style="--at:0.8764" transform="translate(173.5 665.6)">
+              <g class="ws-moment-mark">
+                <circle r="5"/>
+                <text class="ws-moment-label" x="10" y="-3" text-anchor="start">Takahara</text>
+                <text class="ws-moment-ja" x="10" y="12" text-anchor="start" lang="ja">高原</text>
+              </g>
+            </g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">04 · Honor</p>
+              <h2 id="scene-4-title">You walk in someone else's <em>steps</em>.</h2>
+              <p class="ws-body">A walk a friend shared, one of your own walked again, or a stage of the Camino, the Kumano Kodō, or Shikoku's eighty-eight temples. Their line waits, faint, before you. It does not hurry you.</p>
+              <p class="ws-caption">Kumano Kodō · Nakahechi · stage 1 of 4</p>
+              <ol class="ws-sr">
+                <li>Takijiri-oji (<span lang="ja">滝尻王子</span>): One of the Five Great Oji. Gate to the sacred mountains.</li>
+                <li>Nezu-oji (remains) (<span lang="ja">不寝王子跡</span>): Ruins of an Oji shrine.</li>
+                <li>Takahara (<span lang="ja">高原</span>), where the stage ends.</li>
+              </ol>
+              <p class="ws-closing">What did you leave behind at the gate?</p>
+              <p class="ws-caption">Save the maps before you go, and the way holds with no signal at all.</p>
+              <p class="ws-caption">On iPhone. Coming to Android.</p>
+              <p class="ws-caption">Stage from <a href="https://github.com/walktalkmeditate/open-pilgrimages">open-pilgrimages</a>, ODbL.</p>
+            </div>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--card">
+                <p class="ws-status">7:48</p>
+                <div class="ws-card">
+                  <i class="ws-grabber"></i>
+                  <p class="ws-card-theme">Entry</p>
+                  <p class="ws-card-narrative">Takijiri-oji stands at the confluence of two rivers, where pilgrims traditionally waded into the water to purify themselves before entering the divine realm. The climb from the river to Takahara is immediate and steep — the mountain makes no concessions to your arrival. By the time you reach the ridge, you understand: you have left the ordinary world behind.</p>
+                  <p class="ws-card-fact">3.6 km · 430 m up · 2 to 3 hours · moderate</p>
+                  <p class="ws-card-fact">clear, 18°C</p>
+                  <p class="ws-card-fact">maps saved for today</p>
+                  <span class="ws-button">walk</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 · Seek -->
+        <section class="walk-story-scene" id="scene-5" data-scene="seek" data-sky="day" aria-labelledby="scene-5-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <defs>
+              <radialGradient id="ws-fog-l"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".7"/><stop offset=".9" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-dense-l"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".9"/><stop offset=".9" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+            </defs>
+            <g class="ws-fog-bank">
+              <ellipse cx="520" cy="560" rx="420" ry="150" fill="url(#ws-fog-l)"/>
+              <ellipse cx="1000" cy="470" rx="360" ry="130" fill="url(#ws-fog-l)"/>
+              <ellipse class="ws-fog-dense" cx="760" cy="520" rx="130" ry="80" fill="url(#ws-fog-dense-l)"/>
+            </g>
+            <path class="ws-line" d="M1520 594.3 C1460 550 1340 755 1215 798" pathLength="1"/>
+            <g class="ws-dot" transform="translate(1215 798)"><circle r="6"/><g class="ws-crescent-lean" style="--lean:-153deg"><circle class="ws-crescent" r="18" stroke-dasharray="34 80" stroke-dashoffset="17"/></g></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <defs>
+              <radialGradient id="ws-fog-p"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".7"/><stop offset=".9" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ws-fog-dense-p"><stop offset="0" style="stop-color:var(--ws-fog)" stop-opacity=".9"/><stop offset=".9" style="stop-color:var(--ws-fog)" stop-opacity="0"/></radialGradient>
+            </defs>
+            <g class="ws-fog-bank">
+              <ellipse cx="200" cy="470" rx="220" ry="80" fill="url(#ws-fog-p)"/>
+              <ellipse cx="120" cy="610" rx="180" ry="70" fill="url(#ws-fog-p)"/>
+              <ellipse class="ws-fog-dense" cx="300" cy="440" rx="60" ry="40" fill="url(#ws-fog-dense-p)"/>
+            </g>
+            <path class="ws-line" d="M174 665.4 C160 610 110 570 60 560" pathLength="1"/>
+            <g class="ws-dot" transform="translate(60 560)"><circle r="6"/><g class="ws-crescent-lean" style="--lean:-27deg"><circle class="ws-crescent" r="16" stroke-dasharray="30 71" stroke-dashoffset="15"/></g></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">05 · Seek</p>
+              <h2 id="scene-5-title">You walk toward what you <em>don't know</em>.</h2>
+              <p class="ws-body">Whisper what you're looking for. Places wait, hidden in fog, and only stillness reveals them.</p>
+              <form class="seek-door-form ws-seek-form" method="get" action="/seek" autocomplete="off" data-seek-door>
+                <label class="seek-door-label" for="seek-door-word">What are you seeking?</label>
+                <div class="seek-door-field">
+                  <input type="text" id="seek-door-word" name="word" maxlength="32" placeholder="one word is enough" spellcheck="false">
+                  <button type="submit" class="seek-door-submit" data-umami-event="enter-seek">Seek</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- 06 · Traces · golden hour -->
+        <section class="walk-story-scene" id="scene-6" data-scene="traces" data-sky="golden" aria-labelledby="scene-6-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M1215 798 C1090 806 900 770 780 780" pathLength="1"/>
+            <g class="ws-dot" transform="translate(780 780)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M60 560 C40 620 70 700 130 760" pathLength="1"/>
+            <g class="ws-dot" transform="translate(130 760)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">06 · Traces</p>
+              <h2 id="scene-6-title">You pass what someone <em>left</em>.</h2>
+              <p class="ws-body">A whisper, left for whoever walks by. A cairn, one stone at a time. No names on either.</p>
+            </div>
+            <div class="ws-act--right ws-act--traces">
+              <div class="traces-card">
+                <div class="traces-card-icon traces-card-icon--whispers">
               <!-- The app's own wisp glyph. It wears the energy it is
                    breathing — hue and saturation from the app's border
                    colour, lightness remapped into a band the page can
@@ -1248,12 +1349,10 @@
               </span>
               <p class="wisp-energy" id="wisp-energy"></p>
             </div>
-            <h3 class="traces-card-title traces-card-title--whispers">Whispers</h3>
-            <p>Small audio gifts left at a place on the map. Voices across seven energies — presence, wonder, gratitude, compassion, courage, lightness, stillness. Walk close to any whisper, yours or another walker's, and feel it arrive as a quiet pulse.</p>
-          </div>
-
-          <div class="traces-card reveal reveal-delay-2">
-            <div class="traces-card-icon traces-card-icon--cairns">
+                <h3 class="traces-card-title traces-card-title--whispers">Whispers</h3>
+              </div>
+              <div class="traces-card">
+                <div class="traces-card-icon traces-card-icon--cairns">
               <!-- The app's seven tier paintings. Click to place a stone;
                    thresholds are the app's own (3/7/12/42/77/108), so the
                    page does not contradict its "108 stones" copy. State is
@@ -1277,12 +1376,148 @@
               </button>
               <p class="cairn-counter" id="cairn-counter" aria-live="polite"></p>
             </div>
-            <h3 class="traces-card-title traces-card-title--cairns">Cairns</h3>
-            <p>A pile of virtual stones at a meaningful spot. Place your own or add to a cairn left by someone who passed before you. Seven tiers from a faint trace to the eternal cairn that glows at 108 stones.</p>
+                <h3 class="traces-card-title traces-card-title--cairns">Cairns</h3>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <!-- 07 · Home · dusk -->
+        <section class="walk-story-scene" id="scene-7" data-scene="home" data-sky="dusk" aria-labelledby="scene-7-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M780 780 C650 780 560 690 560 770 A40 40 0 1 1 480 770 A40 40 0 1 1 560 770" pathLength="1"/>
+            <g transform="translate(520 770) scale(.62)"><g class="ws-seal"><g transform="translate(-50 -50)"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></g></g></g>
+            <g class="ws-dot" transform="translate(560 770)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-line" d="M130 760 C150 790 183 792 180 810 A20 20 0 1 1 140 810 A20 20 0 1 1 180 810" pathLength="1"/>
+            <g transform="translate(160 810) scale(.3)"><g class="ws-seal"><g transform="translate(-50 -50)"><circle class="ws-seal-ink" cx="50" cy="50" r="44" stroke-width="3"/><circle class="ws-seal-ink" cx="50" cy="50" r="40" stroke-width="4" stroke-dasharray="1.6 19.34"/><circle class="ws-seal-ink" cx="50" cy="50" r="34" stroke-width="1.2"/><path class="ws-seal-ink" d="M32 54 C40 44 48 60 56 50 S66 45 70 48" stroke-width="2" stroke-linecap="round"/></g></g></g>
+            <g class="ws-dot" transform="translate(180 810)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">07 · Home</p>
+              <h2 id="scene-7-title">You come home, and the walk <em>remembers</em>.</h2>
+              <p class="ws-body">Your route, what you said, the photos you took where you took them. A seal pressed from this walk alone. And over many walks, the words that keep returning.</p>
+            </div>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--summary">
+                <p class="ws-status">17:52</p>
+                <div class="ws-summary">
+                  <div class="ws-nav"><p class="ws-nav-title">October 16, 2026</p><span class="ws-done">Done</span></div>
+                  <div class="ws-summary-map">
+                    <svg viewBox="0 0 390 320"><use href="#ws-streets" width="390" height="844" transform="translate(0 -60) scale(.5)"/><use href="#ws-streets" width="390" height="844" transform="translate(390 -60) scale(-.5 .5)"/><path class="ws-summary-path" d="M72 262 90 250 106 244 120 230 138 222 154 206 172 198 186 184 206 176 222 160 242 152 260 140 278 134 296 120 314 110 330 96" pathLength="1"/><path class="ws-summary-talk" style="--a:0.188;--b:0.3239" d="M120 230 138 222 154 206" pathLength="1"/><circle class="ws-summary-still" style="--at:0.5927" cx="222" cy="160" r="20"/><circle class="ws-summary-end" cx="72" cy="262" r="5"/></svg>
+                    <img class="ws-relic" style="--at:0.1244;left:27.18%;top:76.25%" src="assets/reliquary/photo-1.jpg" alt="" loading="lazy">
+                    <img class="ws-relic" style="--at:0.4508;left:47.69%;top:57.5%" src="assets/reliquary/photo-2.jpg" alt="" loading="lazy">
+                    <img class="ws-relic" style="--at:0.8656;left:75.9%;top:37.5%" src="assets/reliquary/photo-3.jpg" alt="" loading="lazy">
+                  </div>
+                  <div class="ws-intention-card"><svg class="ws-icon"><use href="#ws-i-leaf"/></svg><p>water</p></div>
+                  <div class="ws-elevation"><svg viewBox="0 0 358 34" preserveAspectRatio="none"><path class="ws-elev-fill" d="M0 32C40 30 70 26 100 22S150 12 180 14 240 6 270 5 330 3 358 4V34H0Z"/><path class="ws-elev-line" d="M0 32C40 30 70 26 100 22S150 12 180 14 240 6 270 5 330 3 358 4"/></svg><p><span>92 m</span><svg class="ws-icon"><use href="#ws-i-mountain"/></svg><span>341 m</span></p></div>
+                  <p class="ws-journey">You walked, spoke your mind, and found stillness.</p>
+                  <p class="ws-summary-timer">2:41:08</p>
+                  <p class="ws-stat-row"><span><b>3.60 km</b>Distance</span><span><b>5212</b>Steps</span><span><b>430 m</b>Elevation</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 08 · Give -->
+        <section class="walk-story-scene" id="scene-8" data-scene="give" data-sky="night" aria-labelledby="scene-8-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-follower" d="M560 779 C460 749 380 809 280 799" pathLength="1"/>
+            <path class="ws-line" d="M560 770 C460 740 380 800 280 790" pathLength="1"/>
+            <g class="ws-dot" transform="translate(280 790)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <path class="ws-follower" d="M180 818 C120 838 80 848 40 844" pathLength="1"/>
+            <path class="ws-line" d="M180 810 C120 830 80 840 40 836" pathLength="1"/>
+            <g class="ws-dot" transform="translate(40 836)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">08 · Give</p>
+              <h2 id="scene-8-title">You give the walk <em>away</em>.</h2>
+              <p class="ws-body">Share it as a living page. Your voice plays where you spoke, your photographs wait where you stood, and whoever walks it after you walks in your steps.</p>
+              <p><a href="https://walk.pilgrimapp.org/9mYhRL7GWx" data-umami-event="walk-with-me-demo">Walk one yourself&nbsp;&rarr;</a></p>
+            </div>
+            <div class="walk-story-phone" aria-hidden="true">
+              <div class="ws-screen ws-screen--share">
+                <div class="ws-map-layer ws-share-map"><svg class="ws-map" viewBox="0 0 390 844"><use href="#ws-streets"/></svg></div>
+                <p class="ws-status">21:06</p>
+                <div class="ws-share-open">
+                  <p class="ws-share-orn" style="--i:0">❦</p>
+                  <p class="ws-share-kicker" style="--i:1">Friday, October 16</p>
+                  <p class="ws-share-place" style="--i:2">Tanabe</p>
+                  <p class="ws-share-weather" style="--i:3">Clear · waxing crescent ☽ · 18°C</p>
+                  <p class="ws-share-epigraph" style="--i:4">“the light on the water keeps changing, and I keep trying to hold it still”</p>
+                  <p class="ws-share-doors" style="--i:5"><span class="ws-pill ws-pill--solid">▶&nbsp;&nbsp;walk with me</span><span class="ws-pill">as it happened · 2h 41m</span><span class="ws-pill"><img src="assets/pilgrim-logo.png" alt="" width="20" height="20">walk this</span></p>
+                </div>
+                <p class="ws-safari">walk.pilgrimapp.org</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 09 · Yours alone · night -->
+        <section class="walk-story-scene" id="scene-9" data-scene="yours-alone" data-sky="night" aria-labelledby="scene-9-title">
+          <svg class="walk-story-line walk-story-line--landscape" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+            <defs>
+              <radialGradient id="ws-moon-halo"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset=".45" stop-color="currentColor" stop-opacity=".07"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+            </defs>
+            <circle class="ws-moon-halo" cx="1120" cy="200" r="130" fill="url(#ws-moon-halo)"/>
+            <circle class="ws-moon-disc" cx="1120" cy="200" r="36"/>
+            <path class="ws-moon-lit" data-cx="1120" data-cy="200" data-r="36" d="M1120 164 A36 36 0 0 1 1120 236 A0.00 36 0 0 0 1120 164Z"/>
+            <path class="ws-line" d="M280 790 C250 788 220 786 200 785" pathLength="1"/>
+            <g class="ws-dot" transform="translate(200 785)"><circle r="6"/></g>
+          </svg>
+          <svg class="walk-story-line walk-story-line--portrait" viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet" aria-hidden="true" focusable="false">
+            <defs>
+              <radialGradient id="ws-moon-halo-p"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset=".45" stop-color="currentColor" stop-opacity=".07"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+            </defs>
+            <g class="ws-moon-pinned">
+              <circle class="ws-moon-halo" cx="380" cy="700" r="90" fill="url(#ws-moon-halo-p)"/>
+              <circle class="ws-moon-disc" cx="380" cy="700" r="30"/>
+              <path class="ws-moon-lit" data-cx="380" data-cy="700" data-r="30" d="M380 670 A30 30 0 0 1 380 730 A0.00 30 0 0 0 380 670Z"/>
+            </g>
+            <path class="ws-line" d="M40 836 C34 838 28 840 24 840" pathLength="1"/>
+            <g class="ws-dot" transform="translate(24 840)"><circle r="6"/></g>
+          </svg>
+          <div class="walk-story-front">
+            <div class="walk-story-copy">
+              <p class="ws-kicker">09 · Yours alone</p>
+              <h2 id="scene-9-title">Your walk is yours <em>alone</em>.</h2>
+              <p class="ws-body">No account, and nothing that says who you are. What you make on a walk stays on your phone, unless you choose to share it. The little that travels is written down, plainly.</p>
+              <ul class="ws-list">
+                <li>Transcribed on your phone.</li>
+                <li>No login, no profile.</li>
+                <li>No analytics, advertising or crash-reporting SDKs.</li>
+                <li>Your walks export whole, any time.</li>
+              </ul>
+              <p><a href="/privacy">Everything the app sends&nbsp;&rarr;</a></p>
+              <p class="ws-begin">Begin your own walk</p>
+              <div class="store-badges">
+          <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
+            <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
+            <span class="app-store-badge-text">
+              <span class="app-store-badge-sub">Download on the</span>
+              <span class="app-store-badge-name">App Store</span>
+            </span>
+          </a>
+          <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim" class="google-play-badge" aria-label="Get it on Google Play" data-umami-event="click-google-play">
+            <svg class="google-play-badge-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 22V2l18 10L3 22z"/></svg>
+            <span class="google-play-badge-text">
+              <span class="google-play-badge-sub">Get it on</span>
+              <span class="google-play-badge-name">Google Play</span>
+            </span>
+          </a>
         </div>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
+    <div id="after-walk-story"></div>
 
     <!-- ==========================================
          4.6. Reliquary — Where you stood
@@ -1521,130 +1756,8 @@
               </svg>
             </div>
             <h3 class="traces-card-title traces-card-title--reliquary">The Walk Reliquary</h3>
-            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from your photo library, never copied, never uploaded. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
+            <p>Photos from your walk's time window appear in a quiet carousel on your summary — gathered passively from your photo library, never copied; a photo leaves your phone only if you share the walk interactively. Long-press a photo and tap the pin to commit it as a relic: it becomes a circular thumbnail anchored to exactly where you stood when you took it. Scroll the carousel and the matching map pin glows. Tap a pin on the map and the carousel scrolls to meet it. Pinned photos also quietly shape your writing prompts — analyzed on-device, never sent anywhere. Opt-in. Default off.</p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==========================================
-         4.65. Walk with me — the walk, given
-         ========================================== -->
-    <section class="walkwithme section" aria-label="Walk with me">
-      <div class="section-inner">
-        <div class="walkwithme-route reveal" aria-hidden="true">
-          <!-- The shared page's overture, quoted in miniature: the route
-               inks itself as the section arrives, and the walker settles
-               at its end. Hooks the existing .reveal/.revealed system. -->
-          <svg viewBox="0 0 320 72" width="280" height="63" fill="none">
-            <path class="walkwithme-path" d="M8 52 C 48 18, 84 64, 124 42 C 156 24, 176 14, 210 26 C 244 38, 268 54, 296 34"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <circle class="walkwithme-walker" cx="296" cy="34" r="3.5" fill="currentColor" stroke="none"/>
-          </svg>
-        </div>
-        <h2 class="display-large reveal">Walk with me</h2>
-        <p class="body-text reveal">
-          A walk can now be given. Share one as a living page and your voice
-          plays at the places you spoke it, photographs appear where you took
-          them, and the route walks itself across a real map — at a guided
-          pace, or minute for minute, as it happened. Whoever reaches the end
-          may leave a stone.
-        </p>
-        <p class="walkwithme-door reveal reveal-delay-1">
-          <a href="https://walk.pilgrimapp.org/9mYhRL7GWx" data-umami-event="walk-with-me-demo">Walk one yourself&nbsp;&rarr;</a>
-        </p>
-      </div>
-    </section>
-
-    <!-- ==========================================
-         4.7. Seek doorway — withholds, links to /seek
-         ========================================== -->
-    <section class="seek-door section" aria-label="Seek">
-      <div class="section-inner">
-        <div class="seek-door-crescent reveal" aria-hidden="true">
-          <svg viewBox="0 0 48 48" width="46" height="46" fill="none">
-            <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-dasharray="34 80" stroke-dashoffset="17"/>
-          </svg>
-        </div>
-        <h2 class="display-large reveal">You don't choose where you're going</h2>
-        <p class="body-text reveal">
-          Whisper what you're looking for, and walk toward places hidden in
-          fog — revealed only by stillness.
-        </p>
-        <form class="seek-door-form" method="get" action="/seek" autocomplete="off">
-          <label class="seek-door-label" for="seek-door-word">What are you seeking?</label>
-          <div class="seek-door-field">
-            <input type="text" id="seek-door-word" name="word" maxlength="32"
-                   placeholder="one word is enough" spellcheck="false">
-            <button type="submit" class="seek-door-submit" data-umami-event="enter-seek">Seek</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <!-- ==========================================
-         5. Screenshot Journey
-         ========================================== -->
-    <section class="journey section" aria-label="A walk through Pilgrim">
-      <div class="section-inner">
-        <h2 class="display-large reveal">A walk through Pilgrim</h2>
-      </div>
-
-      <div class="journey-inner">
-
-        <p class="journey-caption reveal">Choose a quote. Set an intention. Tap Wander.</p>
-
-        <div class="journey-pair reveal">
-          <img src="assets/screenshots/01_walk_start.png" alt="Walk start screen with quote and moon phase" class="journey-screenshot">
-          <img src="assets/screenshots/02_active_walk.png" alt="Active walk showing map, duration, intention mantra, stats, and Meditate, Record, and End controls" class="journey-screenshot">
-        </div>
-
-        <p class="journey-caption reveal">The breathing circle appears. The world quiets.</p>
-
-        <div class="journey-single reveal">
-          <video src="assets/previews/02_meditation_preview.mp4" class="journey-screenshot" autoplay muted loop playsinline></video>
-        </div>
-
-        <p class="journey-caption reveal">Route, elevation, weather, intention — your walk becomes a story.</p>
-
-        <div class="journey-pair reveal">
-          <img src="assets/screenshots/04_walk_summary.png" alt="Walk summary with route map and milestone" class="journey-screenshot">
-          <img src="assets/screenshots/05_walk_stats.png" alt="Time breakdown showing walk, talk, and meditate" class="journey-screenshot">
-        </div>
-
-        <p class="journey-caption reveal">Voice recordings transcribed on your phone. AI prompts from your own words.</p>
-
-        <div class="journey-pair reveal">
-          <img src="assets/screenshots/06_walk_activity.png" alt="Voice transcription and activity timeline" class="journey-screenshot">
-          <img src="assets/screenshots/09_settings.png" alt="Settings with atmosphere and voice controls" class="journey-screenshot">
-        </div>
-
-        <p class="journey-caption reveal">Each walk earns a goshuin — a seal generated from your unique journey.</p>
-
-        <div class="journey-pair reveal">
-          <img src="assets/screenshots/07_journal.png" alt="Journal showing walks as dots on an ink scroll path" class="journey-screenshot">
-          <img src="assets/screenshots/08_goshuin.png" alt="Goshuin seal collection" class="journey-screenshot">
-        </div>
-
-      </div>
-
-      <div class="journey-cta reveal">
-        <div class="store-badges">
-          <a href="https://apps.apple.com/app/pilgrim-mindful-walking/id6760921056" class="app-store-badge" aria-label="Download on the App Store" data-umami-event="click-app-store">
-            <span class="app-store-badge-icon" aria-hidden="true">&#63743;</span>
-            <span class="app-store-badge-text">
-              <span class="app-store-badge-sub">Download on the</span>
-              <span class="app-store-badge-name">App Store</span>
-            </span>
-          </a>
-          <a href="https://play.google.com/store/apps/details?id=org.walktalkmeditate.pilgrim" class="google-play-badge" aria-label="Get it on Google Play" data-umami-event="click-google-play">
-            <svg class="google-play-badge-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 22V2l18 10L3 22z"/></svg>
-            <span class="google-play-badge-text">
-              <span class="google-play-badge-sub">Get it on</span>
-              <span class="google-play-badge-name">Google Play</span>
-            </span>
-          </a>
         </div>
       </div>
     </section>
@@ -1769,55 +1882,6 @@
               <button type="button" class="soundscape-option" data-id="evening-crickets">Evening Crickets</button>
               <button type="button" class="soundscape-option" data-id="crackling-fire">Crackling Fire</button>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Footprint divider -->
-    <div class="divider-footprints" aria-hidden="true">
-      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
-      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
-      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
-      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
-      <svg class="footprint" viewBox="0 0 12 20" fill="currentColor"><ellipse cx="6" cy="6" rx="4" ry="5"/><ellipse cx="6" cy="16" rx="3" ry="3.5"/></svg>
-    </div>
-
-    <!-- ==========================================
-         9. Privacy
-         ========================================== -->
-    <section class="privacy-section section" aria-label="Privacy">
-      <div class="section-inner">
-        <h2 class="display-large reveal">Your walk is yours alone</h2>
-
-        <p class="body-text reveal">
-          Privacy isn't a setting you toggle on. It's the architecture. There is no server that
-          knows who you are. There is no account to create. The code is open source for anyone to verify.
-        </p>
-
-        <div class="privacy-features">
-          <div class="privacy-feature reveal reveal-delay-1">
-            <div class="privacy-feature-icon" aria-hidden="true">&#127908;</div>
-            <h3>On-device transcription</h3>
-            <p>OpenAI's Whisper model transcribes your voice recordings locally — WhisperKit on iOS, whisper.cpp on Android. No audio is ever sent to a server.</p>
-          </div>
-
-          <div class="privacy-feature reveal reveal-delay-2">
-            <div class="privacy-feature-icon" aria-hidden="true">&#9711;</div>
-            <h3>No accounts</h3>
-            <p>No login, no profile, no user ID. Pilgrim cannot identify you even if it wanted to.</p>
-          </div>
-
-          <div class="privacy-feature reveal reveal-delay-3">
-            <div class="privacy-feature-icon" aria-hidden="true">&#10006;</div>
-            <h3>No analytics</h3>
-            <p>No usage tracking, no crash reporters, no third-party SDKs. The App Store privacy label and Play Store data safety form both confirm it.</p>
-          </div>
-
-          <div class="privacy-feature reveal reveal-delay-4">
-            <div class="privacy-feature-icon" aria-hidden="true">&#128230;</div>
-            <h3>Your data, yours</h3>
-            <p>View all your walks on <a href="https://view.pilgrimapp.org" target="_blank" style="color:var(--stone)" data-umami-event="click-view-journey">view.pilgrimapp.org</a> — rendered locally, nothing uploaded. Export as <code>.pilgrim</code> files or voice recording zips. Import on a new device anytime.</p>
           </div>
         </div>
       </div>
@@ -2039,6 +2103,8 @@
   <script src="js/traces-cairn.js" defer></script>
   <script src="js/clearing-core.js" defer></script>
   <script src="js/clearing.js" defer></script>
+  <script src="js/walk-story-core.js" defer></script>
+  <script src="js/walk-story.js" defer></script>
   <script>
     (function() {
       var svg = document.getElementById('trail-svg');

@@ -221,6 +221,25 @@
     els.stack.classList.add('is-eternal');
   }
 
+  var demoShown = false;
+  var demoTimer = 0;
+
+  function demo() {
+    if (demoShown || !els.stack) return;
+    demoShown = true;
+    demoTimer = setTimeout(function () {
+      demoTimer = 0;
+      animatePlacement(placeStone());
+    }, 600);
+  }
+
+  // A reader's own stone makes the demonstration moot: one still pending
+  // would land a stone nobody placed, just after theirs.
+  function cancelDemo() {
+    demoShown = true;
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = 0; }
+  }
+
   function initCairn() {
     els.stack = document.getElementById('cairn-stack');
     els.under = document.getElementById('cairn-under');
@@ -233,6 +252,7 @@
     var holdDelay = null, holdRepeat = null;
 
     function place() {
+      cancelDemo();
       var result = placeStone();
       animatePlacement(result);
       setTimeout(function () { playChime(result.stones); }, reduceMotion ? 0 : IMPACT_MS);
@@ -273,13 +293,15 @@
     // of surprise anyway. It counts as stone 1, which is why the
     // counter's rule is "with the first stone" and not "after the first
     // click": there is no separate demonstration state to reason about.
+    // Inside the pinned walk story the cairn sits in a sticky stage and
+    // is "in view" from the story's first scene while invisible, so
+    // there the story calls TracesCairn.demo() when scene 06 is on stage.
     if (typeof IntersectionObserver === 'function') {
-      var shown = false;
       var io = new IntersectionObserver(function (entries) {
-        if (shown || !entries[0].isIntersecting) return;
-        shown = true;
+        if (demoShown || !entries[0].isIntersecting) return;
+        if (els.stack.closest('.walk-story--pinned')) return;
         io.disconnect();
-        setTimeout(function () { animatePlacement(placeStone()); }, 600);
+        demo();
       }, { threshold: 0.6 });
       io.observe(els.stack);
     }
@@ -292,6 +314,8 @@
     if (wispEls.aura || wispEls.wisp) startBreathing();
     initCairn();
   }
+
+  window.TracesCairn = { demo: demo };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

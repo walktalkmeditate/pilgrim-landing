@@ -100,6 +100,13 @@
     }
   }
 
+  // Scroll slides the stars down; they wrap, off screen, so a long page
+  // keeps its sky all the way down.
+  function starY(s, h) {
+    var span = h + 24;
+    return ((s.yNorm * h + mouseRatioY * s.depth * 12 + scrollY * s.depth * 0.05 + 12) % span + span) % span - 12;
+  }
+
   function onMouseMoveParallax(e) {
     var w = window.innerWidth;
     var h = window.innerHeight;
@@ -131,7 +138,7 @@
     for (var i = 0; i < stars.length; i++) {
       var s = stars[i];
       var sx = s.xNorm * w + mouseRatioX * s.depth * 12;
-      var sy = s.yNorm * h + mouseRatioY * s.depth * 12 + scrollY * s.depth * 0.05;
+      var sy = starY(s, h);
       var dx = sx - x;
       var dy = sy - y;
       if (dx * dx + dy * dy < 400) {
@@ -176,10 +183,8 @@
       var s = stars[i];
       var sprite = sprites[s.layer + (s.warm ? '_warm' : '_cool')];
       var breath = reducedMotion ? 1 : (0.8 + 0.2 * Math.sin((t / s.period) * Math.PI * 2 + s.phase));
-      var offsetX = mouseRatioX * s.depth * 12;
-      var offsetY = mouseRatioY * s.depth * 12 + scrollY * s.depth * 0.05;
-      var x = s.xNorm * w + offsetX;
-      var y = s.yNorm * h + offsetY;
+      var x = s.xNorm * w + mouseRatioX * s.depth * 12;
+      var y = starY(s, h);
       var hoverBoost = 1;
       if (hoverX !== -9999) {
         var dx = x - hoverX;

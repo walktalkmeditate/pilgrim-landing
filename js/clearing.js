@@ -1,8 +1,9 @@
 /* The hidden clearing — DOM wiring. Loaded by index.html only.
  *
- * One calm spot below the seek door holds a denser patch of fog,
- * placed fresh each visit. Step through the door (scroll past it)
- * and the door's crescent rides the viewport, leaning toward the
+ * One calm spot below the walk story holds a denser patch of fog,
+ * placed fresh each visit. The door is scene 05's form, inside the
+ * story's sticky stage, so it leaves the viewport only when the story
+ * ends: then the crescent rides the viewport, leaning toward the
  * spot — the app's own gesture: the crescent rides the walker, and
  * leans toward what waits. Stillness with the fog in view reveals
  * the clearing; hover and tap merely hurry it. Reduced motion gets
@@ -15,7 +16,7 @@
   var C = window.ClearingCore;
   if (!C) return;
 
-  var door = document.querySelector('.seek-door');
+  var door = document.querySelector('[data-seek-door]');
   if (!door) return;
 
   var reduceMotion = window.matchMedia &&
@@ -35,7 +36,7 @@
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.closest('.clearing-fog') || el.closest('.clearing-status')) continue;
-      var solid = REPLACED[el.tagName] ||
+      var solid = REPLACED[el.tagName && el.tagName.toUpperCase()] ||
         (el.children.length === 0 && el.textContent.replace(/\s/g, '') !== '');
       if (!solid) continue;
       var r = el.getBoundingClientRect();
@@ -112,7 +113,8 @@
     status.setAttribute('role', 'status');
     host.appendChild(status);
 
-    var rider = null, riderSvg = null, riderCircle = null;
+    var rider = null, riderSvg = null, riderCircle = null, riderAt = null;
+    var riding = false, doorPassed = false, doorWatch = null;
     var prevAngle = 90;
     var revealed = false;
     var raf = 0;
@@ -132,32 +134,59 @@
       riderCircle = rider.querySelector('circle');
     }
 
+    // Has the door left the viewport upward? This root runs from the
+    // viewport's top edge past the page's foot, so no jump skips it.
+    function watchDoor() {
+      if (!('IntersectionObserver' in window)) return;
+      doorWatch = new IntersectionObserver(function (entries) {
+        var e = entries[entries.length - 1];
+        doorPassed = !e.isIntersecting && e.boundingClientRect.bottom < 0;
+        requestFrame();
+      }, { rootMargin: '0px 0px 100000px 0px' });
+      doorWatch.observe(door);
+    }
+
+    // Reads, then writes. The pinned walk story writes every frame, so
+    // while it is pinned the rider reads nothing: a class check.
     function frame() {
       raf = 0;
       if (!rider || revealed) return;
 
-      var riding = door.getBoundingClientRect().bottom < 0;
-      rider.classList.toggle('is-riding', riding);
-      if (!riding) return;
+      var ride = !document.body.classList.contains('walk-story-pinned') && doorPassed;
+      var f = null;
+      if (ride) {
+        f = fog.getBoundingClientRect();
+        if (!riderAt) {
+          // Fixed to the viewport, it moves only on resize.
+          var r = rider.getBoundingClientRect();
+          riderAt = { x: r.left + r.width / 2, y: r.top + r.height / 2, viewH: window.innerHeight };
+        }
+      }
 
-      var r = rider.getBoundingClientRect();
-      var cx = r.left + r.width / 2;
-      var cy = r.top + r.height / 2;
-      var f = fog.getBoundingClientRect();
+      if (ride !== riding) {
+        riding = ride;
+        rider.classList.toggle('is-riding', ride);
+      }
+      if (!ride) return;
+
       var tx = f.left + f.width / 2;
       var ty = f.top + f.height / 2;
-
-      prevAngle = C.unwrapAngle(prevAngle, C.leanAngleDeg(cx, cy, tx, ty));
+      prevAngle = C.unwrapAngle(prevAngle, C.leanAngleDeg(riderAt.x, riderAt.y, tx, ty));
       riderSvg.style.transform = 'rotate(' + prevAngle.toFixed(1) + 'deg)';
 
-      var dx = tx - cx, dy = ty - cy;
-      var dash = C.dashFor(C.arcSpan(Math.sqrt(dx * dx + dy * dy), window.innerHeight));
+      var dx = tx - riderAt.x, dy = ty - riderAt.y;
+      var dash = C.dashFor(C.arcSpan(Math.sqrt(dx * dx + dy * dy), riderAt.viewH));
       riderCircle.style.strokeDasharray = dash.array;
       riderCircle.style.strokeDashoffset = dash.offset;
     }
 
     function requestFrame() {
       if (!raf) raf = window.requestAnimationFrame(frame);
+    }
+
+    function onResize() {
+      riderAt = null;
+      requestFrame();
     }
 
     var stillTimer = 0, hoverTimer = 0;
@@ -190,9 +219,11 @@
       status.textContent = 'A clearing, revealed.';
 
       if (io) io.disconnect();
+      if (doorWatch) doorWatch.disconnect();
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', requestFrame);
+      window.removeEventListener('resize', onResize);
       if (rider) rider.classList.remove('is-riding');
+      riding = false;
     }
 
     var io = ('IntersectionObserver' in window) ?
@@ -214,7 +245,8 @@
 
     if (!reduceMotion) {
       buildRider();
-      window.addEventListener('resize', requestFrame, { passive: true });
+      watchDoor();
+      window.addEventListener('resize', onResize, { passive: true });
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     if (rider) requestFrame();

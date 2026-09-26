@@ -63,7 +63,63 @@ const BASELINE_KB = {
   // curated offset — the inline styles, and the rider's seasonal breath.
   // Same trade traces made: the app's actual drawing, priced in the open,
   // not a lighter imitation.
-  'index.html':                                 83.50,
+  // The walk story (docs/superpowers/specs/2026-09-24-one-walk-story-design.md),
+  // +31.60 over 83.50 in all: index.html +5.06, css/walk-story.css 15.32,
+  // js/walk-story.js 6.70, js/walk-story-core.js 3.73, js/clearing.js
+  // +0.42, js/traces-cairn.js +0.24, js/universe.js +0.08, js/main.js +0.06.
+  // Step by step:
+  // +24.30 (107.80): nine scenes, each with its copy, an HTML phone and its
+  // line in two geometries, replace six sections, whose inline CSS went
+  // with them (index.html +4.95); the stacked story's stylesheet, then the
+  // pinned stage, its easing loop and the pure core (css 11.96, js 4.54,
+  // core 2.62); the cairn's demo and the clearing's new zones
+  // (traces-cairn.js +0.14, clearing.js +0.05, main.js +0.06).
+  // +0.63 (108.43): the dark phones' palette (the app's fog, a black sheet
+  // backdrop, the shared page kept light) and the labels' scale moving
+  // into the core, where it is tested.
+  // +0.63 (109.06): the docked pill's chip tokens, the phone finale's moon,
+  // and the line's quieter past on a phone.
+  // +0.53 (109.59): a short laptop stage (1366x650, 1280x720) compacts the
+  // copy instead of running it into the line.
+  // +0.95 (110.54): the walked lines follow the scroll instead of a timed
+  // fade, and are veiled where the light theme's ink turns, in the core
+  // where both are tested; the sky's crossfade is eased.
+  // +1.07 (111.61): star mode clears the stars from behind the story's
+  // text and dresses the phones, rail, moon and fog for a starfield; the
+  // starfield wraps as the page scrolls (js/universe.js, +0.09).
+  // +0.74 (112.35): the frame budget. The clearing's rider reads no layout
+  // while the story is pinned (js/clearing.js +0.36), and the story's frame
+  // reads the scroll position before it writes (js/walk-story.js +0.13,
+  // the core +0.20).
+  // +0.80 (113.15): a phone turned sideways and back, or a window
+  // narrowed while pinned, keeps its scene (js/walk-story.js +0.36, the
+  // core -0.05); the final review's fixes: the skip link hides in its own
+  // box, an upright tablet caps its phones by width and docks the pill
+  // above the line, and pinning reads a 100svh probe, not innerHeight
+  // (css/walk-story.css +0.35, js/walk-story.js +0.16).
+  // +0.64 (113.79): the ink turn's rules for the rail and the walked
+  // lines (css/walk-story.css +0.08) and the finale's line on sharing
+  // (index.html +0.02); between 721 and 1000px wide the pill docks where
+  // the line, the rail and the traces leave it room, the phones stand
+  // clear of it, and a narrow short stage widens the finale's column
+  // (css/walk-story.css +0.53).
+  // +0.20 (113.99): every stage from 721 to 1920 wide and 560 to 1200 tall
+  // keeps the pill, the phones and the finale clear: a smaller corner pill
+  // up to 1140px, the Honor phone capped by width, a frame no wider than
+  // the line past 16:9, and the finale compacted on short and wide stages
+  // (css/walk-story.css +0.20).
+  // +0.54 (114.53): the code review's fixes. A reader past the story
+  // keeps their distance from its end across a resize, a pin and an
+  // unpin (js/walk-story.js +0.43); a reader's own stone cancels the
+  // cairn's pending demo (js/traces-cairn.js +0.10); inline SVG is an
+  // obstacle to the clearing (js/clearing.js +0.01).
+  // +0.36 (114.89): a link to a scene lands on it, on load and on a
+  // change of address, and a modified click on the rail or the pill
+  // keeps its browser meaning (js/walk-story.js +0.36).
+  // +0.21 (115.10): the skip link lands a pixel past the story's end, so
+  // the story leaves, and leaving gives the page's walker and distance one
+  // scroll to catch up on (js/walk-story.js +0.22).
+  'index.html':                                 115.10,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

@@ -1,0 +1,1031 @@
+/* One walk, told by scroll. Loaded by index.html only.
+
+   Everything here is prefixed walk-story / ws-. The "Why Pilgrim exists"
+   section is already .story, styled at css/styles.css:1111–1123, so a
+   bare .story would collide both ways.
+
+   The skies are the story's own, not js/seasonal.js's: its time-of-day
+   modifiers shift parchment by barely a shade (js/breathe-tint.js makes
+   the same call). js/walk-story-contrast.test.js parses the tokens below
+   and holds every scene's text to AA over its own sky. */
+
+:root {
+  --ws-dawn-base: #F2E4D3;
+  --ws-dawn-glow: rgba(244, 195, 161, 0.5);
+  --ws-day-base: #F5F0E8;
+  --ws-day-glow: rgba(251, 243, 220, 0.6);
+  --ws-golden-base: #EEDAB8;
+  --ws-golden-glow: rgba(230, 178, 106, 0.45);
+  --ws-dusk-base: #3B2F40;
+  --ws-dusk-glow: rgba(169, 96, 79, 0.35);
+  --ws-night-base: #121521;
+  --ws-night-glow: rgba(40, 48, 82, 0.6);
+  --ws-ink-lightsky: #2C241E;
+  --ws-muted-lightsky: #4F4943;
+  --ws-ink-darksky: #F0EBE1;
+  --ws-muted-darksky: #C9C1B6;
+  --ws-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Fog is paler than the sky it hangs in, never a shade of the ink. */
+  --ws-fog: #FFFDF8;
+  /* The pill is the story's one way on: a chip with a hairline, told
+     from every sky it docks on (js/walk-story-contrast.test.js). */
+  --ws-pill-bg: #FBF8F2;
+  --ws-pill-edge: rgba(44, 36, 30, 0.2);
+  --ws-pill-ink: #2C241E;
+  --ws-pill-drop: rgba(0, 0, 0, 0.35);
+  /* The phones' map and status bar. */
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  --ws-status-icons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 78 13'%3E%3Crect x='0' y='8' width='3.2' height='4.2' rx='1'/%3E%3Crect x='4.6' y='5.8' width='3.2' height='6.4' rx='1'/%3E%3Crect x='9.2' y='3.4' width='3.2' height='8.8' rx='1'/%3E%3Crect x='13.8' y='1' width='3.2' height='11.2' rx='1'/%3E%3Cpath d='M30 12.4 27.7 9.8a3.4 3.4 0 0 1 4.6 0Z'/%3E%3Cpath d='M25.4 7.5a6.6 6.6 0 0 1 9.2 0M22.8 4.8a10.3 10.3 0 0 1 14.4 0' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3Crect x='46.5' y='1' width='24' height='11' rx='3.6' fill='none' stroke='black' stroke-opacity='.4'/%3E%3Crect x='48.5' y='3' width='20' height='7' rx='2'/%3E%3Cpath d='M72 4.6a2 2 0 0 1 0 3.8Z' fill-opacity='.45'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] {
+  --ws-dawn-base: #2A2119;
+  --ws-dawn-glow: rgba(90, 58, 42, 0.5);
+  --ws-day-base: #1C1914;
+  --ws-day-glow: rgba(46, 42, 34, 0.6);
+  --ws-golden-base: #2A1F12;
+  --ws-golden-glow: rgba(92, 64, 32, 0.45);
+  --ws-dusk-base: #1D1725;
+  --ws-dusk-glow: rgba(74, 42, 48, 0.4);
+  --ws-night-base: #0C0E16;
+  --ws-night-glow: rgba(28, 34, 56, 0.6);
+  --ws-fog: #5A5247;
+  --ws-pill-bg: #30291F;
+  --ws-pill-edge: rgba(240, 235, 225, 0.2);
+  --ws-pill-ink: #F0EBE1;
+  --ws-pill-drop: rgba(0, 0, 0, 0.6);
+  --ws-map-land: #221E18;
+  --ws-map-road: #332D25;
+  --ws-map-park: #232A20;
+  --ws-map-water: #1D2A2B;
+}
+
+/* --- Skies: the atmosphere's five layers when pinned, each scene's own
+   background when stacked. The glow sits low, where the line walks. --- */
+
+.ws-sky-dawn,
+.walk-story-scene[data-sky="dawn"] {
+  background: radial-gradient(120% 85% at 18% 105%, var(--ws-dawn-glow), transparent 62%), var(--ws-dawn-base);
+}
+.ws-sky-day,
+.walk-story-scene[data-sky="day"] {
+  background: radial-gradient(120% 85% at 50% 108%, var(--ws-day-glow), transparent 62%), var(--ws-day-base);
+}
+.ws-sky-golden,
+.walk-story-scene[data-sky="golden"] {
+  background: radial-gradient(120% 85% at 82% 108%, var(--ws-golden-glow), transparent 64%), var(--ws-golden-base);
+}
+.ws-sky-dusk,
+.walk-story-scene[data-sky="dusk"] {
+  background: radial-gradient(120% 80% at 70% 110%, var(--ws-dusk-glow), transparent 66%), var(--ws-dusk-base);
+}
+.ws-sky-night,
+.walk-story-scene[data-sky="night"] {
+  background: radial-gradient(90% 70% at 80% 12%, var(--ws-night-glow), transparent 60%), var(--ws-night-base);
+}
+
+/* --- Ink: dark on the light skies, light on dusk and night, and light
+   everywhere in dark mode. Fixed per scene: text never changes colour
+   mid-read, which is why the skies blend only between scenes. --- */
+
+.walk-story-scene {
+  --ws-ink: var(--ws-ink-lightsky);
+  --ws-muted: var(--ws-muted-lightsky);
+}
+.walk-story-scene[data-sky="dusk"],
+.walk-story-scene[data-sky="night"],
+[data-theme="dark"] .walk-story-scene {
+  --ws-ink: var(--ws-ink-darksky);
+  --ws-muted: var(--ws-muted-darksky);
+}
+.walk-story-scene {
+  color: var(--ws-ink);
+}
+
+/* Star mode: the starfield is the story's sky. */
+body.constellation {
+  /* css/styles.css's ground, so the text's AA holds on its clearings. */
+  --ws-star-ground: #0A0A12;
+  /* A cool night mist: the dark theme's warm fog is brown dust here. */
+  --ws-fog: #474C62;
+}
+body.constellation .walk-story-atmosphere { display: none; }
+body.constellation .walk-story-scene { background: transparent; }
+/* A star in a letter reads as a typo, so each block of text clears the
+   sky behind it with a feathered field of the ground's colour, beneath
+   the lines and the fog. js/walk-story.js places them and shows each
+   scene's with its text; the labels get a halo of the ground. */
+.ws-clearings { display: none; }
+body.constellation .walk-story--pinned .ws-clearings { display: block; position: absolute; inset: 0; pointer-events: none; }
+.ws-clearings > div { position: absolute; inset: 0; opacity: 0; }
+/* Wider than the text by 1rem a side: a star just before a line's first
+   letter reads as a bullet. */
+.ws-clearings i { position: absolute; box-sizing: content-box; margin-left: -1rem; padding: 0 1rem; border-radius: 1rem; background: var(--ws-star-ground); box-shadow: 0 0 1rem 0.75rem var(--ws-star-ground); }
+body.constellation :is(.ws-moment-label, .ws-moment-ja) { paint-order: stroke; stroke: var(--ws-star-ground); stroke-width: 4px; stroke-linejoin: round; }
+/* Dark bezels and black shadows vanish on black: a rim of starlight. */
+body.constellation .walk-story-phone { box-shadow: inset 0 0 0 1px rgba(220, 215, 255, 0.2), 0 0 0 1px rgba(220, 215, 255, 0.06), 0 40px 90px -30px rgba(120, 130, 210, 0.25); }
+/* The rail's dots are a star's size; a thread makes them beads. */
+body.constellation .walk-story-rail::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; margin-left: -0.5px; background: currentColor; opacity: 0.18; }
+/* The moon hides the stars behind it, as a real one does. */
+body.constellation .ws-moon-disc { fill: color-mix(in srgb, currentColor 24%, var(--ws-star-ground)); opacity: 1; }
+body.constellation .ws-moon-lit { opacity: 1; }
+/* A dotted line on a starfield is more stars; theirs is dashed here. */
+body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6; }
+
+/* Scene 06 moves the wisp and the cairn in with the page's own colours
+   (moss, rust, the energy's hue). On the golden sky those fall under
+   AA, so inside the story they take the scene's ink. js/traces-cairn.js
+   sets the wisp's name colour inline, hence !important there; the word
+   carries the energy's identity, and the glyph keeps its colour. */
+.walk-story-scene .traces-card-title { color: var(--ws-ink); }
+.walk-story-scene .traces-card p.cairn-counter,
+.walk-story-scene .traces-card p.wisp-energy { color: var(--ws-muted) !important; }
+
+/* --- Stacked: no JS, reduced motion, short viewports. Nine sections in
+   their finished states: every act below reads var(--hold, 1). --- */
+
+.walk-story { position: relative; }
+.walk-story-stage { position: relative; }
+/* js/walk-story.js reads this to decide pinned or stacked. */
+.ws-svh { position: absolute; top: 0; left: 0; width: 0; height: 100svh; visibility: hidden; pointer-events: none; }
+.walk-story-atmosphere,
+.walk-story-rail,
+.walk-story-pill { display: none; }
+
+.walk-story-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 92svh;
+  padding: 14vh 8% 24vh;
+}
+
+.walk-story-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.walk-story-line--portrait { display: none; }
+@media (max-width: 720px) {
+  .walk-story-line--landscape { display: none; }
+  .walk-story-line--portrait { display: block; }
+}
+
+.walk-story-front {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3rem 6%;
+}
+.walk-story-copy { flex: 1 1 22rem; max-width: 36rem; }
+.walk-story-phone { flex: 0 0 auto; width: min(300px, 76vw); }
+.ws-act--right { flex: 1 1 18rem; }
+.ws-said { flex: 1 1 100%; }
+
+/* --- Copy --- */
+
+.ws-kicker {
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ws-muted);
+  margin: 0 0 1.25rem;
+}
+.walk-story-copy h2 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.3rem, 4.4vw, 5.25rem);
+  line-height: 1.03;
+  letter-spacing: -0.012em;
+  margin: 0 0 1.2rem;
+  text-wrap: balance;
+}
+.walk-story-copy h2 em { font-style: italic; font-weight: 400; }
+.ws-body { font-size: clamp(1.05rem, 1.3vw, 1.22rem); line-height: 1.62; max-width: 34ch; margin: 0 0 1rem; text-wrap: pretty; }
+@media (min-width: 1280px) {
+  .ws-body { max-width: 40ch; }
+}
+.ws-aside,
+.ws-caption,
+.ws-said { font-style: italic; color: var(--ws-muted); }
+.ws-caption { font-size: 0.98rem; margin: 0.3rem 0; }
+.ws-closing { font-family: var(--font-display); font-size: clamp(1.25rem, 1.8vw, 1.6rem); font-style: italic; margin: 1.1rem 0; }
+.ws-said { font-family: var(--font-display); font-size: clamp(1.1rem, 1.5vw, 1.35rem); max-width: 30ch; margin: 0; text-wrap: balance; }
+/* Text links only: scene 09's store badges are links in the copy too. */
+.walk-story-copy p a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+.ws-list { list-style: none; padding: 0; margin: 1rem 0; }
+.ws-list li { margin: 0.3rem 0; }
+.ws-begin { font-family: var(--font-display); font-size: 1.3rem; font-style: italic; margin: 1.4rem 0 0.8rem; }
+/* The page centres its store badges; in the story they keep the copy's edge. */
+.walk-story-copy .store-badges { justify-content: flex-start; margin: 0.6rem 0 0; }
+.ws-seek-form { margin-top: 1.4rem; }
+.ws-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.walk-story-skip {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 5;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+}
+/* Stacked, nothing clips the story, so the link is hidden by its own box
+   until it takes focus. */
+.walk-story-skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* On a night sky the page's own badge colours sink; lift them. */
+.walk-story-scene[data-sky="night"] .app-store-badge,
+.walk-story-scene[data-sky="night"] .google-play-badge {
+  background: var(--ws-ink-darksky);
+  color: var(--ws-night-base);
+  border-color: var(--ws-ink-darksky);
+}
+
+/* --- The line --- */
+
+/* On a phone the line is drawn smaller (its viewBox is wider, see the
+   layout below), so its stroke and walker are drawn heavier to match. */
+.walk-story-line { --ws-stroke: 2.25; }
+.walk-story-line--portrait { --ws-stroke: 2.9; }
+.walk-story-line--portrait .ws-dot > circle { transform: scale(1.25); }
+.ws-line { fill: none; stroke: currentColor; stroke-width: var(--ws-stroke); stroke-linecap: round; stroke-linejoin: round; }
+/* The Honor stage is drawn scaled; its stroke is divided back by the
+   scale the bake puts on the group, so it matches every other line.
+   (A non-scaling stroke would lay pathLength dashes out in screen space
+   and part the ink from its dot.) */
+.ws-honor-route .ws-line { stroke-width: calc(var(--ws-stroke) / var(--ws-route-scale, 1)); }
+.ws-honor-route .ws-honor-theirs { stroke-width: calc(var(--ws-stroke) * 0.9 / var(--ws-route-scale, 1)); }
+.ws-dot > circle,
+.ws-pin circle,
+.ws-moment circle { fill: currentColor; }
+.ws-ring { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: 0.6; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; }
+.ws-honor-theirs { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 0.004 0.012; opacity: 0.45; }
+.ws-moment-label { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.04em; fill: currentColor; }
+.ws-moment-ja { font-size: 12px; fill: currentColor; opacity: 0.8; }
+.ws-crescent { fill: none; stroke: var(--dawn); stroke-width: 2.5; stroke-linecap: round; }
+.ws-follower { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; opacity: 0.45; }
+/* The phone finale's moon is placed for the pinned frame; stacked, the
+   scene's height follows its copy, and it would sit behind the badges. */
+.ws-moon-pinned { display: none; }
+.walk-story--pinned .ws-moon-pinned { display: inline; }
+.ws-moon-disc { fill: currentColor; opacity: 0.08; }
+.ws-moon-lit { fill: currentColor; opacity: 0.85; }
+
+/* --- The phone. Every string on it is the app's own (the markup test
+   cites each), and its colours are the page's, so it follows the theme.
+
+   It is drawn in the app's own points. The phone is a size container and
+   --pt is one point of a 390 × 844 iPhone screen, so each number below is
+   the SwiftUI source's number: a 17-point button is 17 points on a phone
+   of any size, and nothing outgrows the phone as the phone shrinks. --- */
+
+.ws-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.walk-story-phone {
+  --pt: calc(100cqw / 412);
+  --ws-bezel: #1D1915;
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 412 / 866;
+  border-radius: 16% / 7.6%;
+  background: var(--ws-bezel);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 60px 100px -40px rgba(24, 16, 8, 0.55),
+    0 24px 44px -26px rgba(24, 16, 8, 0.45);
+}
+[data-theme="dark"] .walk-story-phone {
+  --ws-bezel: #0B0A09;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 60px 100px -40px rgba(0, 0, 0, 0.8);
+}
+/* The action button and the volume rocker on the left, power on the right. */
+.walk-story-phone::before,
+.walk-story-phone::after { content: ''; position: absolute; width: 0.8%; }
+.walk-story-phone::before {
+  right: 100%;
+  top: 17%;
+  height: 23%;
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(var(--ws-bezel) 0 14%, transparent 14% 29%, var(--ws-bezel) 29% 61%, transparent 61% 69%, var(--ws-bezel) 69%);
+}
+.walk-story-phone::after { left: 100%; top: 27%; height: 11%; border-radius: 0 2px 2px 0; background: var(--ws-bezel); }
+
+/* The page's --fog is a pale decorative token; the app draws its
+   secondary text in its own fog.colorset, about twice as strong. */
+.ws-screen {
+  --fog: #8A8175;
+  position: absolute;
+  inset: calc(11 * var(--pt));
+  overflow: hidden;
+  clip-path: inset(0 round calc(55 * var(--pt)));
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: calc(12 * var(--pt));
+  line-height: 1.2;
+}
+[data-theme="dark"] .ws-screen { --fog: #948E88; }
+:where(.ws-screen) p { margin: 0; }
+/* The Dynamic Island and the home indicator. */
+.ws-screen::before,
+.ws-screen::after { content: ''; position: absolute; z-index: 5; left: 50%; }
+.ws-screen::before {
+  top: calc(11 * var(--pt));
+  width: calc(125 * var(--pt));
+  height: calc(37 * var(--pt));
+  margin-left: calc(-62.5 * var(--pt));
+  border-radius: calc(19 * var(--pt));
+  background: #000;
+}
+.ws-screen::after {
+  bottom: calc(8 * var(--pt));
+  width: calc(139 * var(--pt));
+  height: calc(5 * var(--pt));
+  margin-left: calc(-69.5 * var(--pt));
+  border-radius: calc(3 * var(--pt));
+  background: currentColor;
+}
+.ws-status {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(59 * var(--pt));
+  padding: 0 calc(30 * var(--pt)) 0 calc(50 * var(--pt));
+  font: 600 calc(17 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+.ws-status::after {
+  content: '';
+  width: calc(78 * var(--pt));
+  height: calc(13 * var(--pt));
+  background: currentColor;
+  -webkit-mask: var(--ws-status-icons) center / contain no-repeat;
+  mask: var(--ws-status-icons) center / contain no-repeat;
+}
+.ws-icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ws-grabber { position: absolute; top: calc(6 * var(--pt)); left: 50%; width: calc(36 * var(--pt)); height: calc(5 * var(--pt)); margin-left: calc(-18 * var(--pt)); border-radius: calc(3 * var(--pt)); background: var(--fog); }
+.ws-button {
+  display: block;
+  padding: calc(12 * var(--pt)) 0;
+  border-radius: calc(12 * var(--pt));
+  background: var(--stone);
+  color: var(--parchment);
+  font-weight: 700;
+  font-size: calc(17 * var(--pt));
+  text-align: center;
+}
+
+/* 01 — the Path tab (Scenes/Home/WalkStartView.swift). */
+.ws-app-logo { position: absolute; top: calc(128 * var(--pt)); left: 50%; width: calc(96 * var(--pt)); height: auto; margin-left: calc(-48 * var(--pt)); border-radius: calc(22 * var(--pt)); }
+.ws-app-quote { position: absolute; top: calc(250 * var(--pt)); left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); line-height: 1.25; text-align: center; color: var(--fog); }
+.ws-app-moon { position: absolute; top: calc(360 * var(--pt)); left: 50%; width: calc(220 * var(--pt)); height: calc(220 * var(--pt)); margin-left: calc(-110 * var(--pt)); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--fog) 30%, transparent), transparent); }
+.ws-app-moon::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(40 * var(--pt)); height: calc(40 * var(--pt)); margin: calc(-20 * var(--pt)); border-radius: 50%; box-shadow: inset calc(5 * var(--pt)) 0 0 color-mix(in srgb, var(--fog) 85%, transparent); }
+.ws-app-bottom { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(22 * var(--pt)); }
+.ws-modes { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); font-weight: 700; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 55%, transparent); }
+.ws-modes > span { padding-bottom: calc(6 * var(--pt)); }
+/* The selected mode lights in stone over the row, with the app's own
+   underline for it: Wander's trail fades ahead, Honor's gathers in the
+   middle, Seek's arrives from behind (WalkStartView.trailUnderline). */
+.ws-modes-lit { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(8 * var(--pt)); color: var(--stone); font-style: normal; }
+.ws-modes-lit b { position: relative; font-weight: inherit; }
+.ws-modes-lit b::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(2 * var(--pt)); }
+.ws-modes-lit .ws-w::after { background: linear-gradient(90deg, var(--stone), color-mix(in srgb, var(--stone) 20%, transparent)); }
+.ws-modes-lit .ws-h::after { background: linear-gradient(90deg, color-mix(in srgb, var(--stone) 30%, transparent), var(--stone), color-mix(in srgb, var(--stone) 30%, transparent)); }
+.ws-modes-lit .ws-s::after { background: linear-gradient(90deg, color-mix(in srgb, var(--stone) 20%, transparent), var(--stone)); }
+.ws-app-quote,
+.ws-app-sub,
+.ws-app-bottom .ws-button { display: grid; }
+.ws-app-quote > span,
+.ws-app-sub > span,
+.ws-app-bottom .ws-button > span { grid-area: 1 / 1; }
+.ws-app-sub { margin: calc(8 * var(--pt)) 0 calc(16 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-app-bottom .ws-button { --press: calc(clamp(0, (var(--hold, 1) - 0.55) / 0.02, 1) - clamp(0, (var(--hold, 1) - 0.58) / 0.02, 1)); border-radius: calc(14 * var(--pt)); transform: scale(calc(1 - 0.04 * var(--press))); }
+.ws-tabs { display: flex; width: calc(274 * var(--pt)); margin: calc(25 * var(--pt)) auto 0; padding: calc(4 * var(--pt)); border-radius: calc(31 * var(--pt)); background: color-mix(in srgb, var(--parchment) 55%, #fff); box-shadow: 0 calc(8 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.1); font: 500 calc(10 * var(--pt)) / 1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+[data-theme="dark"] .ws-tabs { background: var(--parchment-tertiary); }
+.ws-tabs span { flex: 1; display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--pt)); padding: calc(7 * var(--pt)) 0 calc(6 * var(--pt)); border-radius: calc(27 * var(--pt)); }
+.ws-tabs .ws-icon { font-size: calc(26 * var(--pt)); }
+.ws-tabs .is-on { background: var(--parchment-secondary); color: var(--stone); }
+
+/* The walk screen: the map, its two corner buttons, the walked line. */
+.ws-map-layer { position: absolute; inset: 0; background: var(--ws-map-land); }
+/* iOS dims what a sheet covers; the dim rises with the sheet. */
+.ws-screen--path .ws-map-layer::after { content: ''; position: absolute; inset: 0; background: rgba(20, 14, 8, 0.2); }
+.ws-map { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
+.ws-map-route { fill: none; stroke: var(--moss); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-map-halo { fill: var(--dawn); opacity: 0.22; }
+.ws-map-you { fill: var(--dawn); stroke: var(--parchment); stroke-width: 3; }
+.ws-map-btn { position: absolute; top: calc(70 * var(--pt)); display: grid; place-items: center; width: calc(36 * var(--pt)); height: calc(36 * var(--pt)); border-radius: 50%; background: color-mix(in srgb, var(--parchment) 88%, transparent); box-shadow: 0 calc(2 * var(--pt)) calc(10 * var(--pt)) rgba(0, 0, 0, 0.12); font-size: calc(17 * var(--pt)); }
+.ws-map-btn--left { left: calc(16 * var(--pt)); }
+.ws-map-btn--right { right: calc(16 * var(--pt)); }
+
+/* The intention sheet (Scenes/ActiveWalk/IntentionSettingView.swift),
+   at its medium detent: iOS floats it clear of the edges. */
+.ws-intention {
+  position: absolute;
+  left: calc(8 * var(--pt));
+  right: calc(8 * var(--pt));
+  bottom: calc(8 * var(--pt));
+  height: calc(330 * var(--pt));
+  padding: calc(24 * var(--pt)) calc(24 * var(--pt)) 0;
+  border-radius: calc(44 * var(--pt));
+  background: var(--parchment);
+  box-shadow: 0 calc(-4 * var(--pt)) calc(30 * var(--pt)) rgba(0, 0, 0, 0.18);
+}
+.ws-sheet-title { font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); text-align: center; color: color-mix(in srgb, var(--ink) 80%, transparent); }
+.ws-field { display: grid; margin-top: calc(24 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--parchment-secondary) 50%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-field > span { grid-area: 1 / 1; }
+.ws-placeholder { color: var(--fog); }
+.ws-field-meta { display: flex; justify-content: space-between; margin-top: calc(8 * var(--pt)); color: var(--fog); }
+.ws-field-meta .ws-icon { margin-right: calc(6 * var(--pt)); vertical-align: -0.15em; }
+.ws-count { display: grid; color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-count > span,
+.ws-set > span { grid-area: 1 / 1; }
+.ws-recurring { margin-top: calc(16 * var(--pt)); }
+.ws-sheet-label { margin-bottom: calc(8 * var(--pt)); color: color-mix(in srgb, var(--fog) 50%, transparent); }
+.ws-chips { display: flex; flex-wrap: wrap; gap: calc(8 * var(--pt)); }
+.ws-chip { position: relative; padding: calc(6 * var(--pt)) calc(12 * var(--pt)); border-radius: 999px; background: color-mix(in srgb, var(--moss) 15%, transparent); color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.ws-chip--tapped::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--moss); opacity: 0; }
+.ws-sheet-buttons { position: absolute; left: calc(24 * var(--pt)); right: calc(24 * var(--pt)); bottom: calc(24 * var(--pt)); display: flex; justify-content: space-between; font-weight: 700; font-size: calc(17 * var(--pt)); color: var(--fog); }
+.ws-set { display: grid; }
+.ws-set .ws-before { color: color-mix(in srgb, var(--fog) 30%, transparent); }
+.ws-set .ws-after { color: var(--stone); }
+
+/* 02 — the stats sheet (Scenes/ActiveWalk/WalkStatsSheet.swift, expanded). */
+.ws-stats-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: calc(33 * var(--pt)) calc(16 * var(--pt)) calc(34 * var(--pt));
+  border-radius: calc(20 * var(--pt)) calc(20 * var(--pt)) 0 0;
+  background: var(--parchment);
+  box-shadow: 0 calc(-6 * var(--pt)) calc(24 * var(--pt)) rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+.ws-timer { font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ws-intention-line { margin-top: calc(4 * var(--pt)); color: color-mix(in srgb, var(--fog) 60%, transparent); }
+.ws-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: calc(24 * var(--pt)); margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-stat-row b { display: block; margin-bottom: calc(2 * var(--pt)); font-weight: 400; font-size: calc(20 * var(--pt)); font-variant-numeric: tabular-nums; color: var(--ink); }
+.ws-stat-row .ws-icon { display: block; margin: 0 auto calc(4 * var(--pt)); font-size: calc(14 * var(--pt)); color: var(--stone); }
+.ws-actions { display: flex; justify-content: center; gap: calc(24 * var(--pt)); margin-top: calc(32 * var(--pt)); }
+.ws-action { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(6 * var(--pt)); width: calc(88 * var(--pt)); height: calc(88 * var(--pt)); border: calc(1.5 * var(--pt)) solid; border-radius: 50%; }
+.ws-action .ws-icon { font-size: calc(24 * var(--pt)); }
+.ws-action--dawn { color: var(--dawn); background: color-mix(in srgb, var(--dawn) 6%, transparent); }
+.ws-action--rust { color: var(--rust); background: color-mix(in srgb, var(--rust) 6%, transparent); }
+.ws-action--fog { color: var(--fog); background: color-mix(in srgb, var(--fog) 6%, transparent); }
+.ws-action--fog .ws-icon { fill: currentColor; stroke: none; }
+/* Recording: the ring thickens to 2.5 and the fill deepens to 15%, drawn
+   as a layer that fades in rather than a border that repaints. */
+.ws-rec-ring { position: absolute; inset: calc(-1.5 * var(--pt)); border: calc(2.5 * var(--pt)) solid; border-radius: 50%; background: color-mix(in srgb, var(--rust) 10%, transparent); }
+.ws-rec-glyph,
+.ws-rec-labels { display: grid; place-items: center; }
+.ws-rec-glyph > *,
+.ws-rec-labels > * { grid-area: 1 / 1; }
+.ws-rec-labels em { font-style: normal; }
+.ws-meter { display: flex; align-items: center; gap: calc(3 * var(--pt)); height: calc(24 * var(--pt)); }
+.ws-meter i { width: calc(3 * var(--pt)); height: 100%; border-radius: calc(2 * var(--pt)); background: currentColor; transform: scaleY(var(--lvl, 0.5)); }
+.ws-meter i:nth-child(1) { --lvl: 0.35; }
+.ws-meter i:nth-child(2) { --lvl: 0.7; }
+.ws-meter i:nth-child(3) { --lvl: 1; }
+.ws-meter i:nth-child(4) { --lvl: 0.6; }
+.ws-meter i:nth-child(5) { --lvl: 0.3; }
+
+.ws-screen--video { background: #000; color: #fff; }
+.ws-screen--video::after { display: none; }
+.ws-video { width: 100%; height: 100%; object-fit: cover; }
+
+/* 04 — the morning card (Scenes/Honor/StageMorningCard.swift), a large
+   sheet over the dimmed screen behind it. */
+.ws-screen--card { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+/* iOS dims what a sheet covers toward black; in dark the page's ink is
+   the light one, so the light mix above would lighten it instead. */
+[data-theme="dark"] .ws-screen--card,
+[data-theme="dark"] .ws-screen--summary { background: color-mix(in srgb, #000 55%, var(--parchment)); }
+.ws-screen--card .ws-status { color: #fff; }
+.ws-card {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16 * var(--pt));
+  padding: calc(34 * var(--pt)) calc(16 * var(--pt)) calc(50 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+}
+.ws-card-theme { font-family: var(--font-display); font-weight: 300; font-size: calc(28 * var(--pt)); }
+.ws-card-narrative { font-family: var(--font-display); font-size: calc(17 * var(--pt)); line-height: 1.3; }
+.ws-card-fact { margin-top: calc(-8 * var(--pt)); color: var(--fog); }
+.ws-card-narrative + .ws-card-fact { margin-top: 0; }
+.ws-card .ws-button { margin-top: auto; }
+
+/* 07 — the walk summary (Scenes/WalkSummary/WalkSummaryView.swift), top
+   of its scroll: the map with the photos where they were taken, the
+   intention, the elevation, the line the app writes, the time. */
+.ws-screen--summary { background: color-mix(in srgb, var(--ink) 55%, var(--parchment)); }
+.ws-screen--summary .ws-status { color: #fff; }
+.ws-summary {
+  position: absolute;
+  inset: calc(62 * var(--pt)) 0 0;
+  padding: 0 calc(16 * var(--pt));
+  border-radius: calc(38 * var(--pt)) calc(38 * var(--pt)) 0 0;
+  background: var(--parchment);
+  text-align: center;
+}
+.ws-nav { position: relative; height: calc(84 * var(--pt)); }
+.ws-nav-title { padding-top: calc(32 * var(--pt)); font-family: var(--font-display); font-weight: 600; font-size: calc(17 * var(--pt)); }
+.ws-done { position: absolute; right: calc(4 * var(--pt)); top: calc(20 * var(--pt)); padding: calc(12 * var(--pt)) calc(16 * var(--pt)); border-radius: 999px; background: var(--parchment-secondary); font-size: calc(17 * var(--pt)); color: var(--stone); }
+.ws-summary-map { position: relative; height: calc(320 * var(--pt)); margin: 0 calc(-16 * var(--pt)); -webkit-mask: radial-gradient(closest-side, #000 72%, transparent); mask: radial-gradient(closest-side, #000 72%, transparent); }
+.ws-summary-map svg { display: block; width: 100%; height: 100%; }
+.ws-summary-path,
+.ws-summary-talk { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ws-summary-path { stroke: var(--moss); }
+.ws-summary-talk { stroke: var(--rust); }
+.ws-summary-still { fill: color-mix(in srgb, var(--dawn) 60%, transparent); stroke: var(--dawn); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.ws-summary-end { fill: var(--parchment); stroke: var(--ink); stroke-width: 2; opacity: 0.6; }
+.ws-relic { position: absolute; width: calc(30 * var(--pt)); height: calc(30 * var(--pt)); margin: calc(-15 * var(--pt)) 0 0 calc(-15 * var(--pt)); border: calc(2 * var(--pt)) solid var(--parchment); border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 calc(5 * var(--pt)) color-mix(in srgb, var(--dawn) 30%, transparent); }
+.ws-intention-card { display: grid; justify-items: center; gap: calc(8 * var(--pt)); padding: calc(16 * var(--pt)); border-radius: calc(12 * var(--pt)); background: color-mix(in srgb, var(--moss) 6%, transparent); font-family: var(--font-display); font-size: calc(17 * var(--pt)); }
+.ws-intention-card .ws-icon { font-size: calc(14 * var(--pt)); color: var(--moss); }
+.ws-elevation { margin-top: calc(16 * var(--pt)); color: var(--fog); }
+.ws-elevation svg { display: block; width: 100%; height: calc(34 * var(--pt)); }
+.ws-elev-fill { fill: color-mix(in srgb, var(--stone) 18%, transparent); }
+.ws-elev-line { fill: none; stroke: var(--stone); stroke-width: 1.5; }
+.ws-elevation p { white-space: nowrap; display: flex; justify-content: space-between; align-items: center; margin-top: calc(4 * var(--pt)); }
+.ws-elevation .ws-icon { font-size: calc(18 * var(--pt)); }
+.ws-journey { margin-top: calc(16 * var(--pt)); padding: 0 calc(24 * var(--pt)); font-family: var(--font-display); font-size: calc(17 * var(--pt)); text-wrap: balance; color: var(--fog); }
+.ws-summary-timer { margin-top: calc(12 * var(--pt)); font-size: calc(48 * var(--pt)); font-variant-numeric: tabular-nums; }
+
+/* 08 — the shared walk as it opens in Safari (pilgrim-worker
+   src/generators/html-template.ts, the departure chapter). The worker
+   chooses the page's theme from the walk's own hour (walk-character.ts
+   getPageTheme: only a night walk is dark), not from whoever opens it.
+   This walk set out at dawn, so its page is light in every theme here,
+   in the template's own light palette, not the season's parchment. */
+.ws-screen--share {
+  --parchment: #F5F0E8;
+  --parchment-secondary: #EDE6D8;
+  --ink: #2C241E;
+  --ws-map-land: #E6DDCC;
+  --ws-map-road: #F7F2E9;
+  --ws-map-park: #D9DDC6;
+  --ws-map-water: #C3CFCC;
+  color-scheme: light;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 calc(52 * var(--pt)) calc(40 * var(--pt));
+  text-align: center;
+}
+/* The departure chapter opens over the walk's own map under a parchment
+   veil, as the live page does. */
+.ws-share-map::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--parchment) 72%, transparent); }
+.ws-share-open { position: relative; }
+.ws-share-orn { font-size: calc(22 * var(--pt)); opacity: 0.45; }
+.ws-share-kicker { margin-top: calc(16 * var(--pt)); font-size: calc(11 * var(--pt)); letter-spacing: 0.26em; text-transform: uppercase; opacity: 0.5; white-space: nowrap; }
+.ws-share-kicker::before,
+.ws-share-kicker::after { content: ''; display: inline-block; width: calc(34 * var(--pt)); height: 1px; margin: 0 calc(12 * var(--pt)); background: currentColor; opacity: 0.35; vertical-align: middle; }
+.ws-share-place { margin-top: calc(24 * var(--pt)); font-family: var(--font-display); font-weight: 400; font-size: calc(46 * var(--pt)); line-height: 1.06; }
+.ws-share-weather { margin-top: calc(12 * var(--pt)); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55; }
+.ws-share-epigraph { margin-top: calc(30 * var(--pt)); font-family: var(--font-display); font-style: italic; font-size: calc(20 * var(--pt)); line-height: 1.55; opacity: 0.85; }
+.ws-share-doors { display: grid; gap: calc(10 * var(--pt)); width: 100%; margin-top: calc(40 * var(--pt)); }
+.ws-pill { display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--pt)); padding: calc(13 * var(--pt)) 0; border: 1px solid currentColor; border-radius: 999px; font-size: calc(12 * var(--pt)); letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+.ws-pill--solid { background: var(--ink); color: var(--parchment); border-color: var(--ink); opacity: 1; }
+.ws-pill img { width: calc(20 * var(--pt)); height: calc(20 * var(--pt)); border-radius: calc(5 * var(--pt)); }
+.ws-safari { position: absolute; left: calc(16 * var(--pt)); right: calc(16 * var(--pt)); bottom: calc(26 * var(--pt)); padding: calc(14 * var(--pt)) 0; border-radius: 999px; background: color-mix(in srgb, var(--parchment-secondary) 85%, #fff); box-shadow: 0 calc(4 * var(--pt)) calc(20 * var(--pt)) rgba(0, 0, 0, 0.12); font: 500 calc(15 * var(--pt)) / 1.2 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; letter-spacing: 0; opacity: 0.9; }
+/* Scene 06's traces keep the look css/traces-glyphs.css gives them, not
+   the list rules css/styles.css gives their cards (hairlines, padding).
+   The wisp is 40px tall and the cairn 96, so each icon box is given the
+   same height and sets its glyph on the floor: the titles share a line. */
+.ws-act--traces { display: flex; gap: 2.5rem; justify-content: center; align-items: flex-end; }
+.ws-act--traces .traces-card,
+.ws-act--traces .traces-card:last-child { border: 0; padding: 0; }
+.ws-act--traces .traces-card-icon { min-height: 132px; justify-content: flex-end; }
+
+/* --- Pinned: js/walk-story.js adds .walk-story--pinned. Nine scenes
+   fill one sticky stage; each scene's front is shown by opacity, its
+   line stays once walked, and the five skies crossfade behind. The
+   stage's frame is 100svh and its sky 100lvh: dvh follows Safari's
+   toolbar and would reflow the stage as it collapses. The stage must
+   not clip, or the 100lvh sky stops at the 100svh edge and the page's
+   parchment shows beneath it once the toolbar folds away; the story
+   clips instead, and overflow: clip makes no scroll container, so
+   sticky still works. Scenes already clip themselves. --- */
+
+.walk-story--pinned { height: calc(9 * 1.4 * 100svh); overflow: clip; }
+.walk-story--pinned .walk-story-stage { position: sticky; top: 0; height: 100svh; }
+.walk-story--pinned .walk-story-atmosphere { display: block; position: absolute; top: 0; left: 0; right: 0; height: 100lvh; }
+.walk-story--pinned .ws-sky { position: absolute; inset: 0; opacity: 0; will-change: opacity; }
+.walk-story--pinned .walk-story-scene { position: absolute; inset: 0; min-height: 0; padding: 0; background: none; }
+.walk-story--pinned .walk-story-line { opacity: 0; }
+/* A walked line wears the sky it is under now, not the one it was drawn
+   in: dawn's dark ink would sink into the night. The stage's data-sky,
+   which js/walk-story.js sets, picks the ink of the walked lines and the
+   rail, and of nothing else: a token on the stage would be inherited by
+   every element under it, and restyle them all as the ink turned. The
+   switch is instant, like every ink change; js/walk-story.js veils the
+   lines and the rail around it (WalkStoryCore.inkVeil), so the colour
+   changes while they are out of sight. The lines' opacity follows the
+   scroll (WalkStoryCore.lineOpacityAt), both ways. A walked line's labels
+   step aside, and their markers stay. The labels are SVG text and shrink
+   with the viewBox, so js/walk-story.js writes --ws-label-k to hold them
+   at 11px or more on screen; they scale about their marker. */
+.walk-story--pinned :is(.walk-story-rail, .walk-story-scene:not(.is-active) .walk-story-line) { color: var(--ws-ink-lightsky); }
+.walk-story-stage:is([data-sky="dusk"], [data-sky="night"]) :is(.walk-story-rail, .walk-story-scene:not(.is-active) .walk-story-line),
+[data-theme="dark"] .walk-story--pinned :is(.walk-story-rail, .walk-story-scene:not(.is-active) .walk-story-line) { color: var(--ws-ink-darksky); }
+.walk-story--pinned .ws-moment-label,
+.walk-story--pinned .ws-moment-ja { transform: scale(var(--ws-label-k, 1)); transition: opacity 0.5s var(--ws-ease); }
+.walk-story--pinned .walk-story-scene:not(.is-active) .ws-moment-label,
+.walk-story--pinned .walk-story-scene:not(.is-active) .ws-moment-ja { opacity: 0; }
+/* The fronts sit in one centred frame at most 1560px wide, so a wide
+   screen holds the copy and the phone together instead of spreading
+   them to its edges. Past 16:9 the line is sized by the height and
+   centred, so the frame keeps to its width (88.89svh a side), and the
+   phones stand where they do over a 16:9 line, clear of its climbs. The
+   line, the rail and the pill keep the stage. */
+.walk-story--pinned .walk-story-front { position: absolute; inset: 0 max(0px, calc(50% - min(780px, 88.89svh))); display: block; opacity: 0; pointer-events: none; }
+.walk-story--pinned .walk-story-scene.is-active .walk-story-front { pointer-events: auto; }
+
+.walk-story--pinned .walk-story-copy { position: absolute; left: 8%; width: 36%; top: 50%; transform: translateY(-50%); max-width: none; }
+/* The phone stands a little above the middle: the line walks the stage's
+   lowest sixth, and a phone centred on a wide screen would reach it. */
+.walk-story--pinned .walk-story-phone {
+  position: absolute;
+  left: 68%;
+  top: 48%;
+  width: auto;
+  height: 72%;
+  max-height: 720px;
+  transform: translate(-50%, calc(-50% + (0.5 - var(--hold, 1)) * 18px));
+}
+/* At most six promoted layers: the five skies and the one phone moving. */
+.walk-story--pinned .walk-story-scene.is-active .walk-story-phone { will-change: transform; }
+/* A tall phone would reach the Honor stage's climb, so it stands left of
+   it; at 1024px and under the line is drawn smaller and the copy needs
+   the room. Just past 1024px a tall stage's phone would stand within a
+   rem of the copy, so the width caps it (67vw). */
+@media (min-width: 1025px) {
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { left: 62%; max-height: min(720px, 67vw); }
+}
+.walk-story--pinned .ws-act--right { position: absolute; left: 52%; width: 32%; top: 50%; transform: translateY(-50%); }
+/* The act is static, so it grows by transform: 280px of cards would
+   float small in a column this wide. */
+.walk-story--pinned .ws-act--traces { transform: translateY(-50%) scale(1.35); transform-origin: 50% 50%; }
+.walk-story--pinned .ws-said { position: absolute; left: 8%; width: 40%; bottom: 17%; }
+/* Scene 04's closing line waits for the end of the hold; while it waits
+   it must not hold open a hole in the copy, so it hangs below it. */
+.walk-story--pinned .ws-closing { position: absolute; top: 100%; left: 0; right: 0; margin: 0.9rem 0 0; }
+
+.walk-story--pinned .walk-story-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: absolute;
+  right: 3%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+}
+/* Every dot keeps its 6px box, so nothing reflows; the current one's
+   pill stretches over it by transform. */
+.walk-story-rail a { position: relative; display: block; width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: opacity 0.35s var(--ws-ease); }
+.walk-story-rail a::before { content: ''; position: absolute; inset: -9px -14px; }
+.walk-story-rail a::after { content: ''; position: absolute; left: 0; top: -8px; width: 6px; height: 22px; border-radius: 3px; background: currentColor; opacity: 0; transform: scaleY(0.27); transition: transform 0.35s var(--ws-ease), opacity 0.35s var(--ws-ease); }
+.walk-story-rail a[aria-current="step"] { opacity: 0.9; }
+.walk-story-rail a[aria-current="step"]::after { opacity: 1; transform: none; }
+.walk-story-rail a:focus-visible { outline: 2px solid currentColor; outline-offset: 5px; }
+.walk-story--pinned .walk-story-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  position: absolute;
+  left: 50%;
+  bottom: calc(4% + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.8em 1.4em;
+  border-radius: 999px;
+  background: var(--ws-pill-bg);
+  color: var(--ws-pill-ink);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--ws-pill-edge), 0 12px 30px -12px var(--ws-pill-drop);
+  transition: opacity 0.4s var(--ws-ease);
+  animation: ws-pill-rise 0.5s var(--ws-ease);
+}
+.walk-story-pill.is-hidden { opacity: 0; pointer-events: none; }
+/* Once the walk is under way the pill docks to the corner, where the line
+   never goes, and aligns with the rail. It moves by fading out where it
+   was and rising in where it lands: position never animates. */
+.walk-story--pinned .walk-story-pill.is-docked {
+  left: auto;
+  right: 3%;
+  bottom: calc(3% + env(safe-area-inset-bottom, 0px));
+  transform: none;
+  padding: 0.7em 1.25em;
+  font-size: 0.9rem;
+  animation-name: ws-pill-dock;
+}
+@keyframes ws-pill-rise { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes ws-pill-dock { from { opacity: 0; transform: translateY(10px); } }
+
+@media (min-width: 721px) and (min-height: 841px) {
+  /* The finale's copy is the tallest; centred, its store badges would
+     sit on scene 07's ring beneath them, so it rides a little higher.
+     A shorter stage compacts it instead (below). */
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: calc(50% - 1.75rem); }
+}
+/* A laptop's short stage (1366×650, 1280×720, a MacBook Air's 1440×789):
+   the line keeps the lowest sixth of the stage at any height, so the copy
+   has less room above it than 1440×900 gives. Nothing is dropped: the
+   type and its spacing follow the height, the copy rides higher, and the
+   phones stand a little shorter. */
+@media (min-width: 721px) and (max-height: 840px) {
+  .walk-story--pinned .walk-story-copy { top: 45%; }
+  .walk-story--pinned .ws-kicker { margin-bottom: min(1.25rem, 2.2svh); }
+  .walk-story--pinned .walk-story-copy h2 { font-size: clamp(2.1rem, min(4.4vw, 8.2svh), 5.25rem); margin-bottom: min(1.2rem, 2svh); }
+  .walk-story--pinned .ws-said { bottom: 14%; }
+  .walk-story--pinned .walk-story-phone { height: 64%; }
+  /* Honor's question hangs below its copy, so the copy rides higher. */
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { top: 43%; }
+  .walk-story--pinned .ws-closing { margin-top: 0.4rem; }
+}
+/* The finale is the tallest copy and ends in the call to act, above
+   scene 07's ring. On a short stage, and on a wide one under 1040px tall
+   (from 13:8 the line is drawn so large that the ring rises under the
+   badges), its spacing, its lead-in and its badges tighten, and all four
+   privacy lines stay. Its column widens to half the frame, so the badges
+   hold one row and no privacy line wraps: it has no phone, and its moon
+   stands right of 62%. */
+@media (min-width: 721px) and (max-height: 840px), (min-width: 721px) and (max-height: 1040px) and (min-aspect-ratio: 13/8) {
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 41.5%; width: 50%; }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .ws-body { line-height: 1.5; margin-bottom: min(1rem, 1.4svh); }
+  .walk-story--pinned .ws-list { margin: min(1rem, 1.4svh) 0; }
+  .walk-story--pinned .ws-list li { margin: 0; line-height: 1.45; }
+  .walk-story--pinned .ws-begin { font-size: 1.15rem; margin: min(1.4rem, 2svh) 0 min(0.8rem, 1.2svh); }
+  .walk-story--pinned .walk-story-copy .store-badges { margin-top: 0.3rem; }
+  .walk-story--pinned .walk-story-copy .store-badges .app-store-badge,
+  .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.5rem 1rem; }
+}
+/* On the shortest stages that pin (under 620px) the finale's headline,
+   body and badges set a step tighter still. */
+@media (min-width: 721px) and (max-height: 620px) {
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy { top: 40.5%; }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .walk-story-copy h2 { font-size: clamp(2.1rem, min(4.4vw, 7svh), 5.25rem); }
+  .walk-story--pinned .walk-story-scene[data-scene="yours-alone"] .ws-body { line-height: 1.4; }
+  .walk-story--pinned .walk-story-copy .store-badges .app-store-badge,
+  .walk-story--pinned .walk-story-copy .store-badges .google-play-badge { padding: 0.4rem 0.9rem; }
+}
+@media (min-width: 1600px) {
+  /* At full size the three longest headlines need a little more room to
+     set in two lines, not three: Honor's phone, at 62%, leaves it, Seek
+     has no phone, and Home's starts well right of it. */
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-copy { width: 41%; }
+  .walk-story--pinned .walk-story-scene:is([data-scene="seek"], [data-scene="home"]) .walk-story-copy { width: 43%; }
+}
+
+@media (max-width: 1024px) and (min-width: 721px) {
+  .walk-story--pinned .walk-story-copy { left: 6%; width: 42%; }
+  .walk-story--pinned .ws-said { left: 6%; width: 42%; }
+  /* Upright, a phone sized by the height alone would reach over the copy,
+     so the width caps it. The short stage's 64% also matches at 1024x768;
+     this block comes after it, so 60% holds there. */
+  .walk-story--pinned .walk-story-phone { height: min(60%, 72vw); }
+}
+/* Up to 1140px the line's viewBox is small enough that the Honor climb
+   comes near the corner; a compact pill keeps clear of it, even when a
+   classic scrollbar narrows the stage (js/walk-story-pill.test.js). The
+   line is sized by the width, so the corner is measured in it too, and
+   a taller stage does not lift the pill into the climb (2.25vw is 3% of
+   a 1024x768 stage). */
+@media (min-width: 721px) and (max-width: 1140px) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(2.25vw + env(safe-area-inset-bottom, 0px)); font-size: 0.85rem; padding: 0.6em 0.95em; }
+}
+/* Up to 1000px wide the corner beside the Honor climb is smaller than the
+   pill at any aspect, so on a stage taller than it is wide the pill docks
+   above the line: the climb rises 340 of the viewBox's 1600, 0.2125 of
+   the width. A phone near square would reach down to it there, so the
+   phone takes the larger of two heights that keep it a rem clear of the
+   pill. One ends its right edge left of the pill: 29vw from its centre
+   at 68% to the pill's edge at 97%, less the pill, the rem and a classic
+   scrollbar, times 4.2, its height over its half-width. The other ends
+   its foot, riding low, above the pill: twice the 52% below its centre,
+   less the pill's offset and height, the ride and the rem. Upright, 72vw
+   still sets it. */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(21.25vw + 1rem); }
+  .walk-story--pinned .walk-story-phone { height: min(60%, 72vw, max((29vw - 9.1rem) * 4.2, 2 * (52% - 21.25vw - 5.125rem))); }
+}
+/* That room above the line runs out on a stage as wide as it is tall or
+   wider: the line's right end rises to the rail and scene 06's traces,
+   which stand on the stage's middle. There the pill docks above them
+   (the traces reach 124px over the middle), where nothing is drawn. */
+@media (min-width: 721px) and (max-width: 1000px) and (min-aspect-ratio: 1/1) {
+  .walk-story--pinned .walk-story-pill.is-docked { bottom: calc(50% + 9rem); }
+}
+
+/* A phone: the copy spans the top; beneath it the line keeps the left
+   and the phone, or scene 06's traces, the right. The phone takes all
+   the height the copy leaves it, up to its column's width, and stands
+   clear of the pill docked below it. The line's viewBox (-10 -240 510
+   1100, xMinYMax) draws it smaller and against the left edge, so its
+   right-most reach, Nezu-oji's label, stays left of 50vw. */
+@media (max-width: 720px) {
+  .walk-story--pinned .walk-story-front {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48vw;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 18px 12px;
+    padding: 5svh 6% calc(2.5svh + 2.1rem + 18px + env(safe-area-inset-bottom, 0px));
+  }
+  .walk-story--pinned .walk-story-copy { position: relative; grid-column: 1 / -1; left: auto; top: auto; width: auto; transform: none; }
+  .walk-story--pinned .walk-story-phone,
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone {
+    position: relative;
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    align-self: end;
+    left: auto;
+    top: auto;
+    width: auto;
+    height: min(100%, calc(48vw * 866 / 412));
+    max-height: none;
+    transform: translateY(calc((0.5 - var(--hold, 1)) * 10px));
+  }
+  .walk-story--pinned .ws-said { position: static; grid-column: 1; grid-row: 2; align-self: start; width: auto; }
+  .walk-story--pinned .ws-act--right,
+  .walk-story--pinned .ws-act--traces { position: static; grid-column: 2; grid-row: 2; align-self: start; width: auto; transform: none; }
+  /* The cairn keeps its whole box: from three stones its pile fills it. */
+  .walk-story--pinned .ws-act--traces { flex-direction: column; align-items: center; gap: 0.5rem; }
+  .walk-story--pinned .ws-act--traces .traces-card-icon { min-height: 0; }
+  .walk-story--pinned .ws-closing { right: auto; width: calc(40vw - 12px); }
+  /* Honor's copy is the longest with a phone beside it: its captions
+     (where it runs, the offline maps, the dataset's licence) set small. */
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .ws-caption { font-size: 0.8rem; margin: 0.15rem 0; }
+  .walk-story--pinned .walk-story-rail { right: max(5px, 1.5%); gap: 14px; }
+  .walk-story--pinned .walk-story-pill.is-docked { right: 6%; bottom: calc(2.5% + env(safe-area-inset-bottom, 0px)); font-size: 0.85rem; padding: 0.6em 1.1em; }
+  .walk-story-copy h2 { font-size: clamp(1.9rem, 8.6vw, 2.6rem); }
+  /* The finale's two badges hold one row, so the call to act ends high. */
+  .walk-story-copy .store-badges { flex-wrap: nowrap; gap: 0.5rem; }
+  .walk-story-copy .store-badges .app-store-badge,
+  .walk-story-copy .store-badges .google-play-badge { gap: 0.5rem; padding: 0.55rem 0.85rem; }
+}
+/* A short phone (an SE is 667px) sets everything a step smaller, so the
+   copy still ends above the line and the phone keeps a useful size. */
+@media (max-width: 720px) and (max-height: 740px) {
+  .walk-story--pinned .walk-story-front { padding-top: 4svh; row-gap: 14px; }
+  .walk-story--pinned .ws-kicker { margin-bottom: 0.8rem; }
+  .walk-story--pinned .walk-story-copy h2 { font-size: clamp(1.6rem, 7.4vw, 2.1rem); margin-bottom: 0.8rem; }
+  .walk-story--pinned .ws-body { font-size: 0.98rem; line-height: 1.5; margin-bottom: 0.7rem; }
+  .walk-story--pinned .ws-aside { font-size: 0.92rem; }
+  .walk-story--pinned .ws-said { font-size: 1rem; }
+  .walk-story--pinned .ws-closing { font-size: 1rem; margin-top: 0.5rem; }
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .ws-caption { font-size: 0.76rem; margin: 0.1rem 0; }
+  /* Beside Honor's copy, the longest, the phone would be a 114px
+     thumbnail with 3px type; the stage and its labels carry the scene. */
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .walk-story-phone { display: none; }
+  .walk-story--pinned .walk-story-scene[data-scene="honor"] .ws-closing { right: 0; width: auto; }
+}
+
+/* --- Acts. Each reads its scene's hold (0..1), written per frame by
+   js/walk-story.js; unset, var(--hold, 1) is the finished state the
+   stacked story shows. Every reveal scrubs both ways. The ink and
+   Honor numbers are WalkStoryCore's; the markup test holds them. --- */
+
+.ws-line { stroke-dasharray: 1 2; stroke-dashoffset: calc(1 - clamp(0, var(--hold, 1) / 0.85, 1)); }
+.ws-honor-yours { stroke-dashoffset: calc(1 - clamp(0, var(--hold, 1) / 0.88, 1)); }
+.ws-moment { opacity: clamp(0, calc((var(--hold, 1) - var(--at)) / 0.06), 1); }
+.ws-moment-mark { transform: scale(calc(0.85 + 0.15 * clamp(0, (var(--hold, 1) - var(--at)) / 0.06, 1))); }
+.ws-closing { opacity: clamp(0, calc((var(--hold, 1) - 0.92) / 0.05), 1); }
+
+/* 01 — the selection rests on Wander, Honor, Seek, then Wander again;
+   each mode brings its own quote, subtitle and button, as the app's
+   Path tab does. The lit word and its underline crossfade; words that
+   replace each other hand over, the old gone before the new arrives.
+   Wander is pressed, the walk opens under the intention sheet, and a
+   Recurring word is tapped: the app fills the field with it at once. */
+.ws-screen--path {
+  --h: calc(clamp(0, (var(--hold, 1) - 0.14) / 0.06, 1) - clamp(0, (var(--hold, 1) - 0.28) / 0.06, 1));
+  --s: calc(clamp(0, (var(--hold, 1) - 0.28) / 0.06, 1) - clamp(0, (var(--hold, 1) - 0.42) / 0.06, 1));
+  --w: calc(1 - var(--h) - var(--s));
+}
+.ws-screen--path .ws-w { opacity: clamp(0, calc(2 * var(--w) - 1), 1); }
+.ws-screen--path .ws-h { opacity: clamp(0, calc(2 * var(--h) - 1), 1); }
+.ws-screen--path .ws-s { opacity: clamp(0, calc(2 * var(--s) - 1), 1); }
+.ws-modes-lit .ws-w { opacity: var(--w); }
+.ws-modes-lit .ws-h { opacity: var(--h); }
+.ws-modes-lit .ws-s { opacity: var(--s); }
+.ws-screen--path .ws-map-layer { opacity: clamp(0, calc((var(--hold, 1) - 0.6) / 0.05), 1); }
+.ws-screen--path .ws-map-layer::after { opacity: clamp(0, calc((var(--hold, 1) - 0.64) / 0.1), 1); }
+.ws-intention { transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.64) / 0.1, 1)) * 110%)); }
+.ws-chip--tapped::after { opacity: calc(0.3 * (clamp(0, (var(--hold, 1) - 0.78) / 0.01, 1) - clamp(0, (var(--hold, 1) - 0.8) / 0.01, 1))); }
+.ws-intention .ws-before,
+.ws-placeholder,
+.ws-recurring { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.8) / 0.02, 1)); }
+.ws-intention .ws-after,
+.ws-typed { opacity: clamp(0, calc((var(--hold, 1) - 0.8) / 0.02), 1); }
+
+/* 02 — recording starts at 0.25; what was said writes itself in after. */
+.ws-pin { opacity: clamp(0, calc((var(--hold, 1) - 0.25) / 0.04), 1); }
+.ws-rec-live { opacity: clamp(0, calc((var(--hold, 1) - 0.25) / 0.03), 1); }
+.ws-rec-idle { opacity: calc(1 - clamp(0, (var(--hold, 1) - 0.25) / 0.03, 1)); }
+.ws-said span { opacity: clamp(0, calc((var(--hold, 1) - 0.35) / 0.5 * 15 - var(--i)), 1); }
+
+/* 04 — the morning card settles in first. */
+.ws-card { opacity: clamp(0, calc((var(--hold, 1) - 0.04) / 0.1), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - 0.04) / 0.1, 1)) * 16 * var(--pt))); }
+
+/* 05 — the fog drifts, the crescent leans. Nothing is revealed: the
+   page's only reveal is the hidden clearing, and only stillness opens it. */
+.ws-fog-bank { transform: translateX(calc((1 - var(--hold, 1)) * 60px)); }
+/* It lifts with its scene: a walked line stays, the weather does not. */
+.walk-story--pinned .ws-fog-bank { transition: opacity 0.6s var(--ws-ease); }
+.walk-story--pinned .walk-story-scene:not(.is-active) .ws-fog-bank { opacity: 0; }
+/* On a dark sky the fog's dense heart would glow like a lamp; it thins. */
+[data-theme="dark"] .ws-fog-dense { opacity: 0.45; }
+.ws-crescent-lean { transform: rotate(calc(var(--lean) * clamp(0, (var(--hold, 1) - 0.2) / 0.6, 1))); }
+
+/* 06 — the wisp brightens as the line passes it. */
+.ws-act--traces .wisp-well { opacity: calc(0.55 + 0.45 * clamp(0, (var(--hold, 1) - 0.2) / 0.3, 1)); }
+
+/* 07 — once the line has closed its ring, the seal presses into it. */
+.ws-seal { transform-box: fill-box; transform-origin: center; opacity: clamp(0, calc((var(--hold, 1) - 0.86) / 0.08), 1); transform: scale(calc(1.15 - 0.15 * clamp(0, (var(--hold, 1) - 0.86) / 0.08, 1))); }
+.ws-seal-ink { fill: none; stroke: #C4553A; }
+
+/* 07 — the summary's own reveal: the line draws, coloured by what you
+   were doing, the photos surface where they were taken, then the words
+   and the time. It is whole by mid-hold, so a reader who stops there
+   sees the finished screen, and the page's seal still presses last. */
+.ws-summary { --draw: clamp(0, (var(--hold, 1) - 0.05) / 0.25, 1); }
+.ws-summary-path { stroke-dasharray: 1 2; stroke-dashoffset: calc(1 - var(--draw)); }
+.ws-summary-talk { stroke-dasharray: 1 2; stroke-dashoffset: calc(1 - clamp(0, (var(--draw) - var(--a)) / (var(--b) - var(--a)), 1)); }
+.ws-relic,
+.ws-summary-still { opacity: clamp(0, calc((var(--draw) - var(--at)) / 0.08), 1); transform: scale(calc(0.6 + 0.4 * clamp(0, (var(--draw) - var(--at)) / 0.08, 1))); }
+.ws-intention-card,
+.ws-elevation { opacity: clamp(0, calc((var(--hold, 1) - 0.3) / 0.08), 1); }
+.ws-journey { opacity: clamp(0, calc((var(--hold, 1) - 0.36) / 0.08), 1); }
+.ws-summary-timer,
+.ws-summary .ws-stat-row { opacity: clamp(0, calc((var(--hold, 1) - 0.42) / 0.08), 1); }
+
+/* 08 — someone, later, follows your line; the shared page opens as it
+   does in the browser, each line rising in after the last. */
+.ws-follower { stroke-dasharray: 1 2; stroke-dashoffset: calc(1 - clamp(0, (var(--hold, 1) - 0.3) / 0.6, 1)); }
+.ws-share-open > * { --t: calc(0.05 + var(--i) * 0.07); opacity: clamp(0, calc((var(--hold, 1) - var(--t)) / 0.12), 1); transform: translateY(calc((1 - clamp(0, (var(--hold, 1) - var(--t)) / 0.12, 1)) * 12 * var(--pt))); }
+
+/* Loops run only on the scene on stage, and never under reduced motion. */
+.walk-story--pinned .walk-story-scene.is-active .ws-ring { animation: ws-breath 5.5s ease-in-out infinite; }
+.walk-story--pinned .walk-story-scene.is-active .ws-meter i { animation: ws-level var(--beat, 0.9s) ease-in-out var(--lag, 0s) infinite alternate; }
+.ws-meter i:nth-child(2n) { --beat: 0.62s; }
+.ws-meter i:nth-child(3n) { --lag: -0.4s; }
+.ws-meter i:nth-child(5) { --beat: 0.75s; --lag: -0.2s; }
+@keyframes ws-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+@keyframes ws-level { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .walk-story .ws-ring, .walk-story .ws-meter i { animation: none; }
+}
+
+/* The walk story's ink line is the page's companion while it is pinned;
+   the walker and the distance counter rest until it ends. js/walk-story.js
+   sets the class, and js/main.js skips their updates under it. */
+body.walk-story-pinned .page-walker,
+body.walk-story-pinned .scroll-tracker {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+/* css/styles.css sets the figure's own pointer-events: auto. */
+body.walk-story-pinned .page-walker-figure { pointer-events: none; }

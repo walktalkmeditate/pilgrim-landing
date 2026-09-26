@@ -1,0 +1,507 @@
+/* =============================================
+   The walk story — index.html's markup, held to the core and the spec
+
+   Run via:  node js/walk-story-markup.test.js
+
+   Static checks on the shipped page, not on proxies:
+   - the nine scenes are the core's nine, in its order, wearing its skies;
+   - every phone string is one the app really shows (cited per string);
+   - the Honor stage is the bake's, byte for byte, in both geometries;
+   - nothing in the story is a bare .story or waits on the page's
+     one-shot .reveal observer, which would fire while it is invisible.
+   ============================================= */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const C = require('./walk-story-core.js');
+const B = require('../scripts/bake-honor-stage.js');
+
+const ROOT = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', 'fixtures', 'nakahechi-stage-00.json'), 'utf8'));
+
+let passed = 0, failed = 0;
+const failures = [];
+
+function ok(cond, label) {
+  if (cond) { passed++; console.log('  ✓ ' + label); }
+  else { failed++; failures.push(label); console.log('  ✗ ' + label); }
+}
+function eq(actual, expected, label) {
+  ok(actual === expected, label + '  (' + JSON.stringify(actual) + ' vs ' + JSON.stringify(expected) + ')');
+}
+function count(hay, needle) {
+  return hay.split(needle).length - 1;
+}
+
+const start = html.indexOf('<section class="walk-story"');
+const end = html.indexOf('<div id="after-walk-story">');
+const story = start !== -1 && end > start ? html.slice(start, end) : '';
+
+console.log('\n=== one story, nine scenes, the core\'s order ===\n');
+
+ok(story.length > 0, 'index.html carries the story, closed by #after-walk-story');
+eq(count(html, '<section class="walk-story"'), 1, 'exactly one story');
+const scenes = Array.from(story.matchAll(
+  /<section class="walk-story-scene[^"]*" id="scene-(\d)" data-scene="([a-z-]+)" data-sky="([a-z]+)" aria-labelledby="scene-\d-title">/g));
+eq(scenes.length, 9, 'nine scenes');
+scenes.forEach(function (m, i) {
+  eq(+m[1], i + 1, 'scene ' + (i + 1) + ' is #scene-' + (i + 1));
+  eq(m[2], C.SCENES[i].id, 'scene ' + (i + 1) + ' is ' + C.SCENES[i].id);
+  eq(m[3], C.SCENES[i].sky, 'scene ' + (i + 1) + ' wears the core\'s sky: ' + C.SCENES[i].sky);
+});
+story.split(/(?=<section class="walk-story-scene)/).slice(1).forEach(function (b, i) {
+  const h2 = b.match(/<h2 id="scene-(\d)-title">([\s\S]*?)<\/h2>/);
+  ok(!!h2 && +h2[1] === i + 1, 'scene ' + (i + 1) + ' is labelled by its own headline');
+  eq(h2 ? count(h2[2], '<em>') : 0, 1, 'scene ' + (i + 1) + '\'s headline has exactly one italic word');
+  ok(b.indexOf('walk-story-line--landscape') !== -1 && b.indexOf('walk-story-line--portrait') !== -1,
+    'scene ' + (i + 1) + ' carries its own line in both geometries');
+  eq(count(b, 'class="ws-dot"'), 2, 'scene ' + (i + 1) + ' has a walker dot in each geometry');
+});
+
+console.log('\n=== the rail ===\n');
+
+// Tab order is DOM order: after scene 09, the pill would never be reached
+// tabbing forward, and the first Tab after the skip link would jump from
+// scene 01 to scene 04's first link.
+const firstScene = story.indexOf('<section class="walk-story-scene');
+ok(story.indexOf('<nav class="walk-story-rail"') !== -1 && story.indexOf('<nav class="walk-story-rail"') < firstScene,
+  'the rail comes before the first scene, so the keyboard meets it first');
+ok(story.indexOf('<a class="walk-story-pill"') !== -1 && story.indexOf('<a class="walk-story-pill"') < firstScene,
+  'and so does the pill');
+ok(story.indexOf('<a class="walk-story-skip"') < story.indexOf('<nav class="walk-story-rail"'),
+  'the skip link is still the story\'s first stop');
+const rail = Array.from(story.matchAll(/<a href="#scene-(\d)" aria-label="Scene (\d) of 9: ([^"]+)"><\/a>/g));
+eq(rail.length, 9, 'nine rail links');
+rail.forEach(function (m, i) {
+  ok(+m[1] === i + 1 && +m[2] === i + 1, 'rail ' + (i + 1) + ' points at its own scene');
+  eq(m[3], C.SCENES[i].name, 'rail ' + (i + 1) + ' names ' + C.SCENES[i].name);
+});
+
+console.log('\n=== naming ===\n');
+
+eq(count(html, 'class="story section"'), 1, '"Why Pilgrim exists" is still the only .story');
+const storyCssText = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+const wiringText = fs.readFileSync(path.join(ROOT, 'js', 'walk-story.js'), 'utf8');
+const modifiers = Array.from(new Set(Array.from(story.matchAll(/\bwalk-story-[a-z]+--[a-z-]+/g)).map(function (m) { return m[0]; })));
+ok(modifiers.every(function (m) { return storyCssText.indexOf(m) !== -1 || wiringText.indexOf(m) !== -1; }),
+  'every walk-story modifier class the markup wears is styled or read  (' + modifiers.join(', ') + ')');
+ok(!/class="story"/.test(html), 'nothing is a bare .story');
+ok(!/\sclass="[^"]*\breveal\b/.test(story), 'nothing in the story waits on the page\'s one-shot .reveal observer');
+
+console.log('\n=== what left the page ===\n');
+
+['class="practice section"', 'class="traces section"', 'class="walkwithme section"',
+  'class="seek-door section"', 'class="journey section"', 'class="privacy-section section"'
+].forEach(function (s) { ok(html.indexOf(s) === -1, s + ' is gone'); });
+ok(html.indexOf('class="traces reliquary section"') > end, 'the Reliquary follows the story');
+const dividers = [];
+let at = -1;
+while ((at = html.indexOf('<!-- Footprint divider -->', at + 1)) !== -1) dividers.push(at);
+ok(dividers.every(function (d, i) { return i === 0 || html.slice(dividers[i - 1], d).indexOf('<section') !== -1; }),
+  'no two footprint dividers stand back to back');
+ok(!/\.(journey|privacy-feature|privacy-section)[\w-]*\s*[{>]/.test(html), 'the journey and privacy styles left with their sections');
+ok(story.indexOf('vector-effect') === -1, 'no dash-revealed path uses a non-scaling stroke, which would part ink from dot');
+ok(!/\.seek-door(\s|::|\s*\{)/.test(html), 'the retired seek door\'s section styles are gone (its form classes stay)');
+ok(html.indexOf('seek-door-crescent') === -1, 'the retired door\'s crescent left with it: no element wears it');
+ok(/@keyframes seek-door-breath/.test(html) && /\.clearing-breath\s*\{[^}]*animation:\s*seek-door-breath/.test(html),
+  'the breath it lent the clearing\'s rider stays');
+
+console.log('\n=== the phones quote the app ===\n');
+
+[
+  ['Set Your Intention', 'Scenes/ActiveWalk/IntentionSettingView.swift:85'],
+  ['What purpose guides this walk?', 'Scenes/ActiveWalk/IntentionSettingView.swift:94'],
+  ['Voice</span>', 'Scenes/ActiveWalk/IntentionSettingView.swift:118'],
+  ['>5/140<', 'Scenes/ActiveWalk/IntentionSettingView.swift:126 (count/maxCharacters)'],
+  ['>Recurring<', 'Scenes/ActiveWalk/IntentionSettingView.swift:137'],
+  ['<span>Cancel</span>', 'Scenes/ActiveWalk/IntentionSettingView.swift:365'],
+  ['>Set<', 'Scenes/ActiveWalk/IntentionSettingView.swift:375'],
+  ['<span>WANDER</span><span>HONOR</span><span>SEEK</span>', 'Scenes/Home/WalkStartView.swift:326'],
+  ['walk · talk · meditate', 'Models/Walk/WalkMode.swift:8'],
+  ['<span class="ws-w">Wander</span>', 'Models/Walk/WalkMode.swift:16 (buttonLabel)'],
+  ['<span class="ws-h">Honor</span>', 'Models/Walk/WalkMode.swift:17 (buttonLabel)'],
+  ['<span class="ws-s">Seek</span>', 'Models/Walk/WalkMode.swift:18 (buttonLabel)'],
+  ['walk in their steps', 'Models/Walk/WalkMode.swift:9 (subtitle)'],
+  ['follow the unknown', 'Models/Walk/WalkMode.swift:10 (subtitle)'],
+  ['Where they walked,<br>you walk', 'Support Files/Base.lproj/Localizable.strings:165 (Honor.Quote.1)'],
+  ['What you seek<br>is seeking you', 'Support Files/Base.lproj/Localizable.strings:170 (Seek.Quote.1)'],
+  ['Solvitur ambulando —<br>it is solved by walking', 'Support Files/Base.lproj/Localizable.strings:159 (Welcome.Quote.4)'],
+  ['>Path<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['>Journal<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['>Settings<', 'the tab bar (docs/screenshots/01_walk_start.png)'],
+  ['Distance</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:488'],
+  ['Steps</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:490'],
+  ['Ascent</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:492'],
+  ['<b>21:04</b>Walk', 'Scenes/ActiveWalk/WalkStatsSheet.swift:497'],
+  ['<b>0:12</b>Talk', 'Scenes/ActiveWalk/WalkStatsSheet.swift:499'],
+  ['<b>3:15</b>Meditate', 'Scenes/ActiveWalk/WalkStatsSheet.swift:501'],
+  ['<span>Meditate</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:527'],
+  ['>Record<', 'Scenes/ActiveWalk/WalkStatsSheet.swift:560'],
+  ['>Stop<', 'Scenes/ActiveWalk/WalkStatsSheet.swift:560'],
+  ['<span>End</span>', 'Scenes/ActiveWalk/WalkStatsSheet.swift:531'],
+  ['>' + fixture.stage.theme + '<', 'Scenes/Honor/StageMorningCard.swift:46 (stage.theme)'],
+  ['3.6 km · 430 m up · 2 to 3 hours · moderate', 'Scenes/Honor/StageMorningCard.swift:5 (factsLine)'],
+  ['>clear, 18°C<', 'Scenes/Honor/StageMorningCard.swift:18 (weatherLine)'],
+  ['maps saved for today', 'Scenes/Honor/StageMorningCard.swift:25'],
+  ['>walk<', 'Scenes/Honor/StageMorningCard.swift:79 (buttonTitle)'],
+  ['>Done<', 'Scenes/WalkSummary/WalkSummaryView.swift:155'],
+  ['You walked, spoke your mind, and found stillness.', 'Scenes/WalkSummary/WalkSummaryView.swift:468'],
+  ['Elevation</span>', 'Scenes/WalkSummary/WalkSummaryView.swift:536'],
+  ['walk with me<', 'pilgrim-worker src/generators/html-template.ts:2013'],
+  ['>as it happened · 2h 41m<', 'pilgrim-worker src/generators/html-template.ts:2015 (walkDurationLabel)'],
+  ['walk this<', 'pilgrim-worker src/generators/html-template.ts:2016'],
+  ['Clear · waxing crescent ☽ · 18°C', 'pilgrim-worker src/generators/html-template.ts:1789 (storyWeatherLine)']
+].forEach(function (pair) {
+  ok(story.indexOf(pair[0]) !== -1, 'a phone says ' + JSON.stringify(pair[0]) + '  — ' + pair[1]);
+});
+ok(story.indexOf('What are you walking with') === -1, 'no invented intention prompt');
+ok(story.indexOf('>' + fixture.stage.narrative + '<') !== -1, 'the morning card quotes the stage\'s narrative whole');
+
+console.log('\n=== the phones wear the app\'s colours ===\n');
+
+const phoneCssAll = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+function rule(selector) {
+  const i = phoneCssAll.indexOf(selector + ' {');
+  return i === -1 ? '' : phoneCssAll.slice(i, phoneCssAll.indexOf('}', i));
+}
+// pilgrim-ios Pilgrim/Support Files/Assets.xcassets/fog.colorset: the
+// site's own --fog is a paler decorative token (#B8AFA2 / #6B6359), about
+// half the contrast the app draws its secondary text in.
+ok(/--fog:\s*#8A8175/i.test(rule('.ws-screen')),
+  'the phones draw fog in the app\'s light fog.colorset, #8A8175, not the site\'s paler token');
+ok(/--fog:\s*#948E88/i.test(rule('[data-theme="dark"] .ws-screen')),
+  'and in dark, the app\'s dark fog.colorset, #948E88');
+// iOS dims what a sheet covers toward black in both appearances; in dark
+// the page's --ink is the light ink, so a mix toward it would lighten.
+ok(/background:\s*color-mix\(in srgb, #000 \d+%, var\(--parchment\)\)/.test(
+  rule('[data-theme="dark"] .ws-screen--card,\n[data-theme="dark"] .ws-screen--summary')),
+  'in dark, the morning card\'s and the summary\'s backdrop dims toward black, as the app draws it');
+// pilgrim-worker src/generators/walk-character.ts getPageTheme: only a
+// night walk's page is dark, whatever the viewer's scheme. This walk set
+// out at dawn, so the page it shares is light, in the template's own
+// light palette (src/generators/html-template.ts :root), in every theme:
+// not the dark palette, and not the season's parchment js/seasonal.js
+// writes on the page in light.
+const sharePage = rule('.ws-screen--share');
+ok(!/\[data-theme="dark"\] \.ws-screen--share/.test(phoneCssAll), 'the shared page\'s palette is not scoped to one theme');
+[['--parchment', '#F5F0E8'], ['--parchment-secondary', '#EDE6D8'], ['--ink', '#2C241E']].forEach(function (t) {
+  ok(new RegExp(t[0] + ':\\s*' + t[1], 'i').test(sharePage),
+    'the shared page keeps pilgrim-worker\'s light ' + t[0] + ' ' + t[1] + ': a dawn walk\'s page is served light');
+});
+const lightMap = rule(':root');
+eq(count(phoneCssAll, ':root {'), 1, 'the light tokens are one :root block');
+eq(count(phoneCssAll, '\n[data-theme="dark"] {'), 1, 'and the dark tokens one [data-theme="dark"] block');
+['land', 'road', 'park', 'water'].forEach(function (k) {
+  const want = (lightMap.match(new RegExp('--ws-map-' + k + ':\\s*(#[0-9A-F]{6})', 'i')) || [])[1];
+  ok(!!want && new RegExp('--ws-map-' + k + ':\\s*' + want, 'i').test(sharePage),
+    'the shared page\'s map keeps the light ' + k + ' (' + want + ')');
+});
+ok(/color-scheme:\s*light/.test(sharePage), 'the shared page is a light page to the browser too');
+ok(!/\[data-theme="dark"\] \.ws-safari/.test(phoneCssAll), 'Safari\'s bar is never darkened over the light shared page');
+
+console.log('\n=== Honor, drawn from the bake ===\n');
+
+const baked = B.bake(fixture);
+eq(count(story, 'd="' + baked.d + '"'), 4, 'both geometries draw the baked stage, faint and inked');
+Object.keys(B.GEOMETRIES).forEach(function (g) {
+  ok(story.indexOf('transform="' + baked.placements[g].transform + '"') !== -1, g + ': placed by the bake\'s transform');
+  const squash = function (s) { return s.replace(/\s+/g, ' ').replace(/> </g, '><'); };
+  ok(squash(story).indexOf(squash(B.svgFor(baked, g))) !== -1,
+    g + ': the stage, its markers and their labels are the bake\'s output, verbatim');
+});
+C.honorReveal(0).moments.forEach(function (m) {
+  const at = Math.round(m.at * 1e4) / 1e4;
+  eq(count(story, '--at:' + at + '"'), 2, 'the marker at frac ' + m.frac + ' carries --at:' + at + ' in both geometries');
+});
+ok(story.indexOf(fixture.stage.closing) !== -1, 'the closing line is the dataset\'s own');
+ok(story.indexOf('On iPhone. Coming to Android.') !== -1, 'Honor says where it runs');
+ok(story.indexOf('https://github.com/walktalkmeditate/open-pilgrimages') !== -1, 'the stage credits its dataset');
+// A screen reader reads the page in English; a Japanese name outside a
+// lang="ja" span is read with English rules, or skipped.
+const srList = (story.match(/<ol class="ws-sr">[\s\S]*?<\/ol>/) || [''])[0];
+const jaSpans = srList.match(/<span lang="ja">[^<]+<\/span>/g) || [];
+eq(jaSpans.length, 3, 'the listed waypoints wrap their Japanese names in lang="ja"');
+ok(srList.length > 0 && !/[぀-ヿ㐀-鿿]/.test(srList.replace(/<span lang="ja">[^<]+<\/span>/g, '')),
+  'and no Japanese in the list is left outside one');
+
+console.log('\n=== the line\'s own shapes ===\n');
+
+const sceneBlock = function (n) {
+  const from = story.indexOf('id="scene-' + n + '"');
+  return story.slice(from, story.indexOf('<div class="walk-story-front">', from));
+};
+['landscape', 'portrait'].forEach(function (g) {
+  let prevEnd = null;
+  for (let n = 1; n <= 9; n++) {
+    const block = sceneBlock(n);
+    const from = block.indexOf('walk-story-line--' + g);
+    const svg = block.slice(from, block.indexOf('</svg>', from));
+    let start, end;
+    if (n === 4) {
+      start = baked.placements[g].start;
+      end = baked.placements[g].end;
+    } else {
+      const nums = svg.match(/<path class="ws-line" d="([^"]+)"/)[1].match(/-?[\d.]+/g).map(Number);
+      start = nums.slice(0, 2);
+      end = nums.slice(-2);
+      const dot = svg.match(/<g class="ws-dot" transform="translate\(([-\d.]+) ([-\d.]+)\)"/);
+      ok(!!dot && +dot[1] === end[0] && +dot[2] === end[1], g + ' · scene ' + n + ': the walker rests where its line ends');
+    }
+    if (prevEnd) {
+      ok(Math.abs(start[0] - prevEnd[0]) < 0.5 && Math.abs(start[1] - prevEnd[1]) < 0.5,
+        g + ' · scene ' + n + ' starts where scene ' + (n - 1) + ' ended  (' + start + ' vs ' + prevEnd + ')');
+    }
+    prevEnd = end;
+  }
+});
+Array.from(sceneBlock(7).matchAll(/class="ws-line" d="M[\d. ]+C[\d. ]+ ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) A/g)).forEach(function (m, i) {
+  ok(Math.abs(+m[1] - +m[3]) <= 3 && +m[2] < +m[4],
+    'scene 7 (' + (i ? 'portrait' : 'landscape') + '): the approach arrives heading down, as the ring\'s first arc leaves, so the ink never hooks');
+  // On a desktop the approach travels left along the ground and must turn
+  // a right angle into the ring; a short last handle makes that a hairpin.
+  if (!i) ok(+m[4] - +m[2] >= 60, 'scene 7 (landscape): the approach\'s last handle is long enough (' + (+m[4] - +m[2]) + ') to curl into the ring, not kink');
+});
+const finalePortrait = sceneBlock(9).slice(sceneBlock(9).indexOf('walk-story-line--portrait'));
+ok(/class="ws-moon-lit" data-cx="[\d.]+" data-cy="[\d.]+" data-r="[\d.]+"/.test(finalePortrait) && /class="ws-moon-halo"/.test(finalePortrait),
+  'on a phone the finale has its moon too, painted to tonight\'s phase, so it does not end on empty sky');
+const followers = Array.from(sceneBlock(8).matchAll(/class="ws-follower" d="([^"]+)"/g)).map(function (m) { return m[1]; });
+const walked = Array.from(sceneBlock(8).matchAll(/class="ws-line" d="([^"]+)"/g)).map(function (m) { return m[1]; });
+eq(followers.length, 2, 'scene 8 has a follower in each geometry');
+ok(followers.every(function (d, i) { return d !== walked[i]; }), 'scene 8: whoever follows walks beside your line, not hidden under it');
+
+const fogScene = sceneBlock(5);
+const fogStops = Array.from(fogScene.matchAll(/<radialGradient id="ws-fog[^"]*">([\s\S]*?)<\/radialGradient>/g)).map(function (m) { return m[1]; });
+eq(fogStops.length, 4, 'scene 5 has its four fog gradients');
+ok(fogStops.every(function (g) { return g.indexOf('currentColor') === -1 && /stop-color:\s*var\(--ws-fog\)/.test(g); }),
+  'the fog is paler than the sky: its gradients take --ws-fog, never the ink (currentColor)');
+// A gradient that reaches nothing exactly at its ellipse's edge leaves a
+// faint textured seam along the edge (Chrome, both themes); fading out
+// just inside the shape leaves none.
+ok(fogStops.every(function (g) {
+  const last = (g.match(/<stop offset="([\d.]+)"[^>]*stop-opacity="0"\/>/) || [])[1];
+  return last !== undefined && +last < 1;
+}), 'every fog gradient has faded to nothing inside its ellipse, not at its edge');
+eq(count(fogScene, '<ellipse class="ws-fog-dense"'), 2, 'each geometry\'s dense fog is named, so a dark sky can thin it whatever the markup\'s order');
+ok(/\[data-theme="dark"\] \.ws-fog-dense\s*\{[^}]*opacity/.test(phoneCssAll), 'on a dark sky the dense fog thins');
+eq(count(fogScene, '<ellipse'),(fogScene.match(/<g class="ws-fog-bank">[\s\S]*?<\/g>/g) || []).join('').split('<ellipse').length - 1,
+  'every fog ellipse drifts in the bank, so none is left behind');
+const storyCssForFog = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(/:not\(\.is-active\) \.ws-fog-bank\s*\{[^}]*opacity:\s*0/.test(storyCssForFog), 'the fog lifts once its scene has passed');
+ok(/--ws-fog:/.test(storyCssForFog.slice(storyCssForFog.indexOf(':root {'), storyCssForFog.indexOf('}', storyCssForFog.indexOf(':root {')))),
+  'the fog\'s colour is a token in the light palette');
+
+console.log('\n=== acts and ways out ===\n');
+
+eq(count(story, 'data-seek-door'), 1, 'one seek door, keyed by data-seek-door');
+ok(/<svg class="wisp"/.test(story) && story.indexOf('id="cairn-stack"') !== -1, 'the wisp and the cairn live in the story');
+ok(story.indexOf('data-umami-event="click-app-store"') !== -1 && story.indexOf('data-umami-event="click-google-play"') !== -1,
+  'scene 9 carries both store badges, events unchanged');
+ok(story.indexOf('href="/privacy"') !== -1, 'scene 9 links the privacy policy');
+const finale = story.slice(story.indexOf('id="scene-9"'), story.indexOf('</section>', story.indexOf('id="scene-9"')));
+ok(finale.indexOf('What you make on a walk stays on your phone, unless you choose to share it.') !== -1,
+  'scene 9 says what stays on the phone, and that sharing is the walker\'s choice');
+ok(story.indexOf('data-umami-event="walk-with-me-demo"') !== -1, 'scene 8 carries the demo walk');
+ok(story.indexOf('data-umami-event="enter-seek"') !== -1, 'scene 5 carries the way into /seek');
+ok(/<video class="ws-video"[^>]*poster="assets\/screenshots\/03_meditation\.png"/.test(story),
+  'the meditation video has a poster for Low Power Mode and reduced motion');
+ok(/<link rel="stylesheet" href="css\/walk-story\.css">/.test(html), 'the story\'s stylesheet is linked');
+// Stacked (no JS, reduced motion, a short viewport) nothing clips the
+// story, so a link moved off by a transform would still show above it.
+const cssRules = Array.from(phoneCssAll.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^}]*)\}/g))
+  .map(function (m) { return { sel: m[1].trim(), body: m[2] }; });
+const skipHidden = cssRules.filter(function (r) { return r.sel === '.walk-story-skip:not(:focus)'; })[0];
+ok(!!skipHidden && /width:\s*1px/.test(skipHidden.body) && /height:\s*1px/.test(skipHidden.body) &&
+  /overflow:\s*hidden/.test(skipHidden.body) && /clip-path:\s*inset\(50%\)/.test(skipHidden.body),
+  'the skip link is visually hidden unless focused, in every layout: a 1px box, clipped, not moved off by a transform');
+ok(cssRules.every(function (r) { return r.sel.indexOf('.walk-story-skip') === -1 || !/transform:\s*translate/.test(r.body); }),
+  'nothing hides the skip link by translating it, which only the pinned story\'s clip would cover');
+
+console.log('\n=== CSS timings are the core\'s ===\n');
+
+const css = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(css.indexOf('var(--hold, 1) / ' + C.LINE_INK_END + ',') !== -1, 'lines ink over ' + C.LINE_INK_END + ' of the hold, as lineInk does');
+ok(css.indexOf('var(--hold, 1) / ' + C.HONOR.inkEnd + ',') !== -1, 'Honor inks over ' + C.HONOR.inkEnd + ', as honorReveal does');
+ok(css.indexOf('(var(--hold, 1) - ' + C.HONOR.closingAt + ') / ') !== -1, 'the closing line waits for ' + C.HONOR.closingAt);
+ok(css.indexOf('(var(--hold, 1) - var(--at)) / ' + C.HONOR.momentFade) !== -1, 'moments surface over ' + C.HONOR.momentFade);
+ok(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.ws-ring[^}]*animation:\s*none/.test(css), 'reduced motion stills the breathing ring');
+const pinnedHeight = css.match(/\.walk-story--pinned \{ height: calc\((\d+) \* ([\d.]+) \* 100svh\)/);
+ok(!!pinnedHeight && +pinnedHeight[1] === C.SCENES.length && Math.round(+pinnedHeight[2] * 100) === C.SCENE_VH,
+  'the pinned story is ' + C.SCENES.length + ' scenes of ' + C.SCENE_VH + 'svh, the core\'s SCENE_VH  (' + (pinnedHeight && pinnedHeight.slice(1).join(' x ')) + ')');
+// A path revealed by dashoffset over pathLength 1 with a gap of 1 leaves
+// a zero-length dash at its far end while hidden, and a round cap paints
+// it: a dot announcing where the line will end. A gap of 2 puts the next
+// dash past the end.
+['.ws-line', '.ws-follower', '.ws-summary-path', '.ws-summary-talk'].forEach(function (sel) {
+  const m = new RegExp(sel.replace('.', '\\.') + ' \\{[^}]*stroke-dasharray: 1 ([\\d.]+);').exec(css);
+  ok(!!m && +m[1] >= 2, sel + ' reveals with a dash of 1 and a gap of 2 or more, so no dot waits at its end  (' + (m && m[1]) + ')');
+});
+ok(new RegExp('\\.ws-moment-label \\{[^}]*font-size: ' + C.LABEL_PX + 'px').test(css),
+  'the labels are set at ' + C.LABEL_PX + 'px, the size labelScale counter-scales from');
+
+const drawEnd = css.match(/\.ws-summary \{ --draw: clamp\(0, \(var\(--hold, 1\) - ([\d.]+)\) \/ ([\d.]+), 1\); \}/);
+ok(!!drawEnd && +drawEnd[1] + +drawEnd[2] <= 0.3 + 1e-9, 'scene 07: the summary\'s line has drawn by hold 0.3');
+const lastReveal = css.match(/\.ws-summary-timer,\s*\.ws-summary \.ws-stat-row \{ opacity: clamp\(0, calc\(\(var\(--hold, 1\) - ([\d.]+)\) \/ ([\d.]+)\), 1\); \}/);
+ok(!!lastReveal && +lastReveal[1] + +lastReveal[2] <= 0.55 + 1e-9,
+  'scene 07: the summary is whole by hold 0.55, so a reader who stops mid-scene sees a finished screen');
+const share = story.slice(story.indexOf('ws-screen--share'), story.indexOf('ws-safari'));
+ok(share.indexOf('<use href="#ws-streets"/>') !== -1, 'scene 08: the shared page opens over the walk\'s map, as the live page does');
+
+console.log('\n=== scripts ===\n');
+
+const coreTag = html.match(/<script[^>]*src="js\/walk-story-core\.js"[^>]*>/);
+const domTag = html.match(/<script[^>]*src="js\/walk-story\.js"[^>]*>/);
+ok(coreTag && /\bdefer\b/.test(coreTag[0]), 'index.html loads js/walk-story-core.js, deferred');
+ok(domTag && /\bdefer\b/.test(domTag[0]), 'index.html loads js/walk-story.js, deferred');
+ok(coreTag && domTag && html.indexOf(coreTag[0]) < html.indexOf(domTag[0]), 'the core loads before the wiring that reads it');
+ok(domTag && html.indexOf('src="js/traces-cairn.js"') < html.indexOf(domTag[0]), 'the cairn loads before the story that calls its demo');
+ok(domTag && html.indexOf('src="js/moon.js"') < html.indexOf(domTag[0]), 'moon.js (getMoonPhase) loads before the story paints tonight\'s moon');
+const wiring = fs.existsSync(path.join(ROOT, 'js', 'walk-story.js')) ? fs.readFileSync(path.join(ROOT, 'js', 'walk-story.js'), 'utf8') : '';
+ok(wiring.length > 0, 'js/walk-story.js exists (a script tag pointing at a 404 is silent)');
+ok(wiring.indexOf('getBoundingClientRect') === wiring.lastIndexOf('getBoundingClientRect') && /function measure\(\)[\s\S]*getBoundingClientRect/.test(wiring),
+  'getBoundingClientRect appears once, in measure()');
+// innerHeight follows Safari's toolbar; the story's height is in svh.
+// Deciding pinned or stacked by innerHeight flips a phone near 560px as
+// the toolbar moves, so the decision reads a 100svh probe instead.
+const resizeBody = (wiring.match(/function onResize\(\) \{[\s\S]*?\n  \}/) || [''])[0];
+const loadDecision = (wiring.match(/\n  if \([^\n]*\) pin\(\); else [^\n]*watchLine\(-1\);[^\n]*/) || [''])[0];
+ok(resizeBody.length > 0 && loadDecision.length > 0 && !/innerHeight/.test(resizeBody + loadDecision),
+  'neither a resize nor the first load decides pinned or stacked by innerHeight, which Safari\'s toolbar changes');
+ok(/\.ws-svh\s*\{[^}]*height:\s*100svh/.test(css) && /className = 'ws-svh'/.test(wiring) && /\.offsetHeight >= 560/.test(wiring),
+  'they read the small viewport\'s height, a 100svh probe, against 560px');
+ok(/window\.innerWidth !== width/.test(resizeBody), 'a width change that stays pinned re-measures, and keeps its scene');
+ok(/behavior: smooth \? 'smooth' : 'instant'/.test(wiring),
+  'a focus jump is instant: the page\'s own scroll-behavior: smooth would animate "auto"');
+ok(/CSS\.supports\('height', '100svh'\)/.test(wiring), 'no svh, no pinning: the story would collapse');
+ok(/function settle\(\)[\s\S]*story-reach-end/.test(wiring) && /function render\(p\)/.test(wiring) &&
+  !/function render\(p\)[\s\S]*?story-reach-end[\s\S]*?function settle/.test(wiring),
+  'the reach event fires where the reader comes to rest, never mid-traversal');
+ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story--pinned \.walk-story-stage\s*\{[^}]*overflow/.test(css),
+  'the story clips, not the stage, so the 100lvh sky reaches below it');
+ok((css.match(/will-change/g) || []).length === 2 && /is-active \.walk-story-phone\s*\{\s*will-change/.test(css),
+  'will-change on the sky layers and only the active phone: six promoted layers at most');
+// A custom property set on the stage is inherited by all ~580 elements
+// under it, so the stage's data-sky flipping an ink token there restyled
+// every one of them in the frame the light theme's ink turned. The
+// data-sky now picks the colour of the rail and the walked lines alone.
+ok(!/--ws-stage-ink/.test(css), 'no ink token hangs on the stage for everything under it to inherit');
+ok(!/\.walk-story-stage[^{]*\{[^}]*--ws-(ink|muted):/.test(css), 'the stage defines no ink tokens; each scene\'s ink is its own');
+ok(/\.walk-story-stage:is\(\[data-sky="dusk"\], \[data-sky="night"\]\) :is\(\.walk-story-rail, \.walk-story-scene:not\(\.is-active\) \.walk-story-line\)/.test(css),
+  'under dusk and night the stage\'s data-sky inks the rail and the walked lines, and nothing else');
+
+console.log('\n=== the frame ===\n');
+
+// Every @media block whose query list holds `query`, alone or among others.
+function mediaBlock(query) {
+  const blocks = [];
+  let i = -1;
+  while ((i = css.indexOf('@media ', i + 1)) !== -1) {
+    const open = css.indexOf('{', i);
+    if (css.slice(i + 7, open).split(',').map(function (q) { return q.trim(); }).indexOf(query) === -1) continue;
+    let depth = 0, j = open;
+    for (; j < css.length; j++) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}' && --depth === 0) break;
+    }
+    blocks.push(css.slice(i, j));
+  }
+  return blocks.join('\n');
+}
+ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*inset:\s*0 max\(0px, calc\(50% - min\(\d+px, [\d.]+svh\)\)\)/.test(css),
+  'a wide screen holds copy and phone in one centred frame instead of spreading them to its edges, and past 16:9 the frame keeps to the line');
+ok(/\.walk-story-copy h2\s*\{[^}]*text-wrap:\s*balance/.test(css) && /\.ws-said\s*\{[^}]*text-wrap:\s*balance/.test(css),
+  'headlines and the spoken words balance their lines, so no word is left alone');
+ok(/\.walk-story--pinned \.ws-closing\s*\{[^}]*position:\s*absolute/.test(css),
+  'scene 04\'s closing line takes no room while it waits, so the copy has no hole mid-hold');
+ok(/\.walk-story--pinned \.ws-said\s*\{[^}]*left:\s*6%/.test(mediaBlock('(max-width: 1024px) and (min-width: 721px)')),
+  'between 721 and 1024px the spoken words keep the copy\'s left edge');
+ok(/\.walk-story-copy \.store-badges\s*\{[^}]*justify-content:\s*flex-start/.test(css),
+  'the store badges line up with the copy\'s left edge');
+const shortStage = mediaBlock('(min-width: 721px) and (max-height: 840px)');
+ok(/\[data-scene="yours-alone"\] \.walk-story-copy\s*\{[^}]*top:/.test(shortStage) && /\.ws-list li\s*\{/.test(shortStage),
+  'on a short laptop stage the finale tightens and rides higher, so its badges end above scene 07\'s ring');
+ok(!/(ws-list|ws-begin|store-badges|ws-aside|ws-caption|ws-closing|ws-body)[^{}]*\{[^}]*display:\s*none/.test(css),
+  'no stage hides the privacy lines, the call to act, or any of the copy: a short stage compacts it instead');
+ok(/\.walk-story-pill\.is-docked\s*\{[^}]*right:/.test(css) && /classList\.toggle\('is-docked'/.test(wiring),
+  'after the opening the pill docks to the corner, clear of the line');
+
+['landscape', 'portrait'].forEach(function (g) {
+  const boxes = Array.from(story.matchAll(new RegExp('<svg class="walk-story-line walk-story-line--' + g + '" viewBox="([^"]+)" preserveAspectRatio="([^"]+)"', 'g')))
+    .map(function (m) { return m[1] + ' / ' + m[2]; });
+  eq(boxes.length, 9, g + ': nine scenes draw the line');
+  eq(new Set(boxes).size, 1, g + ': every scene shares one viewBox and alignment, so their lines meet on screen');
+});
+ok(/viewBox="-10 -240 510 1100" preserveAspectRatio="xMinYMax meet"/.test(story),
+  'on a phone the line is drawn smaller and hugs the left edge, leaving the right half to the phone');
+ok(/\.ws-act--traces \.traces-card,\s*\.ws-act--traces \.traces-card:last-child\s*\{\s*border:\s*0/.test(css),
+  'scene 06\'s cards drop the list hairlines css/styles.css gives them elsewhere');
+ok(/\.ws-act--traces \.traces-card-icon\s*\{[^}]*min-height:[^}]*justify-content:\s*flex-end/.test(css),
+  'scene 06\'s wisp and cairn stand on one floor, so their titles share a line');
+const phoneCss = mediaBlock('(max-width: 720px)');
+ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*display:\s*grid/.test(phoneCss),
+  'on a phone the copy spans the top and the phone, the words and the traces share the row beneath it');
+ok(/\.walk-story--pinned \.walk-story-phone[^{]*\{[^}]*height:\s*min\(100%/.test(phoneCss),
+  'on a phone the phone takes all the height the copy leaves it, up to its column\'s width');
+
+console.log('\n=== star mode keeps the stars off the text ===\n');
+
+// A star in a letter reads as a typo. The clearings lie in the stage
+// beneath every scene, so they hide stars and nothing the walk draws
+// (the fog, the lines); each scene's shows with its text.
+const clearingsAt = story.indexOf('<div class="ws-clearings" aria-hidden="true"></div>');
+ok(clearingsAt > story.indexOf('class="walk-story-atmosphere"') && clearingsAt < story.indexOf('id="scene-1"'),
+  'the clearings lie in the stage beneath the scenes, hidden from assistive tech');
+ok(/\.ws-clearings\s*\{\s*display:\s*none/.test(css) && /body\.constellation \.walk-story--pinned \.ws-clearings\s*\{[^}]*display:\s*block/.test(css),
+  'they show only in star mode, and only pinned');
+ok(/walk-story-copy, \.ws-said, \.ws-closing, \.ws-act--traces/.test(wiring) && /clearEl\.style\.opacity = front/.test(wiring),
+  'every block of text has one, shown as its scene\'s front is');
+ok(/body\.constellation :is\(\.ws-moment-label, \.ws-moment-ja\)\s*\{[^}]*paint-order:\s*stroke/.test(css),
+  'the stage\'s labels carry a halo of the ground, so no star sits in a letter there either');
+
+console.log('\n=== the story\'s neighbours ===\n');
+
+const cairnSrc = fs.readFileSync(path.join(ROOT, 'js', 'traces-cairn.js'), 'utf8');
+ok(/window\.TracesCairn\s*=\s*\{\s*demo:\s*demo\s*\}/.test(cairnSrc), 'traces-cairn.js exposes TracesCairn.demo()');
+ok(cairnSrc.indexOf("closest('.walk-story--pinned')") !== -1,
+  'the cairn\'s own observer stands down inside the pinned story, where it would fire unseen');
+const mainSrc = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+eq((mainSrc.match(/classList\.contains\('walk-story-pinned'\)/g) || []).length, 2,
+  'the scroll tracker and the page walker both rest while the story is pinned');
+const storyCss = fs.readFileSync(path.join(ROOT, 'css', 'walk-story.css'), 'utf8');
+ok(/body\.walk-story-pinned \.page-walker,\s*body\.walk-story-pinned \.scroll-tracker\s*\{[^}]*opacity:\s*0/.test(storyCss),
+  'the walker and the tracker fade while the ink line is the companion');
+// css/styles.css gives the figure pointer-events: auto, which beats the
+// none it would inherit from the faded walker.
+ok(/body\.walk-story-pinned \.page-walker-figure\s*\{[^}]*pointer-events:\s*none/.test(storyCss),
+  'the faded walker\'s figure takes no clicks while the story is pinned');
+
+console.log('\n=== the page claims only what the policy says ===\n');
+
+const llms = fs.readFileSync(path.join(ROOT, 'llms.txt'), 'utf8');
+[/no cloud/i, /no telemetry/i, /no user id/i, /never uploaded/i, /Nothing is uploaded to any server/, /All data stays on your phone/].forEach(function (re) {
+  ok(!re.test(html), 'index.html no longer says ' + re);
+  ok(!re.test(llms), 'llms.txt no longer says ' + re);
+});
+ok(/Honor/.test(html.slice(html.indexOf('"featureList"'), html.indexOf('"screenshot"'))), 'the feature list names Honor');
+ok(/data ODbL/.test(llms), 'llms.txt gives the dataset\'s real data licence');
+// Search snippets and link previews read these, not the JSON-LD: they
+// carry its framing, each within what its field shows.
+[['meta description', /<meta name="description" content="([^"]*)"/, 160],
+ ['og:description', /<meta property="og:description" content="([^"]*)"/, 200],
+ ['twitter:description', /<meta name="twitter:description" content="([^"]*)"/, 200]].forEach(function (f) {
+  const text = (html.match(f[1]) || [])[1] || '';
+  ok(/Anonymous/.test(text) && /walks stored on your device, shared only when you choose/.test(text),
+    'the ' + f[0] + ' says what the JSON-LD does: anonymous, walks stored on your device, shared only by choice');
+  ok(text.length > 0 && text.length <= f[2], 'the ' + f[0] + ' fits in ' + f[2] + ' characters  (' + text.length + ')');
+});
+
+console.log('\n---');
+if (failed) {
+  console.log('FAILED: ' + failed + ' of ' + (passed + failed));
+  failures.forEach(function (f) { console.log('  ✗ ' + f); });
+  process.exit(1);
+} else {
+  console.log('ALL PASS: ' + passed);
+}
