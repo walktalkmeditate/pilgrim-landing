@@ -153,11 +153,14 @@
       if (!rider || revealed) return;
 
       var ride = !document.body.classList.contains('walk-story-pinned') && doorPassed;
-      var f = ride && fog.getBoundingClientRect();
-      if (ride && !riderAt) {
-        // Fixed to the viewport, it moves only on resize.
-        var r = rider.getBoundingClientRect();
-        riderAt = { x: r.left + r.width / 2, y: r.top + r.height / 2, viewH: window.innerHeight };
+      var f = null;
+      if (ride) {
+        f = fog.getBoundingClientRect();
+        if (!riderAt) {
+          // Fixed to the viewport, it moves only on resize.
+          var r = rider.getBoundingClientRect();
+          riderAt = { x: r.left + r.width / 2, y: r.top + r.height / 2, viewH: window.innerHeight };
+        }
       }
 
       if (ride !== riding) {
