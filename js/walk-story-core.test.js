@@ -220,6 +220,39 @@ const landed = C.sceneAt(C.holdStartProgress(3, 9), 9);
 eq(landed.index, 3, 'and lands inside the scene it names');
 near(C.holdLocal(landed.local), 0, 'at the very start of its hold', 1e-9);
 
+console.log('\n=== sceneScrollTop and runScene: a turned phone keeps its scene ===\n');
+
+// A phone turned sideways unpins the story and turned back pins it again,
+// and the two pinned layouts differ: the story's height is in svh and the
+// page above it reflows with the width. So the scene is carried across,
+// never the raw scroll position.
+const portrait = { top: 1480, height: 9 * 1.4 * 844, stage: 844 };
+const desktop = { top: 1210, height: 9 * 1.4 * 900, stage: 900 };
+[portrait, desktop].forEach(function (g, gi) {
+  const tag = gi ? '1440x900' : '390x844';
+  for (let i = 0; i < 9; i++) {
+    const y = C.sceneScrollTop(i, 9, g.top, g.height, g.stage);
+    eq(C.runScene(y, g.top, g.height, g.stage, 9), i, tag + ': scrolling to scene ' + (i + 1) + ' puts it on stage');
+    const at = C.sceneAt(C.storyProgress(y, g.top, g.height, g.stage), 9);
+    const hold = C.holdLocal(at.local);
+    ok(hold >= 0 && hold < 0.01, tag + ': at the start of its hold  (' + hold.toFixed(4) + ')');
+  }
+});
+let roundTrip = true;
+for (let i = 0; i < 9; i++) {
+  const kept = C.runScene(C.sceneScrollTop(i, 9, portrait.top, portrait.height, portrait.stage), portrait.top, portrait.height, portrait.stage, 9);
+  const back = C.sceneScrollTop(kept, 9, desktop.top, desktop.height, desktop.stage);
+  if (C.runScene(back, desktop.top, desktop.height, desktop.stage, 9) !== i) roundTrip = false;
+}
+ok(roundTrip, 'the scene kept in one pinned layout is the scene landed on in another');
+eq(C.runScene(portrait.top - 1, portrait.top, portrait.height, portrait.stage, 9), -1, 'above the story there is no scene to keep');
+eq(C.runScene(portrait.top, portrait.top, portrait.height, portrait.stage, 9), 0, 'at its top the first scene is on stage');
+eq(C.runScene(portrait.top + portrait.height - portrait.stage, portrait.top, portrait.height, portrait.stage, 9), 8,
+  'at the end of the run the last scene is on stage');
+eq(C.runScene(portrait.top + portrait.height - portrait.stage + 1, portrait.top, portrait.height, portrait.stage, 9), -1,
+  'past the run, with the stage scrolling away, there is none');
+eq(C.runScene(1200, 1000, 800, 800, 9), -1, 'a story no taller than its stage keeps no scene');
+
 console.log('\n=== shouldWrite: a frame writes only what has moved ===\n');
 
 // Writing --hold restyles the whole scene beneath it, so a value that has

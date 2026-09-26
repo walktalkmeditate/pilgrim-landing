@@ -11,9 +11,12 @@
    a fixed height), so this proves the order of reads and writes and the
    scene kept across a turn, not Chrome's frame times.
 
-   Task 8's browser pass found that reading the scroll position in the
-   scroll handler forced a layout on nearly every scroll. The handler now
-   only asks for a frame, and each frame reads before it writes.
+   Two defects Task 8's browser pass found:
+   - Reading the scroll position in the scroll handler forced a layout
+     on nearly every scroll. The handler now only asks for a frame, and
+     each frame reads before it writes.
+   - Turning a phone sideways and back landed on another scene: the raw
+     scroll position means a different scene stacked and pinned.
    ============================================= */
 
 'use strict';
@@ -41,6 +44,7 @@ const STACKED_SCENE = 700;
 const world = { w: 390, h: 844, scrollY: 0 };
 const log = [];
 const windowListeners = {};
+const intoView = [];
 const observers = [];
 let rafs = new Map(), rafId = 0, clock = 0;
 
@@ -94,7 +98,8 @@ function el(name, opts) {
       return { top: top, left: 0, right: world.w, bottom: top + 100, width: world.w, height: 100 };
     },
     get offsetHeight() { note('read', name + ' offsetHeight'); return opts.offsetHeight ? opts.offsetHeight() : 0; },
-    get offsetWidth() { note('read', name + ' offsetWidth'); return world.w; }
+    get offsetWidth() { note('read', name + ' offsetWidth'); return world.w; },
+    scrollIntoView: function (o) { intoView.push({ name: name, opts: o }); if (opts.onIntoView) opts.onIntoView(); }
   };
 }
 
@@ -102,7 +107,10 @@ let root;
 function isPinned() { return root.classList.contains('walk-story--pinned'); }
 
 const scenes = C.SCENES.map(function (s, k) {
-  return el('scene-' + (k + 1), { one: { '.walk-story-front': el('front-' + (k + 1)) } });
+  return el('scene-' + (k + 1), {
+    one: { '.walk-story-front': el('front-' + (k + 1)) },
+    onIntoView: function () { world.scrollY = STORY_TOP + k * STACKED_SCENE; }
+  });
 });
 const stage = el('stage', { docTop: function () { return STORY_TOP; }, offsetHeight: function () { return isPinned() ? world.h : 9 * STACKED_SCENE; } });
 const lineGeometry = { viewBox: { baseVal: { width: 1600, height: 900 } } };
@@ -166,9 +174,18 @@ function frames(max) {
   }
 }
 function rootObserver() { return observers.filter(function (o) { return o.targets.indexOf(root) !== -1; })[0]; }
+function lineObserver() {
+  return observers.filter(function (o) { return o.opts.rootMargin === '-50% 0px -50% 0px'; })[0] ||
+    { targets: [], cb: function () {} };
+}
+function reportLine(k) {
+  const io = lineObserver();
+  io.cb(io.targets.map(function (t) { return { target: t, isIntersecting: scenes.indexOf(t) === k }; }));
+}
 function onStage() {
   return scenes.map(function (s) { return s.classList.contains('is-active'); }).indexOf(true);
 }
+function turn(w, h) { world.w = w; world.h = h; fire('resize'); }
 function run() { return 9 * 1.4 * world.h - world.h; }
 
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'walk-story.js'), 'utf8'), {
@@ -216,6 +233,46 @@ ok(perFrame.every(function (f) { return f.every(function (e) { return e.kind !==
 eq(onStage(), 3, 'the reader rests on scene 04');
 const restHold = Math.round(C.holdLocal(C.sceneAt(C.storyProgress(goal, STORY_TOP, 9 * 1.4 * world.h, world.h), 9).local) * 10000) / 10000;
 eq(scenes[3].style['--hold'], String(restHold), 'at rest scene 04\'s --hold is exact, not a thousandth short');
+
+/* ---------- turning the phone ---------- */
+
+console.log('\n=== a phone turned sideways and back keeps its scene ===\n');
+
+turn(844, 390);
+ok(!isPinned(), 'sideways, the story unpins to the stacked layout');
+eq(intoView.length && intoView[intoView.length - 1].name, 'scene-4', 'the scene that was on stage is scrolled into view, stacked');
+eq(intoView.length && JSON.stringify(intoView[intoView.length - 1].opts), '{"block":"start","behavior":"instant"}',
+  'at once, from its top: the page\'s smooth scrolling would animate it');
+eq(lineObserver().targets.length, 9, 'stacked, the scene on the viewport\'s middle line is watched');
+reportLine(3);
+world.scrollY = 8958;   // the browser moved it, as Task 8's walkthrough saw
+turn(390, 844);
+ok(isPinned(), 'upright again, the story pins again');
+eq(onStage(), 3, 'on scene 04, where the reader was');
+eq(world.scrollY, C.sceneScrollTop(3, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at the start of its hold');
+eq(lineObserver().targets.length, 0, 'pinned, the middle line is no longer watched');
+
+console.log('\n=== read on while stacked, and the story resumes there ===\n');
+
+rootObserver().cb([{ target: root, isIntersecting: true }]);
+turn(844, 390);
+reportLine(5);   // the reader scrolled on to scene 06, stacked
+turn(390, 844);
+eq(onStage(), 5, 'the story pins on the stacked scene being read, scene 06');
+eq(world.scrollY, C.sceneScrollTop(5, 9, STORY_TOP, 9 * 1.4 * 844, 844), 'at the start of its hold');
+
+console.log('\n=== above the story, a turn leaves the reader where they are ===\n');
+
+world.scrollY = 200;
+fire('scroll');
+frames();
+rootObserver().cb([{ target: root, isIntersecting: false }]);
+const seen = intoView.length;
+turn(844, 390);
+eq(intoView.length, seen, 'sideways in the hero, nothing is scrolled into view');
+lineObserver().cb(lineObserver().targets.map(function (t) { return { target: t, isIntersecting: false }; }));
+turn(390, 844);
+eq(world.scrollY, 200, 'and upright again the reader is still in the hero');
 
 console.log('\n---');
 if (failed) {

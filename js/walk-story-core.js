@@ -209,6 +209,18 @@
     return (index + FADE) / n;
   }
 
+  // Scene i on stage at the start of its hold, a pixel in against rounding.
+  function sceneScrollTop(i, n, top, height, stageHeight) {
+    return top + holdStartProgress(i, n) * (height - stageHeight) + 1;
+  }
+
+  // The scene on stage at scrollY; -1 above or below the pinned run.
+  function runScene(scrollY, top, height, stageHeight, n) {
+    var run = height - stageHeight;
+    if (run <= 0 || scrollY < top || scrollY > top + run) return -1;
+    return sceneAt((scrollY - top) / run, n).index;
+  }
+
   // A --hold write restyles the scene's whole subtree, so a value that has
   // barely moved waits; either end, and every value at rest, is exact.
   function shouldWrite(written, value, eps, atRest) {
@@ -271,6 +283,8 @@
     lineInk: lineInk,
     pillLabel: pillLabel,
     holdStartProgress: holdStartProgress,
+    sceneScrollTop: sceneScrollTop,
+    runScene: runScene,
     shouldWrite: shouldWrite,
     labelScale: labelScale,
     moonPath: moonPath

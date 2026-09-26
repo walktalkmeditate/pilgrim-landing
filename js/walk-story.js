@@ -85,6 +85,18 @@
   var skyOpacity = skies.map(function () { return -1; });
   var railOpacity = -1;
 
+  // Stacked, the scene across the viewport's middle is being read; a
+  // re-pin resumes there.
+  var onLine = [];
+  var lineWatch = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { onLine[scenes.indexOf(e.target)] = e.isIntersecting; });
+  }, { rootMargin: '-50% 0px -50% 0px' });
+
+  function watchLine(scene) {
+    onLine = scenes.map(function (s, j) { return j === scene; });
+    scenes.forEach(function (s) { lineWatch.observe(s); });
+  }
+
   function sceneIndex(id) {
     for (var i = 0; i < C.SCENES.length; i++) if (C.SCENES[i].id === id) return i;
     return -1;
@@ -274,8 +286,11 @@
     if (!raf) raf = window.requestAnimationFrame(frame);
   }
 
-  function snap() {
+  // A re-pin puts the stacked scene on stage: the old scroll position
+  // means another scene pinned.
+  function snap(scene) {
     measure();
+    if (scene >= 0) scrollToScene(scene, false);
     shown = target;
     render(shown, true);
     settle();
@@ -284,7 +299,7 @@
   // The page's html { scroll-behavior: smooth } would animate 'auto',
   // so a jump that must land now says 'instant'.
   function scrollToScene(i, smooth) {
-    var y = top + C.holdStartProgress(i, n) * (height - stageHeight) + 1;
+    var y = C.sceneScrollTop(i, n, top, height, stageHeight);
     window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'instant' });
     if (!smooth) {
       readScroll();
@@ -314,15 +329,19 @@
   }
 
   function pin() {
+    var resume = onLine.indexOf(true);
+    lineWatch.disconnect();
     pinned = true;
     root.classList.add('walk-story--pinned');
-    snap();
+    snap(resume);
     if (scrollTop + window.innerHeight > top && scrollTop < top + height) enter();
   }
 
   // Back to the stacked story: every inline value the frame loop wrote
-  // comes off, so the stylesheet's finished states show again.
+  // comes off, so the stylesheet's finished states show again, and the
+  // scene that was on stage stays in view.
   function unpin() {
+    var keep = inView ? C.runScene(scrollTop, top, height, stageHeight, n) : -1;
     leave();
     pinned = false;
     root.classList.remove('walk-story--pinned');
@@ -348,6 +367,8 @@
     if (pill) pill.classList.remove('is-docked');
     stage.setAttribute('data-sky', 'dawn');
     current = -1;
+    if (keep !== -1) scenes[keep].scrollIntoView({ block: 'start', behavior: 'instant' });
+    watchLine(keep);
   }
 
   // iOS fires resize as its toolbar collapses, changing only the height,
@@ -410,7 +431,7 @@
     document.fonts.ready.then(function () { if (pinned) snap(); });
   }
 
-  if (window.innerHeight >= 560) pin();
+  if (window.innerHeight >= 560) pin(); else watchLine(-1);
 
   function paintMoon() {
     if (typeof window.getMoonPhase !== 'function') return;
