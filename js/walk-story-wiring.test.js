@@ -6,7 +6,10 @@
    js/walk-story-markup.test.js reads js/walk-story.js as text. This file
    runs it, against a hand-rolled browser in the spirit of
    js/daylight-ribbon-wiring.test.js: enough surface to scroll, turn the
-   phone and fire observers in a controlled order, nothing more. Layout
+   phone, click and focus the story's links, and fire observers in a
+   controlled order, nothing more. Each element keeps its listeners, as
+   js/clearing-rider.test.js's do, so the rail, the pill, the skip link
+   and the focus rule run here rather than only in a browser. Layout
    is a model (the story's top, pinned heights in svh, stacked scenes of
    a fixed height), so this proves the order of reads and writes and the
    scene kept across a turn, not Chrome's frame times.
@@ -91,13 +94,16 @@ function el(name, opts) {
   return {
     name: name,
     attrs: {},
+    on: {},
+    focused: [],
     classList: classList(name, opts.classes),
     style: style(name),
     appendChild: function (child) { return child; },
     getAttribute: function (k) { return k in this.attrs ? this.attrs[k] : null; },
     setAttribute: function (k, v) { note('write', name + '@' + k); this.attrs[k] = String(v); },
     removeAttribute: function (k) { if (k in this.attrs) note('write', name + '@-' + k); delete this.attrs[k]; },
-    addEventListener: function () {},
+    addEventListener: function (type, fn) { (this.on[type] = this.on[type] || []).push(fn); },
+    focus: function (o) { this.focused.push(o); },
     querySelector: function (sel) { return (opts.one && opts.one[sel]) || null; },
     querySelectorAll: function (sel) { return (opts.all && opts.all[sel]) || []; },
     closest: function () { return null; },
@@ -125,6 +131,9 @@ const stage = el('stage', { docTop: storyTop, offsetHeight: function () { return
 const lineGeometry = { viewBox: { baseVal: { width: 1600, height: 900 } } };
 const pillLabel = el('pill-label');
 const pill = el('pill', { one: { '.ws-pill-label': pillLabel } });
+const skip = el('skip');
+const after = el('after');
+const railLinks = scenes.map(function (s, k) { return el('rail-' + (k + 1)); });
 root = el('story', {
   docTop: storyTop,
   offsetHeight: function () { return isPinned() ? 9 * 1.4 * world.h : 9 * STACKED_SCENE; },
@@ -132,14 +141,14 @@ root = el('story', {
     '.walk-story-stage': stage,
     '.walk-story-rail': el('rail'),
     '.walk-story-pill': pill,
-    '.walk-story-skip': el('skip'),
+    '.walk-story-skip': skip,
     '.walk-story-line--portrait': lineGeometry,
     '.walk-story-line--landscape': lineGeometry
   },
   all: {
     '.walk-story-scene': scenes,
     '.ws-sky': C.SKIES.map(function (s) { return el('sky-' + s); }),
-    '.walk-story-rail a': scenes.map(function (s, k) { return el('rail-' + (k + 1)); })
+    '.walk-story-rail a': railLinks
   }
 });
 
@@ -173,7 +182,7 @@ const doc = {
   // The one element the story creates and measures here is its 100svh
   // probe (the star clearings are made only when .ws-clearings exists).
   createElement: function (tag) { return el('created-' + tag, { offsetHeight: function () { return world.svh; } }); },
-  getElementById: function () { return el('after'); },
+  getElementById: function (id) { return id === 'after-walk-story' ? after : null; },
   body: { classList: classList('body') },
   documentElement: { getAttribute: function () { return null; } }
 };
@@ -199,6 +208,17 @@ function reportLine(k) {
 function onStage() {
   return scenes.map(function (s) { return s.classList.contains('is-active'); }).indexOf(true);
 }
+// An element's own listeners, as js/clearing-rider.test.js fires them.
+function dispatch(target, type, e) {
+  (target.on[type] || []).slice().forEach(function (fn) { fn(e); });
+  return e;
+}
+function click(target, mods) {
+  const e = Object.assign({ button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false }, mods);
+  e.preventDefault = function () { e.defaultPrevented = true; };
+  return dispatch(target, 'click', e);
+}
+function jumps() { return log.filter(function (e) { return e.kind === 'scrollTo'; }).length + intoView.length; }
 function turn(w, h) { world.w = w; world.h = h; world.svh = h; fire('resize'); }
 function toolbar(h) { world.h = h; fire('resize'); }
 function run() { return 9 * 1.4 * world.h - world.h; }
@@ -385,6 +405,72 @@ fire('scroll');
 frames();
 eq(onStage(), 8, 'the reader rests on scene 09');
 eq(tracked.join(','), 'story-reach-end', 'and the end is counted there, once');
+
+/* ---------- the rail, the pill, the skip link and focus ---------- */
+
+// Pinned, every scene's box is the stage's, so the browser's own jump
+// to #scene-N lands on scene 01: these links are the story's to move.
+function holdStart(i) { return C.sceneScrollTop(i, 9, storyTop(), 9 * 1.4 * world.h, world.h); }
+function inScene(k) { return { closest: function (sel) { return sel === '.walk-story-scene' ? scenes[k] : null; } }; }
+const inStageChrome = { closest: function () { return null; } };   // the rail, the pill, the skip link
+
+console.log('\n=== pinned, the rail and the pill ride the story to a scene ===\n');
+
+let e = click(railLinks[2]);
+ok(e.defaultPrevented, 'a rail dot\'s click is the story\'s, not the browser\'s jump to scene 01');
+eq(world.scrollY, holdStart(2), 'it rides to scene 03\'s hold start');
+eq(lastJump(), 'smooth', 'smoothly: the reader sees the walk pass');
+fire('scroll');
+frames();
+eq(onStage(), 2, 'and comes to rest on scene 03');
+
+e = click(pill);
+ok(e.defaultPrevented, 'the pill\'s click is the story\'s too');
+eq(world.scrollY, holdStart(3), 'it rides on to the next scene, 04');
+eq(lastJump(), 'smooth', 'smoothly');
+fire('scroll');
+frames();
+eq(onStage(), 3, 'and comes to rest there');
+
+console.log('\n=== a focused element never sits in a faded scene ===\n');
+
+dispatch(root, 'focusin', { target: inScene(6) });
+eq(onStage(), 6, 'tabbing into scene 07 brings it on stage');
+eq(world.scrollY, holdStart(6), 'at its hold start');
+eq(lastJump(), 'instant', 'at once: the focus ring never waits in a fading scene');
+let before = jumps();
+dispatch(root, 'focusin', { target: inScene(6) });
+eq(jumps(), before, 'focus moving within the scene on stage moves nothing');
+dispatch(root, 'focusin', { target: inStageChrome });
+eq(jumps(), before, 'focus on the rail, the pill or the skip link moves nothing');
+
+console.log('\n=== the skip link skips the story ===\n');
+
+e = click(skip);
+ok(e.defaultPrevented, 'the skip link\'s click is the story\'s');
+ok(world.scrollY >= storyTop() + 9 * 1.4 * world.h, 'it lands at the story\'s end, past every scene  (' + world.scrollY + ')');
+eq(lastJump(), 'instant', 'at once: no smooth ride through 12.6 screens');
+eq(after.attrs.tabindex, '-1', 'what follows the story can take focus');
+eq(JSON.stringify(after.focused), '[{"preventScroll":true}]', 'and takes it without a second scroll');
+rootObserver().cb([{ target: root, isIntersecting: false }]);
+
+console.log('\n=== unpinned, the links are the browser\'s ===\n');
+
+world.scrollY = holdStart(3);
+rootObserver().cb([{ target: root, isIntersecting: true }]);
+fire('scroll');
+frames();
+turn(844, 390);
+ok(!isPinned(), 'sideways, the story is stacked');
+before = jumps();
+ok(!click(railLinks[4]).defaultPrevented && !click(pill).defaultPrevented,
+  'a rail dot or the pill jumps the browser\'s way to its stacked scene');
+ok(!click(skip).defaultPrevented, 'so does the skip link');
+dispatch(root, 'focusin', { target: inScene(2) });
+eq(jumps(), before, 'and nothing the story does moves the reader, focus included');
+eq(after.focused.length, 1, 'the skip link\'s focus is the browser\'s too');
+turn(390, 844);
+ok(isPinned(), 'upright again, the story pins');
 
 console.log('\n---');
 if (failed) {
