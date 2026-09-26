@@ -323,6 +323,15 @@
     inView = false;
     document.body.classList.remove('walk-story-pinned');
     window.removeEventListener('scroll', request);
+    // Off screen nothing eases: land where the scroll left the story,
+    // rather than write every frame ahead of other scripts' reads.
+    if (raf) {
+      window.cancelAnimationFrame(raf);
+      raf = 0;
+      lastT = 0;
+      shown = target;
+      render(shown);
+    }
     syncVideo();
   }
 

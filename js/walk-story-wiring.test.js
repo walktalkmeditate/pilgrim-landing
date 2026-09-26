@@ -323,6 +323,19 @@ eq(world.scrollY, C.sceneScrollTop(3, 9, storyTop(), 9 * 1.4 * 900, 900),
   'at the start of its hold, with the page above it reflowed taller');
 eq(lastJump(), 'instant', 'by an instant jump');
 
+console.log('\n=== flung out of the story, it stops easing off screen ===\n');
+
+// Easing on after the story has left would write every frame, ahead of
+// the clearing rider's read of the fog in the same frame.
+world.scrollY = storyTop() + 9 * 1.4 * 900 + 2000;
+fire('scroll');
+frames(1);
+ok(rafs.size === 1, 'one frame into the fling, the story is still easing');
+rootObserver().cb([{ target: root, isIntersecting: false }]);
+eq(rafs.size, 0, 'leaving the viewport stops the loop');
+eq(onStage(), 8, 'landed where the scroll left the story, on scene 09');
+eq(tracked.length, 0, 'and a fling past the story counts no end');
+
 console.log('\n=== above the story, a turn leaves the reader where they are ===\n');
 
 world.scrollY = 200;
