@@ -6,9 +6,10 @@
  * viewport under 560px tall, the story stays nine stacked sections in
  * their finished states: every act in css/walk-story.css reads
  * var(--hold, 1) and nothing sets --hold. Pinned, each frame first reads
- * every moving dot's point, then writes: --hold on scenes whose hold
- * changed, opacity on fronts, lines, the rail and the five sky layers,
- * and a transform on each moving dot. The only layout read is measure().
+ * the scroll position and every moving dot's point, then writes: --hold on
+ * scenes whose hold moved, opacity on fronts, lines, the rail and the five
+ * sky layers, and a transform on each moving dot. The scroll listener only
+ * asks for a frame. The only layout read is measure().
  */
 
 (function () {
@@ -79,7 +80,7 @@
 
   var pinned = false, compact = false;
   var top = 0, height = 0, stageHeight = 0, width = 0;
-  var target = 0, shown = 0, raf = 0, lastT = 0;
+  var scrollTop = 0, target = 0, shown = 0, raf = 0, lastT = 0;
   var current = -1, inView = false, demoed = false, reachedEnd = false;
   var skyOpacity = skies.map(function () { return -1; });
   var railOpacity = -1;
@@ -122,7 +123,14 @@
       s.lineOpacity = -1;
     });
     current = -1;    // and re-apply the scene, whose pill may dock by width
-    target = C.storyProgress(window.scrollY, top, height, stageHeight);
+    readScroll();
+  }
+
+  // At the top of a frame, before any write: in the scroll handler this
+  // read forced a layout on nearly every scroll.
+  function readScroll() {
+    scrollTop = window.scrollY;
+    target = C.storyProgress(scrollTop, top, height, stageHeight);
   }
 
   function pointsFor(j, hold) {
@@ -173,16 +181,17 @@
     return C.inkTurns(document.documentElement.getAttribute('data-theme') === 'dark');
   }
 
-  function render(p) {
+  function render(p, atRest) {
     var at = C.sceneAt(p, n);
     var veil = C.inkVeil(p * n, inkTurns());
     var moved = [];
     var j, s;
+    var eps = C.WRITE_EPS;
     // Read every moving dot's point first, then write: a geometry read
     // after a --hold write would force a style recalc inside the frame.
     for (j = 0; j < n; j++) {
       var hold = Math.round(C.holdLocal(C.clamp(p * n - j, 0, 1)) * 10000) / 10000;
-      if (hold !== state[j].hold) moved.push({ j: j, hold: hold, points: pointsFor(j, hold) });
+      if (C.shouldWrite(state[j].hold, hold, eps, atRest)) moved.push({ j: j, hold: hold, points: pointsFor(j, hold) });
     }
     moved.forEach(function (m) {
       scenes[m.j].style.setProperty('--hold', m.hold);
@@ -196,13 +205,13 @@
       s = state[j];
       var l = p * n - j;
       var front = Math.round(C.frontOpacity(l, j, n) * 1000) / 1000;
-      if (front !== s.frontOpacity) {
+      if (C.shouldWrite(s.frontOpacity, front, eps, atRest)) {
         s.frontEl.style.opacity = front;
         if (s.clearEl) s.clearEl.style.opacity = front;
         s.frontOpacity = front;
       }
       var line = Math.round(C.lineOpacityAt(j, p, n, compact) * veil * 1000) / 1000;
-      if (line !== s.lineOpacity) {
+      if (C.shouldWrite(s.lineOpacity, line, eps, atRest)) {
         for (var q = 0; q < s.lines.length; q++) s.lines[q].style.opacity = line;
         s.lineOpacity = line;
       }
@@ -210,13 +219,13 @@
     var layers = C.layerOpacities(C.skyWeights(p, n));
     for (var i = 0; i < skies.length; i++) {
       var o = Math.round(layers[i] * 1000) / 1000;
-      if (o !== skyOpacity[i]) {
+      if (C.shouldWrite(skyOpacity[i], o, eps, atRest)) {
         skies[i].style.opacity = o;
         skyOpacity[i] = o;
       }
     }
     var railNow = Math.round(veil * 1000) / 1000;
-    if (railEl && railNow !== railOpacity) {
+    if (railEl && C.shouldWrite(railOpacity, railNow, eps, atRest)) {
       railEl.style.opacity = railNow;
       railOpacity = railNow;
     }
@@ -228,7 +237,7 @@
   function settle() {
     var run = height - stageHeight;
     if (run <= 0) return;
-    var raw = (window.scrollY - top) / run;
+    var raw = (scrollTop - top) / run;
     if (!demoed && tracesScene !== -1 && window.TracesCairn &&
         raw >= C.holdStartProgress(tracesScene, n) && raw < (tracesScene + 1) / n) {
       demoed = true;
@@ -246,12 +255,14 @@
   // settles at the same speed as the phone in a walker's pocket.
   function frame(t) {
     raf = 0;
+    readScroll();
     var dt = lastT ? Math.min(64, t - lastT) : 16.667;
     lastT = t;
     shown += (target - shown) * (1 - Math.pow(0.86, dt / 16.667));
     if (Math.abs(target - shown) < 0.0005) shown = target;
-    render(shown);
-    if (shown !== target) {
+    var atRest = shown === target;
+    render(shown, atRest);
+    if (!atRest) {
       raf = window.requestAnimationFrame(frame);
     } else {
       lastT = 0;
@@ -263,15 +274,10 @@
     if (!raf) raf = window.requestAnimationFrame(frame);
   }
 
-  function onScroll() {
-    target = C.storyProgress(window.scrollY, top, height, stageHeight);
-    request();
-  }
-
   function snap() {
     measure();
     shown = target;
-    render(shown);
+    render(shown, true);
     settle();
   }
 
@@ -281,9 +287,9 @@
     var y = top + C.holdStartProgress(i, n) * (height - stageHeight) + 1;
     window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'instant' });
     if (!smooth) {
-      onScroll();
+      readScroll();
       shown = target;
-      render(shown);
+      render(shown, true);
     }
   }
 
@@ -291,10 +297,10 @@
     if (inView) return;
     inView = true;
     document.body.classList.add('walk-story-pinned');
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    window.addEventListener('scroll', request, { passive: true });
+    readScroll();
     shown = target;
-    render(shown);
+    render(shown, true);
     settle();
     syncVideo();
   }
@@ -303,7 +309,7 @@
     if (!inView) return;
     inView = false;
     document.body.classList.remove('walk-story-pinned');
-    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('scroll', request);
     syncVideo();
   }
 
@@ -311,8 +317,7 @@
     pinned = true;
     root.classList.add('walk-story--pinned');
     snap();
-    var y = window.scrollY;
-    if (y + window.innerHeight > top && y < top + height) enter();
+    if (scrollTop + window.innerHeight > top && scrollTop < top + height) enter();
   }
 
   // Back to the stacked story: every inline value the frame loop wrote

@@ -27,6 +27,8 @@
   // they shrink with it; on screen they never read below LABEL_MIN_PX.
   var LABEL_PX = 13;
   var LABEL_MIN_PX = 11;
+  // About a pixel of scroll: only a crawl or an easing's tail waits.
+  var WRITE_EPS = 0.001;
 
   // Skies are per scene, not per hour: text colour cannot crossfade
   // mid-read, so a sky that darkened under a scene's fixed ink would
@@ -207,6 +209,13 @@
     return (index + FADE) / n;
   }
 
+  // A --hold write restyles the scene's whole subtree, so a value that has
+  // barely moved waits; either end, and every value at rest, is exact.
+  function shouldWrite(written, value, eps, atRest) {
+    if (value === written) return false;
+    return atRest || value === 0 || value === 1 || Math.abs(value - written) >= eps;
+  }
+
   // The counter-scale for the labels at a viewBox drawn at vbScale screen
   // pixels per unit: 1 while they read at LABEL_MIN_PX or more, and just
   // enough to hold them there below it. It never shrinks them.
@@ -243,6 +252,7 @@
     DARK_SKIES: DARK_SKIES,
     LABEL_PX: LABEL_PX,
     LABEL_MIN_PX: LABEL_MIN_PX,
+    WRITE_EPS: WRITE_EPS,
     SKIES: SKIES,
     SCENES: SCENES,
     HONOR: HONOR,
@@ -261,6 +271,7 @@
     lineInk: lineInk,
     pillLabel: pillLabel,
     holdStartProgress: holdStartProgress,
+    shouldWrite: shouldWrite,
     labelScale: labelScale,
     moonPath: moonPath
   };

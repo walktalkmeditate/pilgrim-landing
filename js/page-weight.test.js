@@ -80,7 +80,10 @@ const BASELINE_KB = {
   // +1.07 (111.61): star mode clears the stars from behind the story's
   // text and dresses the phones, rail, moon and fog for a starfield; the
   // starfield wraps as the page scrolls (js/universe.js, +0.09).
-  'index.html':                                 111.61,
+  // +0.74 (112.35): the frame budget. The clearing's rider reads no layout
+  // while the story is pinned (js/clearing.js), and the story's frame reads
+  // the scroll position before it writes and writes only what has moved.
+  'index.html':                                 112.35,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

@@ -220,6 +220,27 @@ const landed = C.sceneAt(C.holdStartProgress(3, 9), 9);
 eq(landed.index, 3, 'and lands inside the scene it names');
 near(C.holdLocal(landed.local), 0, 'at the very start of its hold', 1e-9);
 
+console.log('\n=== shouldWrite: a frame writes only what has moved ===\n');
+
+// Writing --hold restyles the whole scene beneath it, so a value that has
+// barely moved waits; it is still exact at either end and at rest.
+eq(C.WRITE_EPS, 0.001, 'a value waits until it has moved by a thousandth');
+eq(C.shouldWrite(0.5, 0.5, C.WRITE_EPS, false), false, 'an unchanged value is never written');
+eq(C.shouldWrite(0.5, 0.5, C.WRITE_EPS, true), false, 'not even at rest');
+eq(C.shouldWrite(0.5, 0.5004, C.WRITE_EPS, false), false, 'a value that has barely moved waits while the story moves');
+eq(C.shouldWrite(0.5, 0.5004, C.WRITE_EPS, true), true, 'and is written exactly when the reader comes to rest');
+eq(C.shouldWrite(0.5, 0.502, C.WRITE_EPS, false), true, 'a value that has moved by a thousandth or more is written');
+eq(C.shouldWrite(0.9996, 1, C.WRITE_EPS, false), true, 'a value reaching 1 is written, however little it moved');
+eq(C.shouldWrite(0.0004, 0, C.WRITE_EPS, false), true, 'and one reaching 0');
+eq(C.shouldWrite(-1, 0.3, C.WRITE_EPS, false), true, 'the unwritten sentinel always gives way to a value');
+let written = 0, writes = 0;
+for (let k = 1; k <= 1000; k++) {
+  const v = Math.round(0.4 * k / 1000 * 10000) / 10000;
+  if (C.shouldWrite(written, v, C.WRITE_EPS, k === 1000)) { written = v; writes++; }
+}
+eq(written, 0.4, 'a slow scrub still ends exactly on its value');
+ok(writes <= 401, 'with at most one write per thousandth it moves  (' + writes + ' writes for 1000 frames)');
+
 console.log('\n=== labelScale ===\n');
 
 eq(C.labelScale(1), 1, 'at full size the labels are drawn as set');

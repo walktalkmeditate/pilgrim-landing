@@ -323,7 +323,8 @@ ok(/window\.innerWidth !== width/.test(wiring), 'height-only resizes (iOS toolba
 ok(/behavior: smooth \? 'smooth' : 'instant'/.test(wiring),
   'a focus jump is instant: the page\'s own scroll-behavior: smooth would animate "auto"');
 ok(/CSS\.supports\('height', '100svh'\)/.test(wiring), 'no svh, no pinning: the story would collapse');
-ok(/function settle\(\)[\s\S]*story-reach-end/.test(wiring) && !/function render\(p\)[\s\S]*?story-reach-end[\s\S]*?function settle/.test(wiring),
+ok(/function settle\(\)[\s\S]*story-reach-end/.test(wiring) && /function render\(p, atRest\)/.test(wiring) &&
+  !/function render\(p, atRest\)[\s\S]*?story-reach-end[\s\S]*?function settle/.test(wiring),
   'the reach event fires where the reader comes to rest, never mid-traversal');
 ok(/\.walk-story--pinned\s*\{[^}]*overflow:\s*clip/.test(css) && !/\.walk-story--pinned \.walk-story-stage\s*\{[^}]*overflow/.test(css),
   'the story clips, not the stage, so the 100lvh sky reaches below it');
