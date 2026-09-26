@@ -100,8 +100,32 @@
 }
 
 /* Star mode: the starfield is the story's sky. */
+body.constellation {
+  /* css/styles.css's ground, so the text's AA holds on its clearings. */
+  --ws-star-ground: #0A0A12;
+  /* A cool night mist: the dark theme's warm fog is brown dust here. */
+  --ws-fog: #474C62;
+}
 body.constellation .walk-story-atmosphere { display: none; }
 body.constellation .walk-story-scene { background: transparent; }
+/* A star in a letter reads as a typo, so each block of text clears the
+   sky behind it with a feathered field of the ground's colour, beneath
+   the lines and the fog. js/walk-story.js places them and shows each
+   scene's with its text; the labels get a halo of the ground. */
+.ws-clearings { display: none; }
+body.constellation .walk-story--pinned .ws-clearings { display: block; position: absolute; inset: 0; pointer-events: none; }
+.ws-clearings > div { position: absolute; inset: 0; opacity: 0; }
+.ws-clearings i { position: absolute; border-radius: 1rem; background: var(--ws-star-ground); box-shadow: 0 0 1rem 0.75rem var(--ws-star-ground); }
+body.constellation :is(.ws-moment-label, .ws-moment-ja) { paint-order: stroke; stroke: var(--ws-star-ground); stroke-width: 4px; stroke-linejoin: round; }
+/* Dark bezels and black shadows vanish on black: a rim of starlight. */
+body.constellation .walk-story-phone { box-shadow: inset 0 0 0 1px rgba(220, 215, 255, 0.2), 0 0 0 1px rgba(220, 215, 255, 0.06), 0 40px 90px -30px rgba(120, 130, 210, 0.25); }
+/* The rail's dots are a star's size; a thread makes them beads. */
+body.constellation .walk-story-rail::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; margin-left: -0.5px; background: currentColor; opacity: 0.18; }
+/* The moon hides the stars behind it, as a real one does. */
+body.constellation .ws-moon-disc { fill: color-mix(in srgb, currentColor 24%, var(--ws-star-ground)); opacity: 1; }
+body.constellation .ws-moon-lit { opacity: 1; }
+/* A dotted line on a starfield is more stars; theirs is dashed here. */
+body.constellation .ws-honor-theirs { stroke-dasharray: 0.01 0.012; opacity: 0.6; }
 
 /* Scene 06 moves the wisp and the cairn in with the page's own colours
    (moss, rust, the energy's hue). On the golden sky those fall under

@@ -376,6 +376,21 @@ ok(/\.walk-story--pinned \.walk-story-front\s*\{[^}]*display:\s*grid/.test(phone
 ok(/\.walk-story--pinned \.walk-story-phone[^{]*\{[^}]*height:\s*min\(100%/.test(phoneCss),
   'on a phone the phone takes all the height the copy leaves it, up to its column\'s width');
 
+console.log('\n=== star mode keeps the stars off the text ===\n');
+
+// A star in a letter reads as a typo. The clearings lie in the stage
+// beneath every scene, so they hide stars and nothing the walk draws
+// (the fog, the lines); each scene's shows with its text.
+const clearingsAt = story.indexOf('<div class="ws-clearings" aria-hidden="true"></div>');
+ok(clearingsAt > story.indexOf('class="walk-story-atmosphere"') && clearingsAt < story.indexOf('id="scene-1"'),
+  'the clearings lie in the stage beneath the scenes, hidden from assistive tech');
+ok(/\.ws-clearings\s*\{\s*display:\s*none/.test(css) && /body\.constellation \.walk-story--pinned \.ws-clearings\s*\{[^}]*display:\s*block/.test(css),
+  'they show only in star mode, and only pinned');
+ok(/walk-story-copy, \.ws-said, \.ws-closing, \.ws-act--traces/.test(wiring) && /clearEl\.style\.opacity = front/.test(wiring),
+  'every block of text has one, shown as its scene\'s front is');
+ok(/body\.constellation :is\(\.ws-moment-label, \.ws-moment-ja\)\s*\{[^}]*paint-order:\s*stroke/.test(css),
+  'the stage\'s labels carry a halo of the ground, so no star sits in a letter there either');
+
 console.log('\n=== the story\'s neighbours ===\n');
 
 const cairnSrc = fs.readFileSync(path.join(ROOT, 'js', 'traces-cairn.js'), 'utf8');

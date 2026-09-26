@@ -102,6 +102,14 @@ ok(!!starGround, 'star mode\'s ground is read from css/styles.css  (' + starGrou
   const r = contrast(parse(pair[1]).rgb, parse(starGround).rgb);
   ok(r >= 4.5, 'star · every scene · ' + pair[0] + ' on the starfield ≥ 4.5:1  (' + r.toFixed(2) + ')');
 });
+// The text clears the stars behind it with a field of this colour; the
+// ground itself, so the AA above holds on the clearing too.
+const star = tokens(block('body.constellation'));
+ok(!!star['ws-star-ground'] && star['ws-star-ground'].toLowerCase() === (starGround || '').toLowerCase(),
+  'star · the text\'s clearing is the starfield\'s own ground  (' + star['ws-star-ground'] + ' vs ' + starGround + ')');
+ok(/\.ws-clearings i\s*\{[^}]*background:\s*var\(--ws-star-ground\)/.test(css), 'star · the clearing is painted in that colour');
+const starFog = star['ws-fog'] ? parse(star['ws-fog']).rgb : null;
+ok(!!starFog && starFog[2] > starFog[0], 'star · the fog is a cool mist on the cool starfield, not the dark theme\'s warm grey  (' + star['ws-fog'] + ')');
 
 console.log('\n=== the docked pill is a button on every sky it docks on ===\n');
 

@@ -47,11 +47,18 @@
   var videoScene = video ? scenes.indexOf(video.closest('.walk-story-scene')) : -1;
   var tracesScene = sceneIndex('traces');
   var portraitQuery = window.matchMedia('(max-width: 720px)');
+  var clearings = root.querySelector('.ws-clearings');
 
   var state = scenes.map(function (scene) {
     var svgs = Array.prototype.slice.call(scene.querySelectorAll('.walk-story-line'));
+    var texts = Array.prototype.slice.call(scene.querySelectorAll('.walk-story-copy, .ws-said, .ws-closing, .ws-act--traces'));
+    // Star mode's clearings, one per block of text (css/walk-story.css).
+    var clearEl = clearings ? clearings.appendChild(document.createElement('div')) : null;
     return {
       frontEl: scene.querySelector('.walk-story-front'),
+      texts: texts,
+      clearEl: clearEl,
+      clears: clearEl ? texts.map(function () { return clearEl.appendChild(document.createElement('i')); }) : [],
       lines: svgs,
       tracks: svgs.map(function (svg) {
         var path = svg.querySelector('.ws-line');
@@ -84,15 +91,28 @@
 
   function measure() {
     var portrait = portraitQuery.matches;
+    var rectOf = function (el) { return el.getBoundingClientRect(); };
+    // Scene 06's act spans its column; its two cards sit in the middle.
+    var inkOf = function (el) {
+      if (!el.classList.contains('ws-act--traces')) return rectOf(el);
+      var a = rectOf(el.firstElementChild), b = rectOf(el.lastElementChild);
+      return { left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) };
+    };
     compact = portrait;
     width = window.innerWidth;
-    top = root.getBoundingClientRect().top + window.scrollY;
+    top = rectOf(root).top + window.scrollY;
+    var stageBox = rectOf(stage);
     height = root.offsetHeight;
     stageHeight = stage.offsetHeight;
     var box = root.querySelector('.walk-story-line--' + (portrait ? 'portrait' : 'landscape')).viewBox.baseVal;
     var scale = Math.min(stage.offsetWidth / box.width, stageHeight / box.height);
     root.style.setProperty('--ws-label-k', C.labelScale(scale).toFixed(3));
     state.forEach(function (s) {
+      s.clears.forEach(function (c, k) {
+        var r = inkOf(s.texts[k]);
+        c.style.cssText = 'left:' + (r.left - stageBox.left) + 'px;top:' + (r.top - stageBox.top) +
+          'px;width:' + (r.right - r.left) + 'px;height:' + (r.bottom - r.top) + 'px';
+      });
       s.tracks.forEach(function (t) {
         t.length = 0;
         if (t.portrait !== portrait) return;
@@ -178,6 +198,7 @@
       var front = Math.round(C.frontOpacity(l, j, n) * 1000) / 1000;
       if (front !== s.frontOpacity) {
         s.frontEl.style.opacity = front;
+        if (s.clearEl) s.clearEl.style.opacity = front;
         s.frontOpacity = front;
       }
       var line = Math.round(C.lineOpacityAt(j, p, n, compact) * veil * 1000) / 1000;
@@ -307,6 +328,7 @@
       scene.style.removeProperty('--hold');
       scene.classList.remove('is-active');
       s.frontEl.style.opacity = '';
+      if (s.clearEl) s.clearEl.style.opacity = '';
       s.lines.forEach(function (el) { el.style.opacity = ''; });
       s.tracks.forEach(function (t) { t.dot.setAttribute('transform', t.home); });
       s.hold = -1;

@@ -77,7 +77,10 @@ const BASELINE_KB = {
   // +0.95 (110.54): the walked lines follow the scroll instead of a timed
   // fade, and are veiled where the light theme's ink turns, in the core
   // where both are tested; the sky's crossfade is eased.
-  'index.html':                                 110.54,
+  // +1.07 (111.61): star mode clears the stars from behind the story's
+  // text and dresses the phones, rail, moon and fog for a starfield; the
+  // starfield wraps as the page scrolls (js/universe.js, +0.09).
+  'index.html':                                 111.61,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
