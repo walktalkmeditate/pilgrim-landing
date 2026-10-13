@@ -43,7 +43,7 @@ requires an account.
   as a "relic" anchored to where you stood. References-only, no copies,
   opt-in.
 - **Three ways to walk** — Wander with no aim; Seek places hidden in fog,
-  revealed by stillness; Honor a path someone else laid down (iPhone): a
+  revealed by stillness; Honor a path someone else laid down: a
   walk a friend shared, one of your own again, or a stage of the Camino,
   the Kumano Kodō or Shikoku's 88 temples from the open-pilgrimages
   dataset, with offline maps.
