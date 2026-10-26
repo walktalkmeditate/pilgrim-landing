@@ -373,6 +373,51 @@
     };
   }
 
+  // The year's major showers, by their usual peak night, and where each
+  // radiant rises (0 east, the page's left). A peak drifts a day either
+  // way from year to year, so each counts the night before and after too.
+  // A night runs until six in the morning.
+  var SHOWERS = [
+    { name: 'Quadrantids', month: 0, day: 3, radiant: 0.18 },
+    { name: 'Lyrids', month: 3, day: 22, radiant: 0.3 },
+    { name: 'Eta Aquariids', month: 4, day: 6, radiant: 0.62 },
+    { name: 'Perseids', month: 7, day: 12, radiant: 0.22 },
+    { name: 'Orionids', month: 9, day: 21, radiant: 0.4 },
+    { name: 'Leonids', month: 10, day: 17, radiant: 0.28 },
+    { name: 'Geminids', month: 11, day: 14, radiant: 0.35 }
+  ];
+
+  function showerTonight(date) {
+    var night = new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getHours() < 6 ? 1 : 0));
+    for (var i = 0; i < SHOWERS.length; i++) {
+      for (var y = night.getFullYear() - 1; y <= night.getFullYear() + 1; y++) {
+        var peak = new Date(y, SHOWERS[i].month, SHOWERS[i].day);
+        if (Math.abs(Math.round((night - peak) / 86400000)) <= 1) return SHOWERS[i];
+      }
+    }
+    return null;
+  }
+
+  function meteorsNow(date, bodies) {
+    var shower = showerTonight(date);
+    return shower && bodies.sun.alt < -0.1 ? shower : null;
+  }
+
+  function showerLine(shower) {
+    return 'Tonight, the ' + shower.name;
+  }
+
+  // A meteor starts somewhere in the sky and streaks down and away from
+  // its radiant, which sits just above the top edge on the shower's side.
+  function meteorFrom(shower, r1, r2, widthPx, horizonPx) {
+    var x0 = (0.08 + 0.84 * r1) * widthPx;
+    var y0 = (0.06 + 0.42 * r2) * horizonPx;
+    var dx = x0 - shower.radiant * widthPx;
+    var dy = y0 + 0.15 * horizonPx;
+    var l = Math.sqrt(dx * dx + dy * dy) || 1;
+    return { x0: x0, y0: y0, dx: dx / l, dy: dy / l, len: (0.14 + 0.1 * r2) * widthPx };
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -494,6 +539,7 @@
         ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, ink, 0.2) : mix(paper, [0, 0, 0], 0.3),
         path: mix(paper, ink, 0.025),
         moonLit: mix(ink, [1, 1, 1], 0.2),
+        meteor: mix(ink, [1, 1, 1], 0.5),
         drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42], lantern: [1, 0.78, 0.44] }
       };
     }
@@ -505,6 +551,7 @@
       ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, [1, 1, 1], 0.45) : mix(paper, ink, 0.2),
       path: mix(paper, [1, 1, 1], 0.12),
       moonLit: mix(paper, [1, 1, 1], 0.82),
+      meteor: mix(paper, ink, 0.55),
       drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16], lantern: [0.78, 0.5, 0.18] }
     };
   }
@@ -538,6 +585,10 @@
     LANTERN_NEAR: LANTERN_NEAR,
     LANTERN_FAR: LANTERN_FAR,
     lanternsFor: lanternsFor,
+    showerTonight: showerTonight,
+    meteorsNow: meteorsNow,
+    showerLine: showerLine,
+    meteorFrom: meteorFrom,
     lanternAt: lanternAt,
     PUFF_MAX: PUFF_MAX,
     PUFF_TOP_SPEED: PUFF_TOP_SPEED,

@@ -165,6 +165,11 @@ function boot(opts) {
     getBoundingClientRect: function () { return { top: -sandbox.scrollY }; }
   };
 
+  const echo = { hidden: true, attrs: {}, setAttribute: function (k, v) { this.attrs[k] = v; } };
+  const echoKanji = { textContent: '' };
+  const echoText = { textContent: '' };
+  const byId = { 'turning-echo': echo, 'turning-echo-kanji': echoKanji, 'turning-echo-text': echoText };
+
   const html = { attrs: { 'data-theme': opts.theme || 'light' }, getAttribute: function (k) { return this.attrs[k] || null; } };
 
   const sandbox = {
@@ -204,6 +209,7 @@ function boot(opts) {
       documentElement: html,
       body: { classList: classes(opts.star ? ['constellation'] : []) },
       querySelector: function (sel) { return sel === '.hero' ? hero : null; },
+      getElementById: function (id) { return byId[id] || null; },
       createElement: function () { return canvas; },
       addEventListener: function (t, fn) { docOn[t] = fn; }
     }
@@ -212,7 +218,7 @@ function boot(opts) {
   vm.runInNewContext(SRC, sandbox, { filename: 'hero-field.js' });
 
   return {
-    sandbox: sandbox, hero: hero, canvas: canvas, quotes: quotes, html: html,
+    sandbox: sandbox, hero: hero, canvas: canvas, quotes: quotes, html: html, echo: echo, echoText: echoText,
     gl: function () { return gl; },
     warnings: warnings, timers: timers, mos: mos, winOn: winOn, docOn: docOn,
     pendingFrames: function () { return rafs.length; },
@@ -464,6 +470,37 @@ const lockedWorld = boot({ storage: locked });
 lockedWorld.seen(true); lockedWorld.frame(16); lockedWorld.frame(32);
 ok(lockedWorld.hero.children.length === 1 && lockedWorld.gl().values.uPathFade[0] === Core.pathReach(1).fadeFrom,
   'with storage refused, the field still paints, the path as first laid');
+
+console.log('\n=== meteors on shower nights ===\n');
+
+function meteorsSeen(world, from, to) {
+  let seen = 0, wasOn = false;
+  for (let t = from; t < to; t += 16) {
+    world.frame(t);
+    const on = world.gl().values.uMeteorB[2] > 0;
+    if (on && !wasOn) seen++;
+    wasOn = on;
+  }
+  return seen;
+}
+const leonidsNight = boot({ at: '2027-11-17T23:00:00' });
+leonidsNight.seen(true);
+ok(!leonidsNight.echo.hidden && leonidsNight.echoText.textContent === 'Tonight, the Leonids', 'on the night of the Leonids, the hero names them');
+const fell = meteorsSeen(leonidsNight, 16, 90000);
+ok(fell >= 2 && fell <= 8, 'and in a minute and a half a few meteors fall — rare, not a fireworks show  (' + fell + ')');
+
+const ordinary = boot({ at: '2027-03-15T23:00:00' });
+ordinary.seen(true);
+ok(ordinary.echo.hidden, 'an ordinary night names nothing');
+ok(meteorsSeen(ordinary, 16, 90000) === 0, 'and nothing falls');
+
+const leonidsDay = boot({ at: '2027-11-17T13:00:00' });
+leonidsDay.seen(true);
+ok(!leonidsDay.echo.hidden, 'the afternoon before, the hero already says tonight');
+ok(meteorsSeen(leonidsDay, 16, 90000) === 0, 'but no meteor crosses a daylight sky');
+
+const stillLeonids = boot({ at: '2027-11-17T23:00:00', reduced: true });
+ok(!stillLeonids.echo.hidden && stillLeonids.gl().values.uMeteorB[2] === 0, 'with less motion, the line still says it, and no meteor moves');
 
 console.log('\n=== a visitor who asked for less motion ===\n');
 

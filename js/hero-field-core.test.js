@@ -290,6 +290,38 @@ function vergeMean(arr) {
 }
 ok(vergeMean(worn) < vergeMean(fresh), 'a worn path\'s verge is lower a step from its edge  (' + vergeMean(worn).toFixed(2) + ' vs ' + vergeMean(fresh).toFixed(2) + ' m)');
 
+console.log('\n=== meteors on shower nights ===\n');
+
+function named(d) { const sh = C.showerTonight(d); return sh ? sh.name : null; }
+ok(named(new Date(2027, 10, 17, 22, 0)) === 'Leonids', 'the evening of 17 November is the Leonids');
+ok(named(new Date(2027, 10, 18, 2, 0)) === 'Leonids', 'and so are the small hours after it — still that night');
+ok(named(new Date(2027, 10, 20, 22, 0)) === null, 'three nights on, nothing');
+ok(named(new Date(2027, 7, 12, 23, 0)) === 'Perseids', 'mid-August is the Perseids');
+ok(named(new Date(2027, 11, 14, 21, 0)) === 'Geminids', 'mid-December the Geminids');
+ok(named(new Date(2027, 0, 3, 22, 0)) === 'Quadrantids', 'the Quadrantids open the year');
+ok(named(new Date(2027, 0, 1, 1, 0)) === null, 'but one in the morning on New Year\'s Day is still the night of 31 December');
+ok(named(new Date(2027, 0, 5, 3, 0)) === 'Quadrantids', 'and their last night runs past midnight into the 5th');
+ok(named(new Date(2027, 2, 15, 22, 0)) === null, 'a March night has no shower');
+
+const leonidNight = new Date(2027, 10, 17, 23, 0);
+const leonidDay = new Date(2027, 10, 17, 13, 0);
+ok(C.meteorsNow(leonidNight, C.skyBodies(leonidNight, 0.5)) !== null, 'meteors fall in the dark of a shower night');
+ok(C.meteorsNow(leonidDay, C.skyBodies(leonidDay, 0.5)) === null, 'never by day, even on the day itself');
+const quiet = new Date(2027, 2, 15, 23, 0);
+ok(C.meteorsNow(quiet, C.skyBodies(quiet, 0.5)) === null, 'and never on an ordinary night');
+
+const leonids = C.showerTonight(leonidNight);
+let away = true, inSky = true;
+for (let i = 0; i < 50; i++) {
+  const m = C.meteorFrom(leonids, (i * 0.37) % 1, (i * 0.61) % 1, 1440, 580);
+  const rx = leonids.radiant * 1440;
+  if ((m.x0 - rx) * m.dx < 0 || m.dy <= 0) away = false;
+  if (m.y0 < 0 || m.y0 > 580 || m.x0 < 0 || m.x0 > 1440) inSky = false;
+}
+ok(away, 'every meteor streaks down and away from its shower\'s radiant');
+ok(inSky, 'and starts in the sky, above the grass');
+ok(C.showerLine(leonids) === 'Tonight, the Leonids', 'the hero names it: "Tonight, the Leonids"');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {

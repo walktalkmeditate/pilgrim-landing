@@ -145,7 +145,11 @@ const BASELINE_KB = {
   // +0.64 (133.96): your path wears in — one count per local day you come,
   // on this device, reaching the path farther and treading its verge wider
   // (js/hero-field-core.js +0.38, js/hero-field.js +0.25).
-  'index.html':                                 133.96,
+  // +1.25 (135.21): meteors on shower nights — the year's seven showers and
+  // their radiants, the night that runs past midnight, the hero's line
+  // naming the shower (js/hero-field-core.js +0.66), and the streak in
+  // the sky shader with its rare schedule (js/hero-field.js +0.59).
+  'index.html':                                 135.21,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

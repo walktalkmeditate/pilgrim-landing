@@ -276,6 +276,9 @@
     'uniform float uWalk;',
     'uniform vec3 uPathC;',
     'uniform vec2 uPathFade;',
+    'uniform vec4 uMeteor;',
+    'uniform vec4 uMeteorB;',
+    'uniform vec3 uMeteorC;',
     NOISE,
     C.pathGlsl(),
     'void main(){',
@@ -301,6 +304,15 @@
     '      col = mix(col, vec4(mix(earthshine, uMoonLit * (0.97 + 0.04 * mottle), lit), 1.0), disc);',
     '      float halo = exp(-max(r - 1.0, 0.0) * 3.2) * (1.0 - disc) * uMoonShow * (0.25 + 0.75 * uMoon.w * (1.0 - uMoon.w) * 4.0);',
     '      col.rgb += uMoonLit * halo * 0.07;',
+    '    }',
+    '    if (uMeteorB.z > 0.0) {',
+    '      vec2 head = uMeteor.xy + uMeteor.zw * uMeteorB.x * uMeteorB.y;',
+    '      vec2 rel = fc - head;',
+    '      float behind = -dot(rel, uMeteor.zw);',
+    '      float across = abs(rel.x * uMeteor.w - rel.y * uMeteor.z);',
+    '      float tail = uMeteorB.x * 0.35 * min(1.0, uMeteorB.y * 3.0) + 1.0;',
+    '      float streak = step(0.0, behind) * (1.0 - smoothstep(0.0, tail, behind)) * (1.0 - smoothstep(0.5, 1.5 * uMeteorB.w, across));',
+    '      col = mix(col, vec4(uMeteorC, 1.0), streak * (1.0 - smoothstep(0.6, 1.0, uMeteorB.y)) * uMeteorB.z * 0.9);',
     '    }',
     '    float mistLine = exp(-pow((uHorizon - y01) * uRes.y / 26.0, 2.0));',
     '    col = mix(col, vec4(uMist, 1.0), mistLine * 0.75);',
@@ -365,7 +377,7 @@
       'uSheenK', 'uBg', 'uFadeFrom']);
     sky = program(SKY_VS, SKY_FS, ['uRes', 'uHorizon', 'uPaper', 'uMist', 'uGround', 'uMoonLit',
       'uSunGlow', 'uMoon', 'uMoonShow', 'uSun', 'uSkyAlpha', 'uBg', 'uFadeFrom',
-      'uProj', 'uEye', 'uWalk', 'uPathC', 'uPathFade']);
+      'uProj', 'uEye', 'uWalk', 'uPathC', 'uPathFade', 'uMeteor', 'uMeteorB', 'uMeteorC']);
 
     var tmpl = [];
     LEVELS.forEach(function (t) { tmpl.push(t, -1, t, 1); });
@@ -409,6 +421,8 @@
   var bladeCount = 0, layoutKey = '', bladeDepth = new Float32Array(0);
   var lanterns = C.lanternsFor(window.PilgrimWalkers);
   var reach = C.pathReach(1);
+  var meteorShower = null, meteor = null, nextMeteor = 4 + Math.random() * 6;
+  var METEOR_SECONDS = 0.9;
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
   var season = 'autumn', night = false, particles = { kind: null, count: 0 };
   var DRIFT_KINDS = { snow: 0, petals: 1, fireflies: 2 };
@@ -441,6 +455,7 @@
     bodies = C.skyBodies(now, window.Moon.getMoonPhase(now));
     sheen = C.sheenFor(bodies);
     particles = C.particlesFor(season, bodies);
+    meteorShower = reduced ? null : C.meteorsNow(now, bodies);
     placeBodies();
   }
 
@@ -525,6 +540,10 @@
     gl.uniform1f(su.uWalk, walk);
     gl.uniform3fv(su.uPathC, colors.path);
     gl.uniform2f(su.uPathFade, reach.fadeFrom, reach.fadeTo);
+    var mp = meteor ? Math.min(1, (time - meteor.start) / METEOR_SECONDS) : 0;
+    gl.uniform4f(su.uMeteor, meteor ? meteor.x0 * dpr : 0, meteor ? meteor.y0 * dpr : 0, meteor ? meteor.dx : 1, meteor ? meteor.dy : 0);
+    gl.uniform4f(su.uMeteorB, meteor ? meteor.len * dpr : 0, mp, meteor ? 1 : 0, dpr);
+    gl.uniform3fv(su.uMeteorC, colors.meteor);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.tri);
     gl.enableVertexAttribArray(attribs.sky);
     gl.vertexAttribPointer(attribs.sky, 2, gl.FLOAT, false, 0, 0);
@@ -722,6 +741,13 @@
       front.strength = 0;
     }
 
+    if (meteor && time - meteor.start > METEOR_SECONDS) meteor = null;
+    if (meteorShower && !meteor && time >= nextMeteor) {
+      meteor = C.meteorFrom(meteorShower, Math.random(), Math.random(), W, horizonPx);
+      meteor.start = time;
+      nextMeteor = time + 14 + Math.random() * 30;
+    }
+
     draw(time, easeOut(Math.min(1, time / GROW_SECONDS)));
     raf = requestAnimationFrame(frame);
   }
@@ -837,6 +863,17 @@
     reach = C.pathReach(walked.days);
   } catch (e) {
     reach = C.pathReach(1);
+  }
+
+  // On a shower's night the hero names it, in the turnings' place; a
+  // turning, which never shares its night, would keep that place.
+  var tonight = C.showerTonight(new Date());
+  var echo = document.getElementById('turning-echo');
+  if (tonight && echo && echo.hidden) {
+    document.getElementById('turning-echo-kanji').textContent = '流星';
+    document.getElementById('turning-echo-text').textContent = C.showerLine(tonight);
+    echo.setAttribute('data-shower', tonight.name);
+    echo.hidden = false;
   }
 
   hero.insertBefore(canvas, hero.firstChild);

@@ -61,4 +61,4 @@ names the shower.
 the line still appears but no meteor does.
 **Tests:** core: shower lookup by date (window edges, the year boundary for the Quadrantids, a
 non-shower night) and night gating. Wiring: the line is shown only on shower nights.
-**Status:** In Progress
+**Status:** Complete
