@@ -11,7 +11,8 @@
 
    This is the one scan (KTD14). It reads every place the copy is made or
    shipped: the rendered turning pages and the hub, the turning data and
-   the events facts, the calendar files and the link-card renderers. A
+   the events facts, the calendar files, the link-card renderers and the site-wide banner
+   js/main.js shows on a turning day. A
    sentence fails when it makes either claim without a bound or a
    negation in the same sentence.
    ============================================= */
@@ -114,7 +115,8 @@ const SOURCES = [
   ['turning data', list('assets/sunpath/turnings', /\.json$/)],
   ['turning events', list('assets/sunpath', /^turning-events-\d{4}\.json$/)],
   ['calendars', list('sunpath', /\.ics$/)],
-  ['link-card renderers', list('scripts', /^render-og-.*\.html$/)]
+  ['link-card renderers', list('scripts', /^render-og-.*\.html$/)],
+  ['the site-wide turning banner', ['js/main.js']]
 ];
 
 SOURCES.forEach(function (source) {
