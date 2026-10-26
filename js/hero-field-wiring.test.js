@@ -170,6 +170,7 @@ function boot(opts) {
   const sandbox = {
     HeroFieldCore: Core,
     PilgrimWalkers: opts.walkers,
+    localStorage: opts.storage,
     Moon: Moon,
     SeasonalEngine: { getCurrentSeason: function () { return opts.season || 'autumn'; } },
     devicePixelRatio: 2,
@@ -437,6 +438,32 @@ const early = boot({ walkers: { active: 0, recent: true } });
 early.seen(true); early.frame(16); early.frame(32);
 ok(lastFrameDraws(early).filter(function (d) { return d.indexOf('lantern') === 0; }).length === 1,
   'if the trail spoke first, the field lights its lantern from the start');
+
+console.log('\n=== your path wears in ===\n');
+
+function memoryStorage() {
+  const m = {};
+  return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, m: m };
+}
+function pathFadeOn(storage, at) {
+  const v = boot({ storage: storage, at: at });
+  v.seen(true); v.frame(16); v.frame(32);
+  return v.gl().values.uPathFade;
+}
+const store = memoryStorage();
+const day1 = pathFadeOn(store, '2027-03-01T10:00:00');
+ok(store.m.pilgrimFieldDays === '1' && day1[0] === Core.pathReach(1).fadeFrom, 'a first visit counts one day, and the path is as first laid');
+pathFadeOn(store, '2027-03-01T21:00:00');
+ok(store.m.pilgrimFieldDays === '1', 'coming back that evening counts nothing more');
+const day2 = pathFadeOn(store, '2027-03-02T08:00:00');
+ok(store.m.pilgrimFieldDays === '2' && day2[0] > day1[0], 'the next morning, the path reaches a little farther  (' + day2[0].toFixed(1) + ' m)');
+for (let d = 3; d <= 30; d++) pathFadeOn(store, '2027-03-' + (d < 10 ? '0' : '') + d + 'T08:00:00');
+ok(+store.m.pilgrimFieldDays === 30 && pathFadeOn(store, '2027-03-30T09:00:00')[0] >= 50, 'a month of mornings and it runs out toward the horizon');
+const locked = { getItem: function () { throw new Error('SecurityError'); }, setItem: function () { throw new Error('SecurityError'); } };
+const lockedWorld = boot({ storage: locked });
+lockedWorld.seen(true); lockedWorld.frame(16); lockedWorld.frame(32);
+ok(lockedWorld.hero.children.length === 1 && lockedWorld.gl().values.uPathFade[0] === Core.pathReach(1).fadeFrom,
+  'with storage refused, the field still paints, the path as first laid');
 
 console.log('\n=== a visitor who asked for less motion ===\n');
 

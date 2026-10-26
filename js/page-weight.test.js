@@ -142,7 +142,10 @@ const BASELINE_KB = {
   // the trail already fetches (index.html +0.09), drawn between the grass
   // beyond it and the grass before it (js/hero-field.js +0.56), with its
   // count and walk tested (js/hero-field-core.js +0.37).
-  'index.html':                                 133.32,
+  // +0.64 (133.96): your path wears in — one count per local day you come,
+  // on this device, reaching the path farther and treading its verge wider
+  // (js/hero-field-core.js +0.38, js/hero-field.js +0.25).
+  'index.html':                                 133.96,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

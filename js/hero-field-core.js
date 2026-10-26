@@ -149,6 +149,26 @@
     return Math.abs(x - pathX(d)) - pathHalfWidth(d);
   }
 
+  // Your path wears in. Each local day you come back, the painted path
+  // reaches farther toward the horizon and the verge is trodden wider, so
+  // more of it shows between the grass; a first visit sees it as first
+  // laid. Counted on this device only.
+  function pathReach(days) {
+    var worn = 1 - Math.exp(-Math.max(0, (days || 1) - 1) / 12);
+    return { fadeFrom: 22 + 38 * worn, fadeTo: 40 + 40 * worn, verge: 1.6 + 1.1 * worn };
+  }
+
+  function localDay(date) {
+    var m = date.getMonth() + 1, d = date.getDate();
+    return date.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function countVisitDay(stored, today) {
+    var days = stored && stored.days > 0 ? Math.floor(stored.days) : 0;
+    if (!days) return { days: 1, last: today };
+    return stored.last === today ? { days: days, last: today } : { days: days + 1, last: today };
+  }
+
   function glslFloat(v) {
     var s = String(v);
     return s.indexOf('.') === -1 ? s + '.0' : s;
@@ -396,6 +416,10 @@
   // lean downwind, combed as a steady wind combs. Far to near: paint order.
   function layoutBlades(count, tanHalfX, seed, shape) {
     var f = shape || SEASON_FIELDS.autumn;
+    var vergeWidth = f.verge || 1.6;
+    var plumeShare = f.plumeShare === undefined ? SEASON_FIELDS.autumn.plumeShare : f.plumeShare;
+    var heightScale = f.heightScale || 1;
+    var bow = f.bow || 0;
     var rand = mulberry32(seed === undefined ? 108 : seed);
     var depths = new Float64Array(count);
     var nearCount = Math.round(count * NEAR_SHARE);
@@ -420,9 +444,9 @@
       // Ten misses in a row: step off the path onto its verge.
       if (inPath(x, d)) x = pathX(d) + (rand() < 0.5 ? -1 : 1) * (pathHalfWidth(d) + rand() * 2);
 
-      var verge = clamp(fromPath(x, d) / 1.6, 0, 1);
-      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge) * f.heightScale;
-      var plume = rand() < f.plumeShare;
+      var verge = clamp(fromPath(x, d) / vergeWidth, 0, 1);
+      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge) * heightScale;
+      var plume = rand() < plumeShare;
       var height = plume
         ? (1.0 + rand() * 0.36) * patch + (d > 9 ? rand() * rand() * 0.6 : 0)
         : (0.45 + rand() * 0.45) * patch;
@@ -435,7 +459,7 @@
       out[k + 4] = rand();
       out[k + 5] = plume ? 1 : 0;
       out[k + 6] = WIND_ANGLE + (rand() - 0.5) * (plume ? 0.9 : 3.2);
-      out[k + 7] = (plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38) + f.bow * rand();
+      out[k + 7] = (plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38) + bow * rand();
     }
     return out;
   }
@@ -502,6 +526,9 @@
     pathHalfWidth: pathHalfWidth,
     inPath: inPath,
     fromPath: fromPath,
+    pathReach: pathReach,
+    localDay: localDay,
+    countVisitDay: countVisitDay,
     horizonFraction: horizonFraction,
     projection: projection,
     pointerOnField: pointerOnField,

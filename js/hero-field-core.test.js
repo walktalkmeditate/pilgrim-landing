@@ -257,6 +257,39 @@ let faded = 1;
 for (let t = 0; t < 400; t += 0.5) faded = Math.min(faded, C.lanternAt(0, t, 0).alpha);
 ok(faded < 0.05, 'at each end of its stretch a lantern fades, rather than blinking out');
 
+console.log('\n=== your path wears in ===\n');
+
+const first = C.pathReach(1);
+ok(first.fadeFrom === 22 && first.fadeTo === 40 && first.verge === 1.6, 'a first visit walks the path as it was first laid');
+ok(C.pathReach(0).fadeFrom === first.fadeFrom, 'and so does a visit storage would not count');
+let rising = true;
+for (let dd = 1; dd < 400; dd++) {
+  const a1r = C.pathReach(dd), b1r = C.pathReach(dd + 1);
+  if (b1r.fadeFrom < a1r.fadeFrom || b1r.verge < a1r.verge) rising = false;
+}
+ok(rising, 'each day you come back, it reaches a little farther and the verge is trodden wider');
+ok(C.pathReach(30).fadeFrom >= 50, 'after a month it runs out toward the horizon  (' + C.pathReach(30).fadeFrom.toFixed(0) + ' m)');
+ok(C.pathReach(1e6).fadeFrom <= 62 && C.pathReach(1e6).verge <= 2.8, 'and it never outruns the field');
+
+ok(C.countVisitDay(null, '2027-03-01').days === 1, 'the first day counts as one');
+ok(C.countVisitDay({ days: 4, last: '2027-03-01' }, '2027-03-01').days === 4, 'coming back the same day counts nothing more');
+ok(C.countVisitDay({ days: 4, last: '2027-03-01' }, '2027-03-02').days === 5, 'the next day counts one more');
+ok(C.countVisitDay({ days: 'x', last: '2027-03-01' }, '2027-03-02').days === 1, 'a garbled count starts again at one');
+ok(C.localDay(new Date(2027, 2, 1, 23, 59)) === '2027-03-01', 'a day is your local day, not Greenwich\'s');
+
+const worn = C.layoutBlades(4000, proj.tanHalfX, 7, { verge: C.pathReach(60).verge });
+const fresh = C.layoutBlades(4000, proj.tanHalfX, 7, { verge: C.pathReach(1).verge });
+function vergeMean(arr) {
+  const hs = [];
+  for (let i = 0; i < arr.length / C.FLOATS_PER_BLADE; i++) {
+    const k = i * C.FLOATS_PER_BLADE;
+    const e = C.fromPath(arr[k], arr[k + 1]);
+    if (e > 0.8 && e < 1.6 && arr[k + 1] < 30) hs.push(arr[k + 2]);
+  }
+  return mean(hs);
+}
+ok(vergeMean(worn) < vergeMean(fresh), 'a worn path\'s verge is lower a step from its edge  (' + vergeMean(worn).toFixed(2) + ' vs ' + vergeMean(fresh).toFixed(2) + ' m)');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {

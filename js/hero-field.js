@@ -275,6 +275,7 @@
     'uniform float uEye;',
     'uniform float uWalk;',
     'uniform vec3 uPathC;',
+    'uniform vec2 uPathFade;',
     NOISE,
     C.pathGlsl(),
     'void main(){',
@@ -311,7 +312,7 @@
     '    float x = (2.0 * fc.x / uRes.x - 1.0) * uProj.x * vz;',
     '    float hw = pathHalf(d);',
     '    float off = abs(x - pathX(d)) + (noise(vec2(d * 1.7, x * 2.3)) - 0.5) * 0.3;',
-    '    float onPath = (1.0 - smoothstep(hw * 0.55, hw * 1.15, off)) * (1.0 - smoothstep(22.0, 40.0, d));',
+    '    float onPath = (1.0 - smoothstep(hw * 0.55, hw * 1.15, off)) * (1.0 - smoothstep(uPathFade.x, uPathFade.y, d));',
     '    vec3 g = mix(uMist, uGround, smoothstep(0.0, 0.3, k));',
     '    g = mix(g, mix(uMist, uPathC, smoothstep(0.0, 0.5, k)), onPath);',
     '    col = vec4(g, 1.0);',
@@ -364,7 +365,7 @@
       'uSheenK', 'uBg', 'uFadeFrom']);
     sky = program(SKY_VS, SKY_FS, ['uRes', 'uHorizon', 'uPaper', 'uMist', 'uGround', 'uMoonLit',
       'uSunGlow', 'uMoon', 'uMoonShow', 'uSun', 'uSkyAlpha', 'uBg', 'uFadeFrom',
-      'uProj', 'uEye', 'uWalk', 'uPathC']);
+      'uProj', 'uEye', 'uWalk', 'uPathC', 'uPathFade']);
 
     var tmpl = [];
     LEVELS.forEach(function (t) { tmpl.push(t, -1, t, 1); });
@@ -407,6 +408,7 @@
   var heroTop = 0;
   var bladeCount = 0, layoutKey = '', bladeDepth = new Float32Array(0);
   var lanterns = C.lanternsFor(window.PilgrimWalkers);
+  var reach = C.pathReach(1);
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
   var season = 'autumn', night = false, particles = { kind: null, count: 0 };
   var DRIFT_KINDS = { snow: 0, petals: 1, fireflies: 2 };
@@ -475,7 +477,7 @@
     });
     var key = count + ':' + proj.tanHalfX.toFixed(3) + ':' + season;
     if (key !== layoutKey) {
-      var data = C.layoutBlades(count, proj.tanHalfX, 108, C.seasonField(season));
+      var data = C.layoutBlades(count, proj.tanHalfX, 108, Object.assign({ verge: reach.verge }, C.seasonField(season)));
       gl.bindBuffer(gl.ARRAY_BUFFER, buffers.blades);
       gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
       bladeCount = count;
@@ -522,6 +524,7 @@
     gl.uniform1f(su.uEye, C.EYE);
     gl.uniform1f(su.uWalk, walk);
     gl.uniform3fv(su.uPathC, colors.path);
+    gl.uniform2f(su.uPathFade, reach.fadeFrom, reach.fadeTo);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.tri);
     gl.enableVertexAttribArray(attribs.sky);
     gl.vertexAttribPointer(attribs.sky, 2, gl.FLOAT, false, 0, 0);
@@ -820,6 +823,20 @@
   } catch (err) {
     if (window.console && console.warn) console.warn(err);
     return;
+  }
+
+  // One count per local day you come, kept on this device; the footer
+  // cairn's count skips phones, so the field keeps its own.
+  try {
+    var walked = C.countVisitDay({
+      days: parseInt(localStorage.getItem('pilgrimFieldDays'), 10),
+      last: localStorage.getItem('pilgrimFieldLastDay')
+    }, C.localDay(new Date()));
+    localStorage.setItem('pilgrimFieldDays', String(walked.days));
+    localStorage.setItem('pilgrimFieldLastDay', walked.last);
+    reach = C.pathReach(walked.days);
+  } catch (e) {
+    reach = C.pathReach(1);
   }
 
   hero.insertBefore(canvas, hero.firstChild);

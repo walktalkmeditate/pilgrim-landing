@@ -51,7 +51,7 @@ screens under 640 px.
 One count per local day, and nothing leaves the device.
 **Tests:** core: path reach from days (monotonic, capped, first visit unchanged); one count per local
 day. Wiring: the count persists and survives storage being unavailable.
-**Status:** In Progress
+**Status:** Complete
 
 ## Stage 5: Meteors on shower nights
 **Goal:** on the real peak nights of the year's major showers, while it is night at the visitor's
@@ -61,4 +61,4 @@ names the shower.
 the line still appears but no meteor does.
 **Tests:** core: shower lookup by date (window edges, the year boundary for the Quadrantids, a
 non-shower night) and night gating. Wiring: the line is shown only on shower nights.
-**Status:** Not Started
+**Status:** In Progress
