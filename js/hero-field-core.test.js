@@ -322,6 +322,19 @@ ok(away, 'every meteor streaks down and away from its shower\'s radiant');
 ok(inSky, 'and starts in the sky, above the grass');
 ok(C.showerLine(leonids) === 'Tonight, the Leonids', 'the hero names it: "Tonight, the Leonids"');
 
+console.log('\n=== your own lantern ===\n');
+
+ok(C.STILL_SECONDS >= 8 && C.STILL_SECONDS <= 20, 'stillness asks a little patience  (' + C.STILL_SECONDS + ' s)');
+const litAt = 30;
+const kindled = C.ownLanternAt(litAt, litAt);
+const settled = C.ownLanternAt(litAt, litAt + 3);
+const later = C.ownLanternAt(litAt, litAt + 40);
+ok(kindled.alpha === 0 && settled.alpha > 0.95, 'it kindles over a breath or two, rather than snapping on');
+ok(kindled.d < 8 && kindled.d > 3, 'it lights just ahead of you, where the path begins  (' + kindled.d.toFixed(1) + ' m)');
+ok(Math.abs(kindled.x - C.pathX(kindled.d)) < 0.05 && Math.abs(later.x - C.pathX(later.d)) < 0.3, 'and keeps to the path');
+ok(later.d > settled.d + 10, 'then walks away up it, at a walker\'s pace  (' + ((later.d - settled.d) / 37).toFixed(2) + ' m/s)');
+ok(C.ownLanternAt(litAt, litAt + 400).alpha === 0, 'until it is lost in the far field');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {

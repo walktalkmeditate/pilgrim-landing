@@ -460,6 +460,26 @@
     return { x0: x0, y0: y0, dx: dx / l, dy: dy / l, len: (0.14 + 0.1 * r2) * widthPx };
   }
 
+  // Your own lantern: be still on the hero a while and one is lit where
+  // the path begins, just ahead of you, and walks away up it at a walker's
+  // pace until the far field takes it. Once a visit.
+  var STILL_SECONDS = 12;
+  var OWN_START = 5;
+  var OWN_PACE = 0.55;
+
+  function ownLanternAt(litAt, timeSec) {
+    var age = Math.max(0, timeSec - litAt);
+    var d = OWN_START + age * OWN_PACE;
+    var kindle = clamp(age / 2.5, 0, 1);
+    var away = 1 - clamp((d - LANTERN_FAR) / 12, 0, 1);
+    return {
+      x: pathX(d) + Math.sin(age * 0.5) * 0.05,
+      d: d,
+      y: 1.0 + Math.sin(age * 3.3) * 0.025,
+      alpha: kindle * kindle * (3 - 2 * kindle) * away
+    };
+  }
+
   // Where a point in the field lands on screen, in pixels from the top
   // left, with how many pixels a metre spans there.
   function screenOf(x, y, d, walked, widthPx, heightPx, proj) {
@@ -658,6 +678,8 @@
     showerLine: showerLine,
     meteorFrom: meteorFrom,
     lanternAt: lanternAt,
+    STILL_SECONDS: STILL_SECONDS,
+    ownLanternAt: ownLanternAt,
     PUFF_MAX: PUFF_MAX,
     PUFF_TOP_SPEED: PUFF_TOP_SPEED,
     windStrength: windStrength,

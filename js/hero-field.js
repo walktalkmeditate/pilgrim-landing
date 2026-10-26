@@ -172,7 +172,7 @@
     'uniform vec3 uLane;',
     'uniform vec3 uShade;',
     'uniform vec3 uRim;',
-    'uniform vec4 uLamp[3];',
+    'uniform vec4 uLamp[4];',
     'uniform vec3 uLampC;',
     'uniform float uSil;',
     'varying float vT;',
@@ -201,7 +201,7 @@
     '  float edge = smoothstep(0.2, 1.0, abs(vSide));',
     '  c = mix(c, uShade, uLane.y * (1.0 - lane) * (1.0 - 0.5 * vFog));',
     '  c = mix(c, uShade, lane * uLane.z * 0.55 * near);',
-    '  for (int i = 0; i < 3; i++) {',
+    '  for (int i = 0; i < 4; i++) {',
     '    vec4 L = uLamp[i];',
     '    if (L.w < 0.001) continue;',
     '    vec2 dl = (fc - L.xy) / L.z;',
@@ -485,7 +485,8 @@
   var lanterns = C.lanternsFor(window.PilgrimWalkers);
   var reach = C.pathReach(1);
   var key = null, light = null, keyPx = [-1e4, -1e4, 1, 0];
-  var lampData = new Float32Array(12);
+  var lampData = new Float32Array(16);
+  var ownLitAt = null, stillSince = 0;
   var meteorShower = null, meteor = null, nextMeteor = 4 + Math.random() * 6;
   var METEOR_SECONDS = 0.9;
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
@@ -727,6 +728,10 @@
   function lanternsNow(time) {
     var out = [];
     for (var i = 0; i < lanterns; i++) out.push(C.lanternAt(i, time, walk));
+    if (ownLitAt !== null) {
+      var own = C.ownLanternAt(ownLitAt, time);
+      if (own.alpha > 0.002) out.push(own);
+    }
     return out.sort(function (a, b) { return b.d - a.d; });
   }
 
@@ -840,6 +845,7 @@
       front.strength = 0;
     }
 
+    if (ownLitAt === null && time - stillSince > C.STILL_SECONDS) ownLitAt = time;
     if (meteor && time - meteor.start > METEOR_SECONDS) meteor = null;
     if (meteorShower && !meteor && time >= nextMeteor) {
       meteor = C.meteorFrom(meteorShower, Math.random(), Math.random(), W, horizonPx);
@@ -896,7 +902,13 @@
   // A finger on a phone is scrolling, not stroking; its wind comes from
   // the scroll. A pointer sends a gust at most every 40 ms, carrying the
   // whole movement since the last.
+  // Any stir before your lantern is lit starts the stillness over.
+  function stir() {
+    if (ownLitAt === null) stillSince = (performance.now() - t0) / 1000;
+  }
+
   function onPointerMove(e) {
+    stir();
     if (e.pointerType === 'touch' || !proj) return;
     var pt = localPoint(e);
     var hit = C.pointerOnField(pt.x, pt.y, W, H, proj, walk);
@@ -923,6 +935,7 @@
 
   function onScroll() {
     if (reduced) return;
+    stir();
     var y = window.scrollY - heroTop;
     walkTarget = Math.max(0, Math.min(1, y / (H || 1))) * C.WALK_METRES;
     if (!running) { scroller = null; return; }
@@ -1004,6 +1017,8 @@
   if (!reduced) {
     hero.addEventListener('pointermove', onPointerMove);
     hero.addEventListener('pointerleave', function () { mover = null; });
+    window.addEventListener('keydown', stir);
+    window.addEventListener('pointerdown', stir);
     hero.addEventListener('pointerdown', onPointerDown);
   }
 

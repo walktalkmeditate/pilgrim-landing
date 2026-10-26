@@ -158,7 +158,12 @@ const BASELINE_KB = {
   // out of a vermilion seal, inline so it costs no request (index.html),
   // the inscription's layout (css/hero-field.css); the app-icon tile's
   // rules leave the shared stylesheets with it.
-  'index.html':                                 138.48,
+  // +0.82 (139.30): the tab wears the theme — the icon and theme-color
+  // swap in the shared js/main.js (+0.33, which every page with the toggle
+  // carries, under the drift); be still and your own lantern is lit, and
+  // the link card's alt (js/hero-field-core.js +0.25, js/hero-field.js
+  // +0.14, index.html +0.10).
+  'index.html':                                 139.30,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

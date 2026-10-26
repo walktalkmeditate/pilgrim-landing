@@ -493,6 +493,32 @@ lockedWorld.seen(true); lockedWorld.frame(16); lockedWorld.frame(32);
 ok(lockedWorld.hero.children.length === 1 && lockedWorld.gl().values.uPathFade[0] === Core.pathReach(1).fadeFrom,
   'with storage refused, the field still paints, the path as first laid');
 
+console.log('\n=== your own lantern ===\n');
+
+function lanternsIn(world) { return lastFrameDraws(world).filter(function (d) { return d.indexOf('lantern') === 0; }).length; }
+const stillOne = boot();
+stillOne.seen(true);
+for (let t = 16; t < 11000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 0, 'eleven seconds of stillness: not yet');
+for (let t = 11000; t < 14000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 1, 'twelve, and a lantern is lit where the path begins');
+stillOne.sandbox.clock = 14000;
+stillOne.hero.on.pointermove({ pointerType: 'mouse', clientX: 700, clientY: 820 });
+for (let t = 14016; t < 16000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 1, 'once lit it is yours: moving again does not put it out');
+
+const restless = boot();
+restless.seen(true);
+for (let t = 16; t < 40000; t += 16) {
+  if (t % 5000 < 16) { restless.sandbox.clock = t; restless.hero.on.pointermove({ pointerType: 'mouse', clientX: 400 + (t % 300), clientY: 820 }); }
+  restless.frame(t);
+}
+ok(lanternsIn(restless) === 0, 'a restless visit, stirring every five seconds, never lights one');
+
+const stillReduced = boot({ reduced: true });
+stillReduced.seen(true);
+ok(stillReduced.pendingFrames() <= 1 && lanternsIn(stillReduced) === 0, 'with less motion, no lantern sets off');
+
 console.log('\n=== meteors on shower nights ===\n');
 
 function meteorsSeen(world, from, to) {
