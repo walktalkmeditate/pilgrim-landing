@@ -49,30 +49,26 @@ function renderMoon(container, phaseValue, options) {
 
   ctx.scale(2, 2);
 
+  // Shadow disc, then the light: the lit half closed by the terminator.
   ctx.beginPath();
   ctx.arc(half, half, half, 0, Math.PI * 2);
-  ctx.fillStyle = lit;
+  ctx.fillStyle = shadow;
   ctx.fill();
 
+  // A half-ellipse of half-width cos(2πp)·r lights (1 - cos 2πp) / 2 of the
+  // disc. One cubic reaches it with handles at 4/3, level with the poles;
+  // source-atop keeps the hair it strays past the limb off the canvas.
+  const reach = half * Math.cos(2 * Math.PI * phase) * 4 / 3;
+  ctx.globalCompositeOperation = 'source-atop';
   ctx.beginPath();
   if (phase < 0.5) {
-    const sweep = 1 - phase * 4;
     ctx.arc(half, half, half, -Math.PI / 2, Math.PI / 2, false);
-    ctx.bezierCurveTo(
-      half + half * sweep, half + half * 0.55,
-      half + half * sweep, half - half * 0.55,
-      half, half - half
-    );
+    ctx.bezierCurveTo(half + reach, size, half + reach, 0, half, 0);
   } else {
-    const sweep = (phase - 0.5) * 4 - 1;
     ctx.arc(half, half, half, Math.PI / 2, -Math.PI / 2, false);
-    ctx.bezierCurveTo(
-      half - half * sweep, half - half * 0.55,
-      half - half * sweep, half + half * 0.55,
-      half, half + half
-    );
+    ctx.bezierCurveTo(half - reach, 0, half - reach, size, half, size);
   }
-  ctx.fillStyle = shadow;
+  ctx.fillStyle = lit;
   ctx.fill();
 
   while (container.firstChild) container.removeChild(container.firstChild);

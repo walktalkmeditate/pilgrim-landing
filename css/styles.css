@@ -311,14 +311,6 @@ body.constellation .hero-quote[data-category="presence"] {
   opacity: 0.4;
 }
 
-/* --- Particles container --- */
-.particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 /* =============================================
    Philosophy
    ============================================= */
