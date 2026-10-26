@@ -1,0 +1,48 @@
+/* The field — the hero's layout around its painting. index.html only;
+   css/styles.css is shared by ten pages. The words stand in the sky and
+   the grass fills what is below them, so the hero reads top-down rather
+   than centred. That holds with or without the canvas, so nothing moves
+   when the field arrives. */
+
+.hero {
+  justify-content: flex-start;
+  padding-top: clamp(4.5rem, 15vh, 10rem);
+  overflow: hidden;
+}
+
+.hero-logo,
+.hero-title,
+.hero-tagline,
+.turning-echo,
+.hero-quotes {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-tagline { margin-bottom: 1.75rem; }
+.hero-quotes { margin-bottom: 0; }
+.scroll-hint { z-index: 1; }
+
+.hero-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.hero-field.is-ready { opacity: 1; }
+
+/* A short screen keeps only a band of field, so "begin walking" drops to
+   where the path leaves the bottom edge rather than standing in grass. */
+@media (max-height: 760px) {
+  .hero { padding-top: clamp(3.5rem, 11vh, 6rem); }
+  .hero-logo { width: 88px; height: 88px; margin-bottom: 1rem; border-radius: 16px; }
+  .scroll-hint { bottom: 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-field { transition: none; }
+}

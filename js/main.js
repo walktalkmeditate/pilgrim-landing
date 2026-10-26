@@ -297,27 +297,6 @@
     }, { passive: true });
   }
 
-  // --- Particles ---
-  function initParticles() {
-    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) return;
-
-    var container = document.querySelector('.particles');
-    if (!container) return;
-
-    for (var i = 0; i < 10; i++) {
-      var p = document.createElement('div');
-      p.className = 'particle';
-      p.style.setProperty('--particle-x', Math.random() * 100 + '%');
-      p.style.setProperty('--particle-size', (2 + Math.random() * 2) + 'px');
-      p.style.setProperty('--particle-opacity', (0.06 + Math.random() * 0.06).toFixed(2));
-      p.style.setProperty('--drift-x', (Math.random() * 40 - 20) + 'px');
-      p.style.setProperty('--float-duration', (10 + Math.random() * 8) + 's');
-      p.style.setProperty('--float-delay', (Math.random() * 10) + 's');
-      container.appendChild(p);
-    }
-  }
-
   // --- Seasons Highlight ---
   function initSeasonsHighlight() {
     if (!window.SeasonalEngine) return;
@@ -796,7 +775,6 @@
     initQuotes();
     initScrollReveal();
     initScrollTracker();
-    initParticles();
     initSeasonsHighlight();
     initParallax();
     initFootprints();

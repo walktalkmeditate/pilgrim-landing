@@ -10,6 +10,7 @@ Built with plain HTML, CSS, and JS. No build step. No dependencies.
 
 ## Features
 
+- **The field** — the hero is a living ink painting in raw WebGL: susuki grass combed by gusts, a path that begins under "begin walking", and the real moon (and the sun's warmth) roughly where they stand at your local hour. The grass parts around the cursor, a tap sends a ring of wind out, each new whisper arrives on a gust, and scrolling walks you up the path. A still painting under `prefers-reduced-motion`; the plain hero without WebGL
 - **Seasonal color engine** — colors shift based on the current season and time of day
 - **Moon phase** — computed from the synodic month cycle, rendered as canvas
 - **Time-aware quotes** — different walking wisdom for morning, afternoon, evening, and night

@@ -119,7 +119,14 @@ const BASELINE_KB = {
   // +0.21 (115.10): the skip link lands a pixel past the story's end, so
   // the story leaves, and leaving gives the page's walker and distance one
   // scroll to catch up on (js/walk-story.js +0.22).
-  'index.html':                                 115.10,
+  // +13.04 (128.14): the field — the hero's ink painting of susuki grass
+  // under the real moon (js/hero-field.js 7.94, the WebGL and its four
+  // shaders; js/hero-field-core.js 4.67, the sky, path, layout and
+  // palette, tested; css/hero-field.css 0.65). The dots it replaces leave
+  // with it (js/main.js -0.16, css/animations.css -0.22), and the moon
+  // toggle's terminator fix costs every page with a toggle +0.16
+  // (js/moon.js). Raw WebGL, no library.
+  'index.html':                                 128.14,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
