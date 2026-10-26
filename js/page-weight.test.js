@@ -53,6 +53,12 @@ const BASELINE_KB = {
   'sunpath/2027-autumn-equinox/index.html':     90.19,
   'sunpath/2027-spring-equinox/index.html':     90.18,
   'sunpath/2026-spring-equinox/index.html':     90.17,
+  // 2028's turning pages, added by scripts/sunpath/year.mjs on 2026-10-26
+  // at the weight they were built with.
+  'sunpath/2028-spring-equinox/index.html':     90.44,
+  'sunpath/2028-summer-solstice/index.html':    90.65,
+  'sunpath/2028-autumn-equinox/index.html':     90.49,
+  'sunpath/2028-winter-solstice/index.html':    90.70,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js

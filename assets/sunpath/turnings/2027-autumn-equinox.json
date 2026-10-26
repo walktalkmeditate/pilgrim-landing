@@ -3,19 +3,64 @@
   "key": "autumn-equinox",
   "kanji": "秋分",
   "name": "Autumn Equinox",
-  "instantUTC": "2027-09-23T06:02:00Z",
-  "displayDate": "23 September, 06:02 UTC",
+  "instantUTC": "2027-09-23T06:01:41Z",
+  "displayDate": "23 September, 06:01 UTC",
+  "temple": 7,
   "h1": "Autumn Equinox 2027",
-  "tagline": "the southern crossing — 23 September, 06:02 UTC",
+  "tagline": "the southern crossing — 23 September, 06:01 UTC",
   "title": "Autumn Equinox 2027 — the southern crossing",
-  "description": "On 23 September 2027 at 06:02 UTC, the sun crossed the equator again and northern days began to shorten. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.",
+  "description": "On 23 September 2027 at 06:01 UTC, the sun crossed the equator again, heading south, as northern days shortened fastest. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.",
   "ogTitle": "Autumn Equinox 2027 · Sun Path",
-  "ogDescription": "The southern crossing — when northern days begin to shorten and the harvest pilgrimages walk.",
-  "twitterDescription": "The southern crossing — northern days begin to shorten.",
+  "ogDescription": "The southern crossing — when northern days shorten fastest and the harvest pilgrimages walk.",
+  "twitterDescription": "The southern crossing — northern days shortening fastest.",
   "ariaLabel": "Where the sun stood at the autumn equinox 2027",
-  "noscriptIntro": "On <strong>23 September 2027 at 06:02 UTC</strong>, the sun crossed the equator again and northern days began to shorten.",
-  "articleDescription": "On 23 September 2027 at 06:02 UTC, the sun crossed the equator again and northern days began to shorten.",
+  "noscriptIntro": "On <strong>23 September 2027 at 06:01 UTC</strong>, the sun crossed the equator again, heading south, as northern days shortened fastest.",
+  "articleDescription": "On 23 September 2027 at 06:01 UTC, the sun crossed the equator again, heading south, as northern days shortened fastest.",
   "schemaAboutName": "September equinox",
-  "schemaAboutDescription": "The astronomical moment when the sun crosses the celestial equator southward and northern days begin to shorten.",
-  "dateModified": "2026-04-30"
+  "schemaAboutDescription": "The astronomical moment when the sun crosses the celestial equator southward, when northern days shorten fastest.",
+  "dateModified": "2026-10-26",
+  "lead": {
+    "claim": "place"
+  },
+  "claims": [
+    {
+      "id": "place",
+      "template": "The sun crossed the equator heading south over open sea, about {km} km from {place}, {country}.",
+      "values": {
+        "km": 920,
+        "place": "Pulau Salaut-besar",
+        "country": "Indonesia"
+      },
+      "unreliable": false,
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Nearest land: GeoNames (CC BY 4.0) and Natural Earth (public domain)."
+    },
+    {
+      "id": "motion",
+      "template": "The day after this equinox, the sun moved {deg}° south; the day after the June solstice, just {solDeg}°.",
+      "values": {
+        "deg": "0.39",
+        "solDeg": "0.0035"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Declination one day after each instant."
+    },
+    {
+      "id": "season",
+      "template": "From the June solstice to this equinox, {days} days and {hours} hours, the longest of the year's four seasons.",
+      "values": {
+        "days": 93,
+        "hours": 15,
+        "minutes": 50
+      },
+      "source": "Turning instants: Meeus, Astronomical Algorithms, ch. 27."
+    },
+    {
+      "id": "tropic",
+      "template": "Since Eratosthenes measured the sun at Syene, around {bc} BC, each tropic has crept {km} km toward the equator.",
+      "values": {
+        "bc": 240,
+        "km": 32
+      },
+      "source": "Obliquity of the ecliptic: Meeus 22.2, js/sunpath-math.js."
+    }
+  ]
 }

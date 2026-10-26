@@ -6,12 +6,23 @@
 //   node scripts/sunpath/build-permalinks.mjs
 //   node scripts/sunpath/build-permalinks.mjs 2027        # only this year
 //   node scripts/sunpath/build-permalinks.mjs --check     # diff vs disk; non-zero on drift
+//
+// --check (run by the pre-commit hook) also fails when a turning in the next
+// 24 months has no page, or when a lead carries a number typed outside its
+// slots. The first reads the clock on purpose: with no CI, from 20 Mar 2027,
+// when the 2029 spring equinox enters the window, every commit is told to
+// run scripts/sunpath/year.mjs 2029 until it has been.
 
 import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { renderPermalink, TURNING_KEYS } from './permalink-template.mjs';
+import { turningInstant } from './meeus.mjs';
+
+const require = createRequire(import.meta.url);
+const { hasDigitsOutsideSlots } = require('./turning-claims.js');
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
@@ -43,6 +54,49 @@ function validateYearGroup(year, group) {
   if (missing.length) {
     throw new Error(`Year ${year} missing turning data: ${missing.join(', ')}`);
   }
+}
+
+// published: a Set of "YYYY-key". Returns the turnings due within 24
+// months of `now` that have no page (R19).
+export function missingAhead(now, published) {
+  const horizon = new Date(now);
+  horizon.setUTCFullYear(horizon.getUTCFullYear() + 2);
+  const missing = [];
+  for (let year = now.getUTCFullYear(); year <= horizon.getUTCFullYear(); year++) {
+    for (const key of TURNING_KEYS) {
+      const at = turningInstant(year, key);
+      if (at >= now && at <= horizon && !published.has(`${year}-${key}`)) missing.push(`${year}-${key}`);
+    }
+  }
+  return missing;
+}
+
+// AE12: every number in a lead comes from the claim menu's slots.
+export function leadProblems(turnings) {
+  const problems = [];
+  for (const t of turnings) {
+    const head = `${t.year}-${t.key}`;
+    const claim = t.lead && (t.claims || []).find((c) => c.id === t.lead.claim);
+    if (!claim) {
+      problems.push(`${head}: the lead names claim "${t.lead && t.lead.claim}", which its menu does not have`);
+      continue;
+    }
+    const template = t.lead.text || claim.template;
+    if (hasDigitsOutsideSlots(template)) {
+      problems.push(`${head}: the lead "${template}" has a number typed outside its slots; use the claim's {slots}`);
+    }
+  }
+  return problems;
+}
+
+function publishedPages(now) {
+  const out = new Set();
+  for (let year = now.getUTCFullYear(); year <= now.getUTCFullYear() + 2; year++) {
+    for (const key of TURNING_KEYS) {
+      if (existsSync(resolve(REPO_ROOT, `sunpath/${year}-${key}/index.html`))) out.add(`${year}-${key}`);
+    }
+  }
+  return out;
 }
 
 async function buildYear(year, group, { check, onlyYear }) {
@@ -100,7 +154,22 @@ async function main() {
       for (const r of drifted) console.error('  ', r.outFile);
       process.exit(2);
     }
-    console.log('All permalink HTMLs match their generated form.');
+    const leads = leadProblems(turnings);
+    if (leads.length) {
+      console.error('Leads that do not come from their claim menu:');
+      for (const l of leads) console.error('  ', l);
+      process.exit(2);
+    }
+    const now = new Date();
+    const missing = missingAhead(now, publishedPages(now));
+    if (missing.length) {
+      console.error('Turnings within the next 24 months with no published page:');
+      for (const m of missing) console.error('  ', m);
+      const years = [...new Set(missing.map((m) => m.slice(0, 4)))];
+      console.error(`Run: ${years.map((y) => `node scripts/sunpath/year.mjs ${y}`).join(' && ')}`);
+      process.exit(2);
+    }
+    console.log('All permalink HTMLs match their generated form, every lead is from its menu, and pages reach two years ahead.');
     return;
   }
 
@@ -108,7 +177,9 @@ async function main() {
   console.log(`Wrote ${allResults.length} permalink HTML(s).`);
 }
 
-main().catch((e) => {
-  console.error(e.stack || e.message);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e.stack || e.message);
+    process.exit(1);
+  });
+}

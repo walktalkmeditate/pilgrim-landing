@@ -6,28 +6,39 @@
 //   node scripts/sunpath/year.mjs 2027 --force    # overwrite existing files
 //
 // What it does, in order:
-//   1. Compute Meeus instants for the four turnings of YEAR.
-//   2. Write assets/sunpath/turnings/YEAR-{key}.json (data files, idempotent).
+//   1. Compute the four turning instants of YEAR, to the second.
+//   2. Write assets/sunpath/turnings/YEAR-{key}.json (data files, idempotent):
+//      the copy, the temple, the claim menu and the lead.
 //   3. Write assets/sunpath/turning-events-YEAR.json (empty events skeleton).
 //   4. Write sunpath/turnings-YEAR.ics (regenerable).
 //   5. Render sunpath/YEAR-{key}/index.html via build-permalinks.mjs.
-//   6. Render assets/og-YEAR-{key}.png via build-og-sunpath.sh.
-//   7. Append YEAR to assets/sunpath/years.json.
-//   8. Append four <url> entries to sitemap.xml.
+//   6. Pin each new page's weight in js/page-weight.test.js.
+//   7. Render assets/og-YEAR-{key}.png via build-og-sunpath.sh.
+//   8. Append YEAR to assets/sunpath/years.json.
+//   9. Append four <url> entries to sitemap.xml.
 //
-// Idempotent: refuses to overwrite existing data files unless --force.
-// HTML, ICS, OG images, sitemap, years.json are always regenerated.
+// Idempotent: refuses to overwrite existing data files unless --force, and
+// --force keeps a lead the user has picked. HTML, ICS, OG images, sitemap,
+// years.json are always regenerated.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve, dirname, posix } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { turningsForYear } from './meeus.mjs';
+import { createRequire } from 'node:module';
+import { gzipSync } from 'node:zlib';
+import { turningInstant } from './meeus.mjs';
 import { TURNING_KEYS } from './permalink-template.mjs';
+
+const require = createRequire(import.meta.url);
+const core = require('../../js/turning-leaf-core.js');
+const { claimMenu } = require('./turning-claims.js');
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
+const GAZETTEER = resolve(SCRIPT_DIR, 'data/places.json');
+const PAGE_WEIGHT_TEST = resolve(REPO_ROOT, 'js/page-weight.test.js');
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -38,15 +49,15 @@ const TURNING_META = {
   'spring-equinox': {
     kanji: '春分', name: 'Spring Equinox',
     schemaName: 'March equinox',
-    schemaDesc: 'The astronomical moment when the sun crosses the celestial equator northward and day equals night across the Earth.',
-    titleSuffix: 'where day equals night, exactly',
-    tagline: 'where day equalled night',
-    longLine: 'the sun crossed the equator and day equalled night across the Earth',
-    icsBody: 'The sun crosses the equator. Day equals night across the Earth.\\n\\nFrom here, northern days grow until summer solstice.',
-    icsAlarm: 'Spring Equinox tomorrow — day will equal night',
+    schemaDesc: 'The astronomical moment when the sun crosses the celestial equator heading north.',
+    titleSuffix: 'the northern crossing',
+    tagline: 'the northern crossing',
+    longLine: 'the sun crossed the equator heading north',
+    icsBody: 'The sun crosses the equator heading north.\\n\\nFrom here, northern days grow until summer solstice.',
+    icsAlarm: 'Spring Equinox tomorrow — the sun crosses the equator heading north',
     icsCategory: 'Equinox,Astronomy',
-    ogDesc: 'The exact moment day equalled night, with monuments and pilgrimages tied to the turning.',
-    twDesc: 'The exact moment day equalled night across the Earth.'
+    ogDesc: 'The moment the sun crossed the equator heading north, with monuments and pilgrimages tied to the turning.',
+    twDesc: 'The moment the sun crossed the equator heading north.'
   },
   'summer-solstice': {
     kanji: '夏至', name: 'Summer Solstice',
@@ -64,15 +75,15 @@ const TURNING_META = {
   'autumn-equinox': {
     kanji: '秋分', name: 'Autumn Equinox',
     schemaName: 'September equinox',
-    schemaDesc: 'The astronomical moment when the sun crosses the celestial equator southward and northern days begin to shorten.',
+    schemaDesc: 'The astronomical moment when the sun crosses the celestial equator southward, when northern days shorten fastest.',
     titleSuffix: 'the southern crossing',
     tagline: 'the southern crossing',
-    longLine: 'the sun crossed the equator again and northern days began to shorten',
-    icsBody: 'The sun crosses the equator again. Day equals night.\\n\\nFrom here, northern nights grow longer until winter solstice.',
-    icsAlarm: 'Autumn Equinox tomorrow — northern days begin to shorten',
+    longLine: 'the sun crossed the equator again, heading south, as northern days shortened fastest',
+    icsBody: 'The sun crosses the equator again, heading south.\\n\\nFrom here, northern nights grow longer until winter solstice.',
+    icsAlarm: 'Autumn Equinox tomorrow — the sun crosses the equator heading south',
     icsCategory: 'Equinox,Astronomy',
-    ogDesc: 'The southern crossing — when northern days begin to shorten and the harvest pilgrimages walk.',
-    twDesc: 'The southern crossing — northern days begin to shorten.'
+    ogDesc: 'The southern crossing — when northern days shorten fastest and the harvest pilgrimages walk.',
+    twDesc: 'The southern crossing — northern days shortening fastest.'
   },
   'winter-solstice': {
     kanji: '冬至', name: 'Winter Solstice',
@@ -99,20 +110,18 @@ function utcLongDate(date, year) {
   return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${year} at ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`;
 }
 
-// Truncate to the start of the containing UTC minute. The existing 2026
-// data files use this convention (e.g. Meeus says 14:46:45 → display 14:46).
-function floorMinute(date) {
-  return new Date(Math.floor(date.getTime() / 60000) * 60000);
+// Every instant is stored, computed from and printed at the same whole
+// second; a display names the minute containing it.
+function toSecond(date) {
+  return new Date(Math.round(date.getTime() / 1000) * 1000);
 }
 
 function utcInstantString(date) {
-  const d = floorMinute(date);
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:00Z`;
+  return date.toISOString().replace('.000Z', 'Z');
 }
 
 function icsTimestamp(date) {
-  const d = floorMinute(date);
-  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  return utcInstantString(date).replace(/[-:]/g, '');
 }
 
 function todayISO() {
@@ -120,11 +129,37 @@ function todayISO() {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
-function buildTurningData(year, key, instant) {
+function instantOf(year, key) {
+  return toSecond(turningInstant(year, key));
+}
+
+// The four turnings before (year, key), oldest first: the claim menu
+// measures the season just ended against the three before it.
+function recentInstants(year, key) {
+  const out = [];
+  let y = year, i = TURNING_KEYS.indexOf(key);
+  for (let n = 0; n < 4; n++) {
+    if (--i < 0) { i = 3; y--; }
+    out.unshift(instantOf(y, TURNING_KEYS[i]));
+  }
+  return out;
+}
+
+let gazetteer = null;
+function loadGazetteer() {
+  gazetteer = gazetteer || JSON.parse(readFileSync(GAZETTEER, 'utf8'));
+  return gazetteer;
+}
+
+// existing: the data file already on disk, if any. A lead in it was picked
+// by hand and survives regeneration.
+export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(), existing = null } = {}) {
   const meta = TURNING_META[key];
+  const instant = instantOf(year, key);
   const display = utcDisplayDate(instant);
   const longDate = utcLongDate(instant, year);
   const heroH1 = `${meta.name} ${year}`;
+  const menu = claimMenu({ key, instant, recent: recentInstants(year, key), gazetteer: places });
   return {
     year,
     key,
@@ -132,6 +167,7 @@ function buildTurningData(year, key, instant) {
     name: meta.name,
     instantUTC: utcInstantString(instant),
     displayDate: display,
+    temple: core.templeNumber(year, key),
     h1: heroH1,
     tagline: `${meta.tagline} — ${display}`,
     title: `${meta.name} ${year} — ${meta.titleSuffix}`,
@@ -144,16 +180,18 @@ function buildTurningData(year, key, instant) {
     articleDescription: `On ${longDate}, ${meta.longLine}.`,
     schemaAboutName: meta.schemaName,
     schemaAboutDescription: meta.schemaDesc,
-    dateModified: todayISO()
+    dateModified: todayISO(),
+    lead: existing && existing.lead ? existing.lead : { claim: menu.lead },
+    claims: menu.claims
   };
 }
 
-function buildICS(year, instants) {
+function buildICS(year) {
   const stamp = `${year}0101T000000Z`; // stable across regenerations
 
   const events = TURNING_KEYS.map((key) => {
     const meta = TURNING_META[key];
-    const dt = instants[key];
+    const dt = instantOf(year, key);
     const start = icsTimestamp(dt);
     const endDate = new Date(dt.getTime() + 3600000); // +1h
     const end = icsTimestamp(endDate);
@@ -256,6 +294,49 @@ async function updateSitemap(year, { dry }) {
   return { path, written: true };
 }
 
+// Gzipped KB of a page and every same-origin /js/ and /css/ file it
+// references, measured exactly as js/page-weight.test.js measures it, so a
+// pinned baseline starts at zero drift.
+function pageWeightKb(pageRel) {
+  const html = readFileSync(resolve(REPO_ROOT, pageRel), 'utf8');
+  const dir = posix.dirname(pageRel);
+  let bytes = gzipSync(readFileSync(resolve(REPO_ROOT, pageRel)), { level: 9 }).length;
+  const re = /(?:src|href)="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    let ref = m[1];
+    if (/^(?:https?:)?\/\//.test(ref) || /^(?:#|mailto:|data:|tel:)/.test(ref)) continue;
+    ref = ref.replace(/[?#].*$/, '');
+    if (!/\.(?:js|css)$/.test(ref)) continue;
+    const rel = ref.charAt(0) === '/' ? ref.slice(1) : posix.normalize(posix.join(dir === '.' ? '' : dir, ref));
+    bytes += gzipSync(readFileSync(resolve(REPO_ROOT, rel)), { level: 9 }).length;
+  }
+  return bytes / 1024;
+}
+
+// js/page-weight.test.js fails on any page it does not weigh, so a new
+// year's pages get their baselines here, with the reason the file's
+// convention asks for, after the last turning page already pinned.
+async function pinPageWeights(year, { dry }) {
+  const src = await readFile(PAGE_WEIGHT_TEST, 'utf8');
+  const fresh = TURNING_KEYS.map((key) => `sunpath/${year}-${key}/index.html`)
+    .filter((page) => !src.includes(`'${page}':`));
+  if (!fresh.length) return { path: PAGE_WEIGHT_TEST, skipped: true, reason: 'pages already weighed' };
+  if (dry) return { path: PAGE_WEIGHT_TEST, dry: true, would: `pin ${fresh.length} page weights in` };
+  const lines = src.split('\n');
+  let last = -1;
+  lines.forEach((l, i) => { if (/^\s*'sunpath\/\d{4}-[a-z-]+\/index\.html':/.test(l)) last = i; });
+  if (last < 0) throw new Error(`no turning page in ${PAGE_WEIGHT_TEST}'s BASELINE_KB to add ${year}'s after`);
+  const pinned = [
+    `  // ${year}'s turning pages, added by scripts/sunpath/year.mjs on ${todayISO()}`,
+    '  // at the weight they were built with.',
+    ...fresh.map((page) => `  ${`'${page}':`.padEnd(45)}${pageWeightKb(page).toFixed(2).padStart(6)},`)
+  ];
+  lines.splice(last + 1, 0, ...pinned);
+  await writeFile(PAGE_WEIGHT_TEST, lines.join('\n'));
+  return { path: PAGE_WEIGHT_TEST, written: true };
+}
+
 function runChild(cmd, args, { dry }) {
   if (dry) return { dry: true, would: `run: ${cmd} ${args.join(' ')}` };
   const r = spawnSync(cmd, args, { cwd: REPO_ROOT, stdio: 'inherit' });
@@ -280,9 +361,8 @@ async function main() {
 
   console.log(`${dry ? '[dry] ' : ''}Bootstrapping Sun Path year ${year}${force ? ' (--force)' : ''}…\n`);
 
-  const instants = turningsForYear(year);
   for (const key of TURNING_KEYS) {
-    console.log(`  ${key.padEnd(18)} ${utcDisplayDate(instants[key])}`);
+    console.log(`  ${key.padEnd(18)} ${utcInstantString(instantOf(year, key))}`);
   }
   console.log();
 
@@ -293,11 +373,14 @@ async function main() {
     else if (r.path) console.log(`  · write  ${r.path}`);
   };
 
-  // 1. Per-turning JSON data files (idempotent: refuse overwrite without --force).
+  // 1. Per-turning JSON data files (idempotent: refuse overwrite without --force;
+  //    --force keeps a picked lead).
   console.log('Turning data files:');
   for (const key of TURNING_KEYS) {
-    const data = buildTurningData(year, key, instants[key]);
     const path = resolve(REPO_ROOT, `assets/sunpath/turnings/${year}-${key}.json`);
+    const existing = existsSync(path) ? JSON.parse(await readFile(path, 'utf8')) : null;
+    if (existing && !force) { log({ path, skipped: true }); continue; }
+    const data = buildTurningData(year, key, { existing });
     log(await writeIfFresh(path, JSON.stringify(data, null, 2) + '\n', { force, dry }));
   }
   console.log();
@@ -314,7 +397,7 @@ async function main() {
   // 3. ICS file (regenerable from instants alone).
   console.log('Calendar (.ics):');
   const icsPath = resolve(REPO_ROOT, `sunpath/turnings-${year}.ics`);
-  log(await writeAlways(icsPath, buildICS(year, instants), { dry }));
+  log(await writeAlways(icsPath, buildICS(year), { dry }));
   console.log();
 
   // 4. Permalink HTMLs (regenerable from JSON data).
@@ -322,18 +405,23 @@ async function main() {
   log(runChild('node', ['scripts/sunpath/build-permalinks.mjs', String(year)], { dry }));
   console.log();
 
-  // 5. OG images (regenerable; uses headless Chrome).
+  // 5. Baselines for pages js/page-weight.test.js has never weighed.
+  console.log('Page weights:');
+  log(await pinPageWeights(year, { dry }));
+  console.log();
+
+  // 6. OG images (regenerable; uses headless Chrome).
   console.log('OG images:');
   log(runChild('bash', ['scripts/build-og-sunpath.sh', String(year)], { dry }));
   console.log();
 
-  // 6. years.json + sitemap.xml (additive, idempotent).
+  // 7. years.json + sitemap.xml (additive, idempotent).
   console.log('Manifests:');
   log(await updateYearsManifest(year, { dry }));
   log(await updateSitemap(year, { dry }));
   console.log();
 
-  // 7. /sunpath/ archive section — pick up new year tab + panel.
+  // 8. /sunpath/ archive section — pick up new year tab + panel.
   console.log('Live archive section:');
   log(runChild('node', ['scripts/sunpath/build-live-archive.mjs'], { dry }));
   console.log();
@@ -349,7 +437,9 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e.stack || e.message);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e.stack || e.message);
+    process.exit(1);
+  });
+}

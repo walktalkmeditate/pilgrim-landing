@@ -11,9 +11,10 @@
    be wrong while its inputs are right.
 
    Turning instants come from scripts/sunpath/meeus.mjs, the source the
-   build itself uses, never from the core. Outside references are named
-   where they are used: USNO for turning times, JPL Horizons for the sun
-   and moon, Laskar's obliquity series for the Tropic.
+   build itself uses, never from the core. The sun's place is checked
+   against JPL Horizons, named where it is used. The place line and the
+   claim menu are build-only and tested in
+   scripts/sunpath/turning-claims.test.js.
    ============================================= */
 
 'use strict';
@@ -27,7 +28,6 @@ const C = require('./turning-leaf-core.js');
 
 const temples = require('../assets/sunpath/temples.json').temples;
 const skyDays = require('../assets/sunpath/sky-days.json').days;
-const gazetteer = require('../scripts/sunpath/data/places.json');
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -103,16 +103,10 @@ async function main() {
   const meeus = await import(pathToFileURL(path.join(__dirname, '..', 'scripts', 'sunpath', 'meeus.mjs')).href);
   const instant = meeus.turningInstant;
 
-  // The turning before (year, key), and the four before that, oldest first.
+  // The turning before (year, key).
   function previous(year, key) {
     const i = KEYS.indexOf(key);
     return i === 0 ? [year - 1, KEYS[3]] : [year, KEYS[i - 1]];
-  }
-  function recent(year, key) {
-    const out = [];
-    let y = year, k = key;
-    for (let i = 0; i < 4; i++) { const p = previous(y, k); y = p[0]; k = p[1]; out.unshift(instant(y, k)); }
-    return out;
   }
   function turning(year, key) {
     const n = C.templeNumber(year, key);
@@ -128,7 +122,11 @@ async function main() {
 
   console.log('\n=== it loads in node and as a browser global ===\n');
 
-  ok(typeof C.sceneSvg === 'function' && typeof C.placeLine === 'function', 'require() returns the core');
+  ok(typeof C.sceneSvg === 'function' && typeof C.dayGeometry === 'function', 'require() returns the core');
+  // The place line and the claim menu run only in the build
+  // (scripts/sunpath/turning-claims.js), so the page never downloads them.
+  ok(['placeLine', 'claimMenu', 'renderClaim', 'hasDigitsOutsideSlots'].every(function (k) { return !(k in C); }),
+    'the browser core carries no claim code');
   const src = fs.readFileSync(path.join(__dirname, 'turning-leaf-core.js'), 'utf8');
   const mathSrc = fs.readFileSync(path.join(__dirname, 'sunpath-math.js'), 'utf8');
   const win = {};
@@ -170,7 +168,7 @@ async function main() {
 
   console.log('\n=== the plate\'s day and the season (KTD7) ===\n');
 
-  // 21 Dec 2026, 20:51 UTC is 05:51 on the 22nd in Japan (UTC+9, no DST).
+  // 21 Dec 2026, 20:50 UTC is 05:50 on the 22nd in Japan (UTC+9, no DST).
   ok(w26.day === '2026-12-22', 'the 21 Dec 2026 plate is drawn for 22 Dec, the temple\'s local date');
   ok(w26.season.days.length === 90 && w26.season.days[0].date === '2026-09-23' && w26.season.days[89].date === '2026-12-21',
     'the winter 2026 season runs from the autumn equinox\'s UTC date to the solstice\'s, inclusive  (' +
@@ -202,10 +200,11 @@ async function main() {
 
   const g26 = C.dayGeometry({ place: w26.place, date: w26.day, instant: w26.instant });
   // JPL Horizons, airless apparent, topocentric 134.431E 34.151N (fetched
-  // 2026-10-26): 20:51 UT alt -14.766 az 108.558; 20:52 UT alt -14.570 az
-  // 108.681. Interpolated to 20:51:22.
-  near(g26.instant.alt, -14.69, 0.1, 'the sun at the instant is about 15° below the horizon');
-  near(g26.instant.az, 108.60, 0.1, 'at bearing ≈109°');
+  // 2026-10-26): 20:50 UT alt -14.962 az 108.435; 20:51 UT alt -14.766 az
+  // 108.558. Interpolated to the instant, about 20:50:13.
+  const u26 = (w26.instant.getTime() - Date.UTC(2026, 11, 21, 20, 50)) / 60000;
+  near(g26.instant.alt, -14.962 + (-14.766 + 14.962) * u26, 0.1, 'the sun at the instant is about 15° below the horizon');
+  near(g26.instant.az, 108.435 + (108.558 - 108.435) * u26, 0.1, 'at bearing ≈108°');
   const glows = elements(w26.scene, 'ellipse', 'glow');
   ok(glows.length === 1 && Number(glows[0].cx) < C.SCENE.cx, 'the plate draws one glow, on the east side of the staff  (cx ' + (glows[0] && glows[0].cx) + ')');
   near(Number(glows[0].cx), C.SCENE.cx + (108.6 - 180) * C.SCENE.ax, 0.6, 'the glow stands at the sun\'s true bearing on the sky\'s azimuth scale');
@@ -285,164 +284,6 @@ async function main() {
     });
   });
 
-  console.log('\n=== the place under the sun (KTD6) ===\n');
-
-  // A minute of time moves the point under the sun 0.25° of longitude, so
-  // these use the true instants to the second: when JPL Horizons puts the
-  // sun's apparent geocentric ecliptic longitude at 270° or 180° (fetched
-  // 2026-10-26). USNO's minute-rounded times agree. Meeus ch. 27 gives
-  // Terrestrial Time, 67–86 s later than these.
-  const R = Math.PI / 180;
-  const hav = function (a, b, c, d) {
-    const x = Math.sin((c - a) * R / 2) ** 2 + Math.cos(a * R) * Math.cos(c * R) * Math.sin((d - b) * R / 2) ** 2;
-    return 2 * 6371 * Math.asin(Math.sqrt(x));
-  };
-  const nearestKind = function (p, kinds) {
-    return gazetteer.places.filter(function (g) { return kinds.test(g[3]); })
-      .map(function (g) { return [g[0], hav(p.lat, p.lon, g[1], g[2])]; })
-      .sort(function (a, b) { return a[1] - b[1]; })[0];
-  };
-  const pW26 = C.placeLine(new Date('2026-12-21T20:50:15Z'), gazetteer);
-  const islW26 = nearestKind(pW26, /^(ISL|ATOL)/);
-  ok(pW26.kind === 'sea' && pW26.place === 'Temoe' && islW26[0] === 'Temoe' && Math.abs(pW26.km - islW26[1]) < 0.5,
-    '21 Dec 2026, 20:50:15 UT: over sea, named by the nearest island, Temoe  (' + pW26.place + ', ' + pW26.km + ' km)');
-  ok(pW26.km >= 145 && pW26.km <= 160, 'about 150 km from it');
-  // Nikunau's own shore (a Natural Earth ring) is a few km nearer than its
-  // gazetteer point, and is what the distance is measured to.
-  const pA26 = C.placeLine(new Date('2026-09-23T00:05:14Z'), gazetteer);
-  ok(pA26.kind === 'sea' && /Nikunau/.test(pA26.place) && pA26.km >= 145 && pA26.km <= 160,
-    'autumn 2026, 00:05:14 UT: over sea, about 150 km from Nikunau  (' + pA26.place + ', ' + pA26.km + ' km)');
-  ok(pA26.km < nearestKind(pA26, /^ATOL$/)[1], 'measured to the atoll\'s shore, nearer than its centre');
-  ok(pA26.country === 'Kiribati' && pW26.country === 'French Polynesia', 'each is named with its country');
-
-  const pW27 = C.placeLine(new Date('2027-12-22T02:42:11Z'), gazetteer);
-  const town = nearestKind(pW27, /^PPL/);
-  ok(pW27.kind === 'land' && pW27.country === 'Australia', '22 Dec 2027, 02:42:11 UT: over land, Australia');
-  ok(pW27.place === 'Boulia' && town[0] === 'Boulia' && Math.abs(pW27.km - town[1]) < 0.5 && pW27.km >= 100 && pW27.km <= 115,
-    'named by the nearest populated place, Boulia  (' + pW27.place + ', ' + pW27.km + ' km)');
-
-  // One island 60° from the equator: far outside the ±35° gazetteer band, so
-  // a nearer place could exist that the gazetteer never kept.
-  const far = { band: 35, places: [['Far Isle', 0, 60, 'ISL', 'MU']], land: [] };
-  const eq = instant(2027, 'spring-equinox');
-  const pFar = C.placeLine(eq, far);
-  ok(pFar.unreliable === true, 'a place farther than the band can vouch for is marked unreliable');
-  const menuFar = C.claimMenu({ key: 'spring-equinox', instant: eq, recent: recent(2027, 'spring-equinox'), gazetteer: far });
-  ok(menuFar.lead !== 'place' && menuFar.claims.some(function (c) { return c.id === menuFar.lead; }),
-    'and an unreliable place line never becomes the default lead  (lead: ' + menuFar.lead + ')');
-  ok(pW26.unreliable === false && C.claimMenu({ key: 'winter-solstice', instant: instant(2026, 'winter-solstice'), recent: recent(2026, 'winter-solstice'), gazetteer: gazetteer }).lead === 'place',
-    'a reliable place line is the default lead');
-
-  console.log('\n=== the claim menu, checked against outside formulas ===\n');
-
-  const menus = {};
-  [2026, 2027, 2028].forEach(function (y) {
-    KEYS.forEach(function (k) {
-      menus[y + ' ' + k] = C.claimMenu({ key: k, instant: instant(y, k), recent: recent(y, k), gazetteer: gazetteer });
-    });
-  });
-  const claim = function (y, k, id) { return menus[y + ' ' + k].claims.find(function (c) { return c.id === id; }); };
-
-  // Kepler's second law gives the sun's speed along the ecliptic; near a
-  // solstice the declination is a parabola, delta = tan(eps) (lambda' t)^2 / 2.
-  // Mean motion 0.98560028°/day, e 0.016709, perihelion longitude 283.0°
-  // (282.94° at J2000, +0.017°/yr), obliquity 23.436°.
-  const EPS = 23.436 * R;
-  function lambdaRate(lambdaDeg) {
-    const e = 0.016709, nu = (lambdaDeg - 283.0) * R;
-    return 0.98560028 * Math.pow(1 + e * Math.cos(nu), 2) / Math.pow(1 - e * e, 1.5);
-  }
-  function solsticeDayDeg(lambdaDeg) { const w = lambdaRate(lambdaDeg) * R; return Math.tan(EPS) * w * w / 2 / R; }
-  function equinoxDayDeg(lambdaDeg) { return Math.sin(EPS) * lambdaRate(lambdaDeg); }
-
-  const mJ27 = claim(2027, 'summer-solstice', 'motion');
-  near(Number(mJ27.values.deg), 0.0035, 0.0003, 'June 2027 solstice: the sun moves about 0.0035° north–south in the day after (plan figure)');
-  near(Number(mJ27.values.deg), solsticeDayDeg(90), 0.0001, 'June 2027 solstice: matches Kepler\'s parabola');
-  const mD26 = claim(2026, 'winter-solstice', 'motion');
-  near(Number(mD26.values.deg), solsticeDayDeg(270), 0.0001, 'December 2026 solstice: matches Kepler\'s parabola (faster near perihelion)');
-  near(Number(mD26.values.eqDeg), equinoxDayDeg(180), 0.01, 'and the September equinox it is set against moves about 0.39° a day');
-  const mM27 = claim(2027, 'spring-equinox', 'motion');
-  near(Number(mM27.values.deg), equinoxDayDeg(0), 0.01, 'March 2027 equinox: about 0.39° a day');
-
-  // USNO Earth's Seasons (aa.usno.navy.mil/api/seasons, fetched
-  // 2026-10-26): 21 Dec 2026 20:50 UT, 20 Mar 2027 20:25 UT, so the
-  // northern winter of 2026–27 lasts 88 d 23 h 35 min.
-  const sM27 = claim(2027, 'spring-equinox', 'season');
-  const usnoWinter = (Date.UTC(2027, 2, 20, 20, 25) - Date.UTC(2026, 11, 21, 20, 50)) / 60000;
-  const coreWinter = Number(sM27.values.days) * 1440 + Number(sM27.values.hours) * 60 + Number(sM27.values.minutes);
-  ok(sM27.values.days === 88 && sM27.values.hours === 23, 'winter 2026–27 lasted 88 days 23 hours  (' + sM27.values.days + ' d ' + sM27.values.hours + ' h)');
-  near(coreWinter, usnoWinter, 10, 'within 10 minutes of USNO\'s published instants (minutes)');
-  ok(/shortest/.test(C.renderClaim(sM27.template, sM27.values)), 'and it is named the shortest season  (' + C.renderClaim(sM27.template, sM27.values) + ')');
-  const sA27 = claim(2027, 'autumn-equinox', 'season');
-  ok(/longest/.test(C.renderClaim(sA27.template, sA27.values)), 'the northern summer, June to September, is named the longest');
-  ok(!/shortest|longest/.test(C.renderClaim(claim(2027, 'summer-solstice', 'season').template, claim(2027, 'summer-solstice', 'season').values)),
-    'spring, March to June, is neither');
-
-  // Near a solstice the sunrise azimuth at 40°N moves by dA = cos(delta) /
-  // (cos(phi) sin(A)) d(delta); one sun-width (32', 0.533°) of azimuth is
-  // that much declination, and the parabola above says how long it takes.
-  function stillDays(lambdaDeg) {
-    const phi = 40 * R, dec = (lambdaDeg === 90 ? 1 : -1) * EPS;
-    const A = Math.acos(Math.sin(dec) / Math.cos(phi));
-    const dDec = 0.533 * R * Math.cos(phi) * Math.sin(A) / Math.cos(dec);
-    const t = Math.sqrt(2 * dDec / Math.tan(EPS)) / (lambdaRate(lambdaDeg) * R);
-    return 2 * t;
-  }
-  const rD26 = claim(2026, 'winter-solstice', 'sunrise');
-  ok(rD26.values.days === 19, 'December 2026: at 40°N the sunrise stays within one sun-width for 19 days  (' + rD26.values.days + ')');
-  ok(rD26.values.days === Math.floor(stillDays(270)), 'matching the parabola  (' + stillDays(270).toFixed(2) + ' days)');
-  const rJ27 = claim(2027, 'summer-solstice', 'sunrise');
-  ok(rJ27.values.days === Math.floor(stillDays(90)), 'June 2027: ' + rJ27.values.days + ' days, matching the parabola  (' + stillDays(90).toFixed(2) + ')');
-  ok(!claim(2027, 'spring-equinox', 'sunrise'), 'an equinox has no sunrise-stillness claim');
-
-  // Laskar 1986 (Meeus 22.3), independent of js/sunpath-math.js's series.
-  function laskar(year) {
-    const U = (year - 2000) / 10000;
-    const c = [-4680.93, -1.55, 1999.25, -51.38, -249.67, -39.05, 7.12, 27.87, 5.79, 2.45];
-    let s = 84381.448, p = 1;
-    for (let i = 0; i < c.length; i++) { p *= U; s += c[i] * p; }
-    return s / 3600;
-  }
-  const tD26 = claim(2026, 'winter-solstice', 'tropic');
-  near(tD26.values.km, (laskar(-240) - laskar(2026)) * R * 6371, 1, 'the Tropic has crept about 32 km since Eratosthenes (Laskar), km');
-  ok(/Capricorn/.test(tD26.template) && /Cancer/.test(claim(2027, 'summer-solstice', 'tropic').template),
-    'December names the Tropic of Capricorn, June the Tropic of Cancer');
-
-  // JPL Horizons, airless apparent, topocentric London 51.5074N 0.1278W
-  // (fetched 2026-10-26): the moon culminates 63.035° up at 21:45 UT on
-  // 21 Dec 2026; the sun stood 61.929° up at 12:02–12:03 UT on 21 Jun 2026.
-  const moon26 = claim(2026, 'winter-solstice', 'moon');
-  ok(!!moon26, 'December 2026: the solstice-night moon over London is notable');
-  near(Number(moon26 && moon26.values.moon), 63.035, 0.15, 'its meridian height matches JPL Horizons');
-  near(Number(moon26 && moon26.values.sun), 61.929, 0.1, 'and the midsummer noon sun it beats matches too');
-  ok(!claim(2027, 'winter-solstice', 'moon'), 'December 2027: a moon that culminates at dawn, 23° up, is not notable');
-  ok(!claim(2027, 'spring-equinox', 'moon'), 'an equinox carries no moon claim');
-
-  console.log('\n=== claim templates and their slots ===\n');
-
-  let all = [];
-  Object.keys(menus).forEach(function (k) { all = all.concat(menus[k].claims); });
-  ok(all.every(function (c) { return !C.hasDigitsOutsideSlots(c.template); }), 'no computed template has a digit outside its slots  (' + all.length + ' claims)');
-  ok(all.every(function (c) { return typeof c.source === 'string' && c.source.length > 0; }), 'every claim names its source');
-  ok(all.every(function (c) { return C.renderClaim(c.template, c.values).indexOf('{') < 0; }), 'every claim renders with all its slots filled');
-  ok(C.hasDigitsOutsideSlots('about 120 km from {place}'), 'a typed number outside the slots is caught');
-  ok(C.hasDigitsOutsideSlots('about １２０ km from {place}'), 'so is one typed in full-width digits');
-  ok(!C.hasDigitsOutsideSlots('about {km} km from {place}'), 'slots alone pass');
-  ok(C.renderClaim('about {km} km from {place}.', { km: 120, place: 'Temoe' }) === 'about 120 km from Temoe.', 'renderClaim fills the slots');
-  let threw = false;
-  try { C.renderClaim('about {km} km from {place}.', { km: 120 }); } catch (e) { threw = /place/.test(e.message); }
-  ok(threw, 'renderClaim refuses a slot it has no value for');
-
-  const placeClaim = claim(2026, 'winter-solstice', 'place');
-  ok(/turned north/.test(placeClaim.template), 'December: the sun "turned north"');
-  ok(/turned south/.test(claim(2027, 'summer-solstice', 'place').template), 'June: "turned south"');
-  ok(/crossed the equator heading south/.test(claim(2026, 'autumn-equinox', 'place').template), 'September: "crossed the equator heading south"');
-  ok(/crossed the equator heading north/.test(claim(2027, 'spring-equinox', 'place').template), 'March: "crossed the equator heading north"');
-  ok(/^The sun turned north over open sea, about \d+0 km from Temoe, French Polynesia\.$/.test(C.renderClaim(placeClaim.template, placeClaim.values)),
-    'the 21 Dec 2026 place line  (' + C.renderClaim(placeClaim.template, placeClaim.values) + ')');
-  ok(claim(2026, 'winter-solstice', 'moon').values.moon === '63.0' && claim(2026, 'winter-solstice', 'motion').values.deg === '0.0039' &&
-    claim(2027, 'spring-equinox', 'motion').values.deg === '0.40', 'numbers keep their stated precision  (63.0°, 0.0039°, 0.40°)');
-
   console.log('\n=== AE10 and the scrubbed day ===\n');
 
   const autumn = turning(2026, 'autumn-equinox');
@@ -476,7 +317,9 @@ async function main() {
   const labels = texts(sLayer, 'hour');
   const top = dots.reduce(function (b, d, i) { return Number(d.cy) < Number(dots[b].cy) ? i : b; }, 0);
   ok(labels[top] && labels[top].text === '13', 'hours read in the reader\'s own clock: 13:00 is the highest  (' + (labels[top] && labels[top].text) + ')');
-  near(Number(dots[top].cx), C.SCENE.cx, 15, 'and stands over the staff, due north');
+  // Six minutes past noon, 80° up, the sun is already about 8° of azimuth
+  // west of north.
+  near(Number(dots[top].cx), C.SCENE.cx, 12 * C.SCENE.ax, 'and stands over the staff, within 12° of due north');
   ok(Number(dots[0].cx) > C.SCENE.cx && Number(dots[dots.length - 1].cx) < C.SCENE.cx,
     'the morning sun is on the right (east, facing north) and the evening sun on the left');
 
@@ -498,11 +341,27 @@ async function main() {
 
   console.log('\n=== the phone crop holds every sun of 2026–2028 ===\n');
 
+  // The user chose the wider sky at visual review: 1.9 px per degree of
+  // azimuth, altitude unchanged.
+  ok(C.SCENE.ax === 1.9 && C.SCENE.ay === 3.8, 'the sky is 1.9 px per degree of azimuth and 3.8 per degree of altitude');
+
   const crop = C.PHONE_CROP;
   const inside = function (x, y, r) {
     r = r || 0;
     return x - r >= crop.x && x + r <= crop.x + crop.w && y - r >= crop.y && y + r <= crop.y + crop.h;
   };
+  // JPL Horizons, airless apparent, topocentric at each turning's temple at
+  // its instant (fetched 2026-10-26): azimuth and altitude. Every temple
+  // stands north of the sun all year, so every plate faces south.
+  const SKY = {
+    '2026 spring-equinox': [349.65, -55.40], '2026 summer-solstice': [284.94, 20.66],
+    '2026 autumn-equinox': [121.62, 37.70], '2026 winter-solstice': [108.47, -14.91],
+    '2027 spring-equinox': [83.63, -9.29], '2027 summer-solstice': [345.69, -31.06],
+    '2027 autumn-equinox': [242.12, 34.61], '2027 winter-solstice': [174.93, 32.27],
+    '2028 spring-equinox': [157.25, 53.71], '2028 summer-solstice': [62.09, 1.05],
+    '2028 autumn-equinox': [297.20, -34.07], '2028 winter-solstice': [244.95, -4.93]
+  };
+  let pinned = 0;
   [2026, 2027, 2028].forEach(function (y) {
     KEYS.forEach(function (k) {
       const t = turning(y, k);
@@ -511,15 +370,38 @@ async function main() {
       const pts = pathEl ? pathPoints(pathEl.d) : [];
       const ends = pts.length ? [pts[0], pts[pts.length - 1]] : [];
       const onHorizon = ends.length === 2 && ends.every(function (p) { return Math.abs(p[1] - C.SCENE.hy) < 0.11; });
+      ok(pts.length > 10 && onHorizon && pts.every(function (p) { return inside(p[0], p[1]); }),
+        y + ' ' + k + ': the sun\'s path from sunrise to sunset lies inside the phone crop');
+
       const marks = elements(day, 'circle', 'sun').concat(elements(day, 'circle', 'sun-below'));
       const glow = elements(day, 'ellipse', 'glow');
-      const allIn = pts.every(function (p) { return inside(p[0], p[1]); }) &&
-        marks.every(function (c) { return inside(Number(c.cx), Number(c.cy), Number(c.r)); }) &&
-        glow.every(function (e) { return inside(Number(e.cx), Number(e.cy)); });
-      ok(pts.length > 10 && onHorizon && marks.length === 1 && allIn,
-        y + ' ' + k + ': sunrise to sunset' + (glow.length ? ' and the glow' : ' and the sun') + ' lie inside the phone crop');
+      const words = texts(day, 'tiny').map(function (l) { return l.text; }).join(' / ');
+      const sky = SKY[y + ' ' + k];
+      let off = sky[0] - 180;
+      off = off > 180 ? off - 360 : off < -180 ? off + 360 : off;
+      const trueX = C.SCENE.cx + off * C.SCENE.ax;
+      const outside = trueX < crop.x || trueX > crop.x + crop.w;
+      const markIn = marks.length === 1 && inside(Number(marks[0].cx), Number(marks[0].cy), Number(marks[0].r));
+      if (sky[1] > 0) {
+        ok(markIn && glow.length === 0 && Math.abs(Number(marks[0].cx) - trueX) < 1,
+          y + ' ' + k + ': the risen sun stands inside the crop at its true bearing  (x ' + (marks[0] && marks[0].cx) + ' vs ' + trueX.toFixed(1) + ')');
+      } else if (!outside) {
+        ok(markIn && glow.length === 1 && Math.abs(Number(glow[0].cx) - trueX) < 1 && !/behind you/.test(words),
+          y + ' ' + k + ': the glow stands inside the crop at its true bearing  (x ' + (glow[0] && glow[0].cx) + ' vs ' + trueX.toFixed(1) + ')');
+      } else {
+        pinned++;
+        const edge = trueX < crop.x ? crop.x : crop.x + crop.w;
+        const below = Math.round(-sky[1]);
+        ok(markIn && glow.length === 1 && Math.abs(Number(glow[0].cx) - edge) <= C.SCENE.sunR &&
+          Math.abs(Number(marks[0].cx) - Number(glow[0].cx)) < 0.05,
+          y + ' ' + k + ': the sun behind the viewer (true x ' + trueX.toFixed(0) + ') is pinned at the crop\'s nearer edge  (x ' +
+            (glow[0] && glow[0].cx) + ')');
+        ok(new RegExp('behind you, ' + below + '° below the horizon').test(words),
+          y + ' ' + k + ': and its label says so  (' + words + ')');
+      }
     });
   });
+  ok(pinned === 2, 'two turnings fall near midnight at the temple, 2026 spring and 2027 summer  (' + pinned + ' pinned)');
 
   console.log('\n=== the pieces are deterministic and filter-free ===\n');
 

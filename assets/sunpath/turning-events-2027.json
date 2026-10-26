@@ -5,7 +5,7 @@
       "facts": [
         { "label": "Day length at the equator", "value": "12h 06m" },
         { "label": "Chichen Itza serpent shadow", "value": "begins ~16:30 local" },
-        { "label": "Sun rises due east, sets due west", "value": "everywhere on Earth" }
+        { "label": "Sunrise at mid-latitudes", "value": "within about 2° of due east, refraction counted" }
       ],
       "monuments": ["chichen-itza", "cahokia"],
       "pilgrimages": [
@@ -111,7 +111,7 @@
           "name": "Higan-e 秋彼岸",
           "tradition": "Japanese Buddhist",
           "where": "Japan — temples and ancestral grave sites",
-          "what": "The autumn counterpart to the spring observance. Seven days centered on the equinox; families walk to ancestral graves to clean and offer, walk home together. The day equals the night — a bridge to 'the other shore'.",
+          "what": "The autumn counterpart to the spring observance. Seven days centered on the equinox; families walk to ancestral graves to clean and offer, walk home together. Day and night are held to be in balance — a bridge to 'the other shore'.",
           "source": "Reader, Religion in Contemporary Japan (1991)"
         },
         {

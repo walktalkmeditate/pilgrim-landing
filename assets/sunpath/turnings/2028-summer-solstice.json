@@ -1,0 +1,75 @@
+{
+  "year": 2028,
+  "key": "summer-solstice",
+  "kanji": "夏至",
+  "name": "Summer Solstice",
+  "instantUTC": "2028-06-20T20:01:58Z",
+  "displayDate": "20 June, 20:01 UTC",
+  "temple": 10,
+  "h1": "Summer Solstice 2028",
+  "tagline": "the longest light — 20 June, 20:01 UTC",
+  "title": "Summer Solstice 2028 — the longest light",
+  "description": "On 20 June 2028 at 20:01 UTC, the sun stood at its furthest north and the northern day reached its longest. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.",
+  "ogTitle": "Summer Solstice 2028 · Sun Path",
+  "ogDescription": "The longest day of the northern year, with sun-aligned monuments and pilgrimages from many traditions.",
+  "twitterDescription": "The longest day of the northern year.",
+  "ariaLabel": "Where the sun stood at the summer solstice 2028",
+  "noscriptIntro": "On <strong>20 June 2028 at 20:01 UTC</strong>, the sun stood at its furthest north and the northern day reached its longest.",
+  "articleDescription": "On 20 June 2028 at 20:01 UTC, the sun stood at its furthest north and the northern day reached its longest.",
+  "schemaAboutName": "June solstice",
+  "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination north, the longest day in the northern hemisphere.",
+  "dateModified": "2026-10-26",
+  "lead": {
+    "claim": "place"
+  },
+  "claims": [
+    {
+      "id": "place",
+      "template": "The sun turned south over open sea, about {km} km from {place}, {country}.",
+      "values": {
+        "km": 470,
+        "place": "Islas Alijos",
+        "country": "Mexico"
+      },
+      "unreliable": false,
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Nearest land: GeoNames (CC BY 4.0) and Natural Earth (public domain)."
+    },
+    {
+      "id": "motion",
+      "template": "The day after this solstice, the sun moved {deg}° south; the day after the March equinox, {eqDeg}°.",
+      "values": {
+        "deg": "0.0035",
+        "eqDeg": "0.40"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Declination one day after each instant."
+    },
+    {
+      "id": "season",
+      "template": "From the March equinox to this solstice, {days} days and {hours} hours.",
+      "values": {
+        "days": 92,
+        "hours": 17,
+        "minutes": 44
+      },
+      "source": "Turning instants: Meeus, Astronomical Algorithms, ch. 27."
+    },
+    {
+      "id": "sunrise",
+      "template": "At {lat}°N the sunrise stays within one sun-width of its northernmost point for {days} days around this solstice.",
+      "values": {
+        "lat": 40,
+        "days": 21
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. One sun-width is the sun's mean diameter, 0.533°."
+    },
+    {
+      "id": "tropic",
+      "template": "Since Eratosthenes measured the sun at Syene, around {bc} BC, the Tropic of Cancer has crept {km} km toward the equator.",
+      "values": {
+        "bc": 240,
+        "km": 32
+      },
+      "source": "Obliquity of the ecliptic: Meeus 22.2, js/sunpath-math.js."
+    }
+  ]
+}
