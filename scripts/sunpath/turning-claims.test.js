@@ -19,6 +19,8 @@ const { pathToFileURL } = require('url');
 const T = require('./turning-claims.js');
 
 const gazetteer = require('./data/places.json');
+const temples = require('../../assets/sunpath/temples.json').temples;
+const C = require('../../js/turning-leaf-core.js');
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -94,7 +96,8 @@ async function main() {
   const eq = instant(2027, 'spring-equinox');
   const pFar = T.placeLine(eq, far);
   ok(pFar.unreliable === true, 'a place farther than the band can vouch for is marked unreliable');
-  const menuFar = T.claimMenu({ key: 'spring-equinox', instant: eq, recent: recent(2027, 'spring-equinox'), gazetteer: far });
+  const jizoji = C.templePlace(temples.find(function (t) { return t.n === 5; }));
+  const menuFar = T.claimMenu({ key: 'spring-equinox', instant: eq, recent: recent(2027, 'spring-equinox'), gazetteer: far, temple: jizoji });
   ok(menuFar.lead !== 'place' && menuFar.claims.some(function (c) { return c.id === menuFar.lead; }),
     'and an unreliable place line never becomes the default lead  (lead: ' + menuFar.lead + ')');
   ok(pW26.unreliable === false && T.claimMenu({ key: 'winter-solstice', instant: instant(2026, 'winter-solstice'), recent: recent(2026, 'winter-solstice'), gazetteer: gazetteer }).lead === 'place',
@@ -105,7 +108,9 @@ async function main() {
   const menus = {};
   [2026, 2027, 2028].forEach(function (y) {
     KEYS.forEach(function (k) {
-      menus[y + ' ' + k] = T.claimMenu({ key: k, instant: instant(y, k), recent: recent(y, k), gazetteer: gazetteer });
+      const n = C.templeNumber(y, k);
+      const temple = C.templePlace(temples.find(function (t) { return t.n === n; }));
+      menus[y + ' ' + k] = T.claimMenu({ key: k, instant: instant(y, k), recent: recent(y, k), gazetteer: gazetteer, temple: temple });
     });
   });
   const claim = function (y, k, id) { return menus[y + ' ' + k].claims.find(function (c) { return c.id === id; }); };
@@ -205,10 +210,28 @@ async function main() {
   ok(/turned south/.test(claim(2027, 'summer-solstice', 'place').template), 'June: "turned south"');
   ok(/crossed the equator heading south/.test(claim(2026, 'autumn-equinox', 'place').template), 'September: "crossed the equator heading south"');
   ok(/crossed the equator heading north/.test(claim(2027, 'spring-equinox', 'place').template), 'March: "crossed the equator heading north"');
-  ok(/^The sun turned north over open sea, about \d+0 km from Temoe, French Polynesia\.$/.test(T.renderClaim(placeClaim.template, placeClaim.values)),
+  ok(/^The sun turned north over open sea, about \d+0\u00a0km from Temoe, French Polynesia\.$/.test(T.renderClaim(placeClaim.template, placeClaim.values)),
     'the 21 Dec 2026 place line  (' + T.renderClaim(placeClaim.template, placeClaim.values) + ')');
   ok(claim(2026, 'winter-solstice', 'moon').values.moon === '63.0' && claim(2026, 'winter-solstice', 'motion').values.deg === '0.0039' &&
     claim(2027, 'spring-equinox', 'motion').values.deg === '0.40', 'numbers keep their stated precision  (63.0°, 0.0039°, 0.40°)');
+
+  // At declination 0 the shadow tip runs the equinoctial line, due east;
+  // with declination d it bends toward the sunrise and sunset shadows,
+  // about d / cos(latitude) off east. On the plate's day d stays within
+  // half a degree of 0, so with refraction near the horizon the tip keeps
+  // within a degree of due east. A solstice tip swings tens of degrees.
+  [2026, 2027, 2028].forEach(function (y) {
+    ['spring-equinox', 'autumn-equinox'].forEach(function (k) {
+      const s = claim(y, k, 'straight');
+      ok(s && +s.values.deg > 0.1 && +s.values.deg <= 1 && /due east/.test(s.template) && !T.hasDigitsOutsideSlots(s.template),
+        y + ' ' + k + ': the shadow tip runs due east to within ' + (s && s.values.deg) + '°  (' + (s && T.renderClaim(s.template, s.values)) + ')');
+    });
+    ['summer-solstice', 'winter-solstice'].forEach(function (k) {
+      ok(!claim(y, k, 'straight'), y + ' ' + k + ': no straight-line claim at a solstice');
+    });
+  });
+  ok(/\u00a0km/.test(claim(2027, 'winter-solstice', 'place').template) && /\u00a0km/.test(claim(2026, 'winter-solstice', 'place').template),
+    'a place line keeps its number and "km" on one line');
 
   console.log('\n=== Summary ===\n');
   console.log('passed: ' + passed);

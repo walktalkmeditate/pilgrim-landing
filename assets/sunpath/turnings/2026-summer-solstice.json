@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination north, the longest day in the northern hemisphere.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "place",
+    "text": "The solstice sun turns south over the Emirates’ desert, {km} km from {place}"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun turned south over {region}, {km} km from {place}.",
+      "template": "The sun turned south over {region}, {km} km from {place}.",
       "values": {
         "km": 60,
         "place": "Muzayri‘",

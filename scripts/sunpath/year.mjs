@@ -39,6 +39,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
 const GAZETTEER = resolve(SCRIPT_DIR, 'data/places.json');
 const PAGE_WEIGHT_TEST = resolve(REPO_ROOT, 'js/page-weight.test.js');
+const TEMPLES = JSON.parse(readFileSync(resolve(REPO_ROOT, 'assets/sunpath/temples.json'), 'utf8')).temples;
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -159,7 +160,9 @@ export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(
   const display = utcDisplayDate(instant);
   const longDate = utcLongDate(instant, year);
   const heroH1 = `${meta.name} ${year}`;
-  const menu = claimMenu({ key, instant, recent: recentInstants(year, key), gazetteer: places });
+  const n = core.templeNumber(year, key);
+  const temple = core.templePlace(TEMPLES.find((t) => t.n === n));
+  const menu = claimMenu({ key, instant, recent: recentInstants(year, key), gazetteer: places, temple });
   return {
     year,
     key,
@@ -167,7 +170,7 @@ export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(
     name: meta.name,
     instantUTC: utcInstantString(instant),
     displayDate: display,
-    temple: core.templeNumber(year, key),
+    temple: n,
     h1: heroH1,
     tagline: `${meta.tagline} — ${display}`,
     title: `${meta.name} ${year} — ${meta.titleSuffix}`,

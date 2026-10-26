@@ -127,6 +127,11 @@ var LONDON = { lat: 51.5074, lon: -0.1278 };
 var SUN_WIDTH = 0.533;
 var ERATOSTHENES_YEAR = -240;
 var SOURCE_SUN = 'Sun position: NOAA solar series (Meeus), js/sunpath-math.js.';
+// A heading line breaks between "320" and "km" on a phone otherwise.
+var NBSP = '\u00a0';
+// Below this the shadow runs past thirty staff-lengths, and refraction
+// near the horizon is weather, not geometry.
+var STRAIGHT_MIN_ALT = 2;
 
 function round10(km) { return Math.round(km / 10) * 10; }
 // Strings, so a claim prints 0.40° and 63.0° rather than 0.4° and 63°.
@@ -135,6 +140,23 @@ function isSolstice(key) { return /solstice/.test(key); }
 
 function dailyMotion(instant) {
   return Math.abs(M.declination(new Date(+instant + DAY_MS)) - M.declination(instant));
+}
+
+// On the plate's day at the temple, the most the staff's shadow tip strays
+// from due east as it moves, sampled every 30 s. A real shadow follows the
+// sun as seen, so the altitude carries refraction (Bennett).
+function tipStray(instant, temple) {
+  var t0 = Date.parse(C.plateDay(instant) + 'T00:00:00Z') - temple.tzMin * MIN_MS;
+  var prev = null, most = 0;
+  for (var s = 0; s <= 2880; s++) {
+    var p = C.sunAltAz(new Date(t0 + s * 30000), temple.lat, temple.lon);
+    if (p.alt < STRAIGHT_MIN_ALT) { prev = null; continue; }
+    var seen = p.alt + 1.02 / Math.tan((p.alt + 10.3 / (p.alt + 5.11)) * DEG) / 60;
+    var L = 1 / Math.tan(seen * DEG), tip = [-Math.sin(p.az * DEG) * L, -Math.cos(p.az * DEG) * L];
+    if (prev) most = Math.max(most, Math.abs(Math.atan2(tip[0] - prev[0], tip[1] - prev[1]) / DEG - 90));
+    prev = tip;
+  }
+  return most;
 }
 
 // How long the sunrise at `lat` stays within one sun-width of its
@@ -174,7 +196,7 @@ function moonCulmination(instant) {
 }
 
 // t: { key, instant, recent: the four turning instants before this one,
-// oldest first, gazetteer }.
+// oldest first, gazetteer, temple: core.templePlace() of its temple }.
 function claimMenu(t) {
   var key = t.key, instant = t.instant, prev = t.recent[3];
   var solstice = isSolstice(key);
@@ -183,9 +205,9 @@ function claimMenu(t) {
 
   var p = placeLine(instant, t.gazetteer);
   var placeClaim = p.kind === 'sea'
-    ? { template: 'The sun ' + TURNED[key] + ' over open sea, about {km} km from {place}' + (p.country ? ', {country}.' : '.'),
+    ? { template: 'The sun ' + TURNED[key] + ' over open sea, about {km}' + NBSP + 'km from {place}' + (p.country ? ', {country}.' : '.'),
         values: { km: round10(p.km), place: p.place, country: p.country } }
-    : { template: 'The sun ' + TURNED[key] + ' over {region}, {km} km from {place}.',
+    : { template: 'The sun ' + TURNED[key] + ' over {region}, {km}' + NBSP + 'km from {place}.',
         values: { km: round10(p.km), place: p.place, region: p.region } };
   claims.push({
     id: 'place', template: placeClaim.template, values: placeClaim.values, unreliable: p.unreliable,
@@ -217,6 +239,16 @@ function claimMenu(t) {
       template: 'At {lat}°N the sunrise stays within one sun-width of its ' + (key === 'winter-solstice' ? 'southernmost' : 'northernmost') + ' point for {days} days around this solstice.',
       values: { lat: 40, days: Math.floor(stillSpan(instant, 40)) },
       source: SOURCE_SUN + ' One sun-width is the sun\'s mean diameter, ' + SUN_WIDTH + '°.'
+    });
+  }
+
+  if (!solstice) {
+    // Rounded up, so the bound stays a bound.
+    claims.push({
+      id: 'straight',
+      template: 'On this equinox, the tip of the staff\'s shadow at {temple} runs due east, never more than {deg}° off, all day.',
+      values: { temple: t.temple.name, deg: (Math.ceil(tipStray(instant, t.temple) * 10) / 10).toFixed(1) },
+      source: SOURCE_SUN + ' Shadow tip at the temple while the sun is ' + STRAIGHT_MIN_ALT + '° up or more; refraction by Bennett\'s formula.'
     });
   }
 

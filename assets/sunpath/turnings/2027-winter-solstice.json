@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination south, the longest night in the northern hemisphere.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "place",
+    "text": "The solstice sun turns north over the Australian outback, {km} km from {place}"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun turned north over {region}, {km} km from {place}.",
+      "template": "The sun turned north over {region}, {km} km from {place}.",
       "values": {
         "km": 110,
         "place": "Boulia",

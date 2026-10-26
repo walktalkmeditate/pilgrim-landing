@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun crosses the celestial equator southward, when northern days shorten fastest.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "straight",
+    "text": "On the equinox, a staff’s shadow tip runs due east, never more than {deg}° off"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun crossed the equator heading south over open sea, about {km} km from {place}, {country}.",
+      "template": "The sun crossed the equator heading south over open sea, about {km} km from {place}, {country}.",
       "values": {
         "km": 450,
         "place": "Isla Yebatelu",
@@ -52,6 +53,15 @@
         "minutes": 43
       },
       "source": "Turning instants: Meeus, Astronomical Algorithms, ch. 27."
+    },
+    {
+      "id": "straight",
+      "template": "On this equinox, the tip of the staff's shadow at {temple} runs due east, never more than {deg}° off, all day.",
+      "values": {
+        "temple": "Fujii-dera",
+        "deg": "0.6"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Shadow tip at the temple while the sun is 2° up or more; refraction by Bennett's formula."
     },
     {
       "id": "tropic",

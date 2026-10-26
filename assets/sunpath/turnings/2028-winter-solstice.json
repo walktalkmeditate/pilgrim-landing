@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination south, the longest night in the northern hemisphere.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "place",
+    "text": "The solstice sun turns north over the Indian Ocean, {km} km south of {country}"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun turned north over open sea, about {km} km from {place}, {country}.",
+      "template": "The sun turned north over open sea, about {km} km from {place}, {country}.",
       "values": {
         "km": 250,
         "place": "Petite Île",

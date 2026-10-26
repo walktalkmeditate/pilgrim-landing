@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun crosses the celestial equator heading north.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "season",
+    "text": "The shortest season ends at this equinox: northern winter, {days} days and {hours} hours"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun crossed the equator heading north over open sea, about {km} km from {place}, {country}.",
+      "template": "The sun crossed the equator heading north over open sea, about {km} km from {place}, {country}.",
       "values": {
         "km": 320,
         "place": "Ilha Imburana",
@@ -52,6 +53,15 @@
         "minutes": 42
       },
       "source": "Turning instants: Meeus, Astronomical Algorithms, ch. 27."
+    },
+    {
+      "id": "straight",
+      "template": "On this equinox, the tip of the staff's shadow at {temple} runs due east, never more than {deg}° off, all day.",
+      "values": {
+        "temple": "Ryozen-ji",
+        "deg": "0.3"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Shadow tip at the temple while the sun is 2° up or more; refraction by Bennett's formula."
     },
     {
       "id": "tropic",

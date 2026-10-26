@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination north, the longest day in the northern hemisphere.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "sunrise",
+    "text": "At {lat}°N the solstice sunrise moves less than its own width for {days} days"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun turned south over open sea, about {km} km from {place}, {country}.",
+      "template": "The sun turned south over open sea, about {km} km from {place}, {country}.",
       "values": {
         "km": 1010,
         "place": "Ilha de Santo Antão",

@@ -20,12 +20,13 @@
   "schemaAboutDescription": "The astronomical moment when the sun reaches its furthest declination north, the longest day in the northern hemisphere.",
   "dateModified": "2026-10-26",
   "lead": {
-    "claim": "place"
+    "claim": "tropic",
+    "text": "Since Eratosthenes, the Tropic of Cancer has crept {km} km toward the equator"
   },
   "claims": [
     {
       "id": "place",
-      "template": "The sun turned south over open sea, about {km} km from {place}, {country}.",
+      "template": "The sun turned south over open sea, about {km} km from {place}, {country}.",
       "values": {
         "km": 470,
         "place": "Islas Alijos",

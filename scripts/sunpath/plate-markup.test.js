@@ -49,7 +49,7 @@ function read(rel) { return fs.readFileSync(path.join(ROOT, rel), 'utf8'); }
 function unescapeHtml(s) {
   return s.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 }
-function textOf(html) { return unescapeHtml(html.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim(); }
+function textOf(html) { return unescapeHtml(html.replace(/<[^>]+>/g, '')).replace(/[ \t\r\n\f]+/g, ' ').trim(); }
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function iso(d) { return d.toISOString().replace('.000Z', 'Z'); }
 
