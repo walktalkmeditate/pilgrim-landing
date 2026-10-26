@@ -171,7 +171,13 @@ const BASELINE_KB = {
   // +0.90 (141.65): geese across the moon — the migrating seasons, the
   // skein's V aimed over the moon, tested (js/hero-field-core.js +0.36);
   // the geese drawn far off as beating wings (js/hero-field.js +0.54).
-  'index.html':                                 141.65,
+  // +6.68 (148.33): the path becomes the story's line — the route from the
+  // path's mouth down the margin to the trailhead, the brush, and how far
+  // it is drawn, tested (js/path-line-core.js +3.89); its two SVGs, one on
+  // the page and one held in the story's first scene, eased with the
+  // story's own scroll (js/path-line.js +2.52); its ink, the room below
+  // the field and the phone's gutter (css/hero-field.css +0.26).
+  'index.html':                                 148.33,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,
