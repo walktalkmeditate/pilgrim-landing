@@ -234,6 +234,28 @@ run(ff, 'fireflies', 64, 60);
 let keepsLow = true;
 for (let i = 0; i < 64; i++) { const y = ff.pos[i * 5 + 1]; if (y < 0.2 || y > 2.4) keepsLow = false; }
 ok(keepsLow, 'fireflies keep low over the grass');
+console.log('\n=== a lantern for someone walking ===\n');
+
+ok(C.lanternsFor(null) === 0, 'no word from the trail, no lanterns');
+ok(C.lanternsFor({ active: 0, recent: false }) === 0, 'nobody walking, nobody lately: an empty field');
+ok(C.lanternsFor({ active: 0, recent: true }) === 1, 'someone walked within the hour: one lantern');
+ok(C.lanternsFor({ active: 2, recent: true }) === 2, 'two walking now: two lanterns');
+ok(C.lanternsFor({ active: 40, recent: true }) === C.MAX_LANTERNS, 'forty walking: still only ' + C.MAX_LANTERNS + ' — a few lights, not a crowd');
+
+const L0 = C.lanternAt(0, 10, 0);
+const L0later = C.lanternAt(0, 20, 0);
+ok(L0.d >= C.LANTERN_NEAR && L0.d <= C.LANTERN_FAR, 'a lantern walks the far stretch of the path  (' + L0.d.toFixed(1) + ' m)');
+ok(Math.abs(L0.x - C.pathX(L0.d)) < 0.35, 'on the path itself');
+const L0walked = C.lanternAt(0, 10, 3);
+ok(Math.abs(L0walked.x - C.pathX(L0walked.d)) < 0.35, 'still on it after you have walked — the path stays where it lies');
+ok(L0later.d > L0.d, 'walking away from you, slowly  (' + (L0later.d - L0.d).toFixed(2) + ' m in 10 s)');
+ok(L0.y > 0.9 && L0.y < 1.4, 'held at a lantern\'s height');
+const apart = Math.abs(C.lanternAt(1, 10, 0).d - C.lanternAt(0, 10, 0).d);
+ok(apart > 4, 'two lanterns keep their distance  (' + apart.toFixed(1) + ' m)');
+ok(C.lanternAt(0, 10, 3).d === C.lanternAt(0, 10, 0).d + 3, 'and walking up the path brings you no closer to them');
+let faded = 1;
+for (let t = 0; t < 400; t += 0.5) faded = Math.min(faded, C.lanternAt(0, t, 0).alpha);
+ok(faded < 0.05, 'at each end of its stretch a lantern fades, rather than blinking out');
 
 console.log('\n=== the camera ===\n');
 

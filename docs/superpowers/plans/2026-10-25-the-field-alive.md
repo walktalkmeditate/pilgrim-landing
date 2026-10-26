@@ -41,7 +41,7 @@ Otherwise there are none. They are faint warm lights, readable at night and a sm
 appears without the signal, and nothing identifying is shown.
 **Tests:** core: lantern count from the stats (0, 1 for recent, capped at 3 for active) and positions on
 the path curve. Wiring: the trail's stats reach the field.
-**Status:** In Progress
+**Status:** Complete
 
 ## Stage 4: Your path wears in
 **Goal:** each day you visit, the path reaches a little farther toward the horizon and its verge is
@@ -51,7 +51,7 @@ screens under 640 px.
 One count per local day, and nothing leaves the device.
 **Tests:** core: path reach from days (monotonic, capped, first visit unchanged); one count per local
 day. Wiring: the count persists and survives storage being unavailable.
-**Status:** Not Started
+**Status:** In Progress
 
 ## Stage 5: Meteors on shower nights
 **Goal:** on the real peak nights of the year's major showers, while it is night at the visitor's

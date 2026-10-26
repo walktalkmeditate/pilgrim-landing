@@ -238,9 +238,12 @@
     '    vec2 r = vec2(cos(vRot) * vQ.x - sin(vRot) * vQ.y, sin(vRot) * vQ.x + cos(vRot) * vQ.y);',
     '    r.y *= 1.9;',
     '    a = 1.0 - smoothstep(0.5, 1.0, length(r));',
-    '  } else {',
+    '  } else if (uKind < 2.5) {',
     '    float l = dot(vQ, vQ);',
     '    a = (exp(-l * 10.0) + exp(-l * 2.0) * 0.4) * vGlow;',
+    '  } else {',
+    '    float l = dot(vQ, vQ);',
+    '    a = (exp(-l * 16.0) + exp(-l * 2.4) * 0.5) * vGlow;',
     '  }',
     '  a *= 1.0 - smoothstep(uFadeFrom, 1.0, 1.0 - gl_FragCoord.y / uRes.y);',
     '  vec3 c = mix(uColor, uMist, vFog * 0.7);',
@@ -381,6 +384,9 @@
     buffers.drift = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
     gl.bufferData(gl.ARRAY_BUFFER, MAX_DRIFT * 5 * 4, gl.DYNAMIC_DRAW);
+    buffers.lantern = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.lantern);
+    gl.bufferData(gl.ARRAY_BUFFER, 5 * 4, gl.DYNAMIC_DRAW);
     drifting = null;
     attribs.q = gl.getAttribLocation(drift.p, 'aQ');
     attribs.p = gl.getAttribLocation(drift.p, 'aP');
@@ -399,7 +405,8 @@
 
   var W = 0, H = 0, dpr = 1, proj = null, horizonFrac = 0.62, horizonPx = 0, contentBottom = 0;
   var heroTop = 0;
-  var bladeCount = 0, layoutKey = '';
+  var bladeCount = 0, layoutKey = '', bladeDepth = new Float32Array(0);
+  var lanterns = C.lanternsFor(window.PilgrimWalkers);
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
   var season = 'autumn', night = false, particles = { kind: null, count: 0 };
   var DRIFT_KINDS = { snow: 0, petals: 1, fireflies: 2 };
@@ -473,6 +480,8 @@
       gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
       bladeCount = count;
       layoutKey = key;
+      bladeDepth = new Float32Array(count);
+      for (var i = 0; i < count; i++) bladeDepth[i] = data[i * C.FLOATS_PER_BLADE + 1];
     }
     placeBodies();
     return true;
@@ -552,6 +561,23 @@
     gl.uniform4fv(bu.uBg, bg);
     gl.uniform1f(bu.uFadeFrom, FADE_FROM);
 
+    // The grass paints far to near, so a lantern is drawn between the
+    // blades beyond it and the blades before it: seen through the plumes.
+    var from = 0;
+    lanternsNow(time).forEach(function (l) {
+      var cut = bladesBeyond(l.d);
+      drawBlades(from, cut);
+      from = cut;
+      drawLantern(l, rw, rh);
+    });
+    drawBlades(from, bladeCount);
+
+    if (particles.count) drawDrift(time, rw, rh);
+  }
+
+  function drawBlades(from, to) {
+    if (to <= from) return;
+    gl.useProgram(blade.p);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.template);
     gl.enableVertexAttribArray(attribs.v);
     gl.vertexAttribPointer(attribs.v, 2, gl.FLOAT, false, 0, 0);
@@ -560,23 +586,84 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.blades);
     var stride = C.FLOATS_PER_BLADE * 4;
     gl.enableVertexAttribArray(attribs.a);
-    gl.vertexAttribPointer(attribs.a, 4, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribPointer(attribs.a, 4, gl.FLOAT, false, stride, from * stride);
     setDivisor(attribs.a, 1);
     gl.enableVertexAttribArray(attribs.b);
-    gl.vertexAttribPointer(attribs.b, 4, gl.FLOAT, false, stride, 16);
+    gl.vertexAttribPointer(attribs.b, 4, gl.FLOAT, false, stride, from * stride + 16);
     setDivisor(attribs.b, 1);
 
     var verts = LEVELS.length * 2;
-    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, verts, bladeCount);
-    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, verts, bladeCount);
+    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, verts, to - from);
+    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, verts, to - from);
 
     setDivisor(attribs.a, 0);
     setDivisor(attribs.b, 0);
     gl.disableVertexAttribArray(attribs.a);
     gl.disableVertexAttribArray(attribs.b);
     gl.disableVertexAttribArray(attribs.v);
+  }
 
-    if (particles.count) drawDrift(time, rw, rh);
+  function lanternsNow(time) {
+    var out = [];
+    for (var i = 0; i < lanterns; i++) out.push(C.lanternAt(i, time, walk));
+    return out.sort(function (a, b) { return b.d - a.d; });
+  }
+
+  // Blades are laid far to near; the first one nearer than `depth` ends
+  // the stretch behind it.
+  function bladesBeyond(depth) {
+    var lo = 0, hi = bladeCount;
+    while (lo < hi) {
+      var mid = (lo + hi) >> 1;
+      if (bladeDepth[mid] >= depth) lo = mid + 1; else hi = mid;
+    }
+    return lo;
+  }
+
+  function useDrift(kind, color, additive, rw, rh) {
+    gl.useProgram(drift.p);
+    var du = drift.u;
+    gl.uniform2f(du.uRes, rw, rh);
+    gl.uniform3f(du.uProj, proj.tanHalfX, proj.tanHalfY, proj.shift);
+    gl.uniform1f(du.uEye, C.EYE);
+    gl.uniform1f(du.uWalk, walk);
+    gl.uniform1f(du.uKind, kind);
+    gl.uniform1f(du.uDpr, dpr);
+    gl.uniform1f(du.uAdditive, additive ? 1 : 0);
+    gl.uniform3fv(du.uColor, color);
+    gl.uniform3fv(du.uMist, colors.mist);
+    gl.uniform1f(du.uFadeFrom, FADE_FROM);
+  }
+
+  function drawPoints(buffer, n) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.quad);
+    gl.enableVertexAttribArray(attribs.q);
+    gl.vertexAttribPointer(attribs.q, 2, gl.FLOAT, false, 0, 0);
+    setDivisor(attribs.q, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(attribs.p);
+    gl.vertexAttribPointer(attribs.p, 4, gl.FLOAT, false, 20, 0);
+    setDivisor(attribs.p, 1);
+    gl.enableVertexAttribArray(attribs.e);
+    gl.vertexAttribPointer(attribs.e, 1, gl.FLOAT, false, 20, 16);
+    setDivisor(attribs.e, 1);
+    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
+    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, n);
+    setDivisor(attribs.p, 0);
+    setDivisor(attribs.e, 0);
+    gl.disableVertexAttribArray(attribs.q);
+    gl.disableVertexAttribArray(attribs.p);
+    gl.disableVertexAttribArray(attribs.e);
+  }
+
+  var lanternData = new Float32Array(5);
+
+  function drawLantern(l, rw, rh) {
+    lanternData[0] = l.x; lanternData[1] = l.y; lanternData[2] = l.d; lanternData[3] = 0.16; lanternData[4] = l.alpha;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.lantern);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, lanternData);
+    useDrift(3, colors.drift.lantern, night, rw, rh);
+    drawPoints(buffers.lantern, 1);
   }
 
   // The drift is laid out afresh when the season, the hour's particles or
@@ -595,38 +682,8 @@
     ensureDrift();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, drifting.st.pos.subarray(0, drifting.n * 5));
-    var additive = particles.kind === 'fireflies' && night;
-    gl.useProgram(drift.p);
-    var du = drift.u;
-    gl.uniform2f(du.uRes, rw, rh);
-    gl.uniform3f(du.uProj, proj.tanHalfX, proj.tanHalfY, proj.shift);
-    gl.uniform1f(du.uEye, C.EYE);
-    gl.uniform1f(du.uWalk, walk);
-    gl.uniform1f(du.uKind, DRIFT_KINDS[particles.kind]);
-    gl.uniform1f(du.uDpr, dpr);
-    gl.uniform1f(du.uAdditive, additive ? 1 : 0);
-    gl.uniform3fv(du.uColor, colors.drift[particles.kind]);
-    gl.uniform3fv(du.uMist, colors.mist);
-    gl.uniform1f(du.uFadeFrom, FADE_FROM);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.quad);
-    gl.enableVertexAttribArray(attribs.q);
-    gl.vertexAttribPointer(attribs.q, 2, gl.FLOAT, false, 0, 0);
-    setDivisor(attribs.q, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
-    gl.enableVertexAttribArray(attribs.p);
-    gl.vertexAttribPointer(attribs.p, 4, gl.FLOAT, false, 20, 0);
-    setDivisor(attribs.p, 1);
-    gl.enableVertexAttribArray(attribs.e);
-    gl.vertexAttribPointer(attribs.e, 1, gl.FLOAT, false, 20, 16);
-    setDivisor(attribs.e, 1);
-    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, drifting.n);
-    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, drifting.n);
-    setDivisor(attribs.p, 0);
-    setDivisor(attribs.e, 0);
-    gl.disableVertexAttribArray(attribs.q);
-    gl.disableVertexAttribArray(attribs.p);
-    gl.disableVertexAttribArray(attribs.e);
+    useDrift(DRIFT_KINDS[particles.kind], colors.drift[particles.kind], particles.kind === 'fireflies' && night, rw, rh);
+    drawPoints(buffers.drift, drifting.n);
   }
 
   function mixRgb(a, b, t) {
@@ -818,6 +875,11 @@
   }
 
   setInterval(function () { readSky(); paintStill(); }, 60000);
+
+  window.addEventListener('pilgrim:walkers', function (e) {
+    lanterns = C.lanternsFor(e.detail);
+    paintStill();
+  });
 
   canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); stop(); });
   canvas.addEventListener('webglcontextrestored', function () {

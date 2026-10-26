@@ -138,7 +138,11 @@ const BASELINE_KB = {
   // and firefly keeps a velocity a gust accelerates and that settles back
   // to the wind from wherever it was left (js/hero-field-core.js +1.28);
   // the shader now only draws them where they are (js/hero-field.js -0.17).
-  'index.html':                                 132.29,
+  // +1.03 (133.32): a lantern for each person walking now, from the stats
+  // the trail already fetches (index.html +0.09), drawn between the grass
+  // beyond it and the grass before it (js/hero-field.js +0.56), with its
+  // count and walk tested (js/hero-field-core.js +0.37).
+  'index.html':                                 133.32,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

@@ -101,7 +101,8 @@ function fakeGl(opts) {
   gl.drawArrays = function () { gl.draws.push('sky'); };
   gl.drawArraysInstanced = function (_mode, _first, _count, instances) {
     const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aP;') !== -1;
-    gl.draws.push((isDrift ? 'drift:' : 'blades:') + instances);
+    const isLantern = isDrift && gl.values.uKind && gl.values.uKind[0] === 3;
+    gl.draws.push((isLantern ? 'lantern:' : isDrift ? 'drift:' : 'blades:') + instances);
   };
   gl.getExtension = function () { return null; };
   return gl;
@@ -168,6 +169,7 @@ function boot(opts) {
 
   const sandbox = {
     HeroFieldCore: Core,
+    PilgrimWalkers: opts.walkers,
     Moon: Moon,
     SeasonalEngine: { getCurrentSeason: function () { return opts.season || 'autumn'; } },
     devicePixelRatio: 2,
@@ -405,6 +407,36 @@ const still = boot({ season: 'winter', at: '2027-01-20T13:00:00', reduced: true 
 still.frame(16);
 still.seen(true);
 ok(driftDraws(still).length === 1 && still.pendingFrames() === 0, 'with less motion the snow hangs in the still painting, and nothing moves');
+
+console.log('\n=== a lantern for someone walking ===\n');
+
+function lastFrameDraws(world) {
+  const draws = world.gl().draws;
+  const start = draws.lastIndexOf('sky');
+  return draws.slice(start + 1);
+}
+const lonely = boot();
+lonely.seen(true); lonely.frame(16); lonely.frame(32);
+ok(lastFrameDraws(lonely).filter(function (d) { return d.indexOf('lantern') === 0; }).length === 0,
+  'no word from the trail: no lanterns, and the grass in one draw');
+
+const lit = boot();
+lit.seen(true); lit.frame(16);
+lit.winOn['pilgrim:walkers'].forEach(function (fn) { fn({ detail: { active: 2, recent: true } }); });
+lit.frame(32);
+const lf = lastFrameDraws(lit);
+const lanternDraws = lf.filter(function (d) { return d.indexOf('lantern') === 0; });
+const segments = lf.filter(function (d) { return d.indexOf('blades') === 0; }).map(function (d) { return +d.split(':')[1]; });
+ok(lanternDraws.length === 2, 'two walking now, the trail says: two lanterns in the field');
+ok(segments.reduce(function (a, b) { return a + b; }, 0) === Core.bladeBudget(1440, 900, { cores: 8 }),
+  'the grass is drawn around them, every blade once  (' + segments.join(' + ') + ')');
+ok(lf[0].indexOf('blades') === 0 && lf.indexOf(lanternDraws[0]) > 0 && lf.lastIndexOf('lantern:1') < lf.length - 1,
+  'each lantern sits between the grass beyond it and the grass before it');
+
+const early = boot({ walkers: { active: 0, recent: true } });
+early.seen(true); early.frame(16); early.frame(32);
+ok(lastFrameDraws(early).filter(function (d) { return d.indexOf('lantern') === 0; }).length === 1,
+  'if the trail spoke first, the field lights its lantern from the start');
 
 console.log('\n=== a visitor who asked for less motion ===\n');
 

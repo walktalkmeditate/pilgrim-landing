@@ -327,6 +327,32 @@
     }
   }
 
+  // A lantern for each person the trail's counter says is walking now, a
+  // few at most; one if someone walked within the hour. Each walks the far
+  // stretch of the path, away from you, and fades at either end of it.
+  var MAX_LANTERNS = 3;
+  var LANTERN_NEAR = 20;
+  var LANTERN_FAR = 52;
+
+  function lanternsFor(walkers) {
+    if (!walkers) return 0;
+    if (walkers.active > 0) return Math.min(MAX_LANTERNS, walkers.active);
+    return walkers.recent ? 1 : 0;
+  }
+
+  function lanternAt(i, timeSec, walked) {
+    var span = LANTERN_FAR - LANTERN_NEAR;
+    var along = ((i * 11.3 + timeSec * 0.32) % span + span) % span;
+    var d = LANTERN_NEAR + along + (walked || 0);
+    var ends = Math.min(along, span - along) / 4;
+    return {
+      x: pathX(d) + Math.sin(timeSec * 0.4 + i * 2.1) * 0.12,
+      d: d,
+      y: 1.12 + Math.sin(timeSec * 3.1 + i) * 0.025,
+      alpha: clamp(ends, 0, 1)
+    };
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -444,7 +470,7 @@
         ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, ink, 0.2) : mix(paper, [0, 0, 0], 0.3),
         path: mix(paper, ink, 0.025),
         moonLit: mix(ink, [1, 1, 1], 0.2),
-        drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42] }
+        drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42], lantern: [1, 0.78, 0.44] }
       };
     }
     return {
@@ -455,7 +481,7 @@
       ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, [1, 1, 1], 0.45) : mix(paper, ink, 0.2),
       path: mix(paper, [1, 1, 1], 0.12),
       moonLit: mix(paper, [1, 1, 1], 0.82),
-      drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16] }
+      drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16], lantern: [0.78, 0.5, 0.18] }
     };
   }
 
@@ -481,6 +507,11 @@
     pointerOnField: pointerOnField,
     driftInit: driftInit,
     driftStep: driftStep,
+    MAX_LANTERNS: MAX_LANTERNS,
+    LANTERN_NEAR: LANTERN_NEAR,
+    LANTERN_FAR: LANTERN_FAR,
+    lanternsFor: lanternsFor,
+    lanternAt: lanternAt,
     PUFF_MAX: PUFF_MAX,
     PUFF_TOP_SPEED: PUFF_TOP_SPEED,
     windStrength: windStrength,
