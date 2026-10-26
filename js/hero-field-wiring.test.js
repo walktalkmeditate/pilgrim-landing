@@ -140,6 +140,7 @@ function boot(opts) {
   const hero = {
     clientWidth: 1440, clientHeight: 900, firstChild: { name: 'logo' }, children: [], on: {},
     querySelector: function (sel) { return sel === '.hero-quotes' ? quotes : null; },
+    getAttribute: function () { return null; },
     insertBefore: function (child) { this.children.push(child); },
     addEventListener: function (t, fn) { this.on[t] = fn; },
     getBoundingClientRect: function () { return { top: -sandbox.scrollY }; }

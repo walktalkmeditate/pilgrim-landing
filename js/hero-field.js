@@ -19,6 +19,8 @@
   if (!C || !hero || !window.Moon) return;
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // scripts/render-og-home.html paints the moon larger for a link card.
+  var moonScale = parseFloat(hero.getAttribute('data-moon-scale')) || 1;
   var finePointer = window.matchMedia('(pointer: fine)').matches;
 
   var canvas = document.createElement('canvas');
@@ -347,7 +349,7 @@
 
   function placeBodies() {
     if (!bodies || !W) return;
-    var r = Math.max(16, Math.min(40, Math.min(W, H) * 0.036));
+    var r = Math.max(16, Math.min(40, Math.min(W, H) * 0.036)) * moonScale;
     var arc = Math.max(r * 1.5, horizonPx - contentBottom - r - 14);
     var m = bodies.moon;
     moonPx = [m.x01 * W, horizonPx - m.alt * arc, r, m.phase];
