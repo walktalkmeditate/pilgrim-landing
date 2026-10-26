@@ -60,18 +60,24 @@ const BASELINE_KB = {
   // fullSeasonPageKb, so a strip filling in day by day never trips the
   // drift before its turning. Until then a page reads up to ~1 KB lighter;
   // that is room its photos will use, not slack to take back.
-  'sunpath/2026-spring-equinox/index.html':    123.61,
-  'sunpath/2026-summer-solstice/index.html':   127.88,
-  'sunpath/2026-autumn-equinox/index.html':    127.59,
-  'sunpath/2026-winter-solstice/index.html':   124.85,
-  'sunpath/2027-spring-equinox/index.html':    124.87,
-  'sunpath/2027-summer-solstice/index.html':   128.04,
-  'sunpath/2027-autumn-equinox/index.html':    127.46,
-  'sunpath/2027-winter-solstice/index.html':   125.21,
-  'sunpath/2028-spring-equinox/index.html':    125.01,
-  'sunpath/2028-summer-solstice/index.html':   128.06,
-  'sunpath/2028-autumn-equinox/index.html':    127.27,
-  'sunpath/2028-winter-solstice/index.html':   125.10,
+  // +0.37 each (to 123.98–128.43): the globe below the plate waits until
+  // the reader nears it (KTD11). Its nine scripts are named on its section
+  // rather than loaded with the page, and still weigh here (lazyFiles).
+  // The player's loader (js/turning-leaf.js +0.41) and the globe's late
+  // start, turned to the place under the sun (js/sunpath.js +0.04), less
+  // the document's script tags and inline instant (-0.08).
+  'sunpath/2026-spring-equinox/index.html':    123.98,
+  'sunpath/2026-summer-solstice/index.html':   128.25,
+  'sunpath/2026-autumn-equinox/index.html':    127.96,
+  'sunpath/2026-winter-solstice/index.html':   125.22,
+  'sunpath/2027-spring-equinox/index.html':    125.24,
+  'sunpath/2027-summer-solstice/index.html':   128.41,
+  'sunpath/2027-autumn-equinox/index.html':    127.83,
+  'sunpath/2027-winter-solstice/index.html':   125.59,
+  'sunpath/2028-spring-equinox/index.html':    125.39,
+  'sunpath/2028-summer-solstice/index.html':   128.43,
+  'sunpath/2028-autumn-equinox/index.html':    127.64,
+  'sunpath/2028-winter-solstice/index.html':   125.48,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
@@ -260,10 +266,24 @@ function referencedFiles(html, pageRel) {
   return out;
 }
 
+// Scripts a page names in data-lazy-scripts and injects later (KTD11).
+// They never appear as a src, so without this they would weigh nothing.
+function lazyFiles(html) {
+  const out = [];
+  const re = /\sdata-lazy-scripts="([^"]*)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    m[1].trim().split(/\s+/).filter(Boolean).forEach(function (src) {
+      out.push(src.replace(/[?#].*$/, '').replace(/^\//, ''));
+    });
+  }
+  return out;
+}
+
 function weigh(pageRel) {
   const abs = path.join(ROOT, pageRel);
   const html = fs.readFileSync(abs, 'utf8');
-  const refs = referencedFiles(html, pageRel);
+  const refs = referencedFiles(html, pageRel).concat(lazyFiles(html));
   const parts = [{ file: pageRel, bytes: zlib.gzipSync(fs.readFileSync(abs), { level: 9 }).length }];
   const missing = [];
   refs.forEach(function (rel) {
@@ -332,6 +352,19 @@ const plain = zlib.gzipSync(probe, { level: 9 }).length;
 const grown = zlib.gzipSync(Buffer.concat([probe, require('crypto').randomBytes(4096)]), { level: 9 }).length;
 ok(grown - plain > 3500,
   'adding 4096 incompressible bytes moves the measurement by ' + (grown - plain) + ' B');
+
+// A script a page injects later is a script its reader still downloads.
+// The turning pages hold their globe back this way (KTD11), so at least
+// one page must declare lazy assets, or this check proves nothing.
+const lazyPages = rows
+  .map(function (r) { return { row: r, lazy: lazyFiles(fs.readFileSync(path.join(ROOT, r.page), 'utf8')) }; })
+  .filter(function (p) { return p.lazy.length; });
+ok(lazyPages.length > 0, lazyPages.length + ' pages declare scripts they load later');
+lazyPages.forEach(function (p) {
+  const weighed = p.row.parts.map(function (part) { return part.file; });
+  ok(p.lazy.every(function (f) { return weighed.indexOf(f) !== -1; }),
+    p.row.page + ': its ' + p.lazy.length + ' lazily loaded scripts are weighed with it');
+});
 
 // Every page in the baseline must still exist, and every page on disk must
 // be in the baseline. A page that drops out of this map stops being weighed

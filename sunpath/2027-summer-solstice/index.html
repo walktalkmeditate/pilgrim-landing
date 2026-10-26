@@ -84,13 +84,6 @@
     ]
   }
   </script>
-
-  <script>
-    window.__sunpathForce = {
-      turning: 'summer-solstice',
-      date: '2027-06-21T14:10:48Z'
-    };
-  </script>
 </head>
 <body class="sunpath-body">
 
@@ -127,7 +120,7 @@
 
       <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-      <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood at the summer solstice 2027">
+      <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood at the summer solstice 2027" data-lazy-scripts="/js/sunpath-globe-math.js /js/sunpath-capability.js /js/vendor/d3-array.min.js /js/vendor/d3-geo.min.js /js/vendor/topojson-client.min.js /js/sunpath-globe-svg.js /js/sunpath.js /js/sunpath-turnings.js /js/sunpath-temporal.js">
         <h2 class="sunpath-title">Summer Solstice 2027</h2>
         <p class="sunpath-tagline">the longest light — 21 June, 14:10 UTC</p>
 
@@ -225,24 +218,14 @@
     </div>
   </footer>
 
-  <!-- sunpath-math.js stays parser-blocking while the globe below loads
-       eagerly: js/sunpath.js reads SunPathMath as it runs. The plate's
-       core and player are deferred and run after it either way. -->
+  <!-- The globe's scripts are named on its section and added by the
+       player as the reader nears it. -->
   <script src="/js/moon.js"></script>
   <script src="/js/turnings.js"></script>
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
-  <script src="/js/sunpath-math.js"></script>
+  <script defer src="/js/sunpath-math.js"></script>
   <script defer src="/js/turning-leaf-core.js"></script>
   <script defer src="/js/turning-leaf.js"></script>
-  <script src="/js/sunpath-globe-math.js"></script>
-  <script src="/js/sunpath-capability.js"></script>
-  <script src="/js/vendor/d3-array.min.js"></script>
-  <script src="/js/vendor/d3-geo.min.js"></script>
-  <script src="/js/vendor/topojson-client.min.js"></script>
-  <script src="/js/sunpath-globe-svg.js"></script>
-  <script src="/js/sunpath.js"></script>
-  <script src="/js/sunpath-turnings.js"></script>
-  <script src="/js/sunpath-temporal.js"></script>
 </body>
 </html>

@@ -27,6 +27,22 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+// KTD11: the globe's scripts, in load order. The page names them on the
+// globe's section instead of loading them, and js/turning-leaf.js adds
+// them as the reader nears it, so the plate paints first.
+// js/page-weight.test.js still weighs them with the page.
+const GLOBE_SCRIPTS = [
+  '/js/sunpath-globe-math.js',
+  '/js/sunpath-capability.js',
+  '/js/vendor/d3-array.min.js',
+  '/js/vendor/d3-geo.min.js',
+  '/js/vendor/topojson-client.min.js',
+  '/js/sunpath-globe-svg.js',
+  '/js/sunpath.js',
+  '/js/sunpath-turnings.js',
+  '/js/sunpath-temporal.js'
+];
+
 export { TURNING_KEYS };
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -250,13 +266,6 @@ export function renderPermalink(data, archive, { fullSeason = false } = {}) {
     ]
   }
   </script>
-
-  <script>
-    window.__sunpathForce = {
-      turning: '${data.key}',
-      date: '${data.instantUTC}'
-    };
-  </script>
 </head>
 <body class="sunpath-body">
 
@@ -275,7 +284,7 @@ ${plateMarkup(data, lead, { fullSeason })}
 
       <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-      <section class="sunpath-section sunpath-section--hero" aria-label="${htmlAttr(data.ariaLabel)}">
+      <section class="sunpath-section sunpath-section--hero" aria-label="${htmlAttr(data.ariaLabel)}" data-lazy-scripts="${GLOBE_SCRIPTS.join(' ')}">
         <h2 class="sunpath-title">${htmlText(data.h1)}</h2>
         <p class="sunpath-tagline">${htmlText(data.tagline)}</p>
 
@@ -336,25 +345,15 @@ ${archiveItems}
     </div>
   </footer>
 
-  <!-- sunpath-math.js stays parser-blocking while the globe below loads
-       eagerly: js/sunpath.js reads SunPathMath as it runs. The plate's
-       core and player are deferred and run after it either way. -->
+  <!-- The globe's scripts are named on its section and added by the
+       player as the reader nears it. -->
   <script src="/js/moon.js"></script>
   <script src="/js/turnings.js"></script>
   <script src="/js/universe.js"></script>
   <script src="/js/main.js"></script>
-  <script src="/js/sunpath-math.js"></script>
+  <script defer src="/js/sunpath-math.js"></script>
   <script defer src="/js/turning-leaf-core.js"></script>
   <script defer src="/js/turning-leaf.js"></script>
-  <script src="/js/sunpath-globe-math.js"></script>
-  <script src="/js/sunpath-capability.js"></script>
-  <script src="/js/vendor/d3-array.min.js"></script>
-  <script src="/js/vendor/d3-geo.min.js"></script>
-  <script src="/js/vendor/topojson-client.min.js"></script>
-  <script src="/js/sunpath-globe-svg.js"></script>
-  <script src="/js/sunpath.js"></script>
-  <script src="/js/sunpath-turnings.js"></script>
-  <script src="/js/sunpath-temporal.js"></script>
 </body>
 </html>
 `;

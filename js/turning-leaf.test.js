@@ -20,7 +20,10 @@
 // Wales. Set before any Date exists, so Node reads it.
 process.env.TZ = 'Australia/Sydney';
 
+const fs = require('fs');
+const path = require('path');
 const C = require('./turning-leaf-core.js');
+const M = require('./sunpath-math.js');
 const temples = require('../assets/sunpath/temples.json').temples;
 
 let passed = 0, failed = 0;
@@ -187,6 +190,8 @@ function makeDocument(html) {
   doc.innerHTML = html;
   doc.readyState = 'complete';
   doc.activeElement = null;
+  doc.head = new El('head');
+  doc.createElement = function (tag) { return new El(tag); };
   return doc;
 }
 
@@ -222,6 +227,17 @@ function usnoSun(ms, lat, lon) {
   const alt = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
   const az = Math.atan2(-Math.cos(dec) * Math.sin(H), Math.sin(dec) * Math.cos(phi) - Math.cos(dec) * Math.sin(phi) * Math.cos(H));
   return { alt: alt / R, az: ((az / R) % 360 + 360) % 360 };
+}
+
+// The place under the sun from the same series: where its hour angle is
+// zero.
+function usnoSubsolar(ms) {
+  const R = Math.PI / 180, D = ms / 864e5 - 10957.5;
+  const g = (357.529 + 0.98560028 * D) * R, q = 280.459 + 0.98564736 * D;
+  const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * R, e = (23.439 - 0.00000036 * D) * R;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)), dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = (18.697374558 + 24.06570982441908 * D) * 15;
+  return { lat: dec / R, lon: ((ra / R - gmst) % 360 + 540) % 360 - 180 };
 }
 
 // The scene's sky, read back to degrees from the geometry that ships.
@@ -397,7 +413,23 @@ function setup(t, opts) {
   env.readout = function () { return env.$('.tl-readout').textContent; };
   env.locate = function (lat, lon, i) { env.geo[i || 0].ok({ coords: { latitude: lat, longitude: lon } }); };
 
+  // The globe's scripts as the loader adds them, each remembering the
+  // instant js/sunpath.js would have found at the moment it was added.
+  delete globalThis.__sunpathForce;
+  doc.head.appendChild = function (c) {
+    c.force = globalThis.__sunpathForce && JSON.parse(JSON.stringify(globalThis.__sunpathForce));
+    return El.prototype.appendChild.call(this, c);
+  };
+  env.scripts = function () { return doc.head.children.map(function (s) { return s.src; }); };
+  env.nearGlobe = function () {
+    const section = doc.querySelector('[data-lazy-scripts]');
+    env.observers.filter(function (o) { return o.targets.indexOf(section) >= 0; }).forEach(function (o) {
+      o.cb([{ target: section, isIntersecting: true }], o);
+    });
+  };
+
   Player.init();
+  Player.globe();
   return env;
 }
 
@@ -884,6 +916,144 @@ section('Back from the back-forward cache, the plate is idle');
   env.slide(19, 'pointerdown', 'touch');
   env.pageshow(true);
   ok(!env.is('is-scrubbing') && env.$('.tl-readout').hidden, 'a scrubbed plate returns to the turning too');
+}
+
+// --- the globe below the plate (KTD11) ---
+
+const ROOT = path.join(__dirname, '..');
+// The scripts the turning pages loaded with the page before the globe was
+// held back (b3a07c3), in that order: js/sunpath.js, what it draws with,
+// and the two that write into its section after it.
+const GLOBE = [
+  '/js/sunpath-globe-math.js', '/js/sunpath-capability.js', '/js/vendor/d3-array.min.js',
+  '/js/vendor/d3-geo.min.js', '/js/vendor/topojson-client.min.js', '/js/sunpath-globe-svg.js',
+  '/js/sunpath.js', '/js/sunpath-turnings.js', '/js/sunpath-temporal.js'
+];
+const TURNING_PAGES = fs.readdirSync(path.join(ROOT, 'sunpath'))
+  .filter(function (d) { return /^\d{4}-[a-z]+-[a-z]+$/.test(d); })
+  .map(function (d) { return 'sunpath/' + d + '/index.html'; });
+const WINTER_PAGE = fs.readFileSync(path.join(ROOT, 'sunpath/2026-winter-solstice/index.html'), 'utf8');
+
+// The fake plate with the real page's globe section after it.
+function globePage(t) {
+  const hero = /<section class="sunpath-section sunpath-section--hero"[\s\S]*?<\/section>/.exec(WINTER_PAGE);
+  return plate(t).html.replace('</main>', (hero ? hero[0] : '') + '</main>');
+}
+
+section('The turning pages hold the globe back');
+{
+  equal(TURNING_PAGES.length, 12, 'twelve turning pages, 2026 to 2028');
+  TURNING_PAGES.forEach(function (rel) {
+    const html = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    const eager = (html.match(/<script\b[^>]*\ssrc="[^"]+"/g) || []).map(function (tag) { return /\ssrc="([^"]+)"/.exec(tag)[1]; });
+    const lazy = /<section class="sunpath-section sunpath-section--hero"[^>]*\sdata-lazy-scripts="([^"]*)"/.exec(html);
+    const declared = lazy ? lazy[1].trim().split(/\s+/) : [];
+    ok(GLOBE.every(function (s) { return eager.indexOf(s) === -1; }), rel + ': no globe script loads with the page');
+    equal(declared.join(' '), GLOBE.join(' '), rel + ': its globe section declares them, in order');
+    ok(declared.every(function (s) { return fs.existsSync(path.join(ROOT, s)); }), rel + ': and each one is on disk');
+  });
+}
+
+section('Nearing the globe brings its scripts in order, once');
+{
+  const env = setup(WINTER, { html: globePage(WINTER) });
+  const watchers = env.observers.filter(function (o) { return o.targets.indexOf(env.$('[data-lazy-scripts]')) >= 0; });
+  equal(watchers.length, 1, 'one observer watches the globe\'s section');
+  equal(env.scripts().length, 0, 'until the reader nears it, no globe script is asked for');
+  env.nearGlobe();
+  equal(env.scripts().join(' '), GLOBE[0], 'nearing it asks for the first script alone');
+  for (let i = 0; i < GLOBE.length; i++) env.doc.head.children[i].onload();
+  equal(env.scripts().join(' '), GLOBE.join(' '), '...then each as the one before it arrives, in the declared order');
+  env.nearGlobe();
+  env.enterView();
+  equal(env.scripts().length, GLOBE.length, 'nearing it again asks for nothing more');
+  const sunpath = env.doc.head.children[GLOBE.indexOf('/js/sunpath.js')];
+  equal(JSON.stringify(sunpath.force), JSON.stringify({ turning: 'winter-solstice', date: WINTER.instant }),
+    'js/sunpath.js is added with the plate\'s turning and instant already set for it');
+}
+
+section('A globe that fails to load leaves the plate as it was');
+{
+  const env = setup(WINTER, { html: globePage(WINTER) });
+  const before = env.$('.tl-plate').innerHTML;
+  env.nearGlobe();
+  env.doc.head.children[0].onload();
+  env.doc.head.children[1].onload();
+  env.doc.head.children[2].onerror();
+  const line = env.$('.sunpath-subsolar-caption').textContent;
+  ok(/globe/.test(line) && /couldn’t load/.test(line), 'the globe\'s section says the globe couldn’t load  (' + line + ')');
+  equal(env.scripts().length, 3, '...and asks for nothing after the script that failed');
+  ok(env.$('.tl-plate').innerHTML === before, 'the plate is exactly as it was');
+  env.$('.tl-play').click();
+  ok(env.is('is-replaying'), '...and still plays the day');
+}
+
+// js/sunpath.js is a browser controller with no exports: loaded whole
+// against just enough page to reach its first draw, a stub renderer that
+// records the view it is turned to, and the document in the state it
+// finds when it is injected.
+function bootSunpath(readyState, force, then) {
+  const names = ['window', 'document', 'd3', 'fetch', 'setInterval', 'requestIdleCallback'];
+  const saved = {};
+  names.forEach(function (k) { saved[k] = { had: k in global, value: global[k] }; });
+  const noop = function () {};
+  const caption = { textContent: '' };
+  const nodes = { 'sunpath-globe': {}, 'sunpath-subsolar': caption };
+  const globe = { views: [], draws: 0, caption: caption, ready: null };
+  global.window = {
+    SunPathMath: M,
+    __sunpathForce: force,
+    createSvgGlobe: function () {
+      return {
+        setRotation: function (r) { globe.views.push(r.slice()); },
+        redrawStatic: noop,
+        render: function () { globe.draws++; }
+      };
+    },
+    requestIdleCallback: noop,
+    addEventListener: noop
+  };
+  global.document = {
+    readyState: readyState,
+    addEventListener: function (type, fn) { if (type === 'DOMContentLoaded') globe.ready = fn; },
+    getElementById: function (id) { return nodes[id] || null; }
+  };
+  global.d3 = {};
+  global.fetch = function () { return new Promise(noop); };
+  global.setInterval = function () { return 0; };
+  global.requestIdleCallback = noop;
+  try {
+    delete require.cache[require.resolve('./sunpath.js')];
+    require('./sunpath.js');
+    then(globe);
+  } finally {
+    names.forEach(function (k) {
+      if (saved[k].had) global[k] = saved[k].value;
+      else delete global[k];
+    });
+  }
+}
+
+section('js/sunpath.js, added after the page has loaded');
+{
+  const force = { turning: 'winter-solstice', date: WINTER.instant };
+  ['interactive', 'complete'].forEach(function (state) {
+    bootSunpath(state, force, function (globe) {
+      ok(globe.draws > 0 && globe.caption.textContent !== '',
+        'with the document already "' + state + '", it draws the globe at once  (' + globe.caption.textContent + ')');
+    });
+  });
+  bootSunpath('loading', undefined, function (globe) {
+    equal(globe.draws, 0, 'parsed while the page still loads, as on the hub, it waits');
+    globe.ready();
+    ok(globe.draws > 0, '...and draws on DOMContentLoaded');
+    equal(JSON.stringify(globe.views[0]), JSON.stringify([0, -10]), '...from the hub\'s own opening view');
+  });
+  bootSunpath('complete', force, function (globe) {
+    const sun = usnoSubsolar(Date.parse(WINTER.instant)), view = globe.views[0] || [];
+    near(view[0], -sun.lon, 0.05, 'it starts turned to the place under the sun at the instant: longitude');
+    near(view[1], -sun.lat, 0.05, '...and latitude');
+  });
 }
 
 section('It never fetches, stores or sends anything');

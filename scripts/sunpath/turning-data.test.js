@@ -129,6 +129,19 @@ async function main() {
   ok(!!dtStart && Math.abs(dtStart - jplAt(2026, 'winter-solstice')) <= 5000,
     'the calendar starts the 21 Dec 2026 event at its second too  (' + (dt && dt[1]) + ')');
 
+  console.log('\n=== a new year is pinned at the weight the ratchet will measure ===\n');
+
+  // js/page-weight.test.js weighs each page with every script it loads,
+  // the globe's lazy ones included; the weight year.mjs pins for a new
+  // year must match it, or the next year fails the ratchet on its first run.
+  const ratchet = fs.readFileSync(path.join(ROOT, 'js', 'page-weight.test.js'), 'utf8');
+  const archive28 = KEYS.map(function (k) { return readJson('assets/sunpath/turnings/2028-' + k + '.json'); });
+  archive28.forEach(function (d) {
+    const pinned = +new RegExp("'sunpath/2028-" + d.key + "/index.html':\\s*([\\d.]+)").exec(ratchet)[1];
+    const kb = year.fullSeasonPageKb(d, archive28);
+    ok(Math.abs(kb - pinned) <= 0.05, '2028 ' + d.key + ': pinned at ' + kb.toFixed(2) + ' KB, the ratchet holds ' + pinned + ' KB');
+  });
+
   console.log('\n=== Summary ===\n');
   console.log('passed: ' + passed);
   console.log('failed: ' + failed);

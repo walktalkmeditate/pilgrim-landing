@@ -412,7 +412,7 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **107.89 KB — +12.02 KB** |
+| **after §A** | **107.96 KB — +12.09 KB** |
 | budget | 12.00 KB, plus 0.10 KB for each archive year after 2027 (12.10 KB with 2028) |
 | §B, had it shipped | +10.50 KB → 22.36 KB total, over |
 

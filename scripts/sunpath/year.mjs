@@ -306,10 +306,16 @@ export function fullSeasonPageKb(data, archive) {
   const html = renderPermalink(data, archive, { fullSeason: true });
   const dir = posix.dirname(pageRel);
   let bytes = gzipSync(Buffer.from(html), { level: 9 }).length;
-  const re = /(?:src|href)="([^"]+)"/g;
+  // The globe's scripts arrive later, declared in data-lazy-scripts; the
+  // ratchet weighs them with the page, so the pin must too.
+  const refs = [];
+  const re = /(?:src|href)="([^"]+)"|\sdata-lazy-scripts="([^"]*)"/g;
   let m;
   while ((m = re.exec(html)) !== null) {
-    let ref = m[1];
+    if (m[1] !== undefined) refs.push(m[1]);
+    else refs.push(...m[2].trim().split(/\s+/).filter(Boolean));
+  }
+  for (let ref of refs) {
     if (/^(?:https?:)?\/\//.test(ref) || /^(?:#|mailto:|data:|tel:)/.test(ref)) continue;
     ref = ref.replace(/[?#].*$/, '');
     if (!/\.(?:js|css)$/.test(ref)) continue;

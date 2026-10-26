@@ -238,7 +238,7 @@ async function main() {
 
   pages.forEach(function (p) {
     eq(count(p.html, '<link rel="stylesheet" href="/css/turning-leaf.css">'), 1, p.head + ': links css/turning-leaf.css');
-    const math = p.html.indexOf('<script src="/js/sunpath-math.js"></script>');
+    const math = p.html.indexOf('<script defer src="/js/sunpath-math.js"></script>');
     const core = p.html.indexOf('<script defer src="/js/turning-leaf-core.js"></script>');
     const player = p.html.indexOf('<script defer src="/js/turning-leaf.js"></script>');
     ok(math !== -1 && core > math && player > core && count(p.html, 'src="/js/sunpath-math.js"') === 1,

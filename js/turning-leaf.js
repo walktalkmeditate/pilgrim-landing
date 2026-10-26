@@ -15,7 +15,7 @@
 
    One render function draws a day at the plate's place through the core;
    a small state machine (KTD9) picks the day. User input always wins over
-   the replay. Nothing here fetches anything.
+   the replay. Nothing here fetches anything but the globe's own scripts.
 
    Tested in js/turning-leaf.test.js.
    ============================================= */
@@ -30,6 +30,7 @@
   var SWING = [0, 22, -16, 10, -6, 3, 0].map(function (d) { return { transform: 'rotate(' + d + 'deg)' }; });
   var LOCATED = 'The staff stands where you are. Its strokes are its shadow at each hour of your day, by your own clock.';
   var UNLOCATED = 'Couldn’t read your location, so the staff stays at the temple.';
+  var GLOBE_FAILED = 'The globe couldn’t load. The turning is drawn above.';
 
   function f1(n) { return Math.round(n * 10) / 10; }
 
@@ -328,7 +329,35 @@
     view.observe(figure);
   }
 
-  var api = { init: init };
+  // KTD11: the globe's scripts, named on its section, arrive in order once
+  // the reader nears it. They need nothing from the core.
+  function globe() {
+    var doc = root.document, section = doc.querySelector('[data-lazy-scripts]');
+    var plate = doc.querySelector('.tl-plate');
+    if (!section || !plate) return;
+    var tl = JSON.parse(plate.getAttribute('data-tl'));
+    var srcs = section.getAttribute('data-lazy-scripts').trim().split(/\s+/);
+
+    function add(i) {
+      if (i === srcs.length) return;
+      var s = doc.createElement('script');
+      s.src = srcs[i];
+      s.onload = function () { add(i + 1); };
+      s.onerror = function () { section.querySelector('.sunpath-subsolar-caption').textContent = GLOBE_FAILED; };
+      doc.head.appendChild(s);
+    }
+
+    var near = new root.IntersectionObserver(function (entries) {
+      if (!entries.some(function (e) { return e.isIntersecting; })) return;
+      near.disconnect();
+      // The instant js/sunpath.js freezes the globe at and turns it to face.
+      root.__sunpathForce = { turning: tl.key, date: tl.instant };
+      add(0);
+    }, { rootMargin: '100% 0px' });
+    near.observe(section);
+  }
+
+  var api = { init: init, globe: globe };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
@@ -340,9 +369,11 @@
   // must not look for a document that is not there.
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
+  function start() { globe(); init(); }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
+    start();
   }
 })(typeof window !== 'undefined' ? window : globalThis);
