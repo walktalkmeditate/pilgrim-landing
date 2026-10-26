@@ -57,8 +57,8 @@
     'uniform float uGrow;',
     'uniform float uDpr;',
     'uniform vec2 uWind;',
-    'uniform vec4 uBrush;',
-    'uniform vec2 uBrushVel;',
+    'uniform vec4 uPuff[8];',
+    'uniform vec4 uPuffV[8];',
     'uniform vec4 uRing[4];',
     'uniform vec3 uFront;',
     'varying float vT;',
@@ -94,10 +94,16 @@
     '  gust = max(gust, uFront.y * exp(-fd * fd));',
     '  float sway = sin(uTime * (1.1 + aB.x * 0.9) + aB.x * 6.2831 + gc * 0.45) * 0.06;',
     '  vec2 bend = uWind * (0.05 + gust * 0.8 + sway) + vec2(cos(aB.z), sin(aB.z)) * aB.w;',
-    '  vec2 toB = p - uBrush.xy;',
-    '  float bf = uBrush.z * exp(-dot(toB, toB) / (uBrush.w * uBrush.w));',
-    '  bend += toB / sqrt(dot(toB, toB) + 0.02) * bf * 0.9 + uBrushVel * bf * 0.1;',
-    '  gust = max(gust, bf * 0.7);',
+    '  for (int i = 0; i < 8; i++) {',
+    '    vec4 q = uPuff[i];',
+    '    if (q.z < 0.001) continue;',
+    '    vec2 tq = p - q.xy;',
+    '    float f = q.z * exp(-dot(tq, tq) / (q.w * q.w));',
+    '    vec2 v = uPuffV[i].xy;',
+    '    float vl = length(v);',
+    '    bend += (vl > 0.001 ? v / vl : vec2(0.0)) * f * 1.15 + tq / (length(tq) + 0.3) * f * 0.12;',
+    '    gust = max(gust, f);',
+    '  }',
     '  for (int i = 0; i < 4; i++) {',
     '    vec4 r = uRing[i];',
     '    vec2 tr = p - r.xy;',
@@ -288,7 +294,7 @@
 
   function build() {
     blade = program(BLADE_VS, BLADE_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uTime', 'uGrow', 'uDpr',
-      'uWind', 'uBrush', 'uBrushVel', 'uRing', 'uFront', 'uStem', 'uPlume', 'uMist', 'uSheen',
+      'uWind', 'uPuff', 'uPuffV', 'uRing', 'uFront', 'uStem', 'uPlume', 'uMist', 'uSheen',
       'uSheenK', 'uBg', 'uFadeFrom']);
     sky = program(SKY_VS, SKY_FS, ['uRes', 'uHorizon', 'uPaper', 'uMist', 'uGround', 'uMoonLit',
       'uSunGlow', 'uMoon', 'uMoonShow', 'uSun', 'uSkyAlpha', 'uBg', 'uFadeFrom',
@@ -321,7 +327,9 @@
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
   var moonPx = [0, 0, 20, 0], moonShow = 0, sunPx = [0, 0, 100, 0];
   var walk = 0, walkTarget = 0;
-  var brush = { x: 0, d: 0, str: 0, target: 0, vx: 0, vd: 0, r: 1 };
+  var puffs = [];
+  var MAX_PUFFS = 8;
+  var mover = null, scroller = null;
   var rings = [];
   var front = { pos: -999, strength: 0, width: 3.5, speed: 9, until: 0 };
   var running = false, raf = 0, visible = false, t0 = 0, lastNow = 0;
@@ -393,6 +401,8 @@
   // ---------- drawing ----------
 
   var ringData = new Float32Array(16);
+  var puffData = new Float32Array(MAX_PUFFS * 4);
+  var puffVel = new Float32Array(MAX_PUFFS * 4);
 
   function draw(time, grow) {
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -439,8 +449,14 @@
     gl.uniform1f(bu.uGrow, grow);
     gl.uniform1f(bu.uDpr, dpr);
     gl.uniform2fv(bu.uWind, WIND);
-    gl.uniform4f(bu.uBrush, brush.x, brush.d, brush.str, brush.r);
-    gl.uniform2f(bu.uBrushVel, brush.vx, brush.vd);
+    puffData.fill(0);
+    puffVel.fill(0);
+    puffs.forEach(function (q, i) {
+      puffData[i * 4] = q.x; puffData[i * 4 + 1] = q.d; puffData[i * 4 + 2] = q.s; puffData[i * 4 + 3] = q.r;
+      puffVel[i * 4] = q.vx; puffVel[i * 4 + 1] = q.vd;
+    });
+    gl.uniform4fv(bu.uPuff, puffData);
+    gl.uniform4fv(bu.uPuffV, puffVel);
     ringData.fill(0);
     rings.forEach(function (r, i) {
       ringData[i * 4] = r.x; ringData[i * 4 + 1] = r.d;
@@ -495,8 +511,7 @@
     var time = (now - t0) / 1000;
 
     walk += (walkTarget - walk) * 0.12;
-    brush.str += (brush.target - brush.str) * 0.1;
-    brush.vx *= 0.9; brush.vd *= 0.9;
+    puffs = puffs.filter(function (q) { return C.stepPuff(q, dt); });
 
     for (var i = rings.length - 1; i >= 0; i--) {
       rings[i].age += dt;
@@ -547,19 +562,32 @@
     return { x: e.clientX, y: e.clientY + window.scrollY - heroTop };
   }
 
+  // Keep the strongest gusts when there are more than the shader holds.
+  function addPuff(q) {
+    if (q.s < 0.02) return;
+    puffs.push(q);
+    if (puffs.length > MAX_PUFFS) {
+      puffs.sort(function (a, b) { return b.s - a.s; });
+      puffs.length = MAX_PUFFS;
+    }
+  }
+
+  // A finger on a phone is scrolling, not stroking; its wind comes from
+  // the scroll. A pointer sends a gust at most every 40 ms, carrying the
+  // whole movement since the last.
   function onPointerMove(e) {
     if (e.pointerType === 'touch' || !proj) return;
     var pt = localPoint(e);
     var hit = C.pointerOnField(pt.x, pt.y, W, H, proj, walk);
-    if (!hit) { brush.target = 0; return; }
-    if (brush.target > 0.05) {
-      brush.vx = brush.vx * 0.6 + (hit.x - brush.x) * 4;
-      brush.vd = brush.vd * 0.6 + (hit.d - brush.d) * 4;
-    }
-    brush.x = hit.x;
-    brush.d = hit.d;
-    brush.r = 0.8 + hit.d * 0.05;
-    brush.target = 1;
+    var now = performance.now();
+    if (!hit) { mover = null; return; }
+    if (!mover) { mover = { hit: hit, x: pt.x, y: pt.y, t: now }; return; }
+    var dt = (now - mover.t) / 1000;
+    if (dt < 0.04) return;
+    if (dt > 0.3) { mover = { hit: hit, x: pt.x, y: pt.y, t: now }; return; }
+    var px = Math.sqrt((pt.x - mover.x) * (pt.x - mover.x) + (pt.y - mover.y) * (pt.y - mover.y));
+    addPuff(C.puffFromMove(mover.hit, hit, dt, px / dt, W));
+    mover = { hit: hit, x: pt.x, y: pt.y, t: now };
     start();
   }
 
@@ -576,6 +604,15 @@
     if (reduced) return;
     var y = window.scrollY - heroTop;
     walkTarget = Math.max(0, Math.min(1, y / (H || 1))) * C.WALK_METRES;
+    if (!running) { scroller = null; return; }
+    var now = performance.now();
+    if (!scroller) { scroller = { y: window.scrollY, t: now }; return; }
+    var dt = (now - scroller.t) / 1000;
+    if (dt < 0.08) return;
+    if (dt > 0.3) { scroller = { y: window.scrollY, t: now }; return; }
+    var dy = window.scrollY - scroller.y;
+    if (dy !== 0) addPuff(C.scrollPuff(dy, dt, H, walk));
+    scroller = { y: window.scrollY, t: now };
   }
 
   function parseRgb(css) {
@@ -620,7 +657,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   if (!reduced) {
     hero.addEventListener('pointermove', onPointerMove);
-    hero.addEventListener('pointerleave', function () { brush.target = 0; });
+    hero.addEventListener('pointerleave', function () { mover = null; });
     hero.addEventListener('pointerdown', onPointerDown);
   }
 

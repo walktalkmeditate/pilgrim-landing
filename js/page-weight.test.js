@@ -126,7 +126,11 @@ const BASELINE_KB = {
   // with it (js/main.js -0.16, css/animations.css -0.22), and the moon
   // toggle's terminator fix costs every page with a toggle +0.16
   // (js/moon.js). Raw WebGL, no library.
-  'index.html':                                 128.14,
+  // +1.28 (129.42): your movement is wind — eight gusts in place of the
+  // brush, the scroll's gust up the path, and their tested model
+  // (js/hero-field-core.js +0.72, js/hero-field.js +0.44); and the link
+  // card's moon hook and image alt, which stayed under the drift (+0.15).
+  'index.html':                                 129.42,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

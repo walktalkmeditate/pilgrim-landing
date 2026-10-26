@@ -279,7 +279,7 @@ const lowp = boot({ noHighp: true });
 ok(lowp.gl().linkErrors.length === 0 && lowp.hero.children.length === 1,
   'on a GPU without fragment highp, both programs still link' + (lowp.gl().linkErrors.length ? ' — ' + lowp.gl().linkErrors.join(', ') : ''));
 
-console.log('\n=== the walk, the brush, the whisper ===\n');
+console.log('\n=== the walk, the wind, the whisper ===\n');
 
 w.sandbox.scrollY = 450;
 w.winOn.scroll.forEach(function (fn) { fn(); });
@@ -291,23 +291,47 @@ w.winOn.scroll.forEach(function (fn) { fn(); });
 for (let t = 2200; t < 4200; t += 16) w.frame(t);
 ok(gl.values.uWalk[0] < 0.01, 'and scrolling back walks you back');
 
-w.hero.on.pointermove({ pointerType: 'mouse', clientX: 720, clientY: 820 });
-for (let t = 4200; t < 4800; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] > 0.9, 'a cursor resting in the grass keeps it parted  (' + gl.values.uBrush[2].toFixed(3) + ')');
-w.hero.on.pointermove({ pointerType: 'mouse', clientX: 720, clientY: 200 });
-for (let t = 4800; t < 6000; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] < 0.05, 'and lifted into the sky, lets it stand back up');
-w.hero.on.pointermove({ pointerType: 'touch', clientX: 720, clientY: 820 });
-for (let t = 6000; t < 6300; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] < 0.05, 'a finger dragging to scroll does not brush — the page is scrolling, not stroking');
+function strongest() {
+  const a = gl.values.uPuff[0];
+  let m = 0;
+  for (let i = 2; i < a.length; i += 4) m = Math.max(m, a[i]);
+  return m;
+}
+function move(type, x, y, ms) {
+  w.sandbox.clock = ms;
+  w.hero.on.pointermove({ pointerType: type, clientX: x, clientY: y });
+}
+function settle(from, to) { for (let t = from; t < to; t += 16) w.frame(t); }
+
+move('mouse', 500, 820, 4200); move('mouse', 520, 820, 4250); w.frame(4266);
+const breath = strongest();
+settle(4300, 8000);
+ok(strongest() === 0, 'a still cursor is still air: its gust dies away');
+move('mouse', 400, 820, 8000); move('mouse', 700, 820, 8050); w.frame(8066);
+const flick = strongest();
+ok(flick > 0.8, 'a flick across the grass is a gust  (' + flick.toFixed(2) + ')');
+ok(breath > 0 && breath < flick / 3, 'a slow drift only breathes on it  (' + breath.toFixed(2) + ')');
+ok(gl.values.uPuffV[0][0] > 0, 'and it blows the way the cursor went');
+settle(8100, 12000);
+move('mouse', 400, 200, 12000); move('mouse', 800, 200, 12050); w.frame(12066);
+ok(strongest() === 0, 'a cursor moving through the sky stirs no grass');
+move('touch', 400, 820, 12100); move('touch', 700, 820, 12150); w.frame(12166);
+ok(strongest() === 0, 'a finger dragging on a phone does not stroke the grass — its wind comes from the scroll');
+w.sandbox.clock = 12300; w.sandbox.scrollY = 0; w.winOn.scroll.forEach(function (fn) { fn(); });
+w.sandbox.clock = 12400; w.sandbox.scrollY = 120; w.winOn.scroll.forEach(function (fn) { fn(); });
+w.frame(12416);
+ok(Array.prototype.some.call(gl.values.uPuffV[0], function (v, i) { return i % 4 === 1 && v > 0; }),
+  'scrolling down sends a gust away from you, up the path');
+w.sandbox.scrollY = 0; w.winOn.scroll.forEach(function (fn) { fn(); });
+settle(12500, 16000);
 w.hero.on.pointerdown({ pointerType: 'touch', clientX: 720, clientY: 820 });
-w.frame(6316);
+w.frame(16016);
 ok(Array.prototype.some.call(gl.values.uRing[0], function (v, i) { return i % 4 === 3 && v === 1; }), 'a tap sends a ring of wind out through the grass');
 
 const quoteMo = w.mos.filter(function (o) { return o.target === w.quotes; })[0];
 const whisper = { classList: { contains: function (c) { return c === 'active'; } } };
 quoteMo.cb([{ target: whisper }]);
-for (let t = 6400; t < 7400; t += 16) w.frame(t);
+for (let t = 16100; t < 17100; t += 16) w.frame(t);
 ok(gl.values.uFront[1] > 0.9, 'a new whisper arrives on a gust across the field');
 const sheen = gl.values.uSheen[0];
 const plain = Core.sheenFor(Core.skyBodies(new Date(), Moon.getMoonPhase(new Date()))).rgb;

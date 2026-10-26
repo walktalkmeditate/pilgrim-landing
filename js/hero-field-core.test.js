@@ -158,6 +158,41 @@ ok(C.horizonFraction(400, 900) * 900 >= 400 + 0.13 * 900, 'the horizon leaves ro
 ok(C.horizonFraction(600, 650) === 0.8, 'and on a short screen never leaves less than a fifth for the field');
 ok(C.horizonFraction(100, 900) === 0.58, 'nor more than its share on a tall one');
 
+console.log('\n=== your movement is wind ===\n');
+
+ok(C.windStrength(0, 1440) === 0, 'a still cursor is still air');
+ok(C.windStrength(144, 1440) < 0.15, 'a slow drift, a tenth of the screen a second, is a breath  (' + C.windStrength(144, 1440).toFixed(2) + ')');
+ok(C.windStrength(2880, 1440) > 0.8, 'a flick, two screens a second, is a gust  (' + C.windStrength(2880, 1440).toFixed(2) + ')');
+ok(C.windStrength(1e6, 1440) <= C.PUFF_MAX, 'a frantic scribble is capped, and never flattens the field');
+ok(C.windStrength(720, 1440) > C.windStrength(360, 1440), 'faster is stronger');
+ok(Math.abs(C.windStrength(500, 1000) - C.windStrength(1000, 2000)) < 1e-12, 'strength is measured in screens, so a phone and a monitor agree');
+
+const from = { x: -2, d: 12 }, to = { x: -1, d: 12 };
+const puff = C.puffFromMove(from, to, 0.05, 2000, 1440);
+ok(puff.vx > 0 && Math.abs(puff.vd) < 1e-9, 'a gust blows the way the cursor travelled, not away from it');
+ok(puff.x === to.x && puff.d === to.d, 'and starts where the cursor is now');
+ok(Math.abs(puff.s - C.windStrength(2000, 1440)) < 1e-12, 'with the strength of the cursor\'s speed on screen');
+const wild = C.puffFromMove({ x: 0, d: 10 }, { x: 0, d: 59 }, 0.016, 3000, 1440);
+ok(Math.hypot(wild.vx, wild.vd) <= C.PUFF_TOP_SPEED + 1e-9, 'a jump toward the horizon cannot fling a gust off at a hundred metres a second');
+
+const carried = Object.assign({}, puff);
+let alive = true, steps = 0;
+const startX = carried.x, startS = carried.s;
+while (alive && steps < 600) { alive = C.stepPuff(carried, 1 / 60); steps++; }
+ok(carried.x > startX + 0.5, 'a flick\'s gust carries on past the cursor  (' + (carried.x - startX).toFixed(2) + ' m)');
+ok(!alive && steps < 240, 'and fades within a few seconds  (' + (steps / 60).toFixed(1) + ' s)');
+const half = Object.assign({}, puff);
+for (let i = 0; i < 30; i++) C.stepPuff(half, 1 / 60);
+ok(half.s < startS && half.s > startS * 0.2, 'half a second on it is weaker, not gone');
+
+const ahead = C.scrollPuff(120, 0.016, 900, 0);
+const back = C.scrollPuff(-120, 0.016, 900, 2);
+ok(ahead.vd > 0 && Math.abs(ahead.vx) < 1e-9, 'scrolling down sends wind away from you, up the path');
+ok(back.vd < 0, 'scrolling up sends it back toward you');
+ok(Math.abs(ahead.x - C.pathX(ahead.d)) < 1e-9 && ahead.d > 0, 'it rises on the path, just ahead of where you stand');
+ok(back.d > ahead.d, 'and moves with you as you walk');
+ok(C.scrollPuff(4, 0.016, 900, 0).s < C.scrollPuff(200, 0.016, 900, 0).s, 'a flung scroll blows harder than a nudge');
+
 console.log('\n=== the budget ===\n');
 
 ok(C.bladeBudget(1440, 900, {}) === 22000, 'a laptop hero grows 22,000 blades');

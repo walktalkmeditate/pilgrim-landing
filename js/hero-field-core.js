@@ -170,6 +170,51 @@
     return { x: nx * proj.tanHalfX * dist, d: dist + (walked || 0) };
   }
 
+  // Your movement is wind. Strength is speed in screens a second, so a
+  // phone and a monitor agree, eased so a drift is a breath and a flick a
+  // gust, and capped so no scribble flattens the field. Direction is the
+  // way you travelled over the grass tops; a gust carries on past you at
+  // part of that speed and fades.
+  var PUFF_MAX = 0.92;
+  var PUFF_TOP_SPEED = 28;
+
+  function windStrength(screenSpeedPx, widthPx) {
+    if (!(screenSpeedPx > 0) || !(widthPx > 0)) return 0;
+    return PUFF_MAX * (1 - Math.exp(-(screenSpeedPx / widthPx) / 0.9));
+  }
+
+  function puffFromMove(from, to, dtSec, screenSpeedPx, widthPx) {
+    var dt = Math.max(dtSec, 0.008);
+    var vx = (to.x - from.x) / dt * 0.7;
+    var vd = (to.d - from.d) / dt * 0.7;
+    var speed = Math.sqrt(vx * vx + vd * vd);
+    if (speed > PUFF_TOP_SPEED) { vx *= PUFF_TOP_SPEED / speed; vd *= PUFF_TOP_SPEED / speed; }
+    return { x: to.x, d: to.d, vx: vx, vd: vd, s: windStrength(screenSpeedPx, widthPx), r: 0.7 + to.d * 0.045 };
+  }
+
+  // A scroll is a step along the path: the gust rises on it just ahead of
+  // you and runs the way you are walking — away as you scroll down, back
+  // toward you as you scroll up.
+  function scrollPuff(deltaPx, dtSec, heightPx, walked) {
+    var speed = Math.abs(deltaPx) / Math.max(dtSec, 0.008);
+    var strength = PUFF_MAX * (1 - Math.exp(-(speed / heightPx) / 1.6));
+    var d = (walked || 0) + 6;
+    return { x: pathX(d), d: d, vx: 0, vd: (deltaPx > 0 ? 1 : -1) * (8 + 16 * strength), s: strength * 0.8, r: 2.4 };
+  }
+
+  // One frame of a gust: it travels, slows, spreads and weakens. False once
+  // it is too faint to move a blade.
+  function stepPuff(p, dtSec) {
+    p.x += p.vx * dtSec;
+    p.d += p.vd * dtSec;
+    var drag = Math.exp(-dtSec * 1.4);
+    p.vx *= drag;
+    p.vd *= drag;
+    p.s *= Math.exp(-dtSec / 0.7);
+    p.r += dtSec * 0.8;
+    return p.s > 0.02;
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -319,6 +364,12 @@
     horizonFraction: horizonFraction,
     projection: projection,
     pointerOnField: pointerOnField,
+    PUFF_MAX: PUFF_MAX,
+    PUFF_TOP_SPEED: PUFF_TOP_SPEED,
+    windStrength: windStrength,
+    puffFromMove: puffFromMove,
+    scrollPuff: scrollPuff,
+    stepPuff: stepPuff,
     bladeBudget: bladeBudget,
     layoutBlades: layoutBlades,
     hexToRgb: hexToRgb,
