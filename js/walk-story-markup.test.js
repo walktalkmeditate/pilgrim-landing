@@ -217,7 +217,7 @@ C.honorReveal(0).moments.forEach(function (m) {
   eq(count(story, '--at:' + at + '"'), 2, 'the marker at frac ' + m.frac + ' carries --at:' + at + ' in both geometries');
 });
 ok(story.indexOf(fixture.stage.closing) !== -1, 'the closing line is the dataset\'s own');
-ok(story.indexOf('On iPhone. Coming to Android.') !== -1, 'Honor says where it runs');
+ok(story.indexOf('On iPhone and Android.') !== -1, 'Honor says where it runs: both, since Pilgrim 2.0 for Android');
 ok(story.indexOf('https://github.com/walktalkmeditate/open-pilgrimages') !== -1, 'the stage credits its dataset');
 // A screen reader reads the page in English; a Japanese name outside a
 // lang="ja" span is read with English rules, or skipped.
