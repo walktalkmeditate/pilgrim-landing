@@ -34,6 +34,29 @@
     winter: { stem: '#7A7B80', plume: '#A09080' }
   };
 
+  // The season's own field. Susuki plumes in autumn; young grass and almost
+  // none in spring; summer lush, its plumes only beginning; winter's dry
+  // stalks bowed over snow. Each brings what drifts through it: petals on
+  // the spring wind, fireflies on summer nights, winter's snow.
+  var SEASON_FIELDS = {
+    spring: { plumeShare: 0.04, heightScale: 0.78, bow: 0, snow: false, particles: 'petals', count: 46 },
+    summer: { plumeShare: 0.12, heightScale: 1.12, bow: 0, snow: false, particles: 'fireflies', count: 64 },
+    autumn: { plumeShare: 0.42, heightScale: 1, bow: 0, snow: false, particles: null, count: 0 },
+    winter: { plumeShare: 0.18, heightScale: 0.86, bow: 0.32, snow: true, particles: 'snow', count: 260 }
+  };
+
+  function seasonField(season) {
+    return SEASON_FIELDS[season] || SEASON_FIELDS.autumn;
+  }
+
+  // Fireflies need the dark; the rest drift by day and night alike.
+  function particlesFor(season, bodies) {
+    var f = seasonField(season);
+    if (!f.particles) return { kind: null, count: 0 };
+    if (f.particles === 'fireflies' && bodies.sun.alt > -0.05) return { kind: null, count: 0 };
+    return { kind: f.particles, count: f.count };
+  }
+
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
   function wrapHours(h) {
@@ -126,6 +149,26 @@
     return Math.abs(x - pathX(d)) - pathHalfWidth(d);
   }
 
+  // Your path wears in. Each local day you come back, the painted path
+  // reaches farther toward the horizon and the verge is trodden wider, so
+  // more of it shows between the grass; a first visit sees it as first
+  // laid. Counted on this device only.
+  function pathReach(days) {
+    var worn = 1 - Math.exp(-Math.max(0, (days || 1) - 1) / 12);
+    return { fadeFrom: 22 + 38 * worn, fadeTo: 40 + 40 * worn, verge: 1.6 + 1.1 * worn };
+  }
+
+  function localDay(date) {
+    var m = date.getMonth() + 1, d = date.getDate();
+    return date.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function countVisitDay(stored, today) {
+    var days = stored && stored.days > 0 ? Math.floor(stored.days) : 0;
+    if (!days) return { days: 1, last: today };
+    return stored.last === today ? { days: days, last: today } : { days: days + 1, last: today };
+  }
+
   function glslFloat(v) {
     var s = String(v);
     return s.indexOf('.') === -1 ? s + '.0' : s;
@@ -170,6 +213,211 @@
     return { x: nx * proj.tanHalfX * dist, d: dist + (walked || 0) };
   }
 
+  // Your movement is wind. Strength is speed in screens a second, so a
+  // phone and a monitor agree, eased so a drift is a breath and a flick a
+  // gust, and capped so no scribble flattens the field. Direction is the
+  // way you travelled over the grass tops; a gust carries on past you at
+  // part of that speed and fades.
+  var PUFF_MAX = 0.92;
+  var PUFF_TOP_SPEED = 28;
+
+  function windStrength(screenSpeedPx, widthPx) {
+    if (!(screenSpeedPx > 0) || !(widthPx > 0)) return 0;
+    return PUFF_MAX * (1 - Math.exp(-(screenSpeedPx / widthPx) / 0.9));
+  }
+
+  function puffFromMove(from, to, dtSec, screenSpeedPx, widthPx) {
+    var dt = Math.max(dtSec, 0.008);
+    var vx = (to.x - from.x) / dt * 0.7;
+    var vd = (to.d - from.d) / dt * 0.7;
+    var speed = Math.sqrt(vx * vx + vd * vd);
+    if (speed > PUFF_TOP_SPEED) { vx *= PUFF_TOP_SPEED / speed; vd *= PUFF_TOP_SPEED / speed; }
+    return { x: to.x, d: to.d, vx: vx, vd: vd, s: windStrength(screenSpeedPx, widthPx), r: 0.7 + to.d * 0.045 };
+  }
+
+  // A scroll is a step along the path: the gust rises on it just ahead of
+  // you and runs the way you are walking — away as you scroll down, back
+  // toward you as you scroll up.
+  function scrollPuff(deltaPx, dtSec, heightPx, walked) {
+    var speed = Math.abs(deltaPx) / Math.max(dtSec, 0.008);
+    var strength = PUFF_MAX * (1 - Math.exp(-(speed / heightPx) / 1.6));
+    var d = (walked || 0) + 6;
+    return { x: pathX(d), d: d, vx: 0, vd: (deltaPx > 0 ? 1 : -1) * (8 + 16 * strength), s: strength * 0.8, r: 2.4 };
+  }
+
+  // One frame of a gust: it travels, slows, spreads and weakens. False once
+  // it is too faint to move a blade.
+  function stepPuff(p, dtSec) {
+    p.x += p.vx * dtSec;
+    p.d += p.vd * dtSec;
+    var drag = Math.exp(-dtSec * 1.4);
+    p.vx *= drag;
+    p.vd *= drag;
+    p.s *= Math.exp(-dtSec / 0.7);
+    p.r += dtSec * 0.8;
+    return p.s > 0.02;
+  }
+
+  // What drifts through the field carries its own motion, so a gust blows
+  // it rather than bending it and letting it spring back: each flake,
+  // petal or firefly has a velocity that a gust accelerates and that then
+  // settles back to the ambient wind — from wherever the gust left it.
+  // Per particle: pos x, y, depth, size, extra (a petal's spin, a
+  // firefly's glow); vel x, y, depth. A few hundred of them at most, so
+  // this costs the CPU next to nothing.
+  var DRIFTS = {
+    snow: { top: 7, fall: 0.5, fallSpread: 0.5, wind: 0.9, sway: 0.35, swayRate: 0.8, gust: 4.5, lift: 0.4, settle: 1.4, size: 0.03, sizeSpread: 0.03, near: 2.5, span: 34 },
+    petals: { top: 5, fall: 0.22, fallSpread: 0.25, wind: 2, sway: 0.6, swayRate: 1.3, gust: 7, lift: 0.8, settle: 2.4, size: 0.05, sizeSpread: 0.035, near: 2.5, span: 34 },
+    fireflies: { low: 0.6, high: 1.6, gust: 2, settle: 1.6, size: 0.07, sizeSpread: 0, near: 3, span: 22 }
+  };
+
+  function driftInit(kind, n, tanHalfX, walked, seed) {
+    var k = DRIFTS[kind];
+    var rand = mulberry32(seed === undefined ? 7 : seed);
+    var st = { pos: new Float32Array(n * 5), vel: new Float32Array(n * 3), seed: new Float32Array(n * 4) };
+    for (var i = 0; i < n; i++) {
+      var r = [rand(), rand(), rand(), rand()];
+      st.seed.set(r, i * 4);
+      var vz = k.near + r[1] * k.span;
+      var reach = vz * tanHalfX * 1.1 + 1;
+      st.pos[i * 5] = (r[0] * 2 - 1) * reach;
+      st.pos[i * 5 + 1] = k.top ? r[3] * k.top : k.low + r[3] * (k.high - k.low);
+      st.pos[i * 5 + 2] = vz + (walked || 0);
+      st.pos[i * 5 + 3] = k.size + r[2] * k.sizeSpread;
+    }
+    return st;
+  }
+
+  function driftStep(st, kind, n, dt, time, puffs, walked, tanHalfX) {
+    var k = DRIFTS[kind];
+    var ease = Math.min(1, dt / k.settle);
+    var w = walked || 0;
+    for (var i = 0; i < n; i++) {
+      var p = i * 5, v = i * 3, r = i * 4;
+      var x = st.pos[p], y = st.pos[p + 1], d = st.pos[p + 2];
+      var s0 = st.seed[r], s2 = st.seed[r + 2], s3 = st.seed[r + 3];
+      var ax, ay, ad;
+      if (k.top) {
+        ax = WIND[0] * k.wind + k.sway * k.swayRate * Math.cos(time * k.swayRate + s2 * 6.28);
+        ay = -(k.fall + s2 * k.fallSpread);
+        ad = 0;
+      } else {
+        ax = 0.25 * Math.sin(time * 0.21 + s2 * 7);
+        ay = (k.low + s3 * (k.high - k.low) - y) * 0.6 + 0.12 * Math.cos(time * 0.5 + s0 * 9);
+        ad = 0.17 * Math.cos(time * 0.17 + s3 * 5);
+      }
+      var gx = 0, gy = 0, gd = 0;
+      for (var j = 0; j < puffs.length; j++) {
+        var q = puffs[j];
+        var dx = x - q.x, dd = d - q.d;
+        var f = q.s * Math.exp(-(dx * dx + dd * dd) / (2 * q.r * q.r));
+        if (f < 0.002) continue;
+        var vl = Math.sqrt(q.vx * q.vx + q.vd * q.vd) || 1;
+        gx += q.vx / vl * f * k.gust;
+        gd += q.vd / vl * f * k.gust;
+        gy += f * k.gust * (k.lift || 0);
+      }
+      st.vel[v] += (ax - st.vel[v]) * ease + gx * dt;
+      st.vel[v + 1] += (ay - st.vel[v + 1]) * ease + gy * dt;
+      st.vel[v + 2] += (ad - st.vel[v + 2]) * ease + gd * dt;
+      x += st.vel[v] * dt;
+      y += st.vel[v + 1] * dt;
+      d += st.vel[v + 2] * dt;
+
+      if (d < w + k.near) d += k.span;
+      else if (d > w + k.near + k.span) d -= k.span;
+      var reach = (d - w) * tanHalfX * 1.1 + 1;
+      if (x > reach) x -= 2 * reach;
+      else if (x < -reach) x += 2 * reach;
+      if (k.top) {
+        if (y < 0) y += k.top;
+        else if (y > k.top) y -= k.top;
+      } else {
+        y = clamp(y, 0.3, 2.3);
+      }
+      st.pos[p] = x;
+      st.pos[p + 1] = y;
+      st.pos[p + 2] = d;
+      if (kind === 'petals') {
+        var speed = Math.abs(st.vel[v] - ax) + Math.abs(st.vel[v + 2]);
+        st.pos[p + 4] += dt * (1 + s3 * 2 + speed * 1.5);
+      } else if (kind === 'fireflies') {
+        st.pos[p + 4] = Math.pow(Math.max(0, Math.sin(time * (0.5 + s2 * 0.7) + s0 * 40)), 3);
+      }
+    }
+  }
+
+  // A lantern for each person the trail's counter says is walking now, a
+  // few at most; one if someone walked within the hour. Each walks the far
+  // stretch of the path, away from you, and fades at either end of it.
+  var MAX_LANTERNS = 3;
+  var LANTERN_NEAR = 20;
+  var LANTERN_FAR = 52;
+
+  function lanternsFor(walkers) {
+    if (!walkers) return 0;
+    if (walkers.active > 0) return Math.min(MAX_LANTERNS, walkers.active);
+    return walkers.recent ? 1 : 0;
+  }
+
+  function lanternAt(i, timeSec, walked) {
+    var span = LANTERN_FAR - LANTERN_NEAR;
+    var along = ((i * 11.3 + timeSec * 0.32) % span + span) % span;
+    var d = LANTERN_NEAR + along + (walked || 0);
+    var ends = Math.min(along, span - along) / 4;
+    return {
+      x: pathX(d) + Math.sin(timeSec * 0.4 + i * 2.1) * 0.12,
+      d: d,
+      y: 1.12 + Math.sin(timeSec * 3.1 + i) * 0.025,
+      alpha: clamp(ends, 0, 1)
+    };
+  }
+
+  // The year's major showers, by their usual peak night, and where each
+  // radiant rises (0 east, the page's left). A peak drifts a day either
+  // way from year to year, so each counts the night before and after too.
+  // A night runs until six in the morning.
+  var SHOWERS = [
+    { name: 'Quadrantids', month: 0, day: 3, radiant: 0.18 },
+    { name: 'Lyrids', month: 3, day: 22, radiant: 0.3 },
+    { name: 'Eta Aquariids', month: 4, day: 6, radiant: 0.62 },
+    { name: 'Perseids', month: 7, day: 12, radiant: 0.22 },
+    { name: 'Orionids', month: 9, day: 21, radiant: 0.4 },
+    { name: 'Leonids', month: 10, day: 17, radiant: 0.28 },
+    { name: 'Geminids', month: 11, day: 14, radiant: 0.35 }
+  ];
+
+  function showerTonight(date) {
+    var night = new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getHours() < 6 ? 1 : 0));
+    for (var i = 0; i < SHOWERS.length; i++) {
+      for (var y = night.getFullYear() - 1; y <= night.getFullYear() + 1; y++) {
+        var peak = new Date(y, SHOWERS[i].month, SHOWERS[i].day);
+        if (Math.abs(Math.round((night - peak) / 86400000)) <= 1) return SHOWERS[i];
+      }
+    }
+    return null;
+  }
+
+  function meteorsNow(date, bodies) {
+    var shower = showerTonight(date);
+    return shower && bodies.sun.alt < -0.1 ? shower : null;
+  }
+
+  function showerLine(shower) {
+    return 'Tonight, the ' + shower.name;
+  }
+
+  // A meteor starts somewhere in the sky and streaks down and away from
+  // its radiant, which sits just above the top edge on the shower's side.
+  function meteorFrom(shower, r1, r2, widthPx, horizonPx) {
+    var x0 = (0.08 + 0.84 * r1) * widthPx;
+    var y0 = (0.06 + 0.42 * r2) * horizonPx;
+    var dx = x0 - shower.radiant * widthPx;
+    var dy = y0 + 0.15 * horizonPx;
+    var l = Math.sqrt(dx * dx + dy * dy) || 1;
+    return { x0: x0, y0: y0, dx: dx / l, dy: dy / l, len: (0.14 + 0.1 * r2) * widthPx };
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -211,7 +459,12 @@
   // leaf), lean direction, lean amount. Density rises into the distance so
   // the far field closes into a tone; a tenth stand close for depth. All
   // lean downwind, combed as a steady wind combs. Far to near: paint order.
-  function layoutBlades(count, tanHalfX, seed) {
+  function layoutBlades(count, tanHalfX, seed, shape) {
+    var f = shape || SEASON_FIELDS.autumn;
+    var vergeWidth = f.verge || 1.6;
+    var plumeShare = f.plumeShare === undefined ? SEASON_FIELDS.autumn.plumeShare : f.plumeShare;
+    var heightScale = f.heightScale || 1;
+    var bow = f.bow || 0;
     var rand = mulberry32(seed === undefined ? 108 : seed);
     var depths = new Float64Array(count);
     var nearCount = Math.round(count * NEAR_SHARE);
@@ -236,9 +489,9 @@
       // Ten misses in a row: step off the path onto its verge.
       if (inPath(x, d)) x = pathX(d) + (rand() < 0.5 ? -1 : 1) * (pathHalfWidth(d) + rand() * 2);
 
-      var verge = clamp(fromPath(x, d) / 1.6, 0, 1);
-      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge);
-      var plume = rand() < 0.42;
+      var verge = clamp(fromPath(x, d) / vergeWidth, 0, 1);
+      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge) * heightScale;
+      var plume = rand() < plumeShare;
       var height = plume
         ? (1.0 + rand() * 0.36) * patch + (d > 9 ? rand() * rand() * 0.6 : 0)
         : (0.45 + rand() * 0.45) * patch;
@@ -251,7 +504,7 @@
       out[k + 4] = rand();
       out[k + 5] = plume ? 1 : 0;
       out[k + 6] = WIND_ANGLE + (rand() - 0.5) * (plume ? 0.9 : 3.2);
-      out[k + 7] = plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38;
+      out[k + 7] = (plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38) + bow * rand();
     }
     return out;
   }
@@ -283,9 +536,11 @@
         stem: mix(mix(paper, ink, 0.3), stem, 0.25),
         plume: mix(mix(paper, ink, 0.62), plume, 0.22),
         mist: mix(paper, ink, 0.1),
-        ground: mix(paper, [0, 0, 0], 0.3),
+        ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, ink, 0.2) : mix(paper, [0, 0, 0], 0.3),
         path: mix(paper, ink, 0.025),
-        moonLit: mix(ink, [1, 1, 1], 0.2)
+        moonLit: mix(ink, [1, 1, 1], 0.2),
+        meteor: mix(ink, [1, 1, 1], 0.5),
+        drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42], lantern: [1, 0.78, 0.44] }
       };
     }
     return {
@@ -293,9 +548,11 @@
       stem: mix(mix(paper, ink, 0.74), stem, 0.25),
       plume: mix(mix(paper, ink, 0.17), plume, 0.2),
       mist: mix(paper, [1, 1, 1], 0.28),
-      ground: mix(paper, ink, 0.2),
+      ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, [1, 1, 1], 0.45) : mix(paper, ink, 0.2),
       path: mix(paper, [1, 1, 1], 0.12),
-      moonLit: mix(paper, [1, 1, 1], 0.82)
+      moonLit: mix(paper, [1, 1, 1], 0.82),
+      meteor: mix(paper, ink, 0.55),
+      drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16], lantern: [0.78, 0.5, 0.18] }
     };
   }
 
@@ -316,13 +573,35 @@
     pathHalfWidth: pathHalfWidth,
     inPath: inPath,
     fromPath: fromPath,
+    pathReach: pathReach,
+    localDay: localDay,
+    countVisitDay: countVisitDay,
     horizonFraction: horizonFraction,
     projection: projection,
     pointerOnField: pointerOnField,
+    driftInit: driftInit,
+    driftStep: driftStep,
+    MAX_LANTERNS: MAX_LANTERNS,
+    LANTERN_NEAR: LANTERN_NEAR,
+    LANTERN_FAR: LANTERN_FAR,
+    lanternsFor: lanternsFor,
+    showerTonight: showerTonight,
+    meteorsNow: meteorsNow,
+    showerLine: showerLine,
+    meteorFrom: meteorFrom,
+    lanternAt: lanternAt,
+    PUFF_MAX: PUFF_MAX,
+    PUFF_TOP_SPEED: PUFF_TOP_SPEED,
+    windStrength: windStrength,
+    puffFromMove: puffFromMove,
+    scrollPuff: scrollPuff,
+    stepPuff: stepPuff,
     bladeBudget: bladeBudget,
     layoutBlades: layoutBlades,
     hexToRgb: hexToRgb,
-    palette: palette
+    palette: palette,
+    seasonField: seasonField,
+    particlesFor: particlesFor
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

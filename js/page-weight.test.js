@@ -126,7 +126,30 @@ const BASELINE_KB = {
   // with it (js/main.js -0.16, css/animations.css -0.22), and the moon
   // toggle's terminator fix costs every page with a toggle +0.16
   // (js/moon.js). Raw WebGL, no library.
-  'index.html':                                 128.14,
+  // +1.28 (129.42): your movement is wind — eight gusts in place of the
+  // brush, the scroll's gust up the path, and their tested model
+  // (js/hero-field-core.js +0.72, js/hero-field.js +0.44); and the link
+  // card's moon hook and image alt, which stayed under the drift (+0.15).
+  // +1.77 (131.19): the season's own field — winter's snow, spring's
+  // petals and summer's fireflies, drawn by one instanced pass computed
+  // on the GPU from time (js/hero-field.js +1.26), and each season's
+  // shape and particles, tested (js/hero-field-core.js +0.50).
+  // +1.10 (132.29): what drifts is blown, not bounced — each flake, petal
+  // and firefly keeps a velocity a gust accelerates and that settles back
+  // to the wind from wherever it was left (js/hero-field-core.js +1.28);
+  // the shader now only draws them where they are (js/hero-field.js -0.17).
+  // +1.03 (133.32): a lantern for each person walking now, from the stats
+  // the trail already fetches (index.html +0.09), drawn between the grass
+  // beyond it and the grass before it (js/hero-field.js +0.56), with its
+  // count and walk tested (js/hero-field-core.js +0.37).
+  // +0.64 (133.96): your path wears in — one count per local day you come,
+  // on this device, reaching the path farther and treading its verge wider
+  // (js/hero-field-core.js +0.38, js/hero-field.js +0.25).
+  // +1.25 (135.21): meteors on shower nights — the year's seven showers and
+  // their radiants, the night that runs past midnight, the hero's line
+  // naming the shower (js/hero-field-core.js +0.66), and the streak in
+  // the sky shader with its rare schedule (js/hero-field.js +0.59).
+  'index.html':                                 135.21,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

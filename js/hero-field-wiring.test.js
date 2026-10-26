@@ -84,6 +84,7 @@ function fakeGl(opts) {
   gl.getAttribLocation = function (p, name) {
     return p.shaders[0].src.indexOf('attribute vec') !== -1 && p.shaders[0].src.indexOf(' ' + name + ';') !== -1 ? name.length : -1;
   };
+  gl.DYNAMIC_DRAW = 14;
   ['uniform1f', 'uniform2f', 'uniform3f', 'uniform4f', 'uniform2fv', 'uniform3fv', 'uniform4fv'].forEach(function (fn) {
     gl[fn] = function (loc) {
       if (!loc) { gl.nullWrites.push(fn); return; }
@@ -93,16 +94,34 @@ function fakeGl(opts) {
   gl.useProgram = function (p) { gl.current = p; };
   gl.createBuffer = function () { return {}; };
   gl.bindBuffer = function () {};
-  gl.bufferData = function (_target, data) { gl.uploads.push(data.length); };
+  gl.bufferData = function (_target, data) { gl.uploads.push(typeof data === 'number' ? data : data.length); };
+  gl.bufferSubData = function (_target, _offset, data) { gl.lastSubData = Array.prototype.slice.call(data); };
   ['enableVertexAttribArray', 'disableVertexAttribArray', 'vertexAttribPointer', 'vertexAttribDivisor',
     'viewport', 'clearColor', 'clear', 'enable', 'blendFunc'].forEach(function (fn) { gl[fn] = function () {}; });
   gl.drawArrays = function () { gl.draws.push('sky'); };
-  gl.drawArraysInstanced = function (_mode, _first, _count, instances) { gl.draws.push('blades:' + instances); };
+  gl.drawArraysInstanced = function (_mode, _first, _count, instances) {
+    const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aP;') !== -1;
+    const isLantern = isDrift && gl.values.uKind && gl.values.uKind[0] === 3;
+    gl.draws.push((isLantern ? 'lantern:' : isDrift ? 'drift:' : 'blades:') + instances);
+  };
   gl.getExtension = function () { return null; };
   return gl;
 }
 
 /* ---------- a fake browser ---------- */
+
+// The sky is read from new Date(); a held clock fixes the hour.
+function heldDate(at) {
+  const ms = new Date(at).getTime();
+  function Held(a, b, c, d, e, f, g) {
+    if (arguments.length === 0) return new Date(ms);
+    if (arguments.length === 1) return new Date(a);
+    return new Date(a, b, c === undefined ? 1 : c, d || 0, e || 0, f || 0, g || 0);
+  }
+  Held.now = function () { return ms; };
+  Held.prototype = Date.prototype;
+  return Held;
+}
 
 function boot(opts) {
   opts = opts || {};
@@ -146,12 +165,19 @@ function boot(opts) {
     getBoundingClientRect: function () { return { top: -sandbox.scrollY }; }
   };
 
+  const echo = { hidden: true, attrs: {}, setAttribute: function (k, v) { this.attrs[k] = v; } };
+  const echoKanji = { textContent: '' };
+  const echoText = { textContent: '' };
+  const byId = { 'turning-echo': echo, 'turning-echo-kanji': echoKanji, 'turning-echo-text': echoText };
+
   const html = { attrs: { 'data-theme': opts.theme || 'light' }, getAttribute: function (k) { return this.attrs[k] || null; } };
 
   const sandbox = {
     HeroFieldCore: Core,
+    PilgrimWalkers: opts.walkers,
+    localStorage: opts.storage,
     Moon: Moon,
-    SeasonalEngine: { getCurrentSeason: function () { return 'autumn'; } },
+    SeasonalEngine: { getCurrentSeason: function () { return opts.season || 'autumn'; } },
     devicePixelRatio: 2,
     scrollY: 0,
     navigator: { hardwareConcurrency: 8 },
@@ -174,7 +200,7 @@ function boot(opts) {
     addEventListener: function (t, fn) { (winOn[t] = winOn[t] || []).push(fn); },
     IntersectionObserver: function (cb) { io.push(cb); this.observe = function () {}; },
     MutationObserver: function (cb) { const o = { cb: cb, target: null }; mos.push(o); this.observe = function (t) { o.target = t; }; },
-    Date: Date,
+    Date: opts.at ? heldDate(opts.at) : Date,
     Math: Math,
     Float32Array: Float32Array,
     Error: Error,
@@ -183,6 +209,7 @@ function boot(opts) {
       documentElement: html,
       body: { classList: classes(opts.star ? ['constellation'] : []) },
       querySelector: function (sel) { return sel === '.hero' ? hero : null; },
+      getElementById: function (id) { return byId[id] || null; },
       createElement: function () { return canvas; },
       addEventListener: function (t, fn) { docOn[t] = fn; }
     }
@@ -191,7 +218,7 @@ function boot(opts) {
   vm.runInNewContext(SRC, sandbox, { filename: 'hero-field.js' });
 
   return {
-    sandbox: sandbox, hero: hero, canvas: canvas, quotes: quotes, html: html,
+    sandbox: sandbox, hero: hero, canvas: canvas, quotes: quotes, html: html, echo: echo, echoText: echoText,
     gl: function () { return gl; },
     warnings: warnings, timers: timers, mos: mos, winOn: winOn, docOn: docOn,
     pendingFrames: function () { return rafs.length; },
@@ -279,7 +306,7 @@ const lowp = boot({ noHighp: true });
 ok(lowp.gl().linkErrors.length === 0 && lowp.hero.children.length === 1,
   'on a GPU without fragment highp, both programs still link' + (lowp.gl().linkErrors.length ? ' — ' + lowp.gl().linkErrors.join(', ') : ''));
 
-console.log('\n=== the walk, the brush, the whisper ===\n');
+console.log('\n=== the walk, the wind, the whisper ===\n');
 
 w.sandbox.scrollY = 450;
 w.winOn.scroll.forEach(function (fn) { fn(); });
@@ -291,27 +318,189 @@ w.winOn.scroll.forEach(function (fn) { fn(); });
 for (let t = 2200; t < 4200; t += 16) w.frame(t);
 ok(gl.values.uWalk[0] < 0.01, 'and scrolling back walks you back');
 
-w.hero.on.pointermove({ pointerType: 'mouse', clientX: 720, clientY: 820 });
-for (let t = 4200; t < 4800; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] > 0.9, 'a cursor resting in the grass keeps it parted  (' + gl.values.uBrush[2].toFixed(3) + ')');
-w.hero.on.pointermove({ pointerType: 'mouse', clientX: 720, clientY: 200 });
-for (let t = 4800; t < 6000; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] < 0.05, 'and lifted into the sky, lets it stand back up');
-w.hero.on.pointermove({ pointerType: 'touch', clientX: 720, clientY: 820 });
-for (let t = 6000; t < 6300; t += 16) w.frame(t);
-ok(gl.values.uBrush[2] < 0.05, 'a finger dragging to scroll does not brush — the page is scrolling, not stroking');
+function strongest() {
+  const a = gl.values.uPuff[0];
+  let m = 0;
+  for (let i = 2; i < a.length; i += 4) m = Math.max(m, a[i]);
+  return m;
+}
+function move(type, x, y, ms) {
+  w.sandbox.clock = ms;
+  w.hero.on.pointermove({ pointerType: type, clientX: x, clientY: y });
+}
+function settle(from, to) { for (let t = from; t < to; t += 16) w.frame(t); }
+
+move('mouse', 500, 820, 4200); move('mouse', 520, 820, 4250); w.frame(4266);
+const breath = strongest();
+settle(4300, 8000);
+ok(strongest() === 0, 'a still cursor is still air: its gust dies away');
+move('mouse', 400, 820, 8000); move('mouse', 700, 820, 8050); w.frame(8066);
+const flick = strongest();
+ok(flick > 0.8, 'a flick across the grass is a gust  (' + flick.toFixed(2) + ')');
+ok(breath > 0 && breath < flick / 3, 'a slow drift only breathes on it  (' + breath.toFixed(2) + ')');
+ok(gl.values.uPuffV[0][0] > 0, 'and it blows the way the cursor went');
+settle(8100, 12000);
+move('mouse', 400, 200, 12000); move('mouse', 800, 200, 12050); w.frame(12066);
+ok(strongest() === 0, 'a cursor moving through the sky stirs no grass');
+move('touch', 400, 820, 12100); move('touch', 700, 820, 12150); w.frame(12166);
+ok(strongest() === 0, 'a finger dragging on a phone does not stroke the grass — its wind comes from the scroll');
+w.sandbox.clock = 12300; w.sandbox.scrollY = 0; w.winOn.scroll.forEach(function (fn) { fn(); });
+w.sandbox.clock = 12400; w.sandbox.scrollY = 120; w.winOn.scroll.forEach(function (fn) { fn(); });
+w.frame(12416);
+ok(Array.prototype.some.call(gl.values.uPuffV[0], function (v, i) { return i % 4 === 1 && v > 0; }),
+  'scrolling down sends a gust away from you, up the path');
+w.sandbox.scrollY = 0; w.winOn.scroll.forEach(function (fn) { fn(); });
+settle(12500, 16000);
 w.hero.on.pointerdown({ pointerType: 'touch', clientX: 720, clientY: 820 });
-w.frame(6316);
+w.frame(16016);
 ok(Array.prototype.some.call(gl.values.uRing[0], function (v, i) { return i % 4 === 3 && v === 1; }), 'a tap sends a ring of wind out through the grass');
 
 const quoteMo = w.mos.filter(function (o) { return o.target === w.quotes; })[0];
 const whisper = { classList: { contains: function (c) { return c === 'active'; } } };
 quoteMo.cb([{ target: whisper }]);
-for (let t = 6400; t < 7400; t += 16) w.frame(t);
+for (let t = 16100; t < 17100; t += 16) w.frame(t);
 ok(gl.values.uFront[1] > 0.9, 'a new whisper arrives on a gust across the field');
 const sheen = gl.values.uSheen[0];
 const plain = Core.sheenFor(Core.skyBodies(new Date(), Moon.getMoonPhase(new Date()))).rgb;
 ok(Math.abs(sheen[0] - plain[0]) + Math.abs(sheen[2] - plain[2]) > 0.05, 'and the gust carries the whisper\'s own colour');
+
+console.log('\n=== the season\'s own field ===\n');
+
+function driftDraws(world) { return world.gl().draws.filter(function (d) { return d.indexOf('drift') === 0; }); }
+function seasonFrame(season, at) {
+  const v = boot({ season: season, at: at });
+  v.seen(true);
+  v.frame(16); v.frame(32);
+  return v;
+}
+ok(driftDraws(seasonFrame('autumn', '2027-10-20T13:00:00')).length === 0, 'autumn draws only its grass and plumes');
+const winter = seasonFrame('winter', '2027-01-20T13:00:00');
+ok(driftDraws(winter)[0] === 'drift:' + Core.seasonField('winter').count, 'winter snows, ' + Core.seasonField('winter').count + ' flakes in one instanced draw');
+ok(winter.gl().draws.indexOf('drift:' + Core.seasonField('winter').count) > winter.gl().draws.indexOf('blades:' + Core.bladeBudget(1440, 900, { cores: 8 })),
+  'and the snow falls in front of the grass, drawn after it');
+ok(winter.gl().nullWrites.length === 0, 'every uniform the snow sets is one its shaders declare');
+ok(driftDraws(seasonFrame('summer', '2027-07-15T13:00:00')).length === 0, 'a summer noon has no fireflies');
+ok(driftDraws(seasonFrame('summer', '2027-07-15T23:30:00'))[0] === 'drift:' + Core.seasonField('summer').count, 'a summer night does');
+ok(driftDraws(seasonFrame('spring', '2027-04-15T13:00:00'))[0] === 'drift:' + Core.seasonField('spring').count, 'spring petals drift through the day');
+function snowAfter(flicked) {
+  const v = boot({ season: 'winter', at: '2027-01-20T13:00:00' });
+  v.seen(true);
+  for (let t = 16; t < 3000; t += 16) v.frame(t);
+  if (flicked) {
+    for (let i = 0; i <= 6; i++) {
+      v.sandbox.clock = 3000 + i * 45;
+      v.hero.on.pointermove({ pointerType: 'mouse', clientX: 300 + i * 150, clientY: 700 });
+    }
+  }
+  for (let t = 3016; t < 6400; t += 16) v.frame(t);
+  return v.gl().lastSubData;
+}
+const blownSnow = snowAfter(true), calmSnow = snowAfter(false);
+// Snow blown off one side of the view drifts back in from the other, so
+// compare positions around the view's width at each flake's depth.
+const viewTan = Core.projection(1440, 900, Core.horizonFraction(423, 900)).tanHalfX;
+let moved = 0, sprang = 0;
+for (let i = 0; i < blownSnow.length; i += 5) {
+  const width = 2 * (blownSnow[i + 2] * viewTan * 1.1 + 1);
+  let dx = blownSnow[i] - calmSnow[i];
+  dx -= Math.round(dx / width) * width;
+  if (dx > 0.3) moved++;
+  if (dx < -0.3) sprang++;
+}
+ok(moved >= 5, 'a flick through falling snow blows flakes downwind, and three seconds on they are still there  (' + moved + ' flakes)');
+ok(sprang <= moved / 10, 'it blows them, it does not bounce them back  (' + sprang + ' the other way)');
+
+const still = boot({ season: 'winter', at: '2027-01-20T13:00:00', reduced: true });
+still.frame(16);
+still.seen(true);
+ok(driftDraws(still).length === 1 && still.pendingFrames() === 0, 'with less motion the snow hangs in the still painting, and nothing moves');
+
+console.log('\n=== a lantern for someone walking ===\n');
+
+function lastFrameDraws(world) {
+  const draws = world.gl().draws;
+  const start = draws.lastIndexOf('sky');
+  return draws.slice(start + 1);
+}
+const lonely = boot();
+lonely.seen(true); lonely.frame(16); lonely.frame(32);
+ok(lastFrameDraws(lonely).filter(function (d) { return d.indexOf('lantern') === 0; }).length === 0,
+  'no word from the trail: no lanterns, and the grass in one draw');
+
+const lit = boot();
+lit.seen(true); lit.frame(16);
+lit.winOn['pilgrim:walkers'].forEach(function (fn) { fn({ detail: { active: 2, recent: true } }); });
+lit.frame(32);
+const lf = lastFrameDraws(lit);
+const lanternDraws = lf.filter(function (d) { return d.indexOf('lantern') === 0; });
+const segments = lf.filter(function (d) { return d.indexOf('blades') === 0; }).map(function (d) { return +d.split(':')[1]; });
+ok(lanternDraws.length === 2, 'two walking now, the trail says: two lanterns in the field');
+ok(segments.reduce(function (a, b) { return a + b; }, 0) === Core.bladeBudget(1440, 900, { cores: 8 }),
+  'the grass is drawn around them, every blade once  (' + segments.join(' + ') + ')');
+ok(lf[0].indexOf('blades') === 0 && lf.indexOf(lanternDraws[0]) > 0 && lf.lastIndexOf('lantern:1') < lf.length - 1,
+  'each lantern sits between the grass beyond it and the grass before it');
+
+const early = boot({ walkers: { active: 0, recent: true } });
+early.seen(true); early.frame(16); early.frame(32);
+ok(lastFrameDraws(early).filter(function (d) { return d.indexOf('lantern') === 0; }).length === 1,
+  'if the trail spoke first, the field lights its lantern from the start');
+
+console.log('\n=== your path wears in ===\n');
+
+function memoryStorage() {
+  const m = {};
+  return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, m: m };
+}
+function pathFadeOn(storage, at) {
+  const v = boot({ storage: storage, at: at });
+  v.seen(true); v.frame(16); v.frame(32);
+  return v.gl().values.uPathFade;
+}
+const store = memoryStorage();
+const day1 = pathFadeOn(store, '2027-03-01T10:00:00');
+ok(store.m.pilgrimFieldDays === '1' && day1[0] === Core.pathReach(1).fadeFrom, 'a first visit counts one day, and the path is as first laid');
+pathFadeOn(store, '2027-03-01T21:00:00');
+ok(store.m.pilgrimFieldDays === '1', 'coming back that evening counts nothing more');
+const day2 = pathFadeOn(store, '2027-03-02T08:00:00');
+ok(store.m.pilgrimFieldDays === '2' && day2[0] > day1[0], 'the next morning, the path reaches a little farther  (' + day2[0].toFixed(1) + ' m)');
+for (let d = 3; d <= 30; d++) pathFadeOn(store, '2027-03-' + (d < 10 ? '0' : '') + d + 'T08:00:00');
+ok(+store.m.pilgrimFieldDays === 30 && pathFadeOn(store, '2027-03-30T09:00:00')[0] >= 50, 'a month of mornings and it runs out toward the horizon');
+const locked = { getItem: function () { throw new Error('SecurityError'); }, setItem: function () { throw new Error('SecurityError'); } };
+const lockedWorld = boot({ storage: locked });
+lockedWorld.seen(true); lockedWorld.frame(16); lockedWorld.frame(32);
+ok(lockedWorld.hero.children.length === 1 && lockedWorld.gl().values.uPathFade[0] === Core.pathReach(1).fadeFrom,
+  'with storage refused, the field still paints, the path as first laid');
+
+console.log('\n=== meteors on shower nights ===\n');
+
+function meteorsSeen(world, from, to) {
+  let seen = 0, wasOn = false;
+  for (let t = from; t < to; t += 16) {
+    world.frame(t);
+    const on = world.gl().values.uMeteorB[2] > 0;
+    if (on && !wasOn) seen++;
+    wasOn = on;
+  }
+  return seen;
+}
+const leonidsNight = boot({ at: '2027-11-17T23:00:00' });
+leonidsNight.seen(true);
+ok(!leonidsNight.echo.hidden && leonidsNight.echoText.textContent === 'Tonight, the Leonids', 'on the night of the Leonids, the hero names them');
+const fell = meteorsSeen(leonidsNight, 16, 90000);
+ok(fell >= 2 && fell <= 8, 'and in a minute and a half a few meteors fall — rare, not a fireworks show  (' + fell + ')');
+
+const ordinary = boot({ at: '2027-03-15T23:00:00' });
+ordinary.seen(true);
+ok(ordinary.echo.hidden, 'an ordinary night names nothing');
+ok(meteorsSeen(ordinary, 16, 90000) === 0, 'and nothing falls');
+
+const leonidsDay = boot({ at: '2027-11-17T13:00:00' });
+leonidsDay.seen(true);
+ok(!leonidsDay.echo.hidden, 'the afternoon before, the hero already says tonight');
+ok(meteorsSeen(leonidsDay, 16, 90000) === 0, 'but no meteor crosses a daylight sky');
+
+const stillLeonids = boot({ at: '2027-11-17T23:00:00', reduced: true });
+ok(!stillLeonids.echo.hidden && stillLeonids.gl().values.uMeteorB[2] === 0, 'with less motion, the line still says it, and no meteor moves');
 
 console.log('\n=== a visitor who asked for less motion ===\n');
 

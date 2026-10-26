@@ -2330,6 +2330,10 @@
           }
         }
 
+        // The hero's field lights a lantern for each walker (js/hero-field.js).
+        window.PilgrimWalkers = { active: stats.estimated_active || 0, recent: isWalkingNow };
+        window.dispatchEvent(new CustomEvent('pilgrim:walkers', { detail: window.PilgrimWalkers }));
+
         if (walkingEl) {
           walkingEl.replaceChildren();
           var active = stats.estimated_active || 0;

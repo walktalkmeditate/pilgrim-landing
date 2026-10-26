@@ -137,6 +137,191 @@ ok(downwind, 'every blade leans within a right angle of downwind');
 ok(verge.length > 10 && mean(verge) < 0.75 * mean(open),
   'plumes on the verge are trodden low  (' + mean(verge).toFixed(2) + ' m vs ' + mean(open).toFixed(2) + ' m in the open)');
 
+console.log('\n=== the season\'s own field ===\n');
+
+const shapes = {};
+['spring', 'summer', 'autumn', 'winter'].forEach(function (season) { shapes[season] = C.seasonField(season); });
+ok(shapes.autumn.plumeShare > 0.35, 'autumn is the season of plumes  (' + shapes.autumn.plumeShare + ')');
+ok(shapes.spring.plumeShare < 0.1, 'spring grass is young: almost no plumes yet');
+ok(shapes.summer.plumeShare < shapes.autumn.plumeShare && shapes.summer.heightScale > 1, 'summer is lush and tall, its plumes only beginning');
+ok(shapes.winter.bow > 0 && shapes.winter.snow, 'winter stalks are bowed, and the ground is snow');
+ok(!shapes.autumn.snow && !shapes.spring.snow && !shapes.summer.snow, 'and only winter is');
+ok(C.seasonField('nonsense').plumeShare === shapes.autumn.plumeShare, 'an unknown season paints autumn, the field as first made');
+
+function plumeShareOf(arr) {
+  let plumes = 0;
+  for (let i = 0; i < arr.length / C.FLOATS_PER_BLADE; i++) plumes += arr[i * C.FLOATS_PER_BLADE + 5];
+  return plumes / (arr.length / C.FLOATS_PER_BLADE);
+}
+const springLayout = C.layoutBlades(4000, proj.tanHalfX, 7, shapes.spring);
+const autumnLayout = C.layoutBlades(4000, proj.tanHalfX, 7, shapes.autumn);
+ok(Math.abs(plumeShareOf(springLayout) - shapes.spring.plumeShare) < 0.02, 'the layout grows the season\'s share of plumes  (spring ' + plumeShareOf(springLayout).toFixed(3) + ')');
+ok(Math.abs(plumeShareOf(autumnLayout) - shapes.autumn.plumeShare) < 0.03, 'autumn\'s too  (' + plumeShareOf(autumnLayout).toFixed(3) + ')');
+ok(C.layoutBlades(4000, proj.tanHalfX, 7).every(function (v, i) { return v === autumnLayout[i]; }), 'no shape given grows autumn\'s field, as before');
+
+const night = C.skyBodies(new Date(2027, 6, 15, 23, 0), 0.3);
+const noon = C.skyBodies(new Date(2027, 6, 15, 13, 0), 0.3);
+ok(C.particlesFor('summer', night).kind === 'fireflies', 'a summer night has fireflies over the grass');
+ok(C.particlesFor('summer', noon).count === 0, 'a summer noon has none — fireflies need the dark');
+ok(C.particlesFor('winter', noon).kind === 'snow' && C.particlesFor('winter', night).kind === 'snow', 'winter snows by day and by night');
+ok(C.particlesFor('spring', noon).kind === 'petals', 'spring petals drift on the wind');
+ok(C.particlesFor('autumn', noon).count === 0 && C.particlesFor('autumn', night).count === 0, 'autumn needs nothing but its plumes');
+['spring', 'summer', 'winter'].forEach(function (season) {
+  const n = C.particlesFor(season, night).count;
+  ok(n > 0 && n <= 320, season + ' keeps its particles few  (' + n + ')');
+});
+
+console.log('\n=== what drifts is blown, not bounced ===\n');
+
+const TX = proj.tanHalfX;
+function drift(kind, n) { return C.driftInit(kind, n, TX, 0, 5); }
+function run(st, kind, n, secs, puffsAt) {
+  for (let t = 0; t < secs; t += 1 / 60) C.driftStep(st, kind, n, 1 / 60, t, puffsAt ? puffsAt(t) : [], 0, TX);
+}
+function meanX(st, n) { let m = 0; for (let i = 0; i < n; i++) m += st.pos[i * 5]; return m / n; }
+
+const N2 = 200;
+const a1 = drift('snow', N2), a2 = drift('snow', N2);
+ok(a1.pos.every(function (v, i) { return v === a2.pos[i]; }), 'the same seed lays the same snow');
+let inBand = true;
+for (let i = 0; i < N2; i++) {
+  const y = a1.pos[i * 5 + 1], dd = a1.pos[i * 5 + 2];
+  const reach = dd * TX * 1.1 + 1;
+  if (y < 0 || y > 7 || Math.abs(a1.pos[i * 5]) > reach || dd < 2.5 || dd > 36.5) inBand = false;
+}
+ok(inBand, 'it starts in the air in front of you, across the view');
+const y0 = a1.pos[1];
+run(a1, 'snow', N2, 0.5);
+ok(a1.pos[1] < y0 || a1.pos[1] > 6, 'snow falls');
+
+// One gust, a flick to the right across the middle of the field, then nothing.
+function flick(t) {
+  return t < 0.3 ? [{ x: -4 + t * 20, d: 14, vx: 20, vd: 0, s: 0.9, r: 3 }] : [];
+}
+const blown = drift('snow', N2), calm = drift('snow', N2);
+// The flakes the flick passed through: its band of depth and its sweep.
+const inGust = [];
+for (let i = 0; i < N2; i++) {
+  const x = blown.pos[i * 5], dd = blown.pos[i * 5 + 2];
+  if (Math.abs(dd - 14) < 2 && x > -5 && x < 3) inGust.push(i);
+}
+run(blown, 'snow', N2, 3.3, flick);
+run(calm, 'snow', N2, 3.3);
+const shift = inGust.map(function (i) { return blown.pos[i * 5] - calm.pos[i * 5]; });
+const kept = mean(shift);
+ok(inGust.length >= 3 && kept > 0.6, 'a gust blows the snow it passes through the way it went, and three seconds on those flakes are still where it left them  (' + kept.toFixed(2) + ' m, ' + inGust.length + ' flakes)');
+ok(shift.every(function (v) { return v > -0.01; }), 'none of them springs back past where it would have been');
+let relaxed = 0;
+for (let i = 0; i < N2; i++) relaxed = Math.max(relaxed, Math.abs(blown.vel[i * 3] - calm.vel[i * 3]));
+ok(relaxed < 0.6, 'while their speed has settled back to the wind\'s  (' + relaxed.toFixed(2) + ' m/s apart at most)');
+
+const pb = drift('petals', N2), pc = drift('petals', N2);
+run(pb, 'petals', N2, 3.3, flick);
+run(pc, 'petals', N2, 3.3);
+ok(meanX(pb, N2) - meanX(pc, N2) > meanX(blown, N2) - meanX(calm, N2), 'petals are lighter: the same gust carries them farther than snow');
+
+const longRun = drift('snow', N2);
+run(longRun, 'snow', N2, 60, function (t) { return t % 5 < 0.3 ? [{ x: 0, d: 10, vx: 25, vd: 0, s: 0.9, r: 4 }] : []; });
+let stays = true;
+for (let i = 0; i < N2; i++) {
+  const x = longRun.pos[i * 5], y = longRun.pos[i * 5 + 1], dd = longRun.pos[i * 5 + 2];
+  if (y < -0.01 || y > 7.01 || Math.abs(x) > (dd * TX * 1.1 + 1) + 0.01) stays = false;
+}
+ok(stays, 'a minute of gusts later, every flake is still in view — blown off one side, it drifts in from the other');
+
+const ff = drift('fireflies', 64);
+run(ff, 'fireflies', 64, 60);
+let keepsLow = true;
+for (let i = 0; i < 64; i++) { const y = ff.pos[i * 5 + 1]; if (y < 0.2 || y > 2.4) keepsLow = false; }
+ok(keepsLow, 'fireflies keep low over the grass');
+console.log('\n=== a lantern for someone walking ===\n');
+
+ok(C.lanternsFor(null) === 0, 'no word from the trail, no lanterns');
+ok(C.lanternsFor({ active: 0, recent: false }) === 0, 'nobody walking, nobody lately: an empty field');
+ok(C.lanternsFor({ active: 0, recent: true }) === 1, 'someone walked within the hour: one lantern');
+ok(C.lanternsFor({ active: 2, recent: true }) === 2, 'two walking now: two lanterns');
+ok(C.lanternsFor({ active: 40, recent: true }) === C.MAX_LANTERNS, 'forty walking: still only ' + C.MAX_LANTERNS + ' — a few lights, not a crowd');
+
+const L0 = C.lanternAt(0, 10, 0);
+const L0later = C.lanternAt(0, 20, 0);
+ok(L0.d >= C.LANTERN_NEAR && L0.d <= C.LANTERN_FAR, 'a lantern walks the far stretch of the path  (' + L0.d.toFixed(1) + ' m)');
+ok(Math.abs(L0.x - C.pathX(L0.d)) < 0.35, 'on the path itself');
+const L0walked = C.lanternAt(0, 10, 3);
+ok(Math.abs(L0walked.x - C.pathX(L0walked.d)) < 0.35, 'still on it after you have walked — the path stays where it lies');
+ok(L0later.d > L0.d, 'walking away from you, slowly  (' + (L0later.d - L0.d).toFixed(2) + ' m in 10 s)');
+ok(L0.y > 0.9 && L0.y < 1.4, 'held at a lantern\'s height');
+const apart = Math.abs(C.lanternAt(1, 10, 0).d - C.lanternAt(0, 10, 0).d);
+ok(apart > 4, 'two lanterns keep their distance  (' + apart.toFixed(1) + ' m)');
+ok(C.lanternAt(0, 10, 3).d === C.lanternAt(0, 10, 0).d + 3, 'and walking up the path brings you no closer to them');
+let faded = 1;
+for (let t = 0; t < 400; t += 0.5) faded = Math.min(faded, C.lanternAt(0, t, 0).alpha);
+ok(faded < 0.05, 'at each end of its stretch a lantern fades, rather than blinking out');
+
+console.log('\n=== your path wears in ===\n');
+
+const first = C.pathReach(1);
+ok(first.fadeFrom === 22 && first.fadeTo === 40 && first.verge === 1.6, 'a first visit walks the path as it was first laid');
+ok(C.pathReach(0).fadeFrom === first.fadeFrom, 'and so does a visit storage would not count');
+let rising = true;
+for (let dd = 1; dd < 400; dd++) {
+  const a1r = C.pathReach(dd), b1r = C.pathReach(dd + 1);
+  if (b1r.fadeFrom < a1r.fadeFrom || b1r.verge < a1r.verge) rising = false;
+}
+ok(rising, 'each day you come back, it reaches a little farther and the verge is trodden wider');
+ok(C.pathReach(30).fadeFrom >= 50, 'after a month it runs out toward the horizon  (' + C.pathReach(30).fadeFrom.toFixed(0) + ' m)');
+ok(C.pathReach(1e6).fadeFrom <= 62 && C.pathReach(1e6).verge <= 2.8, 'and it never outruns the field');
+
+ok(C.countVisitDay(null, '2027-03-01').days === 1, 'the first day counts as one');
+ok(C.countVisitDay({ days: 4, last: '2027-03-01' }, '2027-03-01').days === 4, 'coming back the same day counts nothing more');
+ok(C.countVisitDay({ days: 4, last: '2027-03-01' }, '2027-03-02').days === 5, 'the next day counts one more');
+ok(C.countVisitDay({ days: 'x', last: '2027-03-01' }, '2027-03-02').days === 1, 'a garbled count starts again at one');
+ok(C.localDay(new Date(2027, 2, 1, 23, 59)) === '2027-03-01', 'a day is your local day, not Greenwich\'s');
+
+const worn = C.layoutBlades(4000, proj.tanHalfX, 7, { verge: C.pathReach(60).verge });
+const fresh = C.layoutBlades(4000, proj.tanHalfX, 7, { verge: C.pathReach(1).verge });
+function vergeMean(arr) {
+  const hs = [];
+  for (let i = 0; i < arr.length / C.FLOATS_PER_BLADE; i++) {
+    const k = i * C.FLOATS_PER_BLADE;
+    const e = C.fromPath(arr[k], arr[k + 1]);
+    if (e > 0.8 && e < 1.6 && arr[k + 1] < 30) hs.push(arr[k + 2]);
+  }
+  return mean(hs);
+}
+ok(vergeMean(worn) < vergeMean(fresh), 'a worn path\'s verge is lower a step from its edge  (' + vergeMean(worn).toFixed(2) + ' vs ' + vergeMean(fresh).toFixed(2) + ' m)');
+
+console.log('\n=== meteors on shower nights ===\n');
+
+function named(d) { const sh = C.showerTonight(d); return sh ? sh.name : null; }
+ok(named(new Date(2027, 10, 17, 22, 0)) === 'Leonids', 'the evening of 17 November is the Leonids');
+ok(named(new Date(2027, 10, 18, 2, 0)) === 'Leonids', 'and so are the small hours after it — still that night');
+ok(named(new Date(2027, 10, 20, 22, 0)) === null, 'three nights on, nothing');
+ok(named(new Date(2027, 7, 12, 23, 0)) === 'Perseids', 'mid-August is the Perseids');
+ok(named(new Date(2027, 11, 14, 21, 0)) === 'Geminids', 'mid-December the Geminids');
+ok(named(new Date(2027, 0, 3, 22, 0)) === 'Quadrantids', 'the Quadrantids open the year');
+ok(named(new Date(2027, 0, 1, 1, 0)) === null, 'but one in the morning on New Year\'s Day is still the night of 31 December');
+ok(named(new Date(2027, 0, 5, 3, 0)) === 'Quadrantids', 'and their last night runs past midnight into the 5th');
+ok(named(new Date(2027, 2, 15, 22, 0)) === null, 'a March night has no shower');
+
+const leonidNight = new Date(2027, 10, 17, 23, 0);
+const leonidDay = new Date(2027, 10, 17, 13, 0);
+ok(C.meteorsNow(leonidNight, C.skyBodies(leonidNight, 0.5)) !== null, 'meteors fall in the dark of a shower night');
+ok(C.meteorsNow(leonidDay, C.skyBodies(leonidDay, 0.5)) === null, 'never by day, even on the day itself');
+const quiet = new Date(2027, 2, 15, 23, 0);
+ok(C.meteorsNow(quiet, C.skyBodies(quiet, 0.5)) === null, 'and never on an ordinary night');
+
+const leonids = C.showerTonight(leonidNight);
+let away = true, inSky = true;
+for (let i = 0; i < 50; i++) {
+  const m = C.meteorFrom(leonids, (i * 0.37) % 1, (i * 0.61) % 1, 1440, 580);
+  const rx = leonids.radiant * 1440;
+  if ((m.x0 - rx) * m.dx < 0 || m.dy <= 0) away = false;
+  if (m.y0 < 0 || m.y0 > 580 || m.x0 < 0 || m.x0 > 1440) inSky = false;
+}
+ok(away, 'every meteor streaks down and away from its shower\'s radiant');
+ok(inSky, 'and starts in the sky, above the grass');
+ok(C.showerLine(leonids) === 'Tonight, the Leonids', 'the hero names it: "Tonight, the Leonids"');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {
@@ -157,6 +342,41 @@ ok(C.pointerOnField(900, 820, 1440, 900, P, 3).d - hit.d === 3, 'and the walk ca
 ok(C.horizonFraction(400, 900) * 900 >= 400 + 0.13 * 900, 'the horizon leaves room under the words for the moon');
 ok(C.horizonFraction(600, 650) === 0.8, 'and on a short screen never leaves less than a fifth for the field');
 ok(C.horizonFraction(100, 900) === 0.58, 'nor more than its share on a tall one');
+
+console.log('\n=== your movement is wind ===\n');
+
+ok(C.windStrength(0, 1440) === 0, 'a still cursor is still air');
+ok(C.windStrength(144, 1440) < 0.15, 'a slow drift, a tenth of the screen a second, is a breath  (' + C.windStrength(144, 1440).toFixed(2) + ')');
+ok(C.windStrength(2880, 1440) > 0.8, 'a flick, two screens a second, is a gust  (' + C.windStrength(2880, 1440).toFixed(2) + ')');
+ok(C.windStrength(1e6, 1440) <= C.PUFF_MAX, 'a frantic scribble is capped, and never flattens the field');
+ok(C.windStrength(720, 1440) > C.windStrength(360, 1440), 'faster is stronger');
+ok(Math.abs(C.windStrength(500, 1000) - C.windStrength(1000, 2000)) < 1e-12, 'strength is measured in screens, so a phone and a monitor agree');
+
+const from = { x: -2, d: 12 }, to = { x: -1, d: 12 };
+const puff = C.puffFromMove(from, to, 0.05, 2000, 1440);
+ok(puff.vx > 0 && Math.abs(puff.vd) < 1e-9, 'a gust blows the way the cursor travelled, not away from it');
+ok(puff.x === to.x && puff.d === to.d, 'and starts where the cursor is now');
+ok(Math.abs(puff.s - C.windStrength(2000, 1440)) < 1e-12, 'with the strength of the cursor\'s speed on screen');
+const wild = C.puffFromMove({ x: 0, d: 10 }, { x: 0, d: 59 }, 0.016, 3000, 1440);
+ok(Math.hypot(wild.vx, wild.vd) <= C.PUFF_TOP_SPEED + 1e-9, 'a jump toward the horizon cannot fling a gust off at a hundred metres a second');
+
+const carried = Object.assign({}, puff);
+let alive = true, steps = 0;
+const startX = carried.x, startS = carried.s;
+while (alive && steps < 600) { alive = C.stepPuff(carried, 1 / 60); steps++; }
+ok(carried.x > startX + 0.5, 'a flick\'s gust carries on past the cursor  (' + (carried.x - startX).toFixed(2) + ' m)');
+ok(!alive && steps < 240, 'and fades within a few seconds  (' + (steps / 60).toFixed(1) + ' s)');
+const half = Object.assign({}, puff);
+for (let i = 0; i < 30; i++) C.stepPuff(half, 1 / 60);
+ok(half.s < startS && half.s > startS * 0.2, 'half a second on it is weaker, not gone');
+
+const ahead = C.scrollPuff(120, 0.016, 900, 0);
+const back = C.scrollPuff(-120, 0.016, 900, 2);
+ok(ahead.vd > 0 && Math.abs(ahead.vx) < 1e-9, 'scrolling down sends wind away from you, up the path');
+ok(back.vd < 0, 'scrolling up sends it back toward you');
+ok(Math.abs(ahead.x - C.pathX(ahead.d)) < 1e-9 && ahead.d > 0, 'it rises on the path, just ahead of where you stand');
+ok(back.d > ahead.d, 'and moves with you as you walk');
+ok(C.scrollPuff(4, 0.016, 900, 0).s < C.scrollPuff(200, 0.016, 900, 0).s, 'a flung scroll blows harder than a nudge');
 
 console.log('\n=== the budget ===\n');
 
@@ -190,6 +410,8 @@ const DARK = { parchment: '#1C1914', ink: '#F0EBE1', inkFog: '#908A83' };
   ok(lum(l.plume) < lum(l.paper), season + ', light: plumes are darker than the paper, or they vanish into it');
   ok(lum(d.plume) > lum(d.paper), season + ', dark: and lighter than night paper');
 });
+ok(lum(C.palette(LIGHT, 'winter', false).ground) > lum(C.palette(LIGHT, 'autumn', false).ground), 'winter ground is snow, lighter than autumn\'s');
+ok(lum(C.palette(DARK, 'winter', true).ground) > lum(C.palette(DARK, 'autumn', true).ground), 'and glows a little in the dark');
 ok(C.palette({ parchment: 'nonsense', ink: '' }, 'autumn', false).paper.length === 3,
   'an unreadable token falls back to the paper it should have been');
 
