@@ -460,6 +460,56 @@
     return { x0: x0, y0: y0, dx: dx / l, dy: dy / l, len: (0.14 + 0.1 * r2) * widthPx };
   }
 
+  // Clouds across the moon. Each night brings its own weather — some clear,
+  // some with a few ink-wash bands drifting past on the wind — and a cloud
+  // that crosses the moon veils its light on the grass until it has gone.
+  // Clouds live in the band of sky between the words and the horizon, in
+  // coordinates of that band (x a fraction of the width, y of the band's
+  // height), so they never wash the words.
+  var MAX_CLOUDS = 4;
+
+  function smoothstep(a, b, x) {
+    var t = clamp((x - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+
+  function cloudsFor(date) {
+    var night = new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getHours() < 6 ? 1 : 0));
+    var rand = mulberry32(Math.imul(night.getFullYear() * 400 + night.getMonth() * 32 + night.getDate(), 2654435761));
+    var roll = rand();
+    var count = roll < 0.3 ? 0 : roll < 0.55 ? 1 : roll < 0.8 ? 2 : roll < 0.93 ? 3 : 4;
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      out.push({
+        x0: rand() * 2.4 - 0.6, y: 0.2 + rand() * 0.65,
+        w: 0.22 + rand() * 0.3, h: 0.14 + rand() * 0.16,
+        density: 0.55 + rand() * 0.4, speed: 0.0016 + rand() * 0.0024, seed: rand() * 50
+      });
+    }
+    return out;
+  }
+
+  function cloudAt(c, timeSec) {
+    var span = 2.4;
+    var x = ((c.x0 + 0.6 + c.speed * timeSec) % span + span) % span - 0.6;
+    return { x: x, y: c.y, w: c.w, h: c.h, density: c.density, seed: c.seed };
+  }
+
+  function cloudDensity(c, x, y) {
+    var dx = (x - c.x) / c.w, dy = (y - c.y) / c.h;
+    return c.density * (1 - smoothstep(0.2, 1, Math.sqrt(dx * dx + dy * dy)));
+  }
+
+  function moonVeil(clouds, x, y) {
+    var clear = 1;
+    for (var i = 0; i < clouds.length; i++) clear *= 1 - cloudDensity(clouds[i], x, y);
+    return 1 - clear;
+  }
+
+  function cloudGlsl() {
+    return 'float cloudShape(vec2 p, vec4 c){ vec2 d = (p - c.xy) / c.zw; return 1.0 - smoothstep(0.2, 1.0, length(d)); }';
+  }
+
   // Your own lantern: be still on the hero a while and one is lit where
   // the path begins, just ahead of you, and walks away up it at a walker's
   // pace until the far field takes it. Once a visit.
@@ -616,6 +666,7 @@
         moonLit: mix(ink, [1, 1, 1], 0.2),
         meteor: mix(ink, [1, 1, 1], 0.5),
         dusk: [0.012, 0.011, 0.01],
+        cloud: mix(paper, ink, 0.09),
         shade: mix(paper, [0, 0, 0], 0.45),
         rimBase: mix(ink, [1, 1, 1], 0.25),
         lamp: [1, 0.74, 0.38],
@@ -632,6 +683,7 @@
       moonLit: mix(paper, [1, 1, 1], 0.82),
       meteor: mix(paper, ink, 0.55),
       dusk: ink,
+      cloud: mix(paper, ink, 0.13),
       shade: mix(paper, ink, 0.5),
       rimBase: mix(paper, [1, 1, 1], 0.75),
       lamp: [0.86, 0.55, 0.2],
@@ -678,6 +730,12 @@
     showerLine: showerLine,
     meteorFrom: meteorFrom,
     lanternAt: lanternAt,
+    MAX_CLOUDS: MAX_CLOUDS,
+    cloudsFor: cloudsFor,
+    cloudAt: cloudAt,
+    cloudDensity: cloudDensity,
+    moonVeil: moonVeil,
+    cloudGlsl: cloudGlsl,
     STILL_SECONDS: STILL_SECONDS,
     ownLanternAt: ownLanternAt,
     PUFF_MAX: PUFF_MAX,

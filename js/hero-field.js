@@ -276,12 +276,14 @@
     '    vec2 r = vec2(cos(vRot) * vQ.x - sin(vRot) * vQ.y, sin(vRot) * vQ.x + cos(vRot) * vQ.y);',
     '    r.y *= 1.9;',
     '    a = 1.0 - smoothstep(0.5, 1.0, length(r));',
+    // A glow must reach nothing before its square sprite ends, or the
+    // square's edge shows as a line across the light.
     '  } else if (uKind < 2.5) {',
     '    float l = dot(vQ, vQ);',
-    '    a = (exp(-l * 10.0) + exp(-l * 2.0) * 0.4) * vGlow;',
+    '    a = (exp(-l * 10.0) + exp(-l * 2.0) * 0.4) * (1.0 - smoothstep(0.5, 1.0, l)) * vGlow;',
     '  } else {',
     '    float l = dot(vQ, vQ);',
-    '    a = (exp(-l * 16.0) + exp(-l * 2.4) * 0.5) * vGlow;',
+    '    a = (exp(-l * 16.0) + exp(-l * 2.4) * 0.5) * (1.0 - smoothstep(0.5, 1.0, l)) * vGlow;',
     '  }',
     '  a *= 1.0 - smoothstep(uFadeFrom, 1.0, 1.0 - gl_FragCoord.y / uRes.y);',
     '  vec3 c = mix(uColor, uMist, vFog * 0.7);',
@@ -323,9 +325,16 @@
     'uniform vec4 uLight;',
     'uniform vec3 uLane;',
     'uniform vec3 uRim;',
+    'uniform vec4 uCloud[4];',
+    'uniform vec4 uCloudD[4];',
+    'uniform vec2 uCloudBand;',
+    'uniform vec3 uCloudC;',
+    'uniform vec4 uLamp[4];',
+    'uniform vec3 uLampC;',
     NOISE,
     C.pathGlsl(),
     C.bokashiGlsl(),
+    C.cloudGlsl(),
     'void main(){',
     '  vec2 fc = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
     '  float y01 = fc.y / uRes.y;',
@@ -369,6 +378,21 @@
     '      float streak = step(0.0, behind) * (1.0 - smoothstep(0.0, tail, behind)) * (1.0 - smoothstep(0.5, 1.5 * uMeteorB.w, across));',
     '      col = mix(col, vec4(uMeteorC, 1.0), streak * (1.0 - smoothstep(0.6, 1.0, uMeteorB.y)) * uMeteorB.z * 0.9);',
     '    }',
+    // Ink-wash clouds drift across the band of sky below the words; over
+    // the moon they veil it, and near it their thin edges catch its light.
+    '    vec2 cp = vec2(fc.x / uRes.x, (y01 / uHorizon - uCloudBand.x) / (uCloudBand.y - uCloudBand.x));',
+    '    vec2 mq = (fc - uMoon.xy) / (uMoon.z * 6.0);',
+    '    float nearMoon = exp(-dot(mq, mq)) * uMoonShow;',
+    '    for (int i = 0; i < 4; i++) {',
+    '      vec4 cl = uCloud[i];',
+    '      if (cl.z <= 0.0) continue;',
+    '      float base = cloudShape(cp, cl) * uCloudD[i].x;',
+    '      float wisp = noise(vec2((cp.x - cl.x) / cl.z * 3.0 + uCloudD[i].y, cp.y / cl.w * 2.2)) * 0.55 + noise(vec2(cp.x * 31.0, cp.y * 9.0) + uCloudD[i].y) * 0.45;',
+    '      float dens = base * smoothstep(0.3, 0.7, wisp * 0.75 + base * 0.45);',
+    '      float lining = smoothstep(0.04, 0.3, dens) * (1.0 - smoothstep(0.3, 0.75, dens)) * nearMoon;',
+    '      col = mix(col, vec4(uCloudC, 1.0), dens * 0.88);',
+    '      col.rgb += uMoonLit * lining * (0.12 + 0.25 * uDark);',
+    '    }',
     '    float mistLine = exp(-pow((uHorizon - y01) * uRes.y / 26.0, 2.0));',
     '    col = mix(col, vec4(uMist, 1.0), mistLine * 0.75);',
     '  } else {',
@@ -388,6 +412,14 @@
     '    g = mix(g, uDusk, uLane.y * 0.45 * (1.0 - glane) * smoothstep(0.0, 0.25, k));',
     '    g = mix(g, uRim, glane * 0.14);',
     '    col = vec4(g, 1.0);',
+    '  }',
+    // A lantern lights the air and the ground around it, not only the grass,
+    // or the dark just past the lit stalks reads as a shelf.
+    '  for (int i = 0; i < 4; i++) {',
+    '    vec4 L = uLamp[i];',
+    '    if (L.w < 0.001) continue;',
+    '    vec2 dl = (fc - L.xy) / L.z;',
+    '    col.rgb += uLampC * exp(-dot(dl, dl) * 1.4) * L.w * 0.16 * col.a;',
     '  }',
     '  vec2 vq = (fc / uRes - vec2(0.5, 0.42)) * vec2(1.15, 1.0);',
     '  col.rgb = mix(col.rgb, uDusk * col.a, smoothstep(0.5, 1.05, length(vq)) * uVignette);',
@@ -440,7 +472,8 @@
     sky = program(SKY_VS, SKY_FS, ['uRes', 'uHorizon', 'uPaper', 'uMist', 'uGround', 'uMoonLit',
       'uSunGlow', 'uMoon', 'uMoonShow', 'uSun', 'uSkyAlpha', 'uBg', 'uFadeFrom',
       'uProj', 'uEye', 'uWalk', 'uPathC', 'uPathFade', 'uMeteor', 'uMeteorB', 'uMeteorC',
-      'uDusk', 'uDark', 'uVignette', 'uLight', 'uLane', 'uRim']);
+      'uDusk', 'uDark', 'uVignette', 'uLight', 'uLane', 'uRim', 'uCloud', 'uCloudD', 'uCloudBand', 'uCloudC',
+      'uLamp', 'uLampC']);
 
     var tmpl = [];
     LEVELS.forEach(function (t) { tmpl.push(t, -1, t, 1); });
@@ -487,6 +520,7 @@
   var key = null, light = null, keyPx = [-1e4, -1e4, 1, 0];
   var lampData = new Float32Array(16);
   var ownLitAt = null, stillSince = 0;
+  var clouds = [], cloudData = new Float32Array(16), cloudDens = new Float32Array(16), veil = 0;
   var meteorShower = null, meteor = null, nextMeteor = 4 + Math.random() * 6;
   var METEOR_SECONDS = 0.9;
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
@@ -523,6 +557,7 @@
     particles = C.particlesFor(season, bodies);
     key = C.keyLight(bodies);
     light = C.fieldLight(key);
+    clouds = C.cloudsFor(now);
     meteorShower = reduced ? null : C.meteorsNow(now, bodies);
     placeBodies();
   }
@@ -594,6 +629,29 @@
 
     var rw = canvas.width, rh = canvas.height;
 
+    // Where tonight's clouds are, and how much of the key light they veil.
+    var bandTop = Math.min(0.9, (contentBottom + 8) / horizonPx), bandBottom = 0.97;
+    var placed = clouds.map(function (c) { return C.cloudAt(c, time); });
+    cloudData.fill(0);
+    cloudDens.fill(0);
+    placed.forEach(function (c, i) {
+      cloudData[i * 4] = c.x; cloudData[i * 4 + 1] = c.y; cloudData[i * 4 + 2] = c.w; cloudData[i * 4 + 3] = c.h;
+      cloudDens[i * 4] = c.density; cloudDens[i * 4 + 1] = c.seed;
+    });
+    veil = key.kind ? C.moonVeil(placed, keyPx[0] / W, (keyPx[1] / horizonPx - bandTop) / (bandBottom - bandTop)) : 0;
+    var through = 1 - 0.8 * veil;
+
+    // Where the lanterns are on screen: they light the grass and the air.
+    var lit = lanternsNow(time);
+    lampData.fill(0);
+    lit.forEach(function (l, i) {
+      var at = C.screenOf(l.x, l.y, l.d, walk, W, H, proj);
+      lampData[i * 4] = at.x * dpr;
+      lampData[i * 4 + 1] = at.y * dpr;
+      lampData[i * 4 + 2] = at.metre * 1.4 * dpr;
+      lampData[i * 4 + 3] = l.alpha * (night ? 0.9 : 0.35);
+    });
+
     gl.useProgram(sky.p);
     var su = sky.u;
     gl.uniform2f(su.uRes, rw, rh);
@@ -623,9 +681,15 @@
     gl.uniform3fv(su.uDusk, colors.dusk);
     gl.uniform1f(su.uDark, night ? 1 : 0);
     gl.uniform1f(su.uVignette, night ? 0.3 : 0.16);
-    gl.uniform4f(su.uLight, keyPx[0] * dpr, keyPx[1] * dpr, keyPx[2] * dpr, keyPx[3] * grow);
-    gl.uniform3f(su.uLane, light.lane * grow, light.shadow, key.low);
+    gl.uniform4f(su.uLight, keyPx[0] * dpr, keyPx[1] * dpr, keyPx[2] * dpr, keyPx[3] * grow * through);
+    gl.uniform3f(su.uLane, light.lane * grow * through, light.shadow, key.low);
     gl.uniform3fv(su.uRim, rim);
+    gl.uniform4fv(su.uCloud, cloudData);
+    gl.uniform4fv(su.uCloudD, cloudDens);
+    gl.uniform2f(su.uCloudBand, bandTop, bandBottom);
+    gl.uniform3fv(su.uCloudC, colors.cloud);
+    gl.uniform4fv(su.uLamp, lampData);
+    gl.uniform3fv(su.uLampC, colors.lamp);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.tri);
     gl.enableVertexAttribArray(attribs.sky);
     gl.vertexAttribPointer(attribs.sky, 2, gl.FLOAT, false, 0, 0);
@@ -664,23 +728,14 @@
     gl.uniform1f(bu.uSheenK, sheen.strength);
     gl.uniform4fv(bu.uBg, bg);
     gl.uniform1f(bu.uFadeFrom, FADE_FROM);
-    gl.uniform4f(bu.uLight, keyPx[0] * dpr, keyPx[1] * dpr, keyPx[2] * dpr, keyPx[3] * grow);
-    gl.uniform3f(bu.uLane, light.lane * grow, light.shadow * grow, key.low);
+    gl.uniform4f(bu.uLight, keyPx[0] * dpr, keyPx[1] * dpr, keyPx[2] * dpr, keyPx[3] * grow * through);
+    gl.uniform3f(bu.uLane, light.lane * grow * through, light.shadow * grow, key.low);
     gl.uniform3fv(bu.uShade, colors.shade);
     // Plumes go dark against a bright moon; on light paper the moon is
     // too pale a ground for a silhouette, which would read as a stain.
-    gl.uniform1f(bu.uSil, (key.kind === 'moon' ? (night ? 0.8 : 0.2) * moonShow : key.kind === 'sun' ? 0.55 * key.low * key.low : 0) * grow);
+    gl.uniform1f(bu.uSil, (key.kind === 'moon' ? (night ? 0.8 : 0.2) * moonShow : key.kind === 'sun' ? 0.55 * key.low * key.low : 0) * grow * through);
     gl.uniform3fv(bu.uRim, rim);
     gl.uniform3fv(bu.uLampC, colors.lamp);
-    var lit = lanternsNow(time);
-    lampData.fill(0);
-    lit.forEach(function (l, i) {
-      var at = C.screenOf(l.x, l.y, l.d, walk, W, H, proj);
-      lampData[i * 4] = at.x * dpr;
-      lampData[i * 4 + 1] = at.y * dpr;
-      lampData[i * 4 + 2] = at.metre * 1.4 * dpr;
-      lampData[i * 4 + 3] = l.alpha * (night ? 0.9 : 0.35);
-    });
     gl.uniform4fv(bu.uLamp, lampData);
 
     // The grass paints far to near, so a lantern is drawn between the

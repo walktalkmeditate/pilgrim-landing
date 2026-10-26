@@ -163,7 +163,12 @@ const BASELINE_KB = {
   // carries, under the drift); be still and your own lantern is lit, and
   // the link card's alt (js/hero-field-core.js +0.25, js/hero-field.js
   // +0.14, index.html +0.10).
-  'index.html':                                 139.30,
+  // +1.45 (140.75): clouds across the moon — each night's weather, the
+  // drift and the veil, tested (js/hero-field-core.js +0.65); the ink-wash
+  // bands, their silver lining, the veil dimming the lane, and a lantern's
+  // haze in the air with its glow faded inside its sprite (js/hero-field.js
+  // +0.80).
+  'index.html':                                 140.75,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

@@ -335,6 +335,32 @@ ok(Math.abs(kindled.x - C.pathX(kindled.d)) < 0.05 && Math.abs(later.x - C.pathX
 ok(later.d > settled.d + 10, 'then walks away up it, at a walker\'s pace  (' + ((later.d - settled.d) / 37).toFixed(2) + ' m/s)');
 ok(C.ownLanternAt(litAt, litAt + 400).alpha === 0, 'until it is lost in the far field');
 
+console.log('\n=== clouds across the moon ===\n');
+
+const nights = [];
+for (let d = 1; d <= 60; d++) nights.push(C.cloudsFor(new Date(2027, 0, d, 22, 0)));
+ok(C.cloudsFor(new Date(2027, 0, 5, 21, 0)).length === C.cloudsFor(new Date(2027, 0, 5, 23, 30)).length, 'a night keeps its weather all evening');
+ok(nights.some(function (n) { return n.length === 0; }), 'some nights are clear');
+ok(nights.some(function (n) { return n.length >= 2; }), 'some bring a few clouds');
+ok(nights.every(function (n) { return n.length <= C.MAX_CLOUDS; }), 'never more than ' + C.MAX_CLOUDS + ' — a veil, not an overcast');
+const fixedNight = nights.filter(function (n) { return n.length > 0; })[0];
+const a1c = C.cloudAt(fixedNight[0], 0), a2c = C.cloudAt(fixedNight[0], 20);
+ok(a2c.x > a1c.x || a2c.x < a1c.x - 1, 'clouds drift with the wind, left to right');
+let cloudsInSky = true;
+for (let t = 0; t < 4000; t += 7) {
+  const c = C.cloudAt(fixedNight[0], t);
+  if (c.x < -0.8 || c.x > 1.8 || c.y < 0 || c.y > 0.95) cloudsInSky = false;
+}
+ok(cloudsInSky, 'and wrap round, staying in the sky');
+
+const over = { x: 0.3, y: 0.6, w: 0.25, h: 0.08, density: 0.9 };
+ok(C.cloudDensity(over, 0.3, 0.6) > 0.85, 'a cloud is dense at its heart');
+ok(C.cloudDensity(over, 0.9, 0.6) === 0, 'and nothing well away from it');
+ok(C.moonVeil([over], 0.3, 0.6) > 0.8, 'a dense cloud over the moon veils it');
+ok(C.moonVeil([over], 0.8, 0.3) === 0, 'a cloud elsewhere does not');
+ok(C.moonVeil([over, over], 0.3, 0.6) <= 1, 'two veils never make more than full dark');
+ok(/float cloudShape\(vec2 p, vec4 c\)/.test(C.cloudGlsl()), 'the shader draws the clouds with the shape the veil is reckoned from');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {
