@@ -171,6 +171,70 @@ ok(C.particlesFor('autumn', noon).count === 0 && C.particlesFor('autumn', night)
   ok(n > 0 && n <= 320, season + ' keeps its particles few  (' + n + ')');
 });
 
+console.log('\n=== what drifts is blown, not bounced ===\n');
+
+const TX = proj.tanHalfX;
+function drift(kind, n) { return C.driftInit(kind, n, TX, 0, 5); }
+function run(st, kind, n, secs, puffsAt) {
+  for (let t = 0; t < secs; t += 1 / 60) C.driftStep(st, kind, n, 1 / 60, t, puffsAt ? puffsAt(t) : [], 0, TX);
+}
+function meanX(st, n) { let m = 0; for (let i = 0; i < n; i++) m += st.pos[i * 5]; return m / n; }
+
+const N2 = 200;
+const a1 = drift('snow', N2), a2 = drift('snow', N2);
+ok(a1.pos.every(function (v, i) { return v === a2.pos[i]; }), 'the same seed lays the same snow');
+let inBand = true;
+for (let i = 0; i < N2; i++) {
+  const y = a1.pos[i * 5 + 1], dd = a1.pos[i * 5 + 2];
+  const reach = dd * TX * 1.1 + 1;
+  if (y < 0 || y > 7 || Math.abs(a1.pos[i * 5]) > reach || dd < 2.5 || dd > 36.5) inBand = false;
+}
+ok(inBand, 'it starts in the air in front of you, across the view');
+const y0 = a1.pos[1];
+run(a1, 'snow', N2, 0.5);
+ok(a1.pos[1] < y0 || a1.pos[1] > 6, 'snow falls');
+
+// One gust, a flick to the right across the middle of the field, then nothing.
+function flick(t) {
+  return t < 0.3 ? [{ x: -4 + t * 20, d: 14, vx: 20, vd: 0, s: 0.9, r: 3 }] : [];
+}
+const blown = drift('snow', N2), calm = drift('snow', N2);
+// The flakes the flick passed through: its band of depth and its sweep.
+const inGust = [];
+for (let i = 0; i < N2; i++) {
+  const x = blown.pos[i * 5], dd = blown.pos[i * 5 + 2];
+  if (Math.abs(dd - 14) < 2 && x > -5 && x < 3) inGust.push(i);
+}
+run(blown, 'snow', N2, 3.3, flick);
+run(calm, 'snow', N2, 3.3);
+const shift = inGust.map(function (i) { return blown.pos[i * 5] - calm.pos[i * 5]; });
+const kept = mean(shift);
+ok(inGust.length >= 3 && kept > 0.6, 'a gust blows the snow it passes through the way it went, and three seconds on those flakes are still where it left them  (' + kept.toFixed(2) + ' m, ' + inGust.length + ' flakes)');
+ok(shift.every(function (v) { return v > -0.01; }), 'none of them springs back past where it would have been');
+let relaxed = 0;
+for (let i = 0; i < N2; i++) relaxed = Math.max(relaxed, Math.abs(blown.vel[i * 3] - calm.vel[i * 3]));
+ok(relaxed < 0.6, 'while their speed has settled back to the wind\'s  (' + relaxed.toFixed(2) + ' m/s apart at most)');
+
+const pb = drift('petals', N2), pc = drift('petals', N2);
+run(pb, 'petals', N2, 3.3, flick);
+run(pc, 'petals', N2, 3.3);
+ok(meanX(pb, N2) - meanX(pc, N2) > meanX(blown, N2) - meanX(calm, N2), 'petals are lighter: the same gust carries them farther than snow');
+
+const longRun = drift('snow', N2);
+run(longRun, 'snow', N2, 60, function (t) { return t % 5 < 0.3 ? [{ x: 0, d: 10, vx: 25, vd: 0, s: 0.9, r: 4 }] : []; });
+let stays = true;
+for (let i = 0; i < N2; i++) {
+  const x = longRun.pos[i * 5], y = longRun.pos[i * 5 + 1], dd = longRun.pos[i * 5 + 2];
+  if (y < -0.01 || y > 7.01 || Math.abs(x) > (dd * TX * 1.1 + 1) + 0.01) stays = false;
+}
+ok(stays, 'a minute of gusts later, every flake is still in view — blown off one side, it drifts in from the other');
+
+const ff = drift('fireflies', 64);
+run(ff, 'fireflies', 64, 60);
+let keepsLow = true;
+for (let i = 0; i < 64; i++) { const y = ff.pos[i * 5 + 1]; if (y < 0.2 || y > 2.4) keepsLow = false; }
+ok(keepsLow, 'fireflies keep low over the grass');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {

@@ -238,6 +238,95 @@
     return p.s > 0.02;
   }
 
+  // What drifts through the field carries its own motion, so a gust blows
+  // it rather than bending it and letting it spring back: each flake,
+  // petal or firefly has a velocity that a gust accelerates and that then
+  // settles back to the ambient wind — from wherever the gust left it.
+  // Per particle: pos x, y, depth, size, extra (a petal's spin, a
+  // firefly's glow); vel x, y, depth. A few hundred of them at most, so
+  // this costs the CPU next to nothing.
+  var DRIFTS = {
+    snow: { top: 7, fall: 0.5, fallSpread: 0.5, wind: 0.9, sway: 0.35, swayRate: 0.8, gust: 4.5, lift: 0.4, settle: 1.4, size: 0.03, sizeSpread: 0.03, near: 2.5, span: 34 },
+    petals: { top: 5, fall: 0.22, fallSpread: 0.25, wind: 2, sway: 0.6, swayRate: 1.3, gust: 7, lift: 0.8, settle: 2.4, size: 0.05, sizeSpread: 0.035, near: 2.5, span: 34 },
+    fireflies: { low: 0.6, high: 1.6, gust: 2, settle: 1.6, size: 0.07, sizeSpread: 0, near: 3, span: 22 }
+  };
+
+  function driftInit(kind, n, tanHalfX, walked, seed) {
+    var k = DRIFTS[kind];
+    var rand = mulberry32(seed === undefined ? 7 : seed);
+    var st = { pos: new Float32Array(n * 5), vel: new Float32Array(n * 3), seed: new Float32Array(n * 4) };
+    for (var i = 0; i < n; i++) {
+      var r = [rand(), rand(), rand(), rand()];
+      st.seed.set(r, i * 4);
+      var vz = k.near + r[1] * k.span;
+      var reach = vz * tanHalfX * 1.1 + 1;
+      st.pos[i * 5] = (r[0] * 2 - 1) * reach;
+      st.pos[i * 5 + 1] = k.top ? r[3] * k.top : k.low + r[3] * (k.high - k.low);
+      st.pos[i * 5 + 2] = vz + (walked || 0);
+      st.pos[i * 5 + 3] = k.size + r[2] * k.sizeSpread;
+    }
+    return st;
+  }
+
+  function driftStep(st, kind, n, dt, time, puffs, walked, tanHalfX) {
+    var k = DRIFTS[kind];
+    var ease = Math.min(1, dt / k.settle);
+    var w = walked || 0;
+    for (var i = 0; i < n; i++) {
+      var p = i * 5, v = i * 3, r = i * 4;
+      var x = st.pos[p], y = st.pos[p + 1], d = st.pos[p + 2];
+      var s0 = st.seed[r], s2 = st.seed[r + 2], s3 = st.seed[r + 3];
+      var ax, ay, ad;
+      if (k.top) {
+        ax = WIND[0] * k.wind + k.sway * k.swayRate * Math.cos(time * k.swayRate + s2 * 6.28);
+        ay = -(k.fall + s2 * k.fallSpread);
+        ad = 0;
+      } else {
+        ax = 0.25 * Math.sin(time * 0.21 + s2 * 7);
+        ay = (k.low + s3 * (k.high - k.low) - y) * 0.6 + 0.12 * Math.cos(time * 0.5 + s0 * 9);
+        ad = 0.17 * Math.cos(time * 0.17 + s3 * 5);
+      }
+      var gx = 0, gy = 0, gd = 0;
+      for (var j = 0; j < puffs.length; j++) {
+        var q = puffs[j];
+        var dx = x - q.x, dd = d - q.d;
+        var f = q.s * Math.exp(-(dx * dx + dd * dd) / (2 * q.r * q.r));
+        if (f < 0.002) continue;
+        var vl = Math.sqrt(q.vx * q.vx + q.vd * q.vd) || 1;
+        gx += q.vx / vl * f * k.gust;
+        gd += q.vd / vl * f * k.gust;
+        gy += f * k.gust * (k.lift || 0);
+      }
+      st.vel[v] += (ax - st.vel[v]) * ease + gx * dt;
+      st.vel[v + 1] += (ay - st.vel[v + 1]) * ease + gy * dt;
+      st.vel[v + 2] += (ad - st.vel[v + 2]) * ease + gd * dt;
+      x += st.vel[v] * dt;
+      y += st.vel[v + 1] * dt;
+      d += st.vel[v + 2] * dt;
+
+      if (d < w + k.near) d += k.span;
+      else if (d > w + k.near + k.span) d -= k.span;
+      var reach = (d - w) * tanHalfX * 1.1 + 1;
+      if (x > reach) x -= 2 * reach;
+      else if (x < -reach) x += 2 * reach;
+      if (k.top) {
+        if (y < 0) y += k.top;
+        else if (y > k.top) y -= k.top;
+      } else {
+        y = clamp(y, 0.3, 2.3);
+      }
+      st.pos[p] = x;
+      st.pos[p + 1] = y;
+      st.pos[p + 2] = d;
+      if (kind === 'petals') {
+        var speed = Math.abs(st.vel[v] - ax) + Math.abs(st.vel[v + 2]);
+        st.pos[p + 4] += dt * (1 + s3 * 2 + speed * 1.5);
+      } else if (kind === 'fireflies') {
+        st.pos[p + 4] = Math.pow(Math.max(0, Math.sin(time * (0.5 + s2 * 0.7) + s0 * 40)), 3);
+      }
+    }
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -390,6 +479,8 @@
     horizonFraction: horizonFraction,
     projection: projection,
     pointerOnField: pointerOnField,
+    driftInit: driftInit,
+    driftStep: driftStep,
     PUFF_MAX: PUFF_MAX,
     PUFF_TOP_SPEED: PUFF_TOP_SPEED,
     windStrength: windStrength,

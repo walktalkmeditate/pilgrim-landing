@@ -134,7 +134,11 @@ const BASELINE_KB = {
   // petals and summer's fireflies, drawn by one instanced pass computed
   // on the GPU from time (js/hero-field.js +1.26), and each season's
   // shape and particles, tested (js/hero-field-core.js +0.50).
-  'index.html':                                 131.19,
+  // +1.10 (132.29): what drifts is blown, not bounced — each flake, petal
+  // and firefly keeps a velocity a gust accelerates and that settles back
+  // to the wind from wherever it was left (js/hero-field-core.js +1.28);
+  // the shader now only draws them where they are (js/hero-field.js -0.17).
+  'index.html':                                 132.29,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

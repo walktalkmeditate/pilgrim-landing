@@ -187,71 +187,33 @@
     '}'
   ].join('\n');
 
-  // What drifts through the field — snow, petals, fireflies — computed from
-  // time and a seed, so nothing is updated per frame on the CPU. Each is
-  // anchored in the world, so walking carries you through it, and your
-  // gusts push it.
+  // What drifts through the field — snow, petals, fireflies. Their motion
+  // is the core's (driftStep), so a gust blows them and they stay blown;
+  // this only draws each one where it is.
   var DRIFT_VS = [
     'precision highp float;',
     'attribute vec2 aQ;',
-    'attribute vec4 aS;',
+    'attribute vec4 aP;',
+    'attribute float aE;',
     'uniform mediump vec2 uRes;',
     'uniform vec3 uProj;',
     'uniform float uEye;',
     'uniform float uWalk;',
-    'uniform float uTime;',
     'uniform mediump float uKind;',
     'uniform float uDpr;',
-    'uniform vec2 uWind;',
-    'uniform vec4 uPuff[8];',
-    'uniform vec4 uPuffV[8];',
     'varying vec2 vQ;',
     'varying float vGlow;',
     'varying float vFog;',
     'varying float vRot;',
     'void main(){',
-    '  float t = uTime;',
-    '  float vz = 2.5 + mod(aS.y * 34.0 - uWalk, 34.0);',
-    '  float reach = vz * uProj.x * 1.1 + 1.0;',
-    '  float x; float y; float size;',
-    '  vGlow = 1.0;',
-    '  vRot = 0.0;',
-    '  if (uKind < 0.5) {',
-    '    y = 7.0 - mod(aS.w * 7.0 + t * (0.5 + aS.z * 0.5), 7.0);',
-    '    x = (aS.x * 2.0 - 1.0) * reach + uWind.x * t * 0.9 + sin(t * 0.8 + aS.z * 6.28) * 0.35;',
-    '    size = 0.03 + aS.z * 0.03;',
-    '  } else if (uKind < 1.5) {',
-    '    y = 5.0 - mod(aS.w * 5.0 + t * (0.22 + aS.z * 0.25), 5.0);',
-    '    x = (aS.x * 2.0 - 1.0) * reach + uWind.x * t * 2.0 + sin(t * 1.3 + aS.z * 9.0) * 0.6;',
-    '    size = 0.05 + aS.z * 0.035;',
-    '    vRot = t * (1.0 + aS.w * 2.0) + aS.x * 6.28;',
-    '  } else {',
-    '    vz = 3.0 + mod(aS.y * 22.0 - uWalk, 22.0) + cos(t * 0.17 + aS.w * 5.0);',
-    '    reach = vz * uProj.x * 1.1 + 1.0;',
-    '    y = 0.6 + aS.w * 1.0 + sin(t * 0.5 + aS.x * 9.0) * 0.25;',
-    '    x = (aS.x * 2.0 - 1.0) * reach + sin(t * 0.21 + aS.z * 7.0) * 1.2;',
-    '    size = 0.07;',
-    '    vGlow = pow(max(0.0, sin(t * (0.5 + aS.z * 0.7) + aS.x * 40.0)), 3.0);',
-    '  }',
-    '  x = mod(x + reach, 2.0 * reach) - reach;',
-    '  vec2 p = vec2(x, vz + uWalk);',
-    '  vec2 push = vec2(0.0);',
-    '  for (int i = 0; i < 8; i++) {',
-    '    vec4 q = uPuff[i];',
-    '    if (q.z < 0.001) continue;',
-    '    vec2 tq = p - q.xy;',
-    '    float f = q.z * exp(-dot(tq, tq) / (q.w * q.w * 2.0));',
-    '    vec2 v = uPuffV[i].xy;',
-    '    float vl = length(v);',
-    '    push += (vl > 0.001 ? v / vl : vec2(0.0)) * f * 1.4;',
-    '  }',
-    '  x += push.x;',
-    '  vz = max(vz + push.y, 0.4);',
-    '  vec4 c = vec4(x / uProj.x, (y - uEye) / uProj.y + uProj.z * vz, 0.0, vz);',
-    '  float px = max(size * uRes.y * 0.5 / uProj.y / vz, 1.1 * uDpr) * (uKind > 1.5 ? 3.0 : 1.0);',
+    '  float vz = max(aP.z - uWalk, 0.4);',
+    '  vec4 c = vec4(aP.x / uProj.x, (aP.y - uEye) / uProj.y + uProj.z * vz, 0.0, vz);',
+    '  float px = max(aP.w * uRes.y * 0.5 / uProj.y / vz, 1.1 * uDpr) * (uKind > 1.5 ? 3.0 : 1.0);',
     '  c.xy += aQ * px * 2.0 / uRes * c.w;',
     '  gl_Position = c;',
     '  vQ = aQ;',
+    '  vRot = aE;',
+    '  vGlow = uKind > 1.5 ? aE : 1.0;',
     '  vFog = 1.0 - exp(-vz * 0.03);',
     '}'
   ].join('\n');
@@ -391,6 +353,7 @@
 
   var blade, sky, drift, buffers = {}, attribs = {};
   var MAX_DRIFT = 320;
+  var drifting = null;
 
   function build() {
     blade = program(BLADE_VS, BLADE_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uTime', 'uGrow', 'uDpr',
@@ -410,22 +373,18 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.tri);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 
-    drift = program(DRIFT_VS, DRIFT_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uTime', 'uKind', 'uDpr',
-      'uWind', 'uPuff', 'uPuffV', 'uAdditive', 'uColor', 'uMist', 'uFadeFrom']);
+    drift = program(DRIFT_VS, DRIFT_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uKind', 'uDpr',
+      'uAdditive', 'uColor', 'uMist', 'uFadeFrom']);
     buffers.quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    var seeds = new Float32Array(MAX_DRIFT * 4);
-    var a = 2463534242;
-    for (var i = 0; i < seeds.length; i++) {
-      a ^= a << 13; a ^= a >>> 17; a ^= a << 5;
-      seeds[i] = (a >>> 0) / 4294967296;
-    }
-    buffers.seeds = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.seeds);
-    gl.bufferData(gl.ARRAY_BUFFER, seeds, gl.STATIC_DRAW);
+    buffers.drift = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_DRIFT * 5 * 4, gl.DYNAMIC_DRAW);
+    drifting = null;
     attribs.q = gl.getAttribLocation(drift.p, 'aQ');
-    attribs.s = gl.getAttribLocation(drift.p, 'aS');
+    attribs.p = gl.getAttribLocation(drift.p, 'aP');
+    attribs.e = gl.getAttribLocation(drift.p, 'aE');
 
     buffers.blades = gl.createBuffer();
     attribs.v = gl.getAttribLocation(blade.p, 'aV');
@@ -620,7 +579,22 @@
     if (particles.count) drawDrift(time, rw, rh);
   }
 
+  // The drift is laid out afresh when the season, the hour's particles or
+  // the view's width change; otherwise it carries on from where it is.
+  function driftKey() {
+    return particles.kind + ':' + particles.count + ':' + proj.tanHalfX.toFixed(3);
+  }
+
+  function ensureDrift() {
+    if (drifting && drifting.key === driftKey()) return;
+    var n = Math.min(particles.count, MAX_DRIFT);
+    drifting = { key: driftKey(), n: n, st: C.driftInit(particles.kind, n, proj.tanHalfX, walk, 7) };
+  }
+
   function drawDrift(time, rw, rh) {
+    ensureDrift();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, drifting.st.pos.subarray(0, drifting.n * 5));
     var additive = particles.kind === 'fireflies' && night;
     gl.useProgram(drift.p);
     var du = drift.u;
@@ -628,12 +602,8 @@
     gl.uniform3f(du.uProj, proj.tanHalfX, proj.tanHalfY, proj.shift);
     gl.uniform1f(du.uEye, C.EYE);
     gl.uniform1f(du.uWalk, walk);
-    gl.uniform1f(du.uTime, time);
     gl.uniform1f(du.uKind, DRIFT_KINDS[particles.kind]);
     gl.uniform1f(du.uDpr, dpr);
-    gl.uniform2fv(du.uWind, WIND);
-    gl.uniform4fv(du.uPuff, puffData);
-    gl.uniform4fv(du.uPuffV, puffVel);
     gl.uniform1f(du.uAdditive, additive ? 1 : 0);
     gl.uniform3fv(du.uColor, colors.drift[particles.kind]);
     gl.uniform3fv(du.uMist, colors.mist);
@@ -643,16 +613,20 @@
     gl.enableVertexAttribArray(attribs.q);
     gl.vertexAttribPointer(attribs.q, 2, gl.FLOAT, false, 0, 0);
     setDivisor(attribs.q, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.seeds);
-    gl.enableVertexAttribArray(attribs.s);
-    gl.vertexAttribPointer(attribs.s, 4, gl.FLOAT, false, 0, 0);
-    setDivisor(attribs.s, 1);
-    var n = Math.min(particles.count, MAX_DRIFT);
-    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
-    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, n);
-    setDivisor(attribs.s, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
+    gl.enableVertexAttribArray(attribs.p);
+    gl.vertexAttribPointer(attribs.p, 4, gl.FLOAT, false, 20, 0);
+    setDivisor(attribs.p, 1);
+    gl.enableVertexAttribArray(attribs.e);
+    gl.vertexAttribPointer(attribs.e, 1, gl.FLOAT, false, 20, 16);
+    setDivisor(attribs.e, 1);
+    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, drifting.n);
+    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, drifting.n);
+    setDivisor(attribs.p, 0);
+    setDivisor(attribs.e, 0);
     gl.disableVertexAttribArray(attribs.q);
-    gl.disableVertexAttribArray(attribs.s);
+    gl.disableVertexAttribArray(attribs.p);
+    gl.disableVertexAttribArray(attribs.e);
   }
 
   function mixRgb(a, b, t) {
@@ -670,6 +644,10 @@
 
     walk += (walkTarget - walk) * 0.12;
     puffs = puffs.filter(function (q) { return C.stepPuff(q, dt); });
+    if (particles.count && proj) {
+      ensureDrift();
+      C.driftStep(drifting.st, particles.kind, drifting.n, dt, time, puffs, walk, proj.tanHalfX);
+    }
 
     for (var i = rings.length - 1; i >= 0; i--) {
       rings[i].age += dt;

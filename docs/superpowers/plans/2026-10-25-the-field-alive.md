@@ -23,9 +23,11 @@ slow one, a still cursor decays to zero, and a scroll spawns a forward puff.
 pale bowed stalks, few plumes, snow on the ground, and flakes falling on the wind. Spring has young
 grass, almost no plumes, and petals drifting on the wind. Summer has lush green and, at night,
 fireflies low over the grass.
-**Success:** each season is recognisable at a glance in all three themes. Particles are procedural on
-the GPU, with no per-frame CPU updates. Reduced motion shows a still frame with the particles frozen.
-The text still holds contrast.
+**Success:** each season is recognisable at a glance in all three themes. Reduced motion shows a still
+frame with the particles frozen. The text still holds contrast.
+**Revised (user, mid-stage):** a gust "bounced" the particles. Stateless, they sprang back once it
+passed. Each particle now keeps a velocity on the CPU (at most 320, so negligible), so a gust blows it
+and it stays blown.
 **Tests:** core: the season's field shape (plume share, heights, bow) and particle kind and count by
 season and hour; fireflies only on summer nights; "begin walking" contrast on every season's path.
 Wiring: the particle pass draws only when the season calls for it.

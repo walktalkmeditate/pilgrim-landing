@@ -84,6 +84,7 @@ function fakeGl(opts) {
   gl.getAttribLocation = function (p, name) {
     return p.shaders[0].src.indexOf('attribute vec') !== -1 && p.shaders[0].src.indexOf(' ' + name + ';') !== -1 ? name.length : -1;
   };
+  gl.DYNAMIC_DRAW = 14;
   ['uniform1f', 'uniform2f', 'uniform3f', 'uniform4f', 'uniform2fv', 'uniform3fv', 'uniform4fv'].forEach(function (fn) {
     gl[fn] = function (loc) {
       if (!loc) { gl.nullWrites.push(fn); return; }
@@ -93,12 +94,13 @@ function fakeGl(opts) {
   gl.useProgram = function (p) { gl.current = p; };
   gl.createBuffer = function () { return {}; };
   gl.bindBuffer = function () {};
-  gl.bufferData = function (_target, data) { gl.uploads.push(data.length); };
+  gl.bufferData = function (_target, data) { gl.uploads.push(typeof data === 'number' ? data : data.length); };
+  gl.bufferSubData = function (_target, _offset, data) { gl.lastSubData = Array.prototype.slice.call(data); };
   ['enableVertexAttribArray', 'disableVertexAttribArray', 'vertexAttribPointer', 'vertexAttribDivisor',
     'viewport', 'clearColor', 'clear', 'enable', 'blendFunc'].forEach(function (fn) { gl[fn] = function () {}; });
   gl.drawArrays = function () { gl.draws.push('sky'); };
   gl.drawArraysInstanced = function (_mode, _first, _count, instances) {
-    const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aS;') !== -1;
+    const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aP;') !== -1;
     gl.draws.push((isDrift ? 'drift:' : 'blades:') + instances);
   };
   gl.getExtension = function () { return null; };
@@ -371,6 +373,34 @@ ok(winter.gl().nullWrites.length === 0, 'every uniform the snow sets is one its 
 ok(driftDraws(seasonFrame('summer', '2027-07-15T13:00:00')).length === 0, 'a summer noon has no fireflies');
 ok(driftDraws(seasonFrame('summer', '2027-07-15T23:30:00'))[0] === 'drift:' + Core.seasonField('summer').count, 'a summer night does');
 ok(driftDraws(seasonFrame('spring', '2027-04-15T13:00:00'))[0] === 'drift:' + Core.seasonField('spring').count, 'spring petals drift through the day');
+function snowAfter(flicked) {
+  const v = boot({ season: 'winter', at: '2027-01-20T13:00:00' });
+  v.seen(true);
+  for (let t = 16; t < 3000; t += 16) v.frame(t);
+  if (flicked) {
+    for (let i = 0; i <= 6; i++) {
+      v.sandbox.clock = 3000 + i * 45;
+      v.hero.on.pointermove({ pointerType: 'mouse', clientX: 300 + i * 150, clientY: 700 });
+    }
+  }
+  for (let t = 3016; t < 6400; t += 16) v.frame(t);
+  return v.gl().lastSubData;
+}
+const blownSnow = snowAfter(true), calmSnow = snowAfter(false);
+// Snow blown off one side of the view drifts back in from the other, so
+// compare positions around the view's width at each flake's depth.
+const viewTan = Core.projection(1440, 900, Core.horizonFraction(423, 900)).tanHalfX;
+let moved = 0, sprang = 0;
+for (let i = 0; i < blownSnow.length; i += 5) {
+  const width = 2 * (blownSnow[i + 2] * viewTan * 1.1 + 1);
+  let dx = blownSnow[i] - calmSnow[i];
+  dx -= Math.round(dx / width) * width;
+  if (dx > 0.3) moved++;
+  if (dx < -0.3) sprang++;
+}
+ok(moved >= 5, 'a flick through falling snow blows flakes downwind, and three seconds on they are still there  (' + moved + ' flakes)');
+ok(sprang <= moved / 10, 'it blows them, it does not bounce them back  (' + sprang + ' the other way)');
+
 const still = boot({ season: 'winter', at: '2027-01-20T13:00:00', reduced: true });
 still.frame(16);
 still.seen(true);
