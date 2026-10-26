@@ -77,6 +77,24 @@
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
+  // The tab and the browser bar wear the theme too. Only the site's own
+  // icon is swapped; a page with its own (the duck's /walk) keeps it.
+  var TAB = { light: ['favicon-light', '#F5F0E8'], dark: ['favicon-dark', '#1C1914'], star: ['favicon-star', '#0a0a12'] };
+  function setTabTheme(theme) {
+    var icon = document.querySelector('link[rel="icon"]');
+    var href = icon && icon.getAttribute('href');
+    if (href && /assets\/favicon(-\w+)?\.png$/.test(href)) {
+      icon.setAttribute('href', href.replace(/favicon(-\w+)?\.png$/, TAB[theme][0] + '.png'));
+    }
+    var bar = document.querySelector('meta[name="theme-color"]');
+    if (!bar) {
+      bar = document.createElement('meta');
+      bar.name = 'theme-color';
+      document.head.appendChild(bar);
+    }
+    bar.content = TAB[theme][1];
+  }
+
   function setTheme(theme) {
     if (theme === 'star' && !window.Universe) theme = 'dark';
 
@@ -105,6 +123,7 @@
     try { localStorage.setItem('theme', theme); } catch (e) {}
     writeThemeCookie(theme);
     renderToggleIcon(theme);
+    setTabTheme(theme);
     if (window.SeasonalEngine) window.SeasonalEngine.applySeasonalColors();
   }
 
