@@ -40,16 +40,21 @@ const ROOT = path.join(__dirname, '..');
 // stricter contract, and two pinned numbers for one page means two places to
 // update and one of them going stale.
 const BASELINE_KB = {
-  'daylight/index.html':                       112.48,
-  'sunpath/2026-winter-solstice/index.html':    90.33,
-  'sunpath/2027-winter-solstice/index.html':    90.33,
-  'sunpath/2027-summer-solstice/index.html':    90.28,
-  'sunpath/2026-summer-solstice/index.html':    90.27,
-  'sunpath/2026-autumn-equinox/index.html':     90.14,
-  'sunpath/2027-autumn-equinox/index.html':     90.12,
-  'sunpath/2027-spring-equinox/index.html':     90.11,
-  'sunpath/2026-spring-equinox/index.html':     90.10,
-  'moonpath/index.html':                        68.70,
+  // +0.05 (112.53): the sun's position moves from the Spencer series to the
+  // NOAA one (js/sunpath-math.js +0.05).
+  'daylight/index.html':                       112.53,
+  // +0.07 each: the same series, and the subsolar caption printing the
+  // equator as 0.0° (js/sunpath-math.js +0.05, js/sunpath.js +0.02).
+  'sunpath/2026-winter-solstice/index.html':    90.40,
+  'sunpath/2027-winter-solstice/index.html':    90.40,
+  'sunpath/2027-summer-solstice/index.html':    90.35,
+  'sunpath/2026-summer-solstice/index.html':    90.34,
+  'sunpath/2026-autumn-equinox/index.html':     90.21,
+  'sunpath/2027-autumn-equinox/index.html':     90.19,
+  'sunpath/2027-spring-equinox/index.html':     90.18,
+  'sunpath/2026-spring-equinox/index.html':     90.17,
+  // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
+  'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
   // (3.74), js/traces-glyphs.js (2.18) and the inline wisp (1.35), less the
   // rules this removed from styles.css. The seven cairn paintings (20.1 KB

@@ -446,18 +446,22 @@ ok(titleStockholm.indexOf('eyes adjust') === -1,
 console.log('\n=== recompute — night facts exist as text, not just SVG geometry (Finding 5) ===\n');
 
 // Burgos 2026-09-15 (fixture above): moon has set (19:12Z) before
-// astronomicalDusk + DARK_ADAPT_MIN (20:22Z), so the bracket at that
-// instant is 'faint' — an exact, hand-verified string, not just a
-// non-empty check, so a maths regression in the wiring (wrong instant,
-// wrong lat/lon) would show up here even though moon-lux.js's own
-// thresholds are out of scope.
+// astronomicalDusk + DARK_ADAPT_MIN (20:20Z), so the bracket at that
+// instant is 'faint' — an exact string, not just a non-empty check, so a
+// maths regression in the wiring (wrong instant, wrong lat/lon) would show
+// up here even though moon-lux.js's own thresholds are out of scope.
+//
+// The times are USNO's astronomical twilight table for 42.34°N 3.70°W,
+// 2026, in UT (aa.usno.navy.mil/calculated/rstt/year, task 4, fetched
+// 2026-10-26): 15 Sep begins 04:19, ends 20:00; eyes adjusted 20 minutes
+// later. With no stage tz they print in the host's zone, CDT (UTC−5) here.
 var burgosNightAnn = fwdOut.annotations.filter(function (a) {
   return a.text.indexOf('True dark') !== -1;
 });
 ok(burgosNightAnn.length === 1, 'Burgos: exactly one true-dark/eyes-adjust annotation');
 if (burgosNightAnn.length === 1) {
   equal(burgosNightAnn[0].text,
-    'True dark holds from 15:02 to 23:17; your eyes will have adjusted by 15:22.',
+    'True dark holds from 15:00 to 23:19; your eyes will have adjusted by 15:20.',
     'Burgos: true-dark annotation text (24h, no stage tz — matches the burgosForward fixture)');
 }
 ok(fwdOut.moonBrightnessAtAdapt !== null, 'Burgos: moonBrightnessAtAdapt is populated (astronomicalDusk exists)');

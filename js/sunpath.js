@@ -347,7 +347,8 @@
 
   function updateSubsolarCaption(sub, date) {
     if (!dom.subsolarCaption) return;
-    var latStr = Math.abs(sub.lat).toFixed(1) + '°' + (sub.lat >= 0 ? 'N' : 'S');
+    var latStr = Math.abs(sub.lat).toFixed(1) + '°';
+    if (latStr !== '0.0°') latStr += sub.lat > 0 ? 'N' : 'S';
     var lonStr = Math.abs(sub.lon).toFixed(1) + '°' + (sub.lon >= 0 ? 'E' : 'W');
     var dateStr = scrubDate ? date.toUTCString().slice(0, 16) : 'right now';
     dom.subsolarCaption.textContent = 'the sun is overhead at ' + latStr + ' · ' + lonStr + ' (' + dateStr + ')';

@@ -315,9 +315,15 @@ equal(multiHoriz, 0, MULTI_LAT + '°: and nothing draws a horizontal rule on the
 // The width floor. Math.max(w, 1) exists so a stretch of one or two nights
 // still paints something a reader can see — and nothing exercised it: every
 // latitude drawn above yields either no run or a run of 100+ days, so
-// deleting the clamp left all four suites green. At 48.546° the run is two
-// days and the unclamped width is 0.879 units, under the floor.
-var SHORT_RUN_LAT = 48.546;
+// deleting the clamp left all four suites green.
+//
+// A night has no true dark when the sun's midnight depth, 90° − lat − dec,
+// stays under 18°: when dec > 72° − lat. darkHoursYear reads dec at noon
+// UTC, and JPL Horizons (geocentric apparent, fetched 2026-10-26) puts that
+// at 23.4355° on 20 June 2026 and 23.4379° on 21 June. 72° minus their mean
+// is 48.5633°, so only 21 June's noon clears the line, the nights of 20 and
+// 21 June have no true dark, and the run's unclamped width is under the floor.
+var SHORT_RUN_LAT = 48.5633;
 var dShort = draw(SHORT_RUN_LAT);
 var shortRuns = M.zeroDarkRuns(M.darkHoursYear(SHORT_RUN_LAT, YEAR));
 ok(shortRuns.length > 0 && shortRuns[0].days <= 3,
@@ -460,18 +466,32 @@ ok(!/no astronomical night at all/.test(d45.caption.textContent),
 // crawler or an LLM gets: a contradiction here is not a cosmetic one.
 ok(!/between 0\.0 /.test(d60.caption.textContent),
   '60°: the caption does not offer a 0.0-hour night and then deny those nights exist');
-statesIt(d60.caption.textContent, 0.9,
-  '60°: the shortest night that exists is 0.9 h, and that is what the caption says');
-statesIt(d60.caption.textContent, 11.7,
-  '60°: the swing is over the nights that exist — 11.7 h, not 12.6');
-statesIt(d70.caption.textContent, 1.2, '70°: likewise its shortest real night, 1.2 h');
-statesIt(d70.caption.textContent, 12.4, '70°: and its real swing, 12.4 h');
+// 60° against USNO's astronomical twilight table at 0°E for 2026
+// (aa.usno.navy.mil/calculated/rstt/year, task 4, fetched 2026-10-26): its
+// shortest night that comes at all is 48 minutes, on 21 August, and its
+// longest 12 h 36 m, so the caption's rounded swing is 12.6 − 0.8.
+statesIt(d60.caption.textContent, 0.8,
+  '60°: the shortest night that exists is 0.8 h, and that is what the caption says');
+statesIt(d60.caption.textContent, 11.8,
+  '60°: the swing is over the nights that exist — 11.8 h, not 12.6');
+
+// 70° has no outside figure to pin. USNO's shortest night there is the 34
+// minutes of 17 September, which darkHoursOn counts as none: it reads the
+// declination at noon, so a run's edge lands a day either way (see the
+// zero-night counts in js/sunpath-math.test.js). What is under test is that
+// the caption carries the curve's own figures, so they are read off the
+// series the curve is drawn from.
+var nights70 = M.darkHoursYear(70, YEAR).filter(function (h) { return h > 0; });
+var shortest70 = Number(Math.min.apply(null, nights70).toFixed(1));
+var swing70 = Number((Number(Math.max.apply(null, nights70).toFixed(1)) - shortest70).toFixed(1));
+statesIt(d70.caption.textContent, shortest70, '70°: likewise its shortest real night, ' + shortest70 + ' h');
+statesIt(d70.caption.textContent, swing70, '70°: and its real swing, ' + swing70 + ' h');
 
 // The qualifier that makes the range honest. At 60° the caption reports a
-// 0.9-hour shortest night, and 123 nights of that year have no night at
+// 0.8-hour shortest night, and 123 nights of that year have no night at
 // all — so the range is over the nights that HAVE one, and the sentence
 // has to say so. Without "on the nights it comes at all" it reads "true
-// dark lasts between 0.9 and 12.6 hours a night", which claims a 0.9-hour
+// dark lasts between 0.8 and 12.6 hours a night", which claims a 0.8-hour
 // night happens nightly at a latitude where a third of the year has none.
 //
 // This is the eighth instance's twin, and the fix for the eighth — assert
@@ -926,8 +946,8 @@ ok(/aria-label="Hours of true dark across the year"/.test(page),
 // nor a latitude that merely ends in the right digits can satisfy it.
 [[0, ['0°'], [9.4, 9.6]],
  [45, ['45°'], [3.3, 11.7, 8.4]],
- [60, ['60°'], [0.9, 12.6, 11.7, 123]],
- [70, ['70°'], [1.2, 13.6, 12.4, 177]]]
+ [60, ['60°'], [0.8, 12.6, 11.8, 123]],
+ [70, ['70°'], [shortest70, 13.6, swing70, 177]]]
   .forEach(function (t) {
     var text = draw(t[0]).caption.textContent;
     t[1].forEach(function (needle) {
@@ -944,6 +964,74 @@ ok(/aria-label="Hours of true dark across the year"/.test(page),
 // silently inert, which is worse than absent because it looks like coverage.
 var titles = d60.plot.children.filter(function (c) { return c.tag === 'title'; });
 equal(titles.length, 0, 'no <title> is emitted inside the hidden SVG — inert coverage is not coverage');
+
+console.log('\n=== The subsolar caption at an equinox (AE3) ===\n');
+
+/* js/sunpath.js is a browser controller with no exports, so it is loaded
+   whole against just enough page to reach its first redraw: the globe
+   container, the caption, a stub renderer, and an instant frozen the way
+   the turning pages freeze it. Everything else init() looks for is absent,
+   and each of those setups returns early. */
+function subsolarCaptionAt(iso) {
+  var names = ['window', 'document', 'd3', 'fetch', 'setInterval', 'requestIdleCallback'];
+  var saved = {};
+  names.forEach(function (k) { saved[k] = { had: k in global, value: global[k] }; });
+  var nodes = { 'sunpath-globe': makeNode('div'), 'sunpath-subsolar': makeNode('p') };
+  var onReady = null;
+  var noop = function () {};
+  global.window = {
+    SunPathMath: M,
+    __sunpathForce: { date: iso },
+    createSvgGlobe: function () {
+      return { setRotation: noop, redrawStatic: noop, render: noop };
+    },
+    requestIdleCallback: noop,
+    addEventListener: noop
+  };
+  global.document = {
+    addEventListener: function (ev, fn) { if (ev === 'DOMContentLoaded') onReady = fn; },
+    getElementById: function (id) { return nodes[id] || null; }
+  };
+  global.d3 = {};
+  global.fetch = function () { return new Promise(noop); };
+  global.setInterval = function () { return 0; };
+  global.requestIdleCallback = noop;
+  try {
+    delete require.cache[require.resolve('./sunpath.js')];
+    require('./sunpath.js');
+    onReady();
+    return nodes['sunpath-subsolar'].textContent;
+  } finally {
+    names.forEach(function (k) {
+      if (saved[k].had) global[k] = saved[k].value;
+      else delete global[k];
+    });
+  }
+}
+
+// The autumn page's own instant. The sun is on the equator (USNO, JPL
+// Horizons; see js/sunpath-math.test.js), so the caption says so.
+var autumnCaption = subsolarCaptionAt('2026-09-23T00:06:40Z');
+ok(autumnCaption.indexOf('overhead at 0.0° · ') !== -1,
+  'autumn equinox 2026: "' + autumnCaption + '" reads 0.0°, not 0.4°N');
+
+// Two hours either side of an equinox the sun is a few hundredths of a
+// degree south of the equator: still 0.0° to one decimal, so neither a
+// minus sign nor an S may appear.
+['2026-09-23T02:00:00Z', '2026-03-20T13:00:00Z'].forEach(function (iso) {
+  var lat = M.subsolarPoint(new Date(iso)).lat;
+  ok(lat < 0 && lat > -0.05, iso + ': fixture sanity, the sun is just south of the equator ('
+    + lat.toFixed(4) + '°)');
+  var text = subsolarCaptionAt(iso);
+  ok(text.indexOf('overhead at 0.0° · ') !== -1,
+    iso + ': "' + text + '" prints 0.0° with no sign and no hemisphere');
+});
+
+// And a real latitude keeps its hemisphere.
+ok(subsolarCaptionAt('2026-06-21T08:24:00Z').indexOf('overhead at 23.4°N · ') !== -1,
+  'June solstice: 23.4°N keeps its N');
+ok(subsolarCaptionAt('2026-12-21T20:51:00Z').indexOf('overhead at 23.4°S · ') !== -1,
+  'December solstice: 23.4°S keeps its S');
 
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
