@@ -16,7 +16,7 @@ Built with plain HTML, CSS, and JS. No build step. No dependencies.
 - **Time-aware quotes** — different walking wisdom for morning, afternoon, evening, and night
 - **Dark/light mode** — respects `prefers-color-scheme` with manual toggle
 - **Collective trail** — SVG path that draws itself on scroll, mapped to total distance walked by all pilgrims. Pilgrimage milestones, streak flame, km/mi toggle. Fetches from the counter API.
-- **Logo heartbeat** — hero logo gently pulses when someone walked in the last hour
+- **Logo heartbeat** — the footer logo gently pulses when someone walked in the last hour (in the hero, the same signal lights a lantern on the path)
 - **Goshuin seal** — generative SVG seal with hand-drawn animation on scroll. Hover elements to see what data shaped each ring, line, and dot. Full SHA-256 hash with shimmer.
 - **Seasonal haiku** — Bashō poems on aged parchment card, changes with the season
 - **Meditation video** — autoplay loop of the breathing circle embedded in the screenshot journey

@@ -924,16 +924,47 @@
        1. The Threshold (Hero)
        ========================================== -->
   <header class="hero section">
-    <img src="assets/pilgrim-logo.png" alt="Pilgrim logo" class="hero-logo logo-breathing" width="120" height="120">
-    <h1 class="hero-title">Pilgrim</h1>
-    <p class="hero-tagline">A walking practice</p>
+    <!-- The painting's inscription: the name, its seal, the line beneath,
+         and the whisper as the poem. The seal is the app's mark cut white
+         out of vermilion, the way a painter's seal is carved. -->
+    <div class="hero-inscription">
+      <div class="hero-signature">
+        <h1 class="hero-title">Pilgrim</h1>
+        <svg class="hero-seal" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <defs>
+            <filter id="hero-seal-ink" x="-6%" y="-6%" width="112%" height="112%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.3" numOctaves="3" seed="8" result="grain"/>
+              <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -11 7.6" result="speck"/>
+              <feComposite in="SourceGraphic" in2="speck" operator="in" result="inked"/>
+              <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="3" result="warp"/>
+              <feDisplacementMap in="inked" in2="warp" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+            </filter>
+            <mask id="hero-seal-cut">
+              <rect width="100" height="100" fill="#fff"/>
+              <g transform="translate(50,50) scale(0.56)" stroke="#000" fill="none" stroke-linecap="round">
+                <path d="M 60,0 C 60,33 33,60 0,60 C -33,60 -60,33 -60,0 C -60,-33 -33,-60 0,-60 C 33,-60 60,-33 60,0" stroke-width="10" stroke-dasharray="360" stroke-dashoffset="20"/>
+                <path d="M 56,20 C 62,14 66,6 64,-4" stroke-width="11"/>
+                <g transform="translate(-18, 8)">
+                  <path d="M 0,-48 L 0,40" stroke-width="9"/>
+                  <path d="M -9,-48 L 9,-48" stroke-width="6"/>
+                  <path d="M -10,40 L 10,40" stroke-width="6"/>
+                  <path d="M 0,-48 C 0,-48 2,-50 10,-50 C 24,-50 34,-40 34,-28 C 34,-16 24,-6 10,-6 C 2,-6 0,-8 0,-8" stroke-width="9"/>
+                </g>
+              </g>
+            </mask>
+          </defs>
+          <rect x="7" y="7" width="86" height="86" rx="7" fill="currentColor" mask="url(#hero-seal-cut)" filter="url(#hero-seal-ink)"/>
+        </svg>
+      </div>
+      <p class="hero-tagline">A walking practice</p>
 
-    <p class="turning-echo" id="turning-echo" hidden>
-      <span class="turning-echo-kanji" id="turning-echo-kanji" aria-hidden="true"></span>
-      <span class="turning-echo-text" id="turning-echo-text"></span>
-    </p>
+      <p class="turning-echo" id="turning-echo" hidden>
+        <span class="turning-echo-kanji" id="turning-echo-kanji" aria-hidden="true"></span>
+        <span class="turning-echo-text" id="turning-echo-text"></span>
+      </p>
 
-    <div class="hero-quotes" aria-live="polite" aria-label="Walking wisdom"></div>
+      <div class="hero-quotes" aria-live="polite" aria-label="Walking wisdom"></div>
+    </div>
 
     <div class="scroll-hint" aria-hidden="true">
       <span class="scroll-hint-text">begin walking</span>
@@ -2323,8 +2354,6 @@
           var diffMs = Date.now() - lastWalk.getTime();
           if (diffMs < 3600000) {
             isWalkingNow = true;
-            var logo = document.querySelector('.hero-logo');
-            if (logo) logo.classList.add('heartbeat');
             var footerLogo = document.getElementById('footer-logo');
             if (footerLogo) footerLogo.classList.add('heartbeat');
           }

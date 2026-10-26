@@ -108,6 +108,10 @@
       try { history.replaceState(null, '', '#' + i); } catch (e) {}
       fetch('/index.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
         var head = '<base href="/"><script>' + prelude(scene) + '<\/script>';
+        // A fresh query on the page's own CSS and JS, so an edit shows on
+        // the next scene rather than whenever the memory cache lets go.
+        var fresh = '?preview=' + Date.now();
+        html = html.replace(/((?:href|src)="(?:css|js)\/[^"?]+)"/g, '$1' + fresh + '"');
         frame.srcdoc = html.replace(/<head[^>]*>/, function (tag) { return tag + head; });
         frame.focus();
       });

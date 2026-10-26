@@ -166,25 +166,6 @@ a:focus-visible {
   padding: var(--padding-xl) var(--padding-md);
 }
 
-.hero-logo {
-  width: 120px;
-  height: 120px;
-  margin-bottom: var(--padding-lg);
-  border-radius: 22px;
-}
-
-/* Star/constellation theme swaps the hero logo for its night variant.
-   `content: url()` replaces the rendered image while the <img>'s src
-   attribute stays the same — main.js sets body.constellation before
-   first paint so there's no flicker. */
-body.constellation .hero-logo {
-  content: url('../assets/pilgrim-logo-constellation.png');
-}
-
-.hero-logo.heartbeat {
-  animation: logo-heartbeat 1.2s ease-in-out infinite alternate;
-}
-
 @keyframes logo-heartbeat {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(196, 165, 116, 0); }
   100% { transform: scale(1.03); box-shadow: 0 0 16px 4px rgba(196, 165, 116, 0.25); }

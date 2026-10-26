@@ -154,7 +154,11 @@ const BASELINE_KB = {
   // held readable on it, the lanterns' projected light, all tested
   // (js/hero-field-core.js +0.84); the shading, rims, silhouettes, wash,
   // vignette and the low sun's core in the shaders (js/hero-field.js +1.39).
-  'index.html':                                 137.44,
+  // +1.04 (138.48): the inscription and its seal — the app's mark cut white
+  // out of a vermilion seal, inline so it costs no request (index.html),
+  // the inscription's layout (css/hero-field.css); the app-icon tile's
+  // rules leave the shared stylesheets with it.
+  'index.html':                                 138.48,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

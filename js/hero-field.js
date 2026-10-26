@@ -544,9 +544,13 @@
     var w = hero.clientWidth;
     var h = hero.clientHeight;
     if (!w || !h) return false;
+    // Where the words end, measured against the hero itself: the
+    // inscription that holds them is positioned, so offsetTop would be
+    // measured from it instead.
     var quotes = hero.querySelector('.hero-quotes');
-    contentBottom = quotes ? quotes.offsetTop + quotes.offsetHeight : h * 0.45;
-    heroTop = hero.getBoundingClientRect().top + window.scrollY;
+    var heroRect = hero.getBoundingClientRect();
+    contentBottom = quotes ? quotes.getBoundingClientRect().bottom - heroRect.top : h * 0.45;
+    heroTop = heroRect.top + window.scrollY;
     W = w; H = h;
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     horizonFrac = C.horizonFraction(contentBottom, H);

@@ -2,16 +2,6 @@
    Pilgrim Landing — Animations
    ============================================= */
 
-/* --- Logo Breathing --- */
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-.logo-breathing {
-  animation: breathe 4s ease-in-out infinite;
-}
-
 /* --- Scroll Hint Chevron Bob --- */
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
@@ -46,10 +36,6 @@
 
 /* --- Reduced Motion --- */
 @media (prefers-reduced-motion: reduce) {
-  .logo-breathing {
-    animation: none;
-  }
-
   .scroll-hint-chevron {
     animation: none;
   }
