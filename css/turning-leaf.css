@@ -1,0 +1,424 @@
+/* =============================================
+   The turning leaf — the plate
+
+   Each solstice and equinox page opens on a plate the build draws with
+   js/turning-leaf-core.js: the scene, the season's strip, the seal, the
+   temple's number stamp and the walk map, beside the page's own words.
+   Loaded by the turning pages only (KTD8).
+
+   - Desktop: the scene with the words in a column beside it, the seal and
+     stamp at the column's edge, the strip along the foot (avenue A).
+   - Phone: seal, stamp and walk map above, the scene cropped to the
+     core's PHONE_CROP, the strip across the screen, then the words.
+   - The plate paints in the reader's theme before js/main.js runs: the
+     system's dark by default, [data-theme] once set.
+   - Paper grain is gradients, never an SVG filter, so a phone never pays
+     for feTurbulence; the sky's wash darkens the top of the leaf across
+     its whole width, as on the prototype's card.
+
+   js/turning-leaf.js hides the live sun and shadow by position and the
+   controls with [hidden], so nothing here gives them opacity or display.
+   js/muted-contrast.test.js holds the words to AA on their worst ground.
+   ============================================= */
+
+.tl-plate {
+  --tl-paper: #F4EEE3;
+  --tl-ink: #231F1A;
+  --tl-ink-2: #4F463B;
+  --tl-seal: #A8412F;
+  --tl-link: #8E3526;
+  --tl-seal-ink: #FBF4EA;
+  --tl-trace: #6E3B2C;
+  --tl-sun: #C98B2E;
+  --tl-wash-top: rgba(47, 71, 102, 0.12);
+  --tl-wash-mid: rgba(47, 71, 102, 0.04);
+  --tl-future: rgba(35, 31, 26, 0.24);
+  --tl-grain: rgba(92, 66, 36, 0.045);
+  --sun: var(--tl-sun);
+
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "marks walk ."
+    "fig   fig  fig"
+    "strip strip strip"
+    "note  note note"
+    "text  text text";
+  align-items: start;
+  padding-block: 1rem 1.75rem;
+  color: var(--tl-ink);
+  font-family: var(--font-body);
+  background-color: var(--tl-paper);
+  background-image:
+    radial-gradient(var(--tl-grain) 0.5px, transparent 1.1px),
+    radial-gradient(var(--tl-grain) 0.5px, transparent 1.1px),
+    radial-gradient(var(--tl-grain) 0.6px, transparent 1.3px),
+    linear-gradient(to bottom, var(--tl-wash-top), var(--tl-wash-mid) 28%, transparent 52%);
+  background-size: 5px 5px, 7px 7px, 11px 11px, 100% 100%;
+  background-position: 0 0, 3px 2px, 6px 8px, 0 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tl-plate {
+    --tl-paper: #16130F;
+    --tl-ink: #EAE1CF;
+    --tl-ink-2: #BDB19C;
+    --tl-seal: #C4573F;
+    --tl-link: #E8866F;
+    --tl-seal-ink: #1A120E;
+    --tl-trace: #E2A88E;
+    --tl-sun: #E3B05A;
+    --tl-wash-top: rgba(111, 141, 181, 0.12);
+    --tl-wash-mid: rgba(111, 141, 181, 0.04);
+    --tl-future: rgba(234, 225, 207, 0.24);
+    --tl-grain: rgba(255, 238, 210, 0.03);
+  }
+}
+
+[data-theme="dark"] .tl-plate {
+  --tl-paper: #16130F;
+  --tl-ink: #EAE1CF;
+  --tl-ink-2: #BDB19C;
+  --tl-seal: #C4573F;
+  --tl-link: #E8866F;
+  --tl-seal-ink: #1A120E;
+  --tl-trace: #E2A88E;
+  --tl-sun: #E3B05A;
+  --tl-wash-top: rgba(111, 141, 181, 0.12);
+  --tl-wash-mid: rgba(111, 141, 181, 0.04);
+  --tl-future: rgba(234, 225, 207, 0.24);
+  --tl-grain: rgba(255, 238, 210, 0.03);
+}
+
+.tl-plate [hidden] { display: none; }
+
+/* --- the pieces --- */
+
+.tl-marks {
+  grid-area: marks;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-inline: 1rem 0.5rem;
+}
+
+.tl-seal { display: block; width: 2.75rem; height: auto; }
+.tl-stamp { display: block; width: 3.5rem; height: auto; }
+
+.tl-walkwrap {
+  grid-area: walk;
+  padding-inline: 0.25rem 1rem;
+}
+
+.tl-walk { display: block; width: 7rem; height: auto; }
+
+.tl-figure {
+  grid-area: fig;
+  overflow: hidden;
+}
+
+.tl-scene { display: block; width: 100%; height: auto; aspect-ratio: 800 / 606; }
+
+/* The strip's bars are thin to look at; the band around them is the
+   44 px a finger needs. */
+.tl-stripwrap {
+  grid-area: strip;
+  padding-block: 0.625rem;
+  touch-action: pan-y;
+}
+
+.tl-stripwrap[role="slider"] { cursor: ew-resize; }
+
+.tl-stripwrap:focus-visible {
+  outline: 2px solid var(--tl-link);
+  outline-offset: 2px;
+}
+
+.tl-strip { display: block; width: 100%; height: 1.5rem; }
+
+.tl-strip .future {
+  fill: none;
+  stroke: var(--tl-future);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.tl-strip .before { opacity: 0.55; }
+
+.tl-strip-hint {
+  margin: 0.3rem 0 0;
+  padding-inline: 1rem;
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.3;
+  text-align: end;
+  color: var(--tl-ink-2);
+}
+
+.tl-note {
+  grid-area: note;
+  margin: 0.2rem 0 0;
+  padding-inline: 1rem;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--tl-ink-2);
+}
+
+/* On a phone the words follow the strip, and the scrub readout (order
+   -1) comes first among them, so it stays beside the finger on the strip. */
+.tl-text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  padding-inline: 1rem;
+}
+
+.tl-lead {
+  margin: 1rem 0 0.55rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.55rem;
+  line-height: 1.22;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+  color: var(--tl-ink);
+}
+
+.tl-when {
+  margin: 0 0 0.7rem;
+  text-wrap: balance;
+  font-size: 1.02rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--tl-ink-2);
+}
+
+.tl-caption {
+  margin: 0;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--tl-ink-2);
+}
+
+.tl-readout {
+  order: -1;
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--tl-ink);
+}
+
+.tl-quiet {
+  margin: 0;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--tl-ink-2);
+}
+
+.tl-quiet:not(:empty) { margin-top: 0.5rem; }
+
+.tl-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  margin-top: 0.35rem;
+}
+
+.tl-controls button {
+  min-height: 2.75rem;
+  padding: 0.7rem 0;
+  border: 0;
+  background: none;
+  font: italic 400 1.05rem/1.2 var(--font-body);
+  color: var(--tl-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.tl-controls button:disabled { cursor: progress; }
+
+.tl-controls button:focus-visible {
+  outline: 2px solid var(--tl-link);
+  outline-offset: 3px;
+}
+
+.tl-play::before {
+  content: "▸ ";
+  content: "▸ " / "";
+  text-decoration: none;
+  display: inline-block;
+  margin-inline-end: 0.2em;
+}
+
+/* --- the scene, in ink (prototype avenue A) --- */
+
+.tl-plate svg text { font-family: var(--font-body); }
+
+.tl-plate .sc-wash { transition: fill 0.4s ease; }
+.tl-plate .season-arc { fill: none; stroke-width: 0.8; opacity: 0.32; }
+.tl-plate .season-arc.unseen { stroke: var(--tl-ink); opacity: 0.07; }
+.tl-plate .horizon { stroke: var(--tl-ink); stroke-width: 1.2; opacity: 0.6; }
+.tl-plate .sunpath { fill: none; stroke: var(--tl-sun); stroke-width: 1.3; stroke-dasharray: 2 4; opacity: 0.8; }
+.tl-plate .sundot { fill: var(--tl-sun); opacity: 0.75; }
+
+/* The sky's labels wear a halo of paper: a scrubbed day's night photo,
+   tinted over the sky, would otherwise take them below AA. */
+.tl-plate .hour {
+  font-size: 12px;
+  fill: var(--tl-ink-2);
+  paint-order: stroke;
+  stroke: var(--tl-paper);
+  stroke-width: 3;
+  stroke-opacity: 0.6;
+  stroke-linejoin: round;
+}
+
+.tl-plate .tiny {
+  font-size: 15px;
+  font-style: italic;
+  fill: var(--tl-ink-2);
+  paint-order: stroke;
+  stroke: var(--tl-paper);
+  stroke-width: 3;
+  stroke-opacity: 0.6;
+  stroke-linejoin: round;
+}
+
+.tl-plate .sun-halo { fill: var(--tl-sun); opacity: 0.18; }
+.tl-plate .sun { fill: var(--tl-sun); opacity: 0.9; }
+.tl-plate .sun-below { fill: none; stroke: var(--tl-sun); stroke-dasharray: 2 3; opacity: 0.8; }
+.tl-plate .hair { fill: none; stroke: var(--tl-ink); stroke-linecap: round; }
+.tl-plate .hair-seal { fill: none; stroke: var(--tl-seal); stroke-linecap: round; }
+.tl-plate .tip { fill: var(--tl-trace); }
+.tl-plate .trace { fill: none; stroke: var(--tl-trace); stroke-width: 1.6; stroke-dasharray: 1 5; stroke-linecap: round; }
+.tl-plate .sc-sun { fill: var(--tl-sun); }
+.tl-plate .ink { fill: var(--tl-ink); }
+
+/* The player ghosts each hour inline and lets it re-ink as the sun
+   passes; the fade both ways is this transition. */
+.tl-plate .hr { transition: opacity 0.6s ease; }
+
+/* The live sun and shadow exist only during a replay. */
+.tl-plate .shadow-live { stroke: var(--tl-ink); stroke-linecap: round; opacity: 0.85; }
+.tl-plate .sun-live { fill: var(--tl-sun); }
+
+.tl-plate:not(.is-replaying) .shadow-live,
+.tl-plate:not(.is-replaying) .sun-live { visibility: hidden; }
+
+.tl-plate.is-scrubbing .tl-strip-hint { visibility: hidden; }
+
+/* --- seal, stamp and walk --- */
+
+.tl-plate .seal-fill { fill: var(--tl-seal); }
+
+.tl-plate .seal-text,
+.tl-plate .stamp-text {
+  font-family: "Noto Serif JP", "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", serif;
+  font-weight: 600;
+}
+
+.tl-plate .seal-text { fill: var(--tl-seal-ink); }
+.tl-plate .stamp-ring { fill: none; stroke: var(--tl-seal); stroke-width: 2.2; opacity: 0.85; }
+.tl-plate .stamp-ring.thin { stroke-width: 0.8; }
+.tl-plate .stamp-text { fill: var(--tl-seal); opacity: 0.9; }
+
+.tl-plate .walk-all { fill: none; stroke: var(--tl-ink); stroke-width: 0.6; opacity: 0.25; }
+.tl-plate .walk-dot { fill: var(--tl-ink); opacity: 0.35; }
+.tl-plate .walk-done { fill: none; stroke: var(--tl-seal); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tl-plate .walk-now { fill: var(--tl-seal); }
+.tl-plate .walk-next { fill: none; stroke: var(--tl-seal); stroke-width: 1; stroke-dasharray: 2 2; }
+
+.tl-plate .walk-label {
+  font-size: 14px;
+  font-style: italic;
+  fill: var(--tl-ink-2);
+}
+
+/* --- a phone: the scene cropped to the core's PHONE_CROP, the window
+   x 160–640 of its 800 units at full height, centred on the staff --- */
+
+@media (max-width: 599.98px) {
+  .tl-figure { aspect-ratio: 480 / 606; }
+
+  .tl-figure .tl-scene {
+    width: calc(100% * 800 / 480);
+    max-width: none;
+    margin-left: calc(-100% * 160 / 480);
+  }
+}
+
+/* --- a tablet held upright: the whole scene, the marks a little larger --- */
+
+@media (min-width: 600px) {
+  .tl-seal { width: 3.5rem; }
+  .tl-stamp { width: 4.25rem; }
+  .tl-walk { width: 9rem; }
+}
+
+/* --- desktop: the words in a column beside the scene --- */
+
+@media (min-width: 900px) {
+  .tl-plate {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 21rem) auto;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "fig   text  marks"
+      "fig   walk  marks"
+      "strip strip strip"
+      "note  note  note";
+    column-gap: clamp(1.25rem, 2.5vw, 2.5rem);
+    padding-block: 4.5rem 2rem;
+    padding-inline: max(2.5rem, calc((100% - 75rem) / 2));
+  }
+
+  .tl-marks {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0;
+  }
+
+  .tl-seal { width: 4.375rem; }
+  .tl-stamp { width: 4.5rem; }
+
+  .tl-text {
+    display: block;
+    padding-inline: 0;
+    text-align: end;
+  }
+
+  .tl-lead {
+    margin-top: 0.4rem;
+    font-size: clamp(1.6rem, 0.9rem + 1.25vw, 2.2rem);
+  }
+
+  .tl-controls { justify-content: flex-end; }
+
+  .tl-walkwrap {
+    align-self: end;
+    justify-self: end;
+    padding: 1.5rem 0 0;
+  }
+
+  .tl-walk { width: 11rem; }
+
+  .tl-figure {
+    align-self: start;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 90%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 90%, transparent);
+  }
+
+  .tl-stripwrap { margin-top: 0.75rem; }
+
+  .tl-strip-hint,
+  .tl-note { padding-inline: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-plate .hr,
+  .tl-plate .sc-wash { transition: none; }
+}

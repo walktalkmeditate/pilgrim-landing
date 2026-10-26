@@ -1405,4 +1405,118 @@ test('the spec\'s stated §A contrast figures are the figures §A measures (AC #
   });
 });
 
+/* =============================================
+   The turning leaf's plate (css/turning-leaf.css, R16)
+
+   The plate carries its own paper and ink, light and dark, so none of the
+   site's tokens above reach it. Its words sit on two grounds:
+
+     the paper     the lead, date line, caption, readout, controls, notes
+                   and the walk map's labels, on the paper, the sky's wash
+                   across the top of the leaf at its strongest, and the
+                   grain over both;
+     the sky       the scene's hour numbers and its "sun at the instant"
+                   label, on that same ground, and while a day is scrubbed,
+                   that day's photo colour laid over it by js/turning-leaf.js.
+
+   Every photo colour in assets/sunpath/sky-days.json is tried as that
+   tint, at the alpha the player writes, and the worst one is the ground.
+   A night photo (#080808) under a quarter-alpha tint takes the sky's
+   labels to 2.6:1, so they carry a halo of paper; where a rule declares
+   one, the ground is that halo over the sky. The grain's layers are
+   stacked as if every speck fell on one pixel. Tokens and rules are read
+   from what ships, comments stripped first.
+   ============================================= */
+
+const plateCss = fs.readFileSync(path.join(ROOT, 'css', 'turning-leaf.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+
+function plateTokens(selector) {
+  const decls = ruleDeclarations(plateCss, selector);
+  assert.ok(decls, 'expected ' + selector + ' in css/turning-leaf.css');
+  const out = {};
+  decls.replace(/(--tl-[\w-]+):\s*([^;]+);/g, function (_, k, v) { out[k] = v.trim(); });
+  return out;
+}
+
+const PLATE = { light: plateTokens('.tl-plate'), dark: plateTokens('[data-theme="dark"] .tl-plate') };
+
+function plateColor(raw, mode) {
+  const varM = /^var\((--tl-[\w-]+)\)$/.exec(raw.trim());
+  const value = varM ? PLATE[mode][varM[1]] : raw.trim();
+  assert.ok(value, 'css/turning-leaf.css has no ' + raw + ' in ' + mode);
+  const rgbaM = value.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\)/);
+  if (rgbaM) {
+    return { rgb: [+rgbaM[1], +rgbaM[2], +rgbaM[3]], alpha: rgbaM[4] !== undefined ? parseFloat(rgbaM[4]) : 1 };
+  }
+  assert.ok(/^#[0-9A-Fa-f]{6}$/.test(value), 'unrecognized colour in css/turning-leaf.css: ' + value);
+  return { rgb: hexToRgb(value), alpha: 1 };
+}
+
+function over(layer, bg) { return composite(layer.rgb, layer.alpha, bg); }
+
+const grainLayers = (ruleDeclarations(plateCss, '.tl-plate').match(/var\(--tl-grain\)/g) || []).length;
+const playerSrc = fs.readFileSync(path.join(ROOT, 'js', 'turning-leaf.js'), 'utf8');
+const tintHex = /day\.color \+ '([0-9a-f]{2})'/.exec(playerSrc);
+const SKY_PHOTOS = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'sunpath', 'sky-days.json'), 'utf8')).days;
+
+function plateGrounds(mode) {
+  let paper = over(plateColor('var(--tl-wash-top)', mode), hexToRgb(PLATE[mode]['--tl-paper']));
+  for (let i = 0; i < grainLayers; i++) paper = over(plateColor('var(--tl-grain)', mode), paper);
+  const alpha = parseInt(tintHex[1], 16) / 255;
+  const tinted = SKY_PHOTOS.map(function (d) {
+    return { label: d[0] + ' ' + d[1], rgb: composite(hexToRgb(d[1]), alpha, paper) };
+  });
+  return {
+    paper: [{ label: 'paper, wash and grain', rgb: paper }],
+    sky: [{ label: 'paper, wash and grain', rgb: paper }].concat(tinted)
+  };
+}
+
+const PLATE_TEXT = [
+  { sel: '.tl-lead', prop: 'color', ground: 'paper' },
+  { sel: '.tl-when', prop: 'color', ground: 'paper' },
+  { sel: '.tl-caption', prop: 'color', ground: 'paper' },
+  { sel: '.tl-readout', prop: 'color', ground: 'paper' },
+  { sel: '.tl-quiet', prop: 'color', ground: 'paper' },
+  { sel: '.tl-controls button', prop: 'color', ground: 'paper' },
+  { sel: '.tl-strip-hint', prop: 'color', ground: 'paper' },
+  { sel: '.tl-note', prop: 'color', ground: 'paper' },
+  { sel: '.tl-plate .walk-label', prop: 'fill', ground: 'paper' },
+  { sel: '.tl-plate .hour', prop: 'fill', ground: 'sky' },
+  { sel: '.tl-plate .tiny', prop: 'fill', ground: 'sky' }
+];
+
+test('the plate\'s words clear AA on its worst ground, light and dark, a scrubbed day\'s sky included (R16)', function () {
+  assert.ok(grainLayers > 0, 'the plate\'s paper grain is read from its background');
+  assert.ok(tintHex, 'js/turning-leaf.js still tints the scrubbed sky with day.color + an alpha');
+  ['light', 'dark'].forEach(function (mode) {
+    const grounds = plateGrounds(mode);
+    PLATE_TEXT.forEach(function (rule) {
+      const decls = ruleDeclarations(plateCss, rule.sel);
+      assert.ok(decls, 'expected ' + rule.sel + ' in css/turning-leaf.css');
+      const m = new RegExp('(?:^|[;{\\s])' + rule.prop + ':\\s*([^;]+);').exec(decls);
+      assert.ok(m, rule.sel + ' has no ' + rule.prop);
+      const opacity = /(?:^|[;\s])(?:fill-)?opacity:\s*([\d.]+)/.exec(decls);
+      const ink = plateColor(m[1], mode);
+      const alpha = ink.alpha * (opacity ? parseFloat(opacity[1]) : 1);
+      const haloed = /paint-order:\s*stroke/.test(decls) && /(?:^|[;\s])stroke:\s*var\(--tl-paper\);/.test(decls);
+      const haloWidth = /stroke-width:\s*([\d.]+)/.exec(decls);
+      const haloAlpha = /stroke-opacity:\s*([\d.]+)/.exec(decls);
+      assert.ok(!haloed || (haloWidth && parseFloat(haloWidth[1]) >= 2),
+        rule.sel + '\'s halo is too thin to stand between the text and the sky');
+      const halo = haloed ? { rgb: hexToRgb(PLATE[mode]['--tl-paper']), alpha: haloAlpha ? parseFloat(haloAlpha[1]) : 1 } : null;
+      let worst = null;
+      grounds[rule.ground].forEach(function (g) {
+        const ground = halo ? over(halo, g.rgb) : g.rgb;
+        const ratio = contrast(composite(ink.rgb, alpha, ground), ground);
+        if (!worst || ratio < worst.ratio) worst = { ratio: ratio, label: (halo ? 'a halo over ' : '') + g.label };
+      });
+      console.log('  plate ' + mode + ' ' + rule.sel + ' = ' + worst.ratio.toFixed(3) + ':1 at worst, over ' + worst.label);
+      assert.ok(worst.ratio >= AA_SMALL,
+        mode + ' ' + rule.sel + ' is ' + worst.ratio.toFixed(3) + ':1 over ' + worst.label + ', below AA ' + AA_SMALL + ':1');
+    });
+  });
+});
+
 console.log(count + ' passed');

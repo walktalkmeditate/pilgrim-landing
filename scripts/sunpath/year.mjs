@@ -29,7 +29,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { gzipSync } from 'node:zlib';
 import { turningInstant } from './meeus.mjs';
-import { TURNING_KEYS } from './permalink-template.mjs';
+import { TURNING_KEYS, renderPermalink } from './permalink-template.mjs';
 
 const require = createRequire(import.meta.url);
 const core = require('../../js/turning-leaf-core.js');
@@ -294,13 +294,15 @@ async function updateSitemap(year, { dry }) {
   return { path, written: true };
 }
 
-// Gzipped KB of a page and every same-origin /js/ and /css/ file it
-// references, measured exactly as js/page-weight.test.js measures it, so a
-// pinned baseline starts at zero drift.
-function pageWeightKb(pageRel) {
-  const html = readFileSync(resolve(REPO_ROOT, pageRel), 'utf8');
+// Gzipped KB of a turning page and every same-origin /js/ and /css/ file it
+// references, measured exactly as js/page-weight.test.js measures it. The
+// page is rendered with every day of its season photographed (KTD15), so
+// its strip filling in day by day never trips the drift before the turning.
+export function fullSeasonPageKb(data, archive) {
+  const pageRel = `sunpath/${data.year}-${data.key}/index.html`;
+  const html = renderPermalink(data, archive, { fullSeason: true });
   const dir = posix.dirname(pageRel);
-  let bytes = gzipSync(readFileSync(resolve(REPO_ROOT, pageRel)), { level: 9 }).length;
+  let bytes = gzipSync(Buffer.from(html), { level: 9 }).length;
   const re = /(?:src|href)="([^"]+)"/g;
   let m;
   while ((m = re.exec(html)) !== null) {
@@ -319,18 +321,21 @@ function pageWeightKb(pageRel) {
 // convention asks for, after the last turning page already pinned.
 async function pinPageWeights(year, { dry }) {
   const src = await readFile(PAGE_WEIGHT_TEST, 'utf8');
-  const fresh = TURNING_KEYS.map((key) => `sunpath/${year}-${key}/index.html`)
-    .filter((page) => !src.includes(`'${page}':`));
+  const pageOf = (key) => `sunpath/${year}-${key}/index.html`;
+  const fresh = TURNING_KEYS.filter((key) => !src.includes(`'${pageOf(key)}':`));
   if (!fresh.length) return { path: PAGE_WEIGHT_TEST, skipped: true, reason: 'pages already weighed' };
   if (dry) return { path: PAGE_WEIGHT_TEST, dry: true, would: `pin ${fresh.length} page weights in` };
+  const archive = await Promise.all(TURNING_KEYS.map(async (key) =>
+    JSON.parse(await readFile(resolve(REPO_ROOT, `assets/sunpath/turnings/${year}-${key}.json`), 'utf8'))));
   const lines = src.split('\n');
   let last = -1;
   lines.forEach((l, i) => { if (/^\s*'sunpath\/\d{4}-[a-z-]+\/index\.html':/.test(l)) last = i; });
   if (last < 0) throw new Error(`no turning page in ${PAGE_WEIGHT_TEST}'s BASELINE_KB to add ${year}'s after`);
   const pinned = [
     `  // ${year}'s turning pages, added by scripts/sunpath/year.mjs on ${todayISO()}`,
-    '  // at the weight they were built with.',
-    ...fresh.map((page) => `  ${`'${page}':`.padEnd(45)}${pageWeightKb(page).toFixed(2).padStart(6)},`)
+    '  // at full-season weight: every day of the strip photographed (KTD15).',
+    ...fresh.map((key) => `  ${`'${pageOf(key)}':`.padEnd(45)}` +
+      `${fullSeasonPageKb(archive.find((t) => t.key === key), archive).toFixed(2).padStart(6)},`)
   ];
   lines.splice(last + 1, 0, ...pinned);
   await writeFile(PAGE_WEIGHT_TEST, lines.join('\n'));

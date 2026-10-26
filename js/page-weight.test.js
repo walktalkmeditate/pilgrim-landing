@@ -43,22 +43,35 @@ const BASELINE_KB = {
   // +0.05 (112.53): the sun's position moves from the Spencer series to the
   // NOAA one (js/sunpath-math.js +0.05).
   'daylight/index.html':                       112.53,
-  // +0.07 each: the same series, and the subsolar caption printing the
-  // equator as 0.0° (js/sunpath-math.js +0.05, js/sunpath.js +0.02).
-  'sunpath/2026-winter-solstice/index.html':    90.40,
-  'sunpath/2027-winter-solstice/index.html':    90.40,
-  'sunpath/2027-summer-solstice/index.html':    90.35,
-  'sunpath/2026-summer-solstice/index.html':    90.34,
-  'sunpath/2026-autumn-equinox/index.html':     90.21,
-  'sunpath/2027-autumn-equinox/index.html':     90.19,
-  'sunpath/2027-spring-equinox/index.html':     90.18,
-  'sunpath/2026-spring-equinox/index.html':     90.17,
-  // 2028's turning pages, added by scripts/sunpath/year.mjs on 2026-10-26
-  // at the weight they were built with.
-  'sunpath/2028-spring-equinox/index.html':     90.44,
-  'sunpath/2028-summer-solstice/index.html':    90.65,
-  'sunpath/2028-autumn-equinox/index.html':     90.49,
-  'sunpath/2028-winter-solstice/index.html':    90.70,
+  // The turning pages. +0.07 each: the same series, and the subsolar
+  // caption printing the equator as 0.0° (js/sunpath-math.js +0.05,
+  // js/sunpath.js +0.02); 2028's were added by scripts/sunpath/year.mjs on
+  // 2026-10-26.
+  // +33.44 to +37.69 (to 123.61–128.06): the turning leaf. Each page opens
+  // on its plate, drawn inline: the scene with the staff, the day's arc and
+  // its hourly shadows, and behind them the season's arcs, one per day
+  // (6.8–9.3 KB of it, most for the long summer and autumn seasons), with
+  // the strip, seal, stamp and walk map (the document +14.80 to +19.05);
+  // the core that drew it and redraws a scrubbed day
+  // (js/turning-leaf-core.js 9.80), the player (js/turning-leaf.js 5.05)
+  // and the plate's ink (css/turning-leaf.css 3.50).
+  // KTD15: each is pinned at FULL-SEASON weight, as if every day of its
+  // strip had a photo, measured by scripts/sunpath/year.mjs's
+  // fullSeasonPageKb, so a strip filling in day by day never trips the
+  // drift before its turning. Until then a page reads up to ~1 KB lighter;
+  // that is room its photos will use, not slack to take back.
+  'sunpath/2026-spring-equinox/index.html':    123.61,
+  'sunpath/2026-summer-solstice/index.html':   127.88,
+  'sunpath/2026-autumn-equinox/index.html':    127.59,
+  'sunpath/2026-winter-solstice/index.html':   124.85,
+  'sunpath/2027-spring-equinox/index.html':    124.87,
+  'sunpath/2027-summer-solstice/index.html':   128.04,
+  'sunpath/2027-autumn-equinox/index.html':    127.46,
+  'sunpath/2027-winter-solstice/index.html':   125.21,
+  'sunpath/2028-spring-equinox/index.html':    125.01,
+  'sunpath/2028-summer-solstice/index.html':   128.06,
+  'sunpath/2028-autumn-equinox/index.html':    127.27,
+  'sunpath/2028-winter-solstice/index.html':   125.10,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
@@ -211,6 +224,9 @@ const BASELINE_KB = {
 // nobody needs to think about. The growth this exists to catch was +2.79 KB.
 const DRIFT_KB = 0.50;
 
+// Pinned at full-season weight (KTD15): lighter until their strips fill.
+const FULL_SEASON = /^sunpath\/\d{4}-[a-z-]+\/index\.html$/;
+
 let passed = 0, failed = 0;
 const failures = [];
 
@@ -301,7 +317,7 @@ rows.forEach(function (r) {
       + '. Update the baseline in js/page-weight.test.js deliberately, or cut something.');
   } else {
     ok(true, r.page + ' is ' + r.now.toFixed(2) + ' KB'
-      + (delta < -DRIFT_KB ? ' — LIGHTER by ' + Math.abs(delta).toFixed(2)
+      + (delta < -DRIFT_KB && !FULL_SEASON.test(r.page) ? ' — LIGHTER by ' + Math.abs(delta).toFixed(2)
           + ' KB; lower the baseline to keep the ratchet tight' : ''));
   }
 });
