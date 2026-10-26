@@ -158,7 +158,26 @@ const BASELINE_KB = {
   // out of a vermilion seal, inline so it costs no request (index.html),
   // the inscription's layout (css/hero-field.css); the app-icon tile's
   // rules leave the shared stylesheets with it.
-  'index.html':                                 138.48,
+  // +0.82 (139.30): the tab wears the theme — the icon and theme-color
+  // swap in the shared js/main.js (+0.33, which every page with the toggle
+  // carries, under the drift); be still and your own lantern is lit, and
+  // the link card's alt (js/hero-field-core.js +0.25, js/hero-field.js
+  // +0.14, index.html +0.10).
+  // +1.45 (140.75): clouds across the moon — each night's weather, the
+  // drift and the veil, tested (js/hero-field-core.js +0.65); the ink-wash
+  // bands, their silver lining, the veil dimming the lane, and a lantern's
+  // haze in the air with its glow faded inside its sprite (js/hero-field.js
+  // +0.80).
+  // +0.90 (141.65): geese across the moon — the migrating seasons, the
+  // skein's V aimed over the moon, tested (js/hero-field-core.js +0.36);
+  // the geese drawn far off as beating wings (js/hero-field.js +0.54).
+  // +6.68 (148.33): the path becomes the story's line — the route from the
+  // path's mouth down the margin to the trailhead, the brush, and how far
+  // it is drawn, tested (js/path-line-core.js +3.89); its two SVGs, one on
+  // the page and one held in the story's first scene, eased with the
+  // story's own scroll (js/path-line.js +2.52); its ink, the room below
+  // the field and the phone's gutter (css/hero-field.css +0.26).
+  'index.html':                                 148.33,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

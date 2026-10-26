@@ -90,3 +90,33 @@ The hero lit the field evenly, so nothing in the painting said where the light c
 - **Traps:** with the words inside a positioned inscription, `offsetTop` is measured from it, so the
   field now measures with `getBoundingClientRect`. "begin walking" is centred explicitly, because it
   had been centred only by the hero's alignment.
+
+## Follow-up: the path becomes the story's line (2026-10-26)
+
+The field's footpath goes on down the page as one line of ink and becomes the walk story's, so the
+whole page is one walk. Code: `js/path-line-core.js` (pure, tested), `js/path-line.js`, and the
+line's rules at the end of `css/hero-field.css`.
+
+- **Route:** from under "begin walking", an S swings out of the column before the first heading. It
+  walks the margin 56px from the words, wandering a little. Through "What Pilgrim is not" it drifts
+  toward the story's gutter. In the story's first scene it comes down beside the words and rounds
+  into the trailhead, where the walker's dot waits. Every point descends, so how far the line is drawn
+  is a single height on the page.
+- **Two SVGs:** one on the page down to the story's top, and one inside scene 01 from its top to the
+  trailhead. Once the story pins, the scene's part stays with the held scene.
+- **Drawing:** the tip stands at 0.7 of the screen beside the words. Over the last 0.6 screens before
+  the pin it runs ahead, reaching the trailhead exactly as the story pins. Past the pin, the way down
+  fades within 0.6 screens as the walker sets out. It eases toward the scroll position by the story's
+  own factor, so the two lines meet in step.
+- **Brush:** it sets down heavy at the path's mouth and lifts to the story's own stroke width, which is
+  measured from the story's line. It runs at 0.55 ink beside the words and reaches full strength as it
+  enters the story.
+- **Room:** `.philosophy` gets 10rem above it on wide screens for the swing. On phones the two sections
+  get a 2.25rem gutter, because a 16px margin pressed the line against the glass.
+- **The page walker:** the line keeps off its rail. A pinned story puts the walker away whenever the
+  story is on screen, so the scene's part may pass where the rail stood. Only that part may, and only
+  near the story, where the story is always on screen.
+- **Still and stacked:** with reduced motion the line is drawn whole and still. With a stacked story,
+  the scene's part is drawn in scene 01's own box and scrolls away with it.
+- **Measured:** rebuilding the whole outline costs 0.08 ms. Scrolling through the stretch holds
+  60 fps (p99 17.5 ms). Index +6.68 KB gzipped.

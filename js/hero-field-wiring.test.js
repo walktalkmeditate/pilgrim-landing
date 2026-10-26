@@ -101,8 +101,8 @@ function fakeGl(opts) {
   gl.drawArrays = function () { gl.draws.push('sky'); };
   gl.drawArraysInstanced = function (_mode, _first, _count, instances) {
     const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aP;') !== -1;
-    const isLantern = isDrift && gl.values.uKind && gl.values.uKind[0] === 3;
-    gl.draws.push((isLantern ? 'lantern:' : isDrift ? 'drift:' : 'blades:') + instances);
+    const kindNow = isDrift && gl.values.uKind ? gl.values.uKind[0] : -1;
+    gl.draws.push((kindNow === 3 ? 'lantern:' : kindNow === 4 ? 'geese:' : isDrift ? 'drift:' : 'blades:') + instances);
   };
   gl.getExtension = function () { return null; };
   return gl;
@@ -201,7 +201,7 @@ function boot(opts) {
     IntersectionObserver: function (cb) { io.push(cb); this.observe = function () {}; },
     MutationObserver: function (cb) { const o = { cb: cb, target: null }; mos.push(o); this.observe = function (t) { o.target = t; }; },
     Date: opts.at ? heldDate(opts.at) : Date,
-    Math: Math,
+    Math: opts.random ? Object.assign(Object.create(Math), { random: opts.random }) : Math,
     Float32Array: Float32Array,
     Error: Error,
     document: {
@@ -492,6 +492,49 @@ const lockedWorld = boot({ storage: locked });
 lockedWorld.seen(true); lockedWorld.frame(16); lockedWorld.frame(32);
 ok(lockedWorld.hero.children.length === 1 && lockedWorld.gl().values.uPathFade[0] === Core.pathReach(1).fadeFrom,
   'with storage refused, the field still paints, the path as first laid');
+
+console.log('\n=== your own lantern ===\n');
+
+function lanternsIn(world) { return lastFrameDraws(world).filter(function (d) { return d.indexOf('lantern') === 0; }).length; }
+const stillOne = boot();
+stillOne.seen(true);
+for (let t = 16; t < 11000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 0, 'eleven seconds of stillness: not yet');
+for (let t = 11000; t < 14000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 1, 'twelve, and a lantern is lit where the path begins');
+stillOne.sandbox.clock = 14000;
+stillOne.hero.on.pointermove({ pointerType: 'mouse', clientX: 700, clientY: 820 });
+for (let t = 14016; t < 16000; t += 16) stillOne.frame(t);
+ok(lanternsIn(stillOne) === 1, 'once lit it is yours: moving again does not put it out');
+
+const restless = boot();
+restless.seen(true);
+for (let t = 16; t < 40000; t += 16) {
+  if (t % 5000 < 16) { restless.sandbox.clock = t; restless.hero.on.pointermove({ pointerType: 'mouse', clientX: 400 + (t % 300), clientY: 820 }); }
+  restless.frame(t);
+}
+ok(lanternsIn(restless) === 0, 'a restless visit, stirring every five seconds, never lights one');
+
+const stillReduced = boot({ reduced: true });
+stillReduced.seen(true);
+ok(stillReduced.pendingFrames() <= 1 && lanternsIn(stillReduced) === 0, 'with less motion, no lantern sets off');
+
+console.log('\n=== geese across the moon ===\n');
+
+function geeseSeen(season, at, reduced) {
+  const v = boot({ season: season, at: at, random: function () { return 0.5; }, reduced: reduced });
+  v.seen(true);
+  let most = 0;
+  for (let t = 16; t < 60000; t += 32) {
+    v.frame(t);
+    lastFrameDraws(v).forEach(function (d) { if (d.indexOf('geese') === 0) most = Math.max(most, +d.split(':')[1]); });
+  }
+  return most;
+}
+ok(geeseSeen('autumn', '2027-10-20T18:40:00') === 9, 'an autumn evening: a skein of nine crosses the sky');
+ok(geeseSeen('summer', '2027-07-15T21:00:00') === 0, 'a summer evening: none');
+ok(geeseSeen('autumn', '2027-10-20T12:00:00') === 0, 'an autumn noon: none');
+ok(geeseSeen('autumn', '2027-10-20T18:40:00', true) === 0, 'with less motion, nothing crosses');
 
 console.log('\n=== meteors on shower nights ===\n');
 
