@@ -187,6 +187,105 @@
     '}'
   ].join('\n');
 
+  // What drifts through the field — snow, petals, fireflies — computed from
+  // time and a seed, so nothing is updated per frame on the CPU. Each is
+  // anchored in the world, so walking carries you through it, and your
+  // gusts push it.
+  var DRIFT_VS = [
+    'precision highp float;',
+    'attribute vec2 aQ;',
+    'attribute vec4 aS;',
+    'uniform mediump vec2 uRes;',
+    'uniform vec3 uProj;',
+    'uniform float uEye;',
+    'uniform float uWalk;',
+    'uniform float uTime;',
+    'uniform mediump float uKind;',
+    'uniform float uDpr;',
+    'uniform vec2 uWind;',
+    'uniform vec4 uPuff[8];',
+    'uniform vec4 uPuffV[8];',
+    'varying vec2 vQ;',
+    'varying float vGlow;',
+    'varying float vFog;',
+    'varying float vRot;',
+    'void main(){',
+    '  float t = uTime;',
+    '  float vz = 2.5 + mod(aS.y * 34.0 - uWalk, 34.0);',
+    '  float reach = vz * uProj.x * 1.1 + 1.0;',
+    '  float x; float y; float size;',
+    '  vGlow = 1.0;',
+    '  vRot = 0.0;',
+    '  if (uKind < 0.5) {',
+    '    y = 7.0 - mod(aS.w * 7.0 + t * (0.5 + aS.z * 0.5), 7.0);',
+    '    x = (aS.x * 2.0 - 1.0) * reach + uWind.x * t * 0.9 + sin(t * 0.8 + aS.z * 6.28) * 0.35;',
+    '    size = 0.03 + aS.z * 0.03;',
+    '  } else if (uKind < 1.5) {',
+    '    y = 5.0 - mod(aS.w * 5.0 + t * (0.22 + aS.z * 0.25), 5.0);',
+    '    x = (aS.x * 2.0 - 1.0) * reach + uWind.x * t * 2.0 + sin(t * 1.3 + aS.z * 9.0) * 0.6;',
+    '    size = 0.05 + aS.z * 0.035;',
+    '    vRot = t * (1.0 + aS.w * 2.0) + aS.x * 6.28;',
+    '  } else {',
+    '    vz = 3.0 + mod(aS.y * 22.0 - uWalk, 22.0) + cos(t * 0.17 + aS.w * 5.0);',
+    '    reach = vz * uProj.x * 1.1 + 1.0;',
+    '    y = 0.6 + aS.w * 1.0 + sin(t * 0.5 + aS.x * 9.0) * 0.25;',
+    '    x = (aS.x * 2.0 - 1.0) * reach + sin(t * 0.21 + aS.z * 7.0) * 1.2;',
+    '    size = 0.07;',
+    '    vGlow = pow(max(0.0, sin(t * (0.5 + aS.z * 0.7) + aS.x * 40.0)), 3.0);',
+    '  }',
+    '  x = mod(x + reach, 2.0 * reach) - reach;',
+    '  vec2 p = vec2(x, vz + uWalk);',
+    '  vec2 push = vec2(0.0);',
+    '  for (int i = 0; i < 8; i++) {',
+    '    vec4 q = uPuff[i];',
+    '    if (q.z < 0.001) continue;',
+    '    vec2 tq = p - q.xy;',
+    '    float f = q.z * exp(-dot(tq, tq) / (q.w * q.w * 2.0));',
+    '    vec2 v = uPuffV[i].xy;',
+    '    float vl = length(v);',
+    '    push += (vl > 0.001 ? v / vl : vec2(0.0)) * f * 1.4;',
+    '  }',
+    '  x += push.x;',
+    '  vz = max(vz + push.y, 0.4);',
+    '  vec4 c = vec4(x / uProj.x, (y - uEye) / uProj.y + uProj.z * vz, 0.0, vz);',
+    '  float px = max(size * uRes.y * 0.5 / uProj.y / vz, 1.1 * uDpr) * (uKind > 1.5 ? 3.0 : 1.0);',
+    '  c.xy += aQ * px * 2.0 / uRes * c.w;',
+    '  gl_Position = c;',
+    '  vQ = aQ;',
+    '  vFog = 1.0 - exp(-vz * 0.03);',
+    '}'
+  ].join('\n');
+
+  var DRIFT_FS = [
+    FS_PRECISION,
+    'uniform mediump float uKind;',
+    'uniform float uAdditive;',
+    'uniform vec3 uColor;',
+    'uniform vec3 uMist;',
+    'uniform mediump vec2 uRes;',
+    'uniform float uFadeFrom;',
+    'varying vec2 vQ;',
+    'varying float vGlow;',
+    'varying float vFog;',
+    'varying float vRot;',
+    'void main(){',
+    '  float a;',
+    '  if (uKind < 0.5) {',
+    '    a = 1.0 - smoothstep(0.3, 1.0, length(vQ));',
+    '  } else if (uKind < 1.5) {',
+    '    vec2 r = vec2(cos(vRot) * vQ.x - sin(vRot) * vQ.y, sin(vRot) * vQ.x + cos(vRot) * vQ.y);',
+    '    r.y *= 1.9;',
+    '    a = 1.0 - smoothstep(0.5, 1.0, length(r));',
+    '  } else {',
+    '    float l = dot(vQ, vQ);',
+    '    a = (exp(-l * 10.0) + exp(-l * 2.0) * 0.4) * vGlow;',
+    '  }',
+    '  a *= 1.0 - smoothstep(uFadeFrom, 1.0, 1.0 - gl_FragCoord.y / uRes.y);',
+    '  vec3 c = mix(uColor, uMist, vFog * 0.7);',
+    '  gl_FragColor = vec4(c * a, a * (1.0 - uAdditive));',
+    '}'
+  ].join('\n');
+
   var SKY_VS = [
     'attribute vec2 aP;',
     'void main(){ gl_Position = vec4(aP, 0.0, 1.0); }'
@@ -290,7 +389,8 @@
     else inst.vertexAttribDivisorANGLE(loc, n);
   }
 
-  var blade, sky, buffers = {}, attribs = {};
+  var blade, sky, drift, buffers = {}, attribs = {};
+  var MAX_DRIFT = 320;
 
   function build() {
     blade = program(BLADE_VS, BLADE_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uTime', 'uGrow', 'uDpr',
@@ -310,6 +410,23 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.tri);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 
+    drift = program(DRIFT_VS, DRIFT_FS, ['uRes', 'uProj', 'uEye', 'uWalk', 'uTime', 'uKind', 'uDpr',
+      'uWind', 'uPuff', 'uPuffV', 'uAdditive', 'uColor', 'uMist', 'uFadeFrom']);
+    buffers.quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    var seeds = new Float32Array(MAX_DRIFT * 4);
+    var a = 2463534242;
+    for (var i = 0; i < seeds.length; i++) {
+      a ^= a << 13; a ^= a >>> 17; a ^= a << 5;
+      seeds[i] = (a >>> 0) / 4294967296;
+    }
+    buffers.seeds = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.seeds);
+    gl.bufferData(gl.ARRAY_BUFFER, seeds, gl.STATIC_DRAW);
+    attribs.q = gl.getAttribLocation(drift.p, 'aQ');
+    attribs.s = gl.getAttribLocation(drift.p, 'aS');
+
     buffers.blades = gl.createBuffer();
     attribs.v = gl.getAttribLocation(blade.p, 'aV');
     attribs.a = gl.getAttribLocation(blade.p, 'aA');
@@ -325,6 +442,8 @@
   var heroTop = 0;
   var bladeCount = 0, layoutKey = '';
   var colors = null, sheen = null, bodies = null, skyAlpha = 1, bg = [0, 0, 0, 1];
+  var season = 'autumn', night = false, particles = { kind: null, count: 0 };
+  var DRIFT_KINDS = { snow: 0, petals: 1, fireflies: 2 };
   var moonPx = [0, 0, 20, 0], moonShow = 0, sunPx = [0, 0, 100, 0];
   var walk = 0, walkTarget = 0;
   var puffs = [];
@@ -342,8 +461,9 @@
     var cs = getComputedStyle(document.documentElement);
     var dark = document.documentElement.getAttribute('data-theme') === 'dark';
     var star = document.body.classList.contains('constellation');
-    var season = window.SeasonalEngine ? window.SeasonalEngine.getCurrentSeason() : 'autumn';
-    colors = C.palette({ parchment: cs.getPropertyValue('--parchment'), ink: cs.getPropertyValue('--ink') }, season, dark || star);
+    season = window.SeasonalEngine ? window.SeasonalEngine.getCurrentSeason() : 'autumn';
+    night = dark || star;
+    colors = C.palette({ parchment: cs.getPropertyValue('--parchment'), ink: cs.getPropertyValue('--ink') }, season, night);
     skyAlpha = star ? 0 : 1;
     bg = star ? [0, 0, 0, 0] : [colors.paper[0], colors.paper[1], colors.paper[2], 1];
   }
@@ -352,6 +472,7 @@
     var now = new Date();
     bodies = C.skyBodies(now, window.Moon.getMoonPhase(now));
     sheen = C.sheenFor(bodies);
+    particles = C.particlesFor(season, bodies);
     placeBodies();
   }
 
@@ -386,9 +507,9 @@
       cores: navigator.hardwareConcurrency,
       saveData: navigator.connection && navigator.connection.saveData
     });
-    var key = count + ':' + proj.tanHalfX.toFixed(3);
+    var key = count + ':' + proj.tanHalfX.toFixed(3) + ':' + season;
     if (key !== layoutKey) {
-      var data = C.layoutBlades(count, proj.tanHalfX, 108);
+      var data = C.layoutBlades(count, proj.tanHalfX, 108, C.seasonField(season));
       gl.bindBuffer(gl.ARRAY_BUFFER, buffers.blades);
       gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
       bladeCount = count;
@@ -495,6 +616,43 @@
     gl.disableVertexAttribArray(attribs.a);
     gl.disableVertexAttribArray(attribs.b);
     gl.disableVertexAttribArray(attribs.v);
+
+    if (particles.count) drawDrift(time, rw, rh);
+  }
+
+  function drawDrift(time, rw, rh) {
+    var additive = particles.kind === 'fireflies' && night;
+    gl.useProgram(drift.p);
+    var du = drift.u;
+    gl.uniform2f(du.uRes, rw, rh);
+    gl.uniform3f(du.uProj, proj.tanHalfX, proj.tanHalfY, proj.shift);
+    gl.uniform1f(du.uEye, C.EYE);
+    gl.uniform1f(du.uWalk, walk);
+    gl.uniform1f(du.uTime, time);
+    gl.uniform1f(du.uKind, DRIFT_KINDS[particles.kind]);
+    gl.uniform1f(du.uDpr, dpr);
+    gl.uniform2fv(du.uWind, WIND);
+    gl.uniform4fv(du.uPuff, puffData);
+    gl.uniform4fv(du.uPuffV, puffVel);
+    gl.uniform1f(du.uAdditive, additive ? 1 : 0);
+    gl.uniform3fv(du.uColor, colors.drift[particles.kind]);
+    gl.uniform3fv(du.uMist, colors.mist);
+    gl.uniform1f(du.uFadeFrom, FADE_FROM);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.quad);
+    gl.enableVertexAttribArray(attribs.q);
+    gl.vertexAttribPointer(attribs.q, 2, gl.FLOAT, false, 0, 0);
+    setDivisor(attribs.q, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.seeds);
+    gl.enableVertexAttribArray(attribs.s);
+    gl.vertexAttribPointer(attribs.s, 4, gl.FLOAT, false, 0, 0);
+    setDivisor(attribs.s, 1);
+    var n = Math.min(particles.count, MAX_DRIFT);
+    if (isGl2) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
+    else inst.drawArraysInstancedANGLE(gl.TRIANGLE_STRIP, 0, 4, n);
+    setDivisor(attribs.s, 0);
+    gl.disableVertexAttribArray(attribs.q);
+    gl.disableVertexAttribArray(attribs.s);
   }
 
   function mixRgb(a, b, t) {

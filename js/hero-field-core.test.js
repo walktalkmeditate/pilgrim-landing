@@ -137,6 +137,40 @@ ok(downwind, 'every blade leans within a right angle of downwind');
 ok(verge.length > 10 && mean(verge) < 0.75 * mean(open),
   'plumes on the verge are trodden low  (' + mean(verge).toFixed(2) + ' m vs ' + mean(open).toFixed(2) + ' m in the open)');
 
+console.log('\n=== the season\'s own field ===\n');
+
+const shapes = {};
+['spring', 'summer', 'autumn', 'winter'].forEach(function (season) { shapes[season] = C.seasonField(season); });
+ok(shapes.autumn.plumeShare > 0.35, 'autumn is the season of plumes  (' + shapes.autumn.plumeShare + ')');
+ok(shapes.spring.plumeShare < 0.1, 'spring grass is young: almost no plumes yet');
+ok(shapes.summer.plumeShare < shapes.autumn.plumeShare && shapes.summer.heightScale > 1, 'summer is lush and tall, its plumes only beginning');
+ok(shapes.winter.bow > 0 && shapes.winter.snow, 'winter stalks are bowed, and the ground is snow');
+ok(!shapes.autumn.snow && !shapes.spring.snow && !shapes.summer.snow, 'and only winter is');
+ok(C.seasonField('nonsense').plumeShare === shapes.autumn.plumeShare, 'an unknown season paints autumn, the field as first made');
+
+function plumeShareOf(arr) {
+  let plumes = 0;
+  for (let i = 0; i < arr.length / C.FLOATS_PER_BLADE; i++) plumes += arr[i * C.FLOATS_PER_BLADE + 5];
+  return plumes / (arr.length / C.FLOATS_PER_BLADE);
+}
+const springLayout = C.layoutBlades(4000, proj.tanHalfX, 7, shapes.spring);
+const autumnLayout = C.layoutBlades(4000, proj.tanHalfX, 7, shapes.autumn);
+ok(Math.abs(plumeShareOf(springLayout) - shapes.spring.plumeShare) < 0.02, 'the layout grows the season\'s share of plumes  (spring ' + plumeShareOf(springLayout).toFixed(3) + ')');
+ok(Math.abs(plumeShareOf(autumnLayout) - shapes.autumn.plumeShare) < 0.03, 'autumn\'s too  (' + plumeShareOf(autumnLayout).toFixed(3) + ')');
+ok(C.layoutBlades(4000, proj.tanHalfX, 7).every(function (v, i) { return v === autumnLayout[i]; }), 'no shape given grows autumn\'s field, as before');
+
+const night = C.skyBodies(new Date(2027, 6, 15, 23, 0), 0.3);
+const noon = C.skyBodies(new Date(2027, 6, 15, 13, 0), 0.3);
+ok(C.particlesFor('summer', night).kind === 'fireflies', 'a summer night has fireflies over the grass');
+ok(C.particlesFor('summer', noon).count === 0, 'a summer noon has none — fireflies need the dark');
+ok(C.particlesFor('winter', noon).kind === 'snow' && C.particlesFor('winter', night).kind === 'snow', 'winter snows by day and by night');
+ok(C.particlesFor('spring', noon).kind === 'petals', 'spring petals drift on the wind');
+ok(C.particlesFor('autumn', noon).count === 0 && C.particlesFor('autumn', night).count === 0, 'autumn needs nothing but its plumes');
+['spring', 'summer', 'winter'].forEach(function (season) {
+  const n = C.particlesFor(season, night).count;
+  ok(n > 0 && n <= 320, season + ' keeps its particles few  (' + n + ')');
+});
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {
@@ -225,6 +259,8 @@ const DARK = { parchment: '#1C1914', ink: '#F0EBE1', inkFog: '#908A83' };
   ok(lum(l.plume) < lum(l.paper), season + ', light: plumes are darker than the paper, or they vanish into it');
   ok(lum(d.plume) > lum(d.paper), season + ', dark: and lighter than night paper');
 });
+ok(lum(C.palette(LIGHT, 'winter', false).ground) > lum(C.palette(LIGHT, 'autumn', false).ground), 'winter ground is snow, lighter than autumn\'s');
+ok(lum(C.palette(DARK, 'winter', true).ground) > lum(C.palette(DARK, 'autumn', true).ground), 'and glows a little in the dark');
 ok(C.palette({ parchment: 'nonsense', ink: '' }, 'autumn', false).paper.length === 3,
   'an unreadable token falls back to the paper it should have been');
 

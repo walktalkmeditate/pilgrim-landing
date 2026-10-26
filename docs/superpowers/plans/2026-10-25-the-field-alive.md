@@ -29,7 +29,7 @@ The text still holds contrast.
 **Tests:** core: the season's field shape (plume share, heights, bow) and particle kind and count by
 season and hour; fireflies only on summer nights; "begin walking" contrast on every season's path.
 Wiring: the particle pass draws only when the season calls for it.
-**Status:** In Progress
+**Status:** Complete
 
 ## Stage 3: A lantern for someone walking
 **Goal:** when the counter API says people are walking right now (`estimated_active`), as many as three
@@ -39,7 +39,7 @@ Otherwise there are none. They are faint warm lights, readable at night and a sm
 appears without the signal, and nothing identifying is shown.
 **Tests:** core: lantern count from the stats (0, 1 for recent, capped at 3 for active) and positions on
 the path curve. Wiring: the trail's stats reach the field.
-**Status:** Not Started
+**Status:** In Progress
 
 ## Stage 4: Your path wears in
 **Goal:** each day you visit, the path reaches a little farther toward the horizon and its verge is

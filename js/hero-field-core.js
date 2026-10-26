@@ -34,6 +34,29 @@
     winter: { stem: '#7A7B80', plume: '#A09080' }
   };
 
+  // The season's own field. Susuki plumes in autumn; young grass and almost
+  // none in spring; summer lush, its plumes only beginning; winter's dry
+  // stalks bowed over snow. Each brings what drifts through it: petals on
+  // the spring wind, fireflies on summer nights, winter's snow.
+  var SEASON_FIELDS = {
+    spring: { plumeShare: 0.04, heightScale: 0.78, bow: 0, snow: false, particles: 'petals', count: 46 },
+    summer: { plumeShare: 0.12, heightScale: 1.12, bow: 0, snow: false, particles: 'fireflies', count: 64 },
+    autumn: { plumeShare: 0.42, heightScale: 1, bow: 0, snow: false, particles: null, count: 0 },
+    winter: { plumeShare: 0.18, heightScale: 0.86, bow: 0.32, snow: true, particles: 'snow', count: 260 }
+  };
+
+  function seasonField(season) {
+    return SEASON_FIELDS[season] || SEASON_FIELDS.autumn;
+  }
+
+  // Fireflies need the dark; the rest drift by day and night alike.
+  function particlesFor(season, bodies) {
+    var f = seasonField(season);
+    if (!f.particles) return { kind: null, count: 0 };
+    if (f.particles === 'fireflies' && bodies.sun.alt > -0.05) return { kind: null, count: 0 };
+    return { kind: f.particles, count: f.count };
+  }
+
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
   function wrapHours(h) {
@@ -256,7 +279,8 @@
   // leaf), lean direction, lean amount. Density rises into the distance so
   // the far field closes into a tone; a tenth stand close for depth. All
   // lean downwind, combed as a steady wind combs. Far to near: paint order.
-  function layoutBlades(count, tanHalfX, seed) {
+  function layoutBlades(count, tanHalfX, seed, shape) {
+    var f = shape || SEASON_FIELDS.autumn;
     var rand = mulberry32(seed === undefined ? 108 : seed);
     var depths = new Float64Array(count);
     var nearCount = Math.round(count * NEAR_SHARE);
@@ -282,8 +306,8 @@
       if (inPath(x, d)) x = pathX(d) + (rand() < 0.5 ? -1 : 1) * (pathHalfWidth(d) + rand() * 2);
 
       var verge = clamp(fromPath(x, d) / 1.6, 0, 1);
-      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge);
-      var plume = rand() < 0.42;
+      var patch = (0.72 + 0.56 * patchNoise(x * 0.06 + 31, d * 0.06 + 17)) * (0.35 + 0.65 * verge) * f.heightScale;
+      var plume = rand() < f.plumeShare;
       var height = plume
         ? (1.0 + rand() * 0.36) * patch + (d > 9 ? rand() * rand() * 0.6 : 0)
         : (0.45 + rand() * 0.45) * patch;
@@ -296,7 +320,7 @@
       out[k + 4] = rand();
       out[k + 5] = plume ? 1 : 0;
       out[k + 6] = WIND_ANGLE + (rand() - 0.5) * (plume ? 0.9 : 3.2);
-      out[k + 7] = plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38;
+      out[k + 7] = (plume ? 0.06 + rand() * 0.18 : 0.2 + rand() * 0.38) + f.bow * rand();
     }
     return out;
   }
@@ -328,9 +352,10 @@
         stem: mix(mix(paper, ink, 0.3), stem, 0.25),
         plume: mix(mix(paper, ink, 0.62), plume, 0.22),
         mist: mix(paper, ink, 0.1),
-        ground: mix(paper, [0, 0, 0], 0.3),
+        ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, ink, 0.2) : mix(paper, [0, 0, 0], 0.3),
         path: mix(paper, ink, 0.025),
-        moonLit: mix(ink, [1, 1, 1], 0.2)
+        moonLit: mix(ink, [1, 1, 1], 0.2),
+        drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42] }
       };
     }
     return {
@@ -338,9 +363,10 @@
       stem: mix(mix(paper, ink, 0.74), stem, 0.25),
       plume: mix(mix(paper, ink, 0.17), plume, 0.2),
       mist: mix(paper, [1, 1, 1], 0.28),
-      ground: mix(paper, ink, 0.2),
+      ground: SEASON_FIELDS[season] && SEASON_FIELDS[season].snow ? mix(paper, [1, 1, 1], 0.45) : mix(paper, ink, 0.2),
       path: mix(paper, [1, 1, 1], 0.12),
-      moonLit: mix(paper, [1, 1, 1], 0.82)
+      moonLit: mix(paper, [1, 1, 1], 0.82),
+      drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16] }
     };
   }
 
@@ -373,7 +399,9 @@
     bladeBudget: bladeBudget,
     layoutBlades: layoutBlades,
     hexToRgb: hexToRgb,
-    palette: palette
+    palette: palette,
+    seasonField: seasonField,
+    particlesFor: particlesFor
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -130,7 +130,11 @@ const BASELINE_KB = {
   // brush, the scroll's gust up the path, and their tested model
   // (js/hero-field-core.js +0.72, js/hero-field.js +0.44); and the link
   // card's moon hook and image alt, which stayed under the drift (+0.15).
-  'index.html':                                 129.42,
+  // +1.77 (131.19): the season's own field — winter's snow, spring's
+  // petals and summer's fireflies, drawn by one instanced pass computed
+  // on the GPU from time (js/hero-field.js +1.26), and each season's
+  // shape and particles, tested (js/hero-field-core.js +0.50).
+  'index.html':                                 131.19,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

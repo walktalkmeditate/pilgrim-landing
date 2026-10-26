@@ -97,12 +97,28 @@ function fakeGl(opts) {
   ['enableVertexAttribArray', 'disableVertexAttribArray', 'vertexAttribPointer', 'vertexAttribDivisor',
     'viewport', 'clearColor', 'clear', 'enable', 'blendFunc'].forEach(function (fn) { gl[fn] = function () {}; });
   gl.drawArrays = function () { gl.draws.push('sky'); };
-  gl.drawArraysInstanced = function (_mode, _first, _count, instances) { gl.draws.push('blades:' + instances); };
+  gl.drawArraysInstanced = function (_mode, _first, _count, instances) {
+    const isDrift = gl.current.shaders[0].src.indexOf('attribute vec4 aS;') !== -1;
+    gl.draws.push((isDrift ? 'drift:' : 'blades:') + instances);
+  };
   gl.getExtension = function () { return null; };
   return gl;
 }
 
 /* ---------- a fake browser ---------- */
+
+// The sky is read from new Date(); a held clock fixes the hour.
+function heldDate(at) {
+  const ms = new Date(at).getTime();
+  function Held(a, b, c, d, e, f, g) {
+    if (arguments.length === 0) return new Date(ms);
+    if (arguments.length === 1) return new Date(a);
+    return new Date(a, b, c === undefined ? 1 : c, d || 0, e || 0, f || 0, g || 0);
+  }
+  Held.now = function () { return ms; };
+  Held.prototype = Date.prototype;
+  return Held;
+}
 
 function boot(opts) {
   opts = opts || {};
@@ -151,7 +167,7 @@ function boot(opts) {
   const sandbox = {
     HeroFieldCore: Core,
     Moon: Moon,
-    SeasonalEngine: { getCurrentSeason: function () { return 'autumn'; } },
+    SeasonalEngine: { getCurrentSeason: function () { return opts.season || 'autumn'; } },
     devicePixelRatio: 2,
     scrollY: 0,
     navigator: { hardwareConcurrency: 8 },
@@ -174,7 +190,7 @@ function boot(opts) {
     addEventListener: function (t, fn) { (winOn[t] = winOn[t] || []).push(fn); },
     IntersectionObserver: function (cb) { io.push(cb); this.observe = function () {}; },
     MutationObserver: function (cb) { const o = { cb: cb, target: null }; mos.push(o); this.observe = function (t) { o.target = t; }; },
-    Date: Date,
+    Date: opts.at ? heldDate(opts.at) : Date,
     Math: Math,
     Float32Array: Float32Array,
     Error: Error,
@@ -336,6 +352,29 @@ ok(gl.values.uFront[1] > 0.9, 'a new whisper arrives on a gust across the field'
 const sheen = gl.values.uSheen[0];
 const plain = Core.sheenFor(Core.skyBodies(new Date(), Moon.getMoonPhase(new Date()))).rgb;
 ok(Math.abs(sheen[0] - plain[0]) + Math.abs(sheen[2] - plain[2]) > 0.05, 'and the gust carries the whisper\'s own colour');
+
+console.log('\n=== the season\'s own field ===\n');
+
+function driftDraws(world) { return world.gl().draws.filter(function (d) { return d.indexOf('drift') === 0; }); }
+function seasonFrame(season, at) {
+  const v = boot({ season: season, at: at });
+  v.seen(true);
+  v.frame(16); v.frame(32);
+  return v;
+}
+ok(driftDraws(seasonFrame('autumn', '2027-10-20T13:00:00')).length === 0, 'autumn draws only its grass and plumes');
+const winter = seasonFrame('winter', '2027-01-20T13:00:00');
+ok(driftDraws(winter)[0] === 'drift:' + Core.seasonField('winter').count, 'winter snows, ' + Core.seasonField('winter').count + ' flakes in one instanced draw');
+ok(winter.gl().draws.indexOf('drift:' + Core.seasonField('winter').count) > winter.gl().draws.indexOf('blades:' + Core.bladeBudget(1440, 900, { cores: 8 })),
+  'and the snow falls in front of the grass, drawn after it');
+ok(winter.gl().nullWrites.length === 0, 'every uniform the snow sets is one its shaders declare');
+ok(driftDraws(seasonFrame('summer', '2027-07-15T13:00:00')).length === 0, 'a summer noon has no fireflies');
+ok(driftDraws(seasonFrame('summer', '2027-07-15T23:30:00'))[0] === 'drift:' + Core.seasonField('summer').count, 'a summer night does');
+ok(driftDraws(seasonFrame('spring', '2027-04-15T13:00:00'))[0] === 'drift:' + Core.seasonField('spring').count, 'spring petals drift through the day');
+const still = boot({ season: 'winter', at: '2027-01-20T13:00:00', reduced: true });
+still.frame(16);
+still.seen(true);
+ok(driftDraws(still).length === 1 && still.pendingFrames() === 0, 'with less motion the snow hangs in the still painting, and nothing moves');
 
 console.log('\n=== a visitor who asked for less motion ===\n');
 
