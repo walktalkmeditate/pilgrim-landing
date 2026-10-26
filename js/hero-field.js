@@ -246,7 +246,7 @@
     'void main(){',
     '  float vz = max(aP.z - uWalk, 0.4);',
     '  vec4 c = vec4(aP.x / uProj.x, (aP.y - uEye) / uProj.y + uProj.z * vz, 0.0, vz);',
-    '  float px = max(aP.w * uRes.y * 0.5 / uProj.y / vz, 1.1 * uDpr) * (uKind > 1.5 ? 3.0 : 1.0);',
+    '  float px = max(aP.w * uRes.y * 0.5 / uProj.y / vz, 1.1 * uDpr) * (uKind > 1.5 && uKind < 3.5 ? 3.0 : 1.0);',
     '  c.xy += aQ * px * 2.0 / uRes * c.w;',
     '  gl_Position = c;',
     '  vQ = aQ;',
@@ -281,6 +281,13 @@
     '  } else if (uKind < 2.5) {',
     '    float l = dot(vQ, vQ);',
     '    a = (exp(-l * 10.0) + exp(-l * 2.0) * 0.4) * (1.0 - smoothstep(0.5, 1.0, l)) * vGlow;',
+    '  } else if (uKind > 3.5) {',
+    // A goose far off: two wings in a shallow V that beats, and a body.
+    '    float ax = abs(vQ.x);',
+    '    float dw = abs(vQ.y - (vRot * 0.5 * ax - 0.2 * ax * ax));',
+    '    float w = 0.17 * (1.0 - 0.55 * ax);',
+    '    a = (1.0 - smoothstep(w * 0.5, w, dw)) * (1.0 - smoothstep(0.85, 1.0, ax));',
+    '    a = max(a, 1.0 - smoothstep(0.1, 0.22, length(vQ * vec2(1.5, 2.6))));',
     '  } else {',
     '    float l = dot(vQ, vQ);',
     '    a = (exp(-l * 16.0) + exp(-l * 2.4) * 0.5) * (1.0 - smoothstep(0.5, 1.0, l)) * vGlow;',
@@ -493,6 +500,9 @@
     buffers.drift = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.drift);
     gl.bufferData(gl.ARRAY_BUFFER, MAX_DRIFT * 5 * 4, gl.DYNAMIC_DRAW);
+    buffers.geese = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.geese);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_GEESE * 5 * 4, gl.DYNAMIC_DRAW);
     buffers.lantern = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.lantern);
     gl.bufferData(gl.ARRAY_BUFFER, 5 * 4, gl.DYNAMIC_DRAW);
@@ -520,6 +530,9 @@
   var key = null, light = null, keyPx = [-1e4, -1e4, 1, 0];
   var lampData = new Float32Array(16);
   var ownLitAt = null, stillSince = 0;
+  var MAX_GEESE = 11, GEESE_SECONDS = 22;
+  var skein = reduced ? null : { at: 18 + Math.random() * 22, count: 7 + Math.floor(Math.random() * 5), flies: null };
+  var geeseData = new Float32Array(MAX_GEESE * 5);
   var clouds = [], cloudData = new Float32Array(16), cloudDens = new Float32Array(16), veil = 0;
   var meteorShower = null, meteor = null, nextMeteor = 4 + Math.random() * 6;
   var METEOR_SECONDS = 0.9;
@@ -750,6 +763,32 @@
     drawBlades(from, bladeCount);
 
     if (particles.count) drawDrift(time, rw, rh);
+    if (skein) drawGeese(time, rw, rh);
+  }
+
+  // The skein is decided when it is due: geese only if the season and the
+  // hour call for them then. Aimed over the moon when it is up.
+  function drawGeese(time, rw, rh) {
+    if (time < skein.at) return;
+    if (skein.flies === null) skein.flies = C.geeseFly(season, bodies);
+    if (!skein.flies) return;
+    var target = moonShow ? { x: moonPx[0] / W, y: moonPx[1] / horizonPx } : { x: 0.5, y: 0.72 };
+    var birds = C.skeinAt(time, skein.at, GEESE_SECONDS, skein.count, target, season === 'autumn' ? 1 : -1);
+    if (!birds.length) return;
+    var vz = 70;
+    birds.forEach(function (g, i) {
+      var nx = g.x * 2 - 1;
+      var ny = 1 - g.y * horizonPx / H * 2;
+      geeseData[i * 5] = nx * proj.tanHalfX * vz;
+      geeseData[i * 5 + 1] = C.EYE + (ny - proj.shift) * proj.tanHalfY * vz;
+      geeseData[i * 5 + 2] = vz + walk;
+      geeseData[i * 5 + 3] = 0.55;
+      geeseData[i * 5 + 4] = g.flap;
+    });
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.geese);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, geeseData.subarray(0, birds.length * 5));
+    useDrift(4, colors.goose, false, rw, rh);
+    drawPoints(buffers.geese, birds.length);
   }
 
   function drawBlades(from, to) {

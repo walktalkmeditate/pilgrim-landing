@@ -510,6 +510,31 @@
     return 'float cloudShape(vec2 p, vec4 c){ vec2 d = (p - c.xy) / c.zw; return 1.0 - smoothstep(0.2, 1.0, length(d)); }';
   }
 
+  // Geese across the moon, Hiroshige's: in the migrating seasons, from dusk
+  // on, a skein crosses the sky once a visit — south (left to right) in
+  // autumn, north again in spring — aimed to pass over the moon. Sky
+  // coordinates: x a fraction of the width, y of the sky's height.
+  function geeseFly(season, bodies) {
+    return (season === 'autumn' || season === 'spring') && bodies.sun.alt < 0.3;
+  }
+
+  function skeinAt(timeSec, start, duration, count, target, dir) {
+    var u = (timeSec - start) / duration;
+    if (u < 0 || u > 1) return [];
+    var lx = target.x + dir * (u - 0.5) * 1.5;
+    var ly = target.y - (u - 0.5) * 0.12 + Math.sin(timeSec * 0.7) * 0.006;
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      var rank = Math.ceil(i / 2), arm = i % 2 ? -1 : 1;
+      out.push({
+        x: lx - dir * rank * 0.026 + Math.sin(timeSec * 1.1 + i * 1.7) * 0.0015,
+        y: ly + arm * rank * 0.024 + Math.sin(timeSec * 0.9 + i * 2.3) * 0.003,
+        flap: Math.sin(timeSec * 2 * Math.PI * 1.5 + i * 0.9)
+      });
+    }
+    return out;
+  }
+
   // Your own lantern: be still on the hero a while and one is lit where
   // the path begins, just ahead of you, and walks away up it at a walker's
   // pace until the far field takes it. Once a visit.
@@ -667,6 +692,7 @@
         meteor: mix(ink, [1, 1, 1], 0.5),
         dusk: [0.012, 0.011, 0.01],
         cloud: mix(paper, ink, 0.09),
+        goose: mix(paper, [0, 0, 0], 0.55),
         shade: mix(paper, [0, 0, 0], 0.45),
         rimBase: mix(ink, [1, 1, 1], 0.25),
         lamp: [1, 0.74, 0.38],
@@ -684,6 +710,7 @@
       meteor: mix(paper, ink, 0.55),
       dusk: ink,
       cloud: mix(paper, ink, 0.13),
+      goose: mix(paper, ink, 0.78),
       shade: mix(paper, ink, 0.5),
       rimBase: mix(paper, [1, 1, 1], 0.75),
       lamp: [0.86, 0.55, 0.2],
@@ -730,6 +757,8 @@
     showerLine: showerLine,
     meteorFrom: meteorFrom,
     lanternAt: lanternAt,
+    geeseFly: geeseFly,
+    skeinAt: skeinAt,
     MAX_CLOUDS: MAX_CLOUDS,
     cloudsFor: cloudsFor,
     cloudAt: cloudAt,

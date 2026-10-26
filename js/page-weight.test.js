@@ -168,7 +168,10 @@ const BASELINE_KB = {
   // bands, their silver lining, the veil dimming the lane, and a lantern's
   // haze in the air with its glow faded inside its sprite (js/hero-field.js
   // +0.80).
-  'index.html':                                 140.75,
+  // +0.90 (141.65): geese across the moon — the migrating seasons, the
+  // skein's V aimed over the moon, tested (js/hero-field-core.js +0.36);
+  // the geese drawn far off as beating wings (js/hero-field.js +0.54).
+  'index.html':                                 141.65,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

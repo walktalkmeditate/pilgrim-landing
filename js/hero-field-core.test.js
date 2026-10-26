@@ -361,6 +361,31 @@ ok(C.moonVeil([over], 0.8, 0.3) === 0, 'a cloud elsewhere does not');
 ok(C.moonVeil([over, over], 0.3, 0.6) <= 1, 'two veils never make more than full dark');
 ok(/float cloudShape\(vec2 p, vec4 c\)/.test(C.cloudGlsl()), 'the shader draws the clouds with the shape the veil is reckoned from');
 
+console.log('\n=== geese across the moon ===\n');
+
+const dusk = C.skyBodies(new Date(2027, 9, 20, 18, 40), 0.5);
+const midday = C.skyBodies(new Date(2027, 9, 20, 12, 0), 0.5);
+const dark = C.skyBodies(new Date(2027, 3, 20, 23, 0), 0.5);
+ok(C.geeseFly('autumn', dusk), 'autumn evenings: the geese are moving south');
+ok(C.geeseFly('spring', dark), 'spring nights: north again');
+ok(!C.geeseFly('autumn', midday), 'but not across a noon sky');
+ok(!C.geeseFly('summer', dusk) && !C.geeseFly('winter', dark), 'and not in summer or winter, when they stay put');
+
+const target = { x: 0.3, y: 0.55 };
+const skein = function (t) { return C.skeinAt(t, 0, 20, 9, target, 1); };
+ok(skein(-1).length === 0 && skein(21).length === 0, 'before and after its crossing, the sky is empty');
+const mid = skein(10);
+ok(mid.length === 9, 'nine geese in the skein');
+const lead = mid[0];
+ok(mid.every(function (g, i) { return i === 0 || g.x < lead.x; }), 'a leader at the point, the rest trailing behind');
+const above = mid.filter(function (g, i) { return i > 0 && g.y < lead.y; }).length;
+const below = mid.filter(function (g, i) { return i > 0 && g.y > lead.y; }).length;
+ok(above > 0 && below > 0, 'in two arms, one above and one below: a V');
+ok(Math.abs(lead.x - target.x) < 0.06 && Math.abs(lead.y - target.y) < 0.06, 'halfway through its crossing, the skein is over the moon');
+ok(skein(2)[0].x < skein(18)[0].x, 'flying left to right');
+ok(C.skeinAt(2, 0, 20, 9, target, -1)[0].x > C.skeinAt(18, 0, 20, 9, target, -1)[0].x, 'or right to left, the other way in the other season');
+ok(mid.every(function (g) { return g.flap >= -1 && g.flap <= 1; }) && mid[0].flap !== mid[3].flap, 'each beats its own wings');
+
 console.log('\n=== the camera ===\n');
 
 [[1440, 900, 0.66], [390, 844, 0.62], [1366, 650, 0.78]].forEach(function (v) {
