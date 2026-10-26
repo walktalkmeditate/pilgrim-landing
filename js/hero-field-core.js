@@ -123,6 +123,48 @@
     };
   }
 
+  // In praise of shadows: a light shows itself in the dark it falls on.
+  // The key light is the sun while it is up, else the moon while it is up
+  // and lit, else nothing — and then the field is lit only by its own
+  // lanterns and fireflies. A low light lays a lane across the grass
+  // toward you and rims every stalk between; a high one barely does.
+  function keyLight(bodies) {
+    var sun = bodies.sun, moon = bodies.moon;
+    if (sun.alt > -0.05) {
+      return { kind: 'sun', x01: sun.x01, alt: Math.max(sun.alt, 0), strength: 1, low: 1 - clamp(sun.alt, 0, 1) };
+    }
+    if (moon.alt > 0 && moon.illumination > 0.05) {
+      return { kind: 'moon', x01: moon.x01, alt: moon.alt, strength: 0.25 + 0.75 * moon.illumination, low: 1 - clamp(moon.alt, 0, 1) };
+    }
+    return { kind: null, x01: 0.5, alt: 0, strength: 0, low: 0 };
+  }
+
+  function fieldLight(key) {
+    if (!key.kind) return { shadow: 0.78, lane: 0, rim: 0 };
+    var reach = key.strength * (0.35 + 0.65 * key.low);
+    return {
+      shadow: key.kind === 'sun' ? 0.12 + 0.4 * key.low : 0.72 - 0.17 * key.strength,
+      lane: reach,
+      rim: reach * key.low
+    };
+  }
+
+  // The ink wash at the top of the sky, as a fraction of the way to ink (or
+  // to black at night), at a height y down the hero (0 its top). Strong at
+  // the very top like the band in a woodblock print, gone by the horizon.
+  var BOKASHI = { light: [0.42, 0.11], dark: [0.6, 0.16] };
+
+  function bokashiAt(y01, dark) {
+    var b = dark ? BOKASHI.dark : BOKASHI.light;
+    return b[0] * Math.exp(-Math.max(0, y01) / b[1]);
+  }
+
+  function bokashiGlsl() {
+    var f = glslFloat;
+    return 'float bokashi(float y, float dark){ vec2 b = mix(vec2(' + f(BOKASHI.light[0]) + ', ' + f(BOKASHI.light[1]) +
+      '), vec2(' + f(BOKASHI.dark[0]) + ', ' + f(BOKASHI.dark[1]) + '), dark); return b.x * exp(-max(0.0, y) / b.y); }';
+  }
+
   // One curve, read twice: pathX clears the grass, and pathGlsl() gives the
   // shader the same numbers to leave the path as bare paper. Straight out
   // from under "begin walking" for eleven metres (the foot of a laptop's
@@ -418,6 +460,19 @@
     return { x0: x0, y0: y0, dx: dx / l, dy: dy / l, len: (0.14 + 0.1 * r2) * widthPx };
   }
 
+  // Where a point in the field lands on screen, in pixels from the top
+  // left, with how many pixels a metre spans there.
+  function screenOf(x, y, d, walked, widthPx, heightPx, proj) {
+    var vz = Math.max(d - (walked || 0), 0.05);
+    var nx = x / (proj.tanHalfX * vz);
+    var ny = (y - EYE) / (proj.tanHalfY * vz) + proj.shift;
+    return {
+      x: (nx + 1) / 2 * widthPx,
+      y: (1 - ny) / 2 * heightPx,
+      metre: heightPx * 0.5 / proj.tanHalfY / vz
+    };
+  }
+
   function bladeBudget(widthPx, heightPx, opts) {
     var o = opts || {};
     var n = 22000 * (widthPx * heightPx) / (1440 * 900);
@@ -540,6 +595,10 @@
         path: mix(paper, ink, 0.025),
         moonLit: mix(ink, [1, 1, 1], 0.2),
         meteor: mix(ink, [1, 1, 1], 0.5),
+        dusk: [0.012, 0.011, 0.01],
+        shade: mix(paper, [0, 0, 0], 0.45),
+        rimBase: mix(ink, [1, 1, 1], 0.25),
+        lamp: [1, 0.74, 0.38],
         drift: { snow: mix(ink, [1, 1, 1], 0.3), petals: mix(paper, [0.96, 0.76, 0.79], 0.8), fireflies: [0.82, 0.95, 0.42], lantern: [1, 0.78, 0.44] }
       };
     }
@@ -552,6 +611,10 @@
       path: mix(paper, [1, 1, 1], 0.12),
       moonLit: mix(paper, [1, 1, 1], 0.82),
       meteor: mix(paper, ink, 0.55),
+      dusk: ink,
+      shade: mix(paper, ink, 0.5),
+      rimBase: mix(paper, [1, 1, 1], 0.75),
+      lamp: [0.86, 0.55, 0.2],
       drift: { snow: mix(paper, [1, 1, 1], 0.9), petals: mix(paper, [0.9, 0.62, 0.66], 0.55), fireflies: [0.7, 0.56, 0.16], lantern: [0.78, 0.5, 0.18] }
     };
   }
@@ -565,6 +628,10 @@
     WIND: WIND,
     PATH: PATH,
     pathGlsl: pathGlsl,
+    keyLight: keyLight,
+    fieldLight: fieldLight,
+    bokashiAt: bokashiAt,
+    bokashiGlsl: bokashiGlsl,
     SEASON_COLORS: SEASON_COLORS,
     daylightSavingHours: daylightSavingHours,
     skyBodies: skyBodies,
@@ -585,6 +652,7 @@
     LANTERN_NEAR: LANTERN_NEAR,
     LANTERN_FAR: LANTERN_FAR,
     lanternsFor: lanternsFor,
+    screenOf: screenOf,
     showerTonight: showerTonight,
     meteorsNow: meteorsNow,
     showerLine: showerLine,

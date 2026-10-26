@@ -149,7 +149,12 @@ const BASELINE_KB = {
   // their radiants, the night that runs past midnight, the hero's line
   // naming the shower (js/hero-field-core.js +0.66), and the streak in
   // the sky shader with its rare schedule (js/hero-field.js +0.59).
-  'index.html':                                 135.21,
+  // +2.23 (137.44): in praise of shadows — the light shown by the dark it
+  // falls on: the key light and its lane, the ink-wash sky with the words
+  // held readable on it, the lanterns' projected light, all tested
+  // (js/hero-field-core.js +0.84); the shading, rims, silhouettes, wash,
+  // vignette and the low sun's core in the shaders (js/hero-field.js +1.39).
+  'index.html':                                 137.44,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

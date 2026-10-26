@@ -415,6 +415,63 @@ ok(lum(C.palette(DARK, 'winter', true).ground) > lum(C.palette(DARK, 'autumn', t
 ok(C.palette({ parchment: 'nonsense', ink: '' }, 'autumn', false).paper.length === 3,
   'an unreadable token falls back to the paper it should have been');
 
+console.log('\n=== in praise of shadows: the light ===\n');
+
+const noonSky = C.skyBodies(new Date(2027, 0, 20, 12, 0), 0.5);
+const goldSky = C.skyBodies(new Date(2027, 0, 20, 16, 40), 0.5);
+const fullMidnight = C.skyBodies(new Date(2027, 0, 20, 0, 0), 0.5);
+const newMidnight = C.skyBodies(new Date(2027, 0, 20, 0, 0), 0);
+const dayWithMoon = C.skyBodies(new Date(2027, 0, 20, 15, 0), 0.2);
+ok(C.keyLight(noonSky).kind === 'sun' && C.keyLight(noonSky).low < 0.1, 'at noon the sun lights the field, from high above');
+ok(C.keyLight(goldSky).kind === 'sun' && C.keyLight(goldSky).low > 0.7, 'late in the day it lights it from low down');
+ok(C.keyLight(fullMidnight).kind === 'moon', 'at midnight under a full moon, the moon does');
+ok(C.keyLight(newMidnight).kind === null, 'with no moon at all, nothing does');
+ok(C.keyLight(dayWithMoon).kind === 'sun', 'by day the sun outshines a moon that is also up');
+ok(C.keyLight(fullMidnight).strength > C.keyLight(C.skyBodies(new Date(2027, 0, 20, 18, 30), 0.12)).strength,
+  'a full moon lights the field more than a thin crescent');
+
+const lit = {
+  noon: C.fieldLight(C.keyLight(noonSky)), gold: C.fieldLight(C.keyLight(goldSky)),
+  moon: C.fieldLight(C.keyLight(fullMidnight)), dark: C.fieldLight(C.keyLight(newMidnight))
+};
+ok(lit.dark.shadow > lit.moon.shadow && lit.moon.shadow > lit.noon.shadow, 'the field sinks deepest with no moon, less under the moon, least at noon');
+ok(lit.dark.lane === 0, 'with no light there is no lane of light');
+ok(lit.gold.lane > lit.noon.lane * 1.5, 'a low sun lays a lane of light across the grass; a high one barely does');
+ok(lit.gold.rim > lit.noon.rim, 'and rims the grass between you and it');
+
+console.log('\n=== the ink-wash sky keeps the words readable ===\n');
+
+function onWash(paperHex, inkHex, wash, dark) {
+  const paper = C.hexToRgb(paperHex), toward = dark ? [0, 0, 0] : C.hexToRgb(inkHex);
+  return paper.map(function (v, i) { return v + (toward[i] - v) * wash; });
+}
+ok(C.bokashiAt(0, false) > 0.3, 'the top of the sky is washed dark, like the band in a woodblock print  (' + C.bokashiAt(0, false).toFixed(2) + ')');
+ok(C.bokashiAt(0.55, false) < 0.02, 'and the wash is gone by the horizon, where the light is');
+let wordsRead = true, worstFog = 99, worstInk = 99;
+for (let y = 0; y <= 0.6; y += 0.01) {
+  const bg = onWash(LIGHT.parchment, LIGHT.ink, C.bokashiAt(y, false), false);
+  // The hero's padding keeps the title at least 8.6% down, even on a short
+  // laptop; above that is the wash's darkest band, which holds no words.
+  if (y >= 0.06) {
+    const ink = contrast(C.hexToRgb(LIGHT.ink), bg);
+    worstInk = Math.min(worstInk, ink);
+    if (ink < 7) wordsRead = false;
+  }
+  if (y >= 0.18) {
+    const fog = contrast(C.hexToRgb(LIGHT.inkFog), bg);
+    worstFog = Math.min(worstFog, fog);
+    if (fog < 4.6) wordsRead = false;
+  }
+}
+ok(wordsRead, 'light: the title holds 7:1 wherever it can sit, the quieter lines 4.6:1 from a fifth of the way down  (ink ' + worstInk.toFixed(2) + ', fog ' + worstFog.toFixed(2) + ')');
+let darkRead = true;
+for (let y = 0; y <= 0.6; y += 0.01) {
+  const bg = onWash(DARK.parchment, DARK.ink, C.bokashiAt(y, true), true);
+  if (contrast(C.hexToRgb(DARK.inkFog), bg) < 4.6) darkRead = false;
+}
+ok(darkRead, 'dark: a darker sky only deepens the contrast of pale words');
+ok(/float bokashi\(float y, float dark\)/.test(C.bokashiGlsl()), 'the shader washes the sky with the same curve the test reads');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);
