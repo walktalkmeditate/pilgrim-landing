@@ -64,3 +64,29 @@ a crescent. Its terminator also never reached the limb. Fixed in its own commit,
 - Safari / iOS on real hardware. The risks are the precision preamble, MSAA cost at DPR 3 capped to 1.5, and
   touch rings firing at the start of every scroll gesture in the hero.
 - A lower-end Android GPU pass. The budget's `coarse` and `cores` factors are guesses until measured.
+
+## Follow-up: in praise of shadows, and the inscription (2026-10-26)
+
+The user's prompt was Tanizaki's *In Praise of Shadows*: a light shows itself in the dark it falls on.
+The hero lit the field evenly, so nothing in the painting said where the light came from.
+
+- **Key light** (`keyLight`): the sun while it is up, else the moon while it is up and lit, else
+  nothing. **Field light** (`fieldLight`): how deep the shadow is, and how strong the lane and rims are.
+- **Lane:** a band below the key light that narrows as it recedes. It is brightest toward the horizon,
+  because grass seen against the light glows at grazing angles, and the light carries through the haze.
+  Outside the lane the grass sinks into shadow. Inside it the stalks go dark with their edges lit, and
+  gusts flash as they cross it.
+- **Silhouettes:** plumes go dark against the moon. On light paper this is reduced to a hint, because
+  a pale moon is no ground for a silhouette and it read as a stain. A low sun is drawn as a soft core
+  at the horizon, so silhouettes against it make sense.
+- **Ink-wash sky:** the darkening is strong at the very top and gone by the horizon, pushed back
+  around the light. One curve (`bokashiGlsl`) feeds both the shader and the contrast test. The title
+  holds 7:1 wherever the hero can place it, and `--ink-fog` holds 4.6:1 from a fifth of the way down.
+- **Moonless nights** are truly dark. Each lantern warms the plumes around it (`screenOf` projects it).
+- **Inscription:** the app-icon tile is gone. The name, the seal and the line beneath are set
+  upper-left like a painter's inscription, and the whisper is the poem, in `--ink-fog`; its energy
+  colours had fallen as low as 1.8:1. The seal is the app mark from `assets/pilgrim-logo.svg`, cut out
+  of a vermilion seal with an SVG mask, with a sparse low-frequency grain. Dense fine grain read as rust.
+- **Traps:** with the words inside a positioned inscription, `offsetTop` is measured from it, so the
+  field now measures with `getBoundingClientRect`. "begin walking" is centred explicitly, because it
+  had been centred only by the hero's alignment.

@@ -666,7 +666,9 @@
     gl.uniform4f(bu.uLight, keyPx[0] * dpr, keyPx[1] * dpr, keyPx[2] * dpr, keyPx[3] * grow);
     gl.uniform3f(bu.uLane, light.lane * grow, light.shadow * grow, key.low);
     gl.uniform3fv(bu.uShade, colors.shade);
-    gl.uniform1f(bu.uSil, (key.kind === 'moon' ? 0.8 * moonShow : key.kind === 'sun' ? 0.55 * key.low * key.low : 0) * grow);
+    // Plumes go dark against a bright moon; on light paper the moon is
+    // too pale a ground for a silhouette, which would read as a stain.
+    gl.uniform1f(bu.uSil, (key.kind === 'moon' ? (night ? 0.8 : 0.2) * moonShow : key.kind === 'sun' ? 0.55 * key.low * key.low : 0) * grow);
     gl.uniform3fv(bu.uRim, rim);
     gl.uniform3fv(bu.uLampC, colors.lamp);
     var lit = lanternsNow(time);
