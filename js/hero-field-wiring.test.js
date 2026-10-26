@@ -155,7 +155,7 @@ function boot(opts) {
     }
   };
 
-  const quotes = { offsetTop: 380, offsetHeight: 43 };
+  const quotes = { getBoundingClientRect: function () { return { bottom: 423 - sandbox.scrollY }; } };
   const hero = {
     clientWidth: 1440, clientHeight: 900, firstChild: { name: 'logo' }, children: [], on: {},
     querySelector: function (sel) { return sel === '.hero-quotes' ? quotes : null; },
@@ -258,6 +258,28 @@ const main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
 const css = fs.readFileSync(path.join(ROOT, 'css', 'styles.css'), 'utf8') + fs.readFileSync(path.join(ROOT, 'css', 'animations.css'), 'utf8');
 ok(!/initParticles|particle/.test(main), 'js/main.js no longer makes dots for every page that loads it');
 ok(!/\.particles?\b/.test(css), 'and the shared stylesheets no longer style them');
+
+console.log('\n=== the inscription and its seal ===\n');
+
+const heroHtml = html.slice(html.indexOf('<header class="hero'), html.indexOf('</header>'));
+const fieldCss = fs.readFileSync(path.join(ROOT, 'css', 'hero-field.css'), 'utf8');
+function rule(sel) {
+  const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = fieldCss.match(new RegExp('(^|\\n)' + escaped + '\\s*\\{([^}]*)\\}'));
+  return m ? m[2] : null;
+}
+ok(/<h1 class="hero-title">Pilgrim<\/h1>/.test(heroHtml), 'the heading still says Pilgrim, and nothing else');
+ok(heroHtml.indexOf('pilgrim-logo.png') === -1 && heroHtml.indexOf('hero-logo') === -1, 'the app-icon tile is gone from the hero');
+const seal = heroHtml.match(/<svg class="hero-seal"[^>]*>/);
+ok(seal && /aria-hidden="true"/.test(seal[0]) && /focusable="false"/.test(seal[0]), 'the seal is decoration: hidden from assistive tech and from focus');
+ok(/mask="url\(#hero-seal-cut\)"/.test(heroHtml) && /id="hero-seal-cut"/.test(heroHtml), 'the mark is cut out of the seal, not drawn on it');
+['.hero .hero-tagline', '.hero .hero-quotes .hero-quote[data-category]'].forEach(function (sel) {
+  const body = rule(sel);
+  ok(body && /color:\s*var\(--ink-fog\)/.test(body) && !/opacity/.test(body),
+    sel + ' is --ink-fog at full opacity, the colour the sky\'s wash is proved readable for');
+});
+const hint = rule('.scroll-hint');
+ok(hint && /left:\s*50%/.test(hint) && /translateX\(-50%\)/.test(hint), '"begin walking" is centred on the path, whatever the inscription\'s alignment');
 
 Object.keys(Core.SEASON_COLORS).forEach(function (season) {
   const c = Core.SEASON_COLORS[season];

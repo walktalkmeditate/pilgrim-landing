@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!--
+  A local preview of the homepage's field in any season, hour and theme.
+  The field only ever shows the real date and hour, so this loads the real
+  index.html in a frame with the clock held, the theme set, and, where a
+  scene asks for them, walkers on the trail and days of visits.
+
+  Serve the repo root (python3 -m http.server) and open
+  /scripts/preview-field.html. It overwrites this origin's stored theme
+  and the field's day count, so use it on localhost, not the live site.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field preview</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #14120f; }
+    iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .bar {
+      position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 2;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+      max-width: calc(100% - 120px); padding: 5px; border-radius: 12px;
+      background: rgba(20, 18, 15, 0.86); font: 12px/1.2 -apple-system, system-ui, sans-serif;
+    }
+    .bar button { all: unset; cursor: pointer; color: #e9e2d6; padding: 6px 9px; border-radius: 8px; }
+    .bar button:hover { background: rgba(255, 255, 255, 0.08); }
+    .bar button[aria-pressed="true"] { background: #C4A574; color: #1c1914; }
+    .bar button:focus-visible { outline: 2px solid #C4A574; outline-offset: 1px; }
+    .note { color: #b9b0a3; padding: 6px 8px; }
+  </style>
+</head>
+<body>
+  <iframe id="page" title="The Pilgrim homepage, previewed"></iframe>
+  <div class="bar" id="bar" role="toolbar" aria-label="Scenes"></div>
+
+  <script>
+    var SCENES = [
+      { label: 'Now', note: 'the real hour' },
+      { label: 'Moonrise', at: '2026-10-25T20:30:00', theme: 'dark', note: 'a full moon rising' },
+      { label: 'Moonset ★', at: '2026-10-26T05:55:00', theme: 'star' },
+      { label: 'Noon', at: '2026-10-25T13:00:00', theme: 'light' },
+      { label: 'Golden hour', at: '2026-10-25T17:35:00', theme: 'light' },
+      { label: 'Moonless night', at: '2026-11-09T23:30:00', theme: 'dark', note: 'no moon at all' },
+      { label: 'Lanterns', at: '2026-11-09T22:30:00', theme: 'dark', walkers: { active: 3, recent: true }, note: 'three walking now, no moon' },
+      { label: 'Winter night ★', at: '2027-01-22T21:00:00', theme: 'star', note: 'flick through the snow' },
+      { label: 'Winter afternoon', at: '2027-01-20T14:30:00', theme: 'light' },
+      { label: 'Spring', at: '2027-04-14T15:00:00', theme: 'light', note: 'petals ride your gusts' },
+      { label: 'Summer night', at: '2027-07-15T22:40:00', theme: 'dark', note: 'fireflies' },
+      { label: 'A month of visits', at: '2026-10-26T10:00:00', theme: 'light', days: 30, note: 'the path runs farther' },
+      { label: 'Leonids', at: '2027-11-17T23:10:00', theme: 'dark', note: 'wait for a meteor' }
+    ];
+
+    // Runs in the page before any of its own scripts.
+    function prelude(scene) {
+      return '(' + function (scene) {
+        if (scene.at) {
+          var shift = new Date(scene.at).getTime() - Date.now();
+          var Real = Date;
+          var Held = function (a, b, c, d, e, f, g) {
+            if (!(this instanceof Held)) return new Real(Real.now() + shift).toString();
+            var n = arguments.length;
+            if (n === 0) return new Real(Real.now() + shift);
+            if (n === 1) return new Real(a);
+            return new Real(a, b || 0, c === undefined ? 1 : c, d || 0, e || 0, f || 0, g || 0);
+          };
+          Held.prototype = Real.prototype;
+          Held.now = function () { return Real.now() + shift; };
+          Held.UTC = Real.UTC;
+          Held.parse = Real.parse;
+          window.Date = Held;
+        }
+        try {
+          var theme = scene.theme || 'light';
+          localStorage.setItem('theme', theme);
+          document.cookie = 'theme=' + theme + '; Path=/';
+          localStorage.removeItem('pilgrimFieldDays');
+          localStorage.removeItem('pilgrimFieldLastDay');
+          if (scene.days > 1) {
+            var y = new Date(); y.setDate(y.getDate() - 1);
+            var m = y.getMonth() + 1, d = y.getDate();
+            localStorage.setItem('pilgrimFieldDays', String(scene.days - 1));
+            localStorage.setItem('pilgrimFieldLastDay', y.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d);
+          }
+        } catch (e) {}
+        if (scene.walkers) {
+          window.PilgrimWalkers = scene.walkers;
+          var send = window.dispatchEvent.bind(window);
+          window.dispatchEvent = function (e) {
+            if (e && e.type === 'pilgrim:walkers') e = new CustomEvent('pilgrim:walkers', { detail: scene.walkers });
+            return send(e);
+          };
+        }
+      } + ')(' + JSON.stringify(scene) + ');';
+    }
+
+    var frame = document.getElementById('page');
+    var bar = document.getElementById('bar');
+    var note = document.createElement('span');
+    note.className = 'note';
+
+    function show(i) {
+      var scene = SCENES[i];
+      Array.prototype.forEach.call(bar.querySelectorAll('button'), function (b, j) {
+        b.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+      });
+      note.textContent = scene.note || '';
+      try { history.replaceState(null, '', '#' + i); } catch (e) {}
+      fetch('/index.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
+        var head = '<base href="/"><script>' + prelude(scene) + '<\/script>';
+        // A fresh query on the page's own CSS and JS, so an edit shows on
+        // the next scene rather than whenever the memory cache lets go.
+        var fresh = '?preview=' + Date.now();
+        html = html.replace(/((?:href|src)="(?:css|js)\/[^"?]+)"/g, '$1' + fresh + '"');
+        frame.srcdoc = html.replace(/<head[^>]*>/, function (tag) { return tag + head; });
+        frame.focus();
+      });
+    }
+
+    SCENES.forEach(function (scene, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = scene.label;
+      b.addEventListener('click', function () { show(i); });
+      bar.appendChild(b);
+    });
+    bar.appendChild(note);
+    show(Math.min(SCENES.length - 1, parseInt(location.hash.slice(1), 10) || 1));
+  </script>
+</body>
+</html>

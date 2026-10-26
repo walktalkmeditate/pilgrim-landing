@@ -1,27 +1,78 @@
 /* The field — the hero's layout around its painting. index.html only;
-   css/styles.css is shared by ten pages. The words stand in the sky and
-   the grass fills what is below them, so the hero reads top-down rather
-   than centred. That holds with or without the canvas, so nothing moves
-   when the field arrives. */
+   css/styles.css is shared by ten pages. The words are the painting's
+   inscription, set in the sky's upper left with the painter's seal, and
+   the field fills what is below. That holds with or without the canvas,
+   so nothing moves when the field arrives. */
 
 .hero {
   justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
   padding-top: clamp(4.5rem, 15vh, 10rem);
+  padding-inline: clamp(1.5rem, 8vw, 9rem);
   overflow: hidden;
 }
 
-.hero-logo,
-.hero-title,
-.hero-tagline,
-.turning-echo,
-.hero-quotes {
+.hero-inscription {
   position: relative;
   z-index: 1;
+  max-width: min(34rem, 100%);
 }
 
-.hero-tagline { margin-bottom: 1.75rem; }
-.hero-quotes { margin-bottom: 0; }
-.scroll-hint { z-index: 1; }
+.hero-signature {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(0.75rem, 1.4vw, 1.15rem);
+}
+
+.hero .hero-title {
+  margin: 0;
+  font-size: clamp(3.4rem, 7vw, 6rem);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+}
+
+/* The only red in the hero, as a painter's seal is the only red in an ink
+   painting. Decoration: the name beside it is the heading. */
+.hero-seal {
+  --seal: #A8412F;
+  flex: none;
+  width: clamp(2.5rem, 3.8vw, 3.4rem);
+  height: clamp(2.5rem, 3.8vw, 3.4rem);
+  margin-top: 0.6rem;
+  color: var(--seal);
+}
+
+[data-theme="dark"] .hero-seal { --seal: #C4573F; }
+
+/* The quieter lines sit in --ink-fog at full opacity: the sky's ink wash
+   is proved readable for exactly that (js/hero-field-core.test.js). */
+.hero .hero-tagline {
+  margin: 0.7rem 0 0;
+  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+  color: var(--ink-fog);
+}
+
+.hero .turning-echo {
+  align-items: flex-start;
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.hero .hero-quotes {
+  margin: clamp(1.4rem, 3.5vh, 2.4rem) 0 0;
+  max-width: 26rem;
+  height: 2.6em;
+}
+
+/* The whisper is the painting's poem, in ink; its energy's colour rides
+   the gust that brings it across the field. */
+.hero .hero-quotes .hero-quote[data-category] {
+  justify-content: flex-start;
+  text-align: left;
+  color: var(--ink-fog);
+}
 
 .hero-field {
   position: absolute;
@@ -35,11 +86,19 @@
 
 .hero-field.is-ready { opacity: 1; }
 
+/* "begin walking" stands where the path leaves the bottom edge, at the
+   centre, whatever the inscription's alignment. */
+.scroll-hint {
+  z-index: 1;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 /* A short screen keeps only a band of field, so "begin walking" drops to
    where the path leaves the bottom edge rather than standing in grass. */
 @media (max-height: 760px) {
   .hero { padding-top: clamp(3.5rem, 11vh, 6rem); }
-  .hero-logo { width: 88px; height: 88px; margin-bottom: 1rem; border-radius: 16px; }
+  .hero .hero-title { font-size: clamp(3rem, 6vw, 4.6rem); }
   .scroll-hint { bottom: 1.25rem; }
 }
 
