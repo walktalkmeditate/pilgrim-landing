@@ -71,18 +71,21 @@ const BASELINE_KB = {
   // only a tap (never a scroll) ends the replay (js/turning-leaf-core.js,
   // js/turning-leaf.js); js/sunpath-turnings.js moves from the globe's lazy
   // list to the page, so the turning's facts never wait on the globe.
-  'sunpath/2026-spring-equinox/index.html':    124.49,
-  'sunpath/2026-summer-solstice/index.html':   128.77,
-  'sunpath/2026-autumn-equinox/index.html':    128.46,
-  'sunpath/2026-winter-solstice/index.html':   125.72,
-  'sunpath/2027-spring-equinox/index.html':    125.71,
-  'sunpath/2027-summer-solstice/index.html':   128.88,
-  'sunpath/2027-autumn-equinox/index.html':    128.32,
-  'sunpath/2027-winter-solstice/index.html':   126.11,
-  'sunpath/2028-spring-equinox/index.html':    125.88,
-  'sunpath/2028-summer-solstice/index.html':   128.95,
-  'sunpath/2028-autumn-equinox/index.html':    128.12,
-  'sunpath/2028-winter-solstice/index.html':   125.97,
+  // -0.07 to -0.08 each: the strip's readout keeps its room while hidden
+  // (css/turning-leaf.css), and the home page's energy hues leave the shared
+  // css/styles.css.
+  'sunpath/2026-spring-equinox/index.html':    124.42,
+  'sunpath/2026-summer-solstice/index.html':   128.70,
+  'sunpath/2026-autumn-equinox/index.html':    128.39,
+  'sunpath/2026-winter-solstice/index.html':   125.65,
+  'sunpath/2027-spring-equinox/index.html':    125.64,
+  'sunpath/2027-summer-solstice/index.html':   128.81,
+  'sunpath/2027-autumn-equinox/index.html':    128.25,
+  'sunpath/2027-winter-solstice/index.html':   126.04,
+  'sunpath/2028-spring-equinox/index.html':    125.80,
+  'sunpath/2028-summer-solstice/index.html':   128.88,
+  'sunpath/2028-autumn-equinox/index.html':    128.05,
+  'sunpath/2028-winter-solstice/index.html':   125.90,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
@@ -212,7 +215,13 @@ const BASELINE_KB = {
   // the page and one held in the story's first scene, eased with the
   // story's own scroll (js/path-line.js +2.52); its ink, the room below
   // the field and the phone's gutter (css/hero-field.css +0.26).
-  'index.html':                                 148.33,
+  // +1.14 (149.47): each whisper wears its energy again, as a wash of
+  // colour behind ink words that blooms in, breathes, and glows like a
+  // lantern at night (css/hero-field.css +0.71, now also holding the seven
+  // energies' hues, moved out of the shared css/styles.css -0.25), shaped by
+  // the whisper's own words (js/hero-field-core.js +0.38) and carried by the
+  // gust in its hue (js/hero-field.js +0.25).
+  'index.html':                                 149.47,
   'walk.html':                                  47.73,
   'guide.html':                                 34.39,
   'compare.html':                               32.25,

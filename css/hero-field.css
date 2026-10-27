@@ -61,17 +61,70 @@
 }
 
 .hero .hero-quotes {
+  --aura: 0.42;
   margin: clamp(1.4rem, 3.5vh, 2.4rem) 0 0;
   max-width: 26rem;
   height: 2.6em;
 }
 
-/* The whisper is the painting's poem, in ink; its energy's colour rides
-   the gust that brings it across the field. */
+[data-theme="dark"] .hero .hero-quotes, body.constellation .hero .hero-quotes { --aura: 0.3; }
+
+/* The whisper is in ink, its energy a wash of colour behind the words:
+   three blooms shaped by the words themselves (js/hero-field.js), in the
+   hue the wisp breathes below and the gust carries across the field. At
+   its peak (--aura) ink still holds 4.6:1 on the sky for every energy
+   (js/hero-field-wiring.test.js). */
 .hero .hero-quotes .hero-quote[data-category] {
+  right: auto;
   justify-content: flex-start;
   text-align: left;
-  color: var(--ink-fog);
+  color: var(--ink);
+}
+
+.hero .hero-quotes .hero-quote[data-category]::before {
+  content: '';
+  position: absolute;
+  inset: -1em -2.5em;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse var(--bloom-1, 20% 40% at 30% 52%), var(--energy), transparent),
+    radial-gradient(ellipse var(--bloom-2, 20% 38% at 70% 48%), var(--energy), transparent),
+    radial-gradient(ellipse var(--bloom-3, 26% 42% at 50% 50%), var(--energy), transparent);
+  opacity: var(--aura);
+  pointer-events: none;
+}
+
+/* The seven energies, as pilgrim-ios WhisperCategory.borderColor. Presence's
+   deep teal vanishes at night, so it has a lighter twin there. */
+.hero-quote[data-category="presence"]   { --energy: #1C3B4A; }
+.hero-quote[data-category="lightness"]  { --energy: #C2A68C; }
+.hero-quote[data-category="wonder"]     { --energy: #A8B8BF; }
+.hero-quote[data-category="gratitude"]  { --energy: #C7A14F; }
+.hero-quote[data-category="compassion"] { --energy: #A8D9D1; }
+.hero-quote[data-category="courage"]    { --energy: #C7B887; }
+.hero-quote[data-category="stillness"]  { --energy: #B8946B; }
+
+[data-theme="dark"] .hero-quote[data-category="presence"],
+body.constellation .hero-quote[data-category="presence"] { --energy: #7A95A2; }
+
+/* At night the wash's heart is lighter: a lantern behind paper. */
+[data-theme="dark"] .hero .hero-quotes .hero-quote[data-category]::before,
+body.constellation .hero .hero-quotes .hero-quote[data-category]::before {
+  background:
+    radial-gradient(ellipse 24% 42% at 48% 52%, color-mix(in srgb, var(--energy), #fff 30%), transparent),
+    radial-gradient(ellipse var(--bloom-1, 20% 40% at 30% 52%), var(--energy), transparent),
+    radial-gradient(ellipse var(--bloom-2, 20% 38% at 70% 48%), var(--energy), transparent),
+    radial-gradient(ellipse var(--bloom-3, 26% 42% at 50% 50%), var(--energy), transparent);
+}
+
+.hero .hero-quotes .hero-quote.active[data-category]::before {
+  animation: whisper-bloom 7.5s cubic-bezier(0.25, 0.6, 0.3, 1) both;
+}
+
+@keyframes whisper-bloom {
+  0%, 8% { opacity: 0; transform: scale(0.8); }
+  38% { opacity: var(--aura); transform: scale(1.05); }
+  100% { opacity: calc(var(--aura) * 0.8); transform: scale(1); }
 }
 
 .hero-field {
@@ -104,6 +157,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hero-field { transition: none; }
+  .hero .hero-quotes .hero-quote.active[data-category]::before { animation: none; }
 }
 
 /* The path's line (js/path-line.js): the footpath goes on down the page

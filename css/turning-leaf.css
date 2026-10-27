@@ -210,6 +210,22 @@
   color: var(--tl-ink);
 }
 
+/* Once the player has made the strip a slider, the scrub readout and
+   "back to the turning" keep their room even while hidden, and the readout
+   always holds two lines: the most a day's line takes at any width from
+   320 px up. Otherwise each scrubbed day moved the strip under the pointer,
+   and the page's height with it. */
+.tl-plate:has(.tl-stripwrap[role="slider"]) .tl-readout {
+  display: block;
+  min-height: calc(2 * 1.45em);
+}
+
+.tl-plate:has(.tl-stripwrap[role="slider"]) .tl-readout[hidden],
+.tl-plate:has(.tl-stripwrap[role="slider"]) .tl-back[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
 .tl-quiet {
   margin: 0;
   font-size: 0.95rem;

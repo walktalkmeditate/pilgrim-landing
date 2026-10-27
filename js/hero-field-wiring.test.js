@@ -155,7 +155,7 @@ function boot(opts) {
     }
   };
 
-  const quotes = { getBoundingClientRect: function () { return { bottom: 423 - sandbox.scrollY }; } };
+  const quotes = { getBoundingClientRect: function () { return { bottom: 423 - sandbox.scrollY }; }, querySelectorAll: function () { return []; } };
   const hero = {
     clientWidth: 1440, clientHeight: 900, firstChild: { name: 'logo' }, children: [], on: {},
     querySelector: function (sel) { return sel === '.hero-quotes' ? quotes : null; },
@@ -189,8 +189,11 @@ function boot(opts) {
     },
     getComputedStyle: function () {
       return {
-        color: 'rgb(199, 161, 79)',
-        getPropertyValue: function (k) { return k === '--parchment' ? (opts.theme === 'dark' ? '#1C1914' : '#F5F0E8') : (opts.theme === 'dark' ? '#F0EBE1' : '#2C241E'); }
+        color: 'rgb(44, 36, 30)',
+        getPropertyValue: function (k) {
+          if (k === '--energy') return ' #C7A14F';
+          return k === '--parchment' ? (opts.theme === 'dark' ? '#1C1914' : '#F5F0E8') : (opts.theme === 'dark' ? '#F0EBE1' : '#2C241E');
+        }
       };
     },
     requestAnimationFrame: function (fn) { rafs.push(fn); return rafs.length; },
@@ -273,10 +276,56 @@ ok(heroHtml.indexOf('pilgrim-logo.png') === -1 && heroHtml.indexOf('hero-logo') 
 const seal = heroHtml.match(/<svg class="hero-seal"[^>]*>/);
 ok(seal && /aria-hidden="true"/.test(seal[0]) && /focusable="false"/.test(seal[0]), 'the seal is decoration: hidden from assistive tech and from focus');
 ok(/mask="url\(#hero-seal-cut\)"/.test(heroHtml) && /id="hero-seal-cut"/.test(heroHtml), 'the mark is cut out of the seal, not drawn on it');
-['.hero .hero-tagline', '.hero .hero-quotes .hero-quote[data-category]'].forEach(function (sel) {
-  const body = rule(sel);
-  ok(body && /color:\s*var\(--ink-fog\)/.test(body) && !/opacity/.test(body),
-    sel + ' is --ink-fog at full opacity, the colour the sky\'s wash is proved readable for');
+const tagline = rule('.hero .hero-tagline');
+ok(tagline && /color:\s*var\(--ink-fog\)/.test(tagline) && !/opacity/.test(tagline),
+  '.hero .hero-tagline is --ink-fog at full opacity, the colour the sky\'s wash is proved readable for');
+const whisperRule = rule('.hero .hero-quotes .hero-quote[data-category]');
+ok(whisperRule && /color:\s*var\(--ink\)/.test(whisperRule) && !/opacity/.test(whisperRule),
+  'the whisper is in ink at full opacity, which leaves room for its energy behind it');
+const aura = rule('.hero .hero-quotes .hero-quote[data-category]::before');
+const auraLight = /--aura:\s*([\d.]+)/.exec(rule('.hero .hero-quotes') || '');
+const auraDark = /--aura:\s*([\d.]+)/.exec(rule('[data-theme="dark"] .hero .hero-quotes, body.constellation .hero .hero-quotes') || '');
+ok(aura && [1, 2, 3].every(function (n) { return new RegExp('radial-gradient\\(ellipse var\\(--bloom-' + n + '[^)]*\\), var\\(--energy\\), transparent\\)').test(aura); }) &&
+  /opacity:\s*var\(--aura\)/.test(aura) && auraLight && auraDark,
+  'each whisper wears its energy as a wash of three blooms behind the words, with its own peak by day and by night  (' +
+  (auraLight && auraLight[1]) + ', ' + (auraDark && auraDark[1]) + ')');
+const lantern = rule('[data-theme="dark"] .hero .hero-quotes .hero-quote[data-category]::before,\nbody.constellation .hero .hero-quotes .hero-quote[data-category]::before');
+const lanternMix = lantern && /color-mix\(in srgb, var\(--energy\), #fff (\d+)%\)/.exec(lantern);
+ok(!!lanternMix, 'at night the wash has a lighter heart, a lantern behind paper  (' + (lanternMix && lanternMix[1]) + '% white)');
+ok(/\.hero \.hero-quotes \.hero-quote\.active\[data-category\]::before\s*\{\s*animation:\s*whisper-bloom/.test(fieldCss) &&
+  /@keyframes whisper-bloom/.test(fieldCss) &&
+  /prefers-reduced-motion: reduce\)\s*\{[^@]*\.hero-quote\.active\[data-category\]::before\s*\{\s*animation:\s*none/.test(fieldCss),
+  'the wash blooms in after the words and breathes, and with reduced motion simply rests');
+
+// Every energy's aura, at its peak behind the words, still leaves ink at
+// 4.6:1 on the sky's wash wherever the whisper can sit: the same bar the
+// quieter lines are held to (js/hero-field-core.test.js).
+function lumOf(rgb) {
+  const l = rgb.map(function (c) { return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+  return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+}
+function contrastOf(p, q) { const a = lumOf(p), b = lumOf(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }
+const energies = {};
+fieldCss.replace(/\.hero-quote\[data-category="(\w+)"\]\s*\{\s*--energy:\s*(#[0-9A-Fa-f]{6});/g, function (_, name, hex) { energies[name] = hex; });
+const darkPresence = /body\.constellation \.hero-quote\[data-category="presence"\]\s*\{\s*--energy:\s*(#[0-9A-Fa-f]{6})/.exec(fieldCss);
+ok(Object.keys(energies).length === 7 && !!darkPresence, 'the seven energies carry their hues as --energy, presence with a lighter twin at night');
+[['light', '#F5F0E8', '#2C241E', false, auraLight], ['dark', '#1C1914', '#F0EBE1', true, auraDark]].forEach(function (t) {
+  let worst = 99, at = '';
+  Object.keys(energies).forEach(function (name) {
+    const base = Core.hexToRgb(t[3] && name === 'presence' ? darkPresence[1] : energies[name]);
+    // At night the wash's heart is the hue lightened toward white: the
+    // brightest it gets behind the pale words, so the hardest case for them.
+    const lift = t[3] && lanternMix ? Number(lanternMix[1]) / 100 : 0;
+    const hue = base.map(function (v) { return v + (1 - v) * lift; });
+    for (let y = 0.18; y <= 0.6; y += 0.01) {
+      const paper = Core.hexToRgb(t[1]), toward = t[3] ? [0, 0, 0] : Core.hexToRgb(t[2]), wash = Core.bokashiAt(y, t[3]);
+      const sky = paper.map(function (v, i) { return v + (toward[i] - v) * wash; });
+      const under = sky.map(function (v, i) { return v + (hue[i] - v) * Number(t[4] ? t[4][1] : 1); });
+      const c = contrastOf(Core.hexToRgb(t[2]), under);
+      if (c < worst) { worst = c; at = name; }
+    }
+  });
+  ok(worst >= 4.6, t[0] + ': ink holds 4.6:1 over every energy\'s aura  (worst ' + worst.toFixed(2) + ':1, ' + at + ')');
 });
 const hint = rule('.scroll-hint');
 ok(hint && /left:\s*50%/.test(hint) && /translateX\(-50%\)/.test(hint), '"begin walking" is centred on the path, whatever the inscription\'s alignment');
@@ -378,13 +427,25 @@ w.frame(16016);
 ok(Array.prototype.some.call(gl.values.uRing[0], function (v, i) { return i % 4 === 3 && v === 1; }), 'a tap sends a ring of wind out through the grass');
 
 const quoteMo = w.mos.filter(function (o) { return o.target === w.quotes; })[0];
-const whisper = { classList: { contains: function (c) { return c === 'active'; } } };
+const painted = {};
+const whisper = {
+  textContent: 'This moment is a gift',
+  classList: { contains: function (c) { return c === 'active'; } },
+  style: { setProperty: function (k, v) { painted[k] = v; } }
+};
 quoteMo.cb([{ target: whisper }]);
+ok(['--bloom-1', '--bloom-2', '--bloom-3'].every(function (k, i) { return painted[k] === Core.bloomFor('This moment is a gift')[i]; }),
+  'a whisper that arrives is given the wash its own words make  (' + painted['--bloom-1'] + ')');
 for (let t = 16100; t < 17100; t += 16) w.frame(t);
 ok(gl.values.uFront[1] > 0.9, 'a new whisper arrives on a gust across the field');
 const sheen = gl.values.uSheen[0];
 const plain = Core.sheenFor(Core.skyBodies(new Date(), Moon.getMoonPhase(new Date()))).rgb;
-ok(Math.abs(sheen[0] - plain[0]) + Math.abs(sheen[2] - plain[2]) > 0.05, 'and the gust carries the whisper\'s own colour');
+// The words are ink; the energy (gratitude here, #C7A14F) is what the gust
+// carries, so the sheen moves from the sky's own toward that hue alone.
+const gratitude = Core.hexToRgb('#C7A14F');
+const toward = (sheen[0] - plain[0]) / (gratitude[0] - plain[0]);
+ok(toward > 0.05 && [1, 2].every(function (i) { return Math.abs(plain[i] + (gratitude[i] - plain[i]) * toward - sheen[i]) < 0.01; }),
+  'and the gust carries the whisper\'s energy, not the ink of its words  (' + toward.toFixed(2) + ' of the way)');
 
 console.log('\n=== the season\'s own field ===\n');
 

@@ -203,7 +203,7 @@
   // Source: pilgrim-ios whispers-bootstrap.json (manifest v4), seven
   // energies \u2014 presence, wonder, gratitude, compassion, courage, lightness,
   // stillness. Same words a walker hears at a whisper on the trail.
-  // Colors per category live in styles.css and mirror
+  // Colors per category live in hero-field.css and mirror
   // WhisperCategory.borderColor in pilgrim-ios. Refresh when the app's
   // whisper bundle changes.
   var quotes = [
