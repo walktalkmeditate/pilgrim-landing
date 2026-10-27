@@ -135,6 +135,18 @@ async function main() {
   eq(permalinks.missingCards(pages.map(function (p) { return { outFile: p.head, html: p.html }; })).length, 0,
     'the twelve committed pages name cards that are all on disk');
 
+  // The pre-commit hook runs --check against the working tree, but the site
+  // serves what is committed: a fresh card left out of the commit would pass
+  // on disk and 404 in every link preview. So the hook also asks the index.
+  const winterPage = pages.find(function (p) { return p.head === '2026-winter-solstice'; });
+  const one = [{ outFile: winterPage.head, html: winterPage.html }];
+  const unstaged = permalinks.missingCards(one, { staged: new Set() });
+  eq(unstaged.length, 1, 'a card on disk but not in the commit is reported');
+  ok(unstaged[0] && /not staged/.test(unstaged[0].why), '...as not staged  (' + (unstaged[0] && unstaged[0].why) + ')');
+  eq(permalinks.missingCards(one, { staged: new Set([winterPage.card]) }).length, 0, 'once staged, it passes');
+  eq(permalinks.stagedFiles('assets/') instanceof Set && permalinks.stagedFiles('assets/').has(winterPage.card), true,
+    'the index is read from git, and holds the committed 2026 winter card');
+
   console.log('\n=== Summary ===\n');
   console.log('passed: ' + passed);
   console.log('failed: ' + failed);

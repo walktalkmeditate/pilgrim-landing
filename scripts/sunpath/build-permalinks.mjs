@@ -19,6 +19,7 @@
 
 import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
@@ -94,14 +95,24 @@ export function leadProblems(turnings) {
 }
 
 // pages: [{ outFile, html }]. Returns the pages whose og:image is not on
-// disk, each with the card it names.
-export function missingCards(pages) {
+// disk, or, given the git index as `staged`, not in what is committed: the
+// site serves the commit, so a card left out of it 404s in every preview.
+export function missingCards(pages, { staged = null } = {}) {
   return pages
     .map((p) => {
       const og = /<meta property="og:image" content="https:\/\/pilgrimapp\.org\/([^"]+)">/.exec(p.html);
-      return { outFile: p.outFile, card: og ? og[1] : '(no og:image)' };
+      const card = og ? og[1] : '(no og:image)';
+      const why = !existsSync(resolve(REPO_ROOT, card)) ? 'not on disk'
+        : staged && !staged.has(card) ? `not staged (git add ${card})` : null;
+      return { outFile: p.outFile, card, why };
     })
-    .filter((p) => !existsSync(resolve(REPO_ROOT, p.card)));
+    .filter((p) => p.why);
+}
+
+// The paths under `prefix` in the git index, or null outside a checkout.
+export function stagedFiles(prefix) {
+  const r = spawnSync('git', ['ls-files', '-z', '--', prefix], { cwd: REPO_ROOT, encoding: 'utf8' });
+  return r.status === 0 ? new Set(r.stdout.split('\0').filter(Boolean)) : null;
 }
 
 function publishedPages(now) {
@@ -196,10 +207,10 @@ async function main() {
       for (const l of leads) console.error('  ', l);
       process.exit(2);
     }
-    const cards = missingCards(allResults);
+    const cards = missingCards(allResults, { staged: stagedFiles('assets/') });
     if (cards.length) {
-      console.error('Pages whose link card is not on disk:');
-      for (const c of cards) console.error('  ', c.outFile, '→', c.card);
+      console.error('Pages whose link card is missing:');
+      for (const c of cards) console.error('  ', c.outFile, '→', c.card, `(${c.why})`);
       const years = [...new Set(cards.map((c) => /sunpath\/(\d{4})-/.exec(c.outFile)[1]))];
       console.error(`Run: ${years.map((y) => `bash scripts/build-og-sunpath.sh ${y}`).join(' && ')}`);
       process.exit(2);
@@ -213,7 +224,7 @@ async function main() {
       console.error(`Run: ${years.map((y) => `node scripts/sunpath/year.mjs ${y}`).join(' && ')}`);
       process.exit(2);
     }
-    console.log('All permalink HTMLs match their generated form, every lead is from its menu, every card is on disk, and pages reach two years ahead.');
+    console.log('All permalink HTMLs match their generated form, every lead is from its menu, every card is on disk and staged, and pages reach two years ahead.');
     return;
   }
 
