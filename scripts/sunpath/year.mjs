@@ -49,10 +49,9 @@ const MONTHS = [
 
 const TURNING_META = {
   'spring-equinox': {
-    kanji: '春分', name: 'Spring Equinox',
+    name: 'Spring Equinox',
     schemaName: 'March equinox',
     schemaDesc: 'The astronomical moment when the sun crosses the celestial equator heading north.',
-    titleSuffix: 'the northern crossing',
     tagline: 'the northern crossing',
     longLine: 'the sun crossed the equator heading north',
     icsBody: 'The sun crosses the equator heading north.\\n\\nFrom here, northern days grow until summer solstice.',
@@ -62,10 +61,9 @@ const TURNING_META = {
     twDesc: 'The moment the sun crossed the equator heading north.'
   },
   'summer-solstice': {
-    kanji: '夏至', name: 'Summer Solstice',
+    name: 'Summer Solstice',
     schemaName: 'June solstice',
     schemaDesc: 'The astronomical moment when the sun reaches its furthest declination north, the longest day in the northern hemisphere.',
-    titleSuffix: 'the longest light',
     tagline: 'the longest light',
     longLine: 'the sun stood at its furthest north and the northern day reached its longest',
     icsBody: 'The sun stands at its furthest north. The longest northern day.\\n\\nFrom here, northern days shorten until winter solstice.',
@@ -75,10 +73,9 @@ const TURNING_META = {
     twDesc: 'The longest day of the northern year.'
   },
   'autumn-equinox': {
-    kanji: '秋分', name: 'Autumn Equinox',
+    name: 'Autumn Equinox',
     schemaName: 'September equinox',
     schemaDesc: 'The astronomical moment when the sun crosses the celestial equator southward, when northern days shorten fastest.',
-    titleSuffix: 'the southern crossing',
     tagline: 'the southern crossing',
     longLine: 'the sun crossed the equator again, heading south, as northern days shortened fastest',
     icsBody: 'The sun crosses the equator again, heading south.\\n\\nFrom here, northern nights grow longer until winter solstice.',
@@ -88,10 +85,9 @@ const TURNING_META = {
     twDesc: 'The southern crossing — northern days shortening fastest.'
   },
   'winter-solstice': {
-    kanji: '冬至', name: 'Winter Solstice',
+    name: 'Winter Solstice',
     schemaName: 'December solstice',
     schemaDesc: 'The astronomical moment when the sun reaches its furthest declination south, the longest night in the northern hemisphere.',
-    titleSuffix: 'the longest dark',
     tagline: 'the longest dark',
     longLine: 'the sun reached its furthest south and the northern night became its longest',
     icsBody: 'The sun reaches its furthest south. The longest northern night.\\n\\nFrom here, light returns. Northern days grow until summer solstice.',
@@ -167,16 +163,14 @@ export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(
   return {
     year,
     key,
-    kanji: meta.kanji,
+    kanji: core.SEAL_KANJI[key],
     name: meta.name,
     instantUTC: utcInstantString(instant),
     displayDate: display,
     temple: n,
     h1: heroH1,
     tagline: `${meta.tagline} — ${display}`,
-    title: `${meta.name} ${year} — ${meta.titleSuffix}`,
     description: `On ${longDate}, ${meta.longLine}. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.`,
-    ogTitle: `${meta.name} ${year} · Sun Path`,
     ogDescription: meta.ogDesc,
     twitterDescription: meta.twDesc,
     ariaLabel: `Where the sun stood at the ${meta.name.toLowerCase()} ${year}`,
@@ -190,7 +184,7 @@ export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(
   };
 }
 
-function buildICS(year) {
+export function buildICS(year) {
   const stamp = `${year}0101T000000Z`; // stable across regenerations
 
   const events = TURNING_KEYS.map((key) => {
@@ -206,7 +200,7 @@ function buildICS(year) {
       `DTSTAMP:${stamp}`,
       `DTSTART:${start}`,
       `DTEND:${end}`,
-      `SUMMARY:${meta.name} ${year} · ${meta.kanji}`,
+      `SUMMARY:${meta.name} ${year} · ${core.SEAL_KANJI[key]}`,
       `DESCRIPTION:${meta.icsBody}\\n\\n${url}`,
       `URL:${url}`,
       `CATEGORIES:${meta.icsCategory}`,

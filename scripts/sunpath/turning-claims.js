@@ -18,8 +18,8 @@ var DEG = Math.PI / 180;
 var DAY_MS = 86400000;
 var MIN_MS = 60000;
 
-function f1(n) { return Math.round(n * 10) / 10; }
-function wrap180(d) { d = ((d + 180) % 360 + 360) % 360 - 180; return d === -180 ? 180 : d; }
+var f1 = C.f1;
+var wrap180 = C.wrap180;
 
 // --- the place under the sun (KTD6) ---
 

@@ -129,6 +129,11 @@ async function main() {
   ok(!!dtStart && Math.abs(dtStart - jplAt(2026, 'winter-solstice')) <= 5000,
     'the calendar starts the 21 Dec 2026 event at its second too  (' + (dt && dt[1]) + ')');
 
+  [2026, 2027, 2028].forEach(function (y) {
+    ok(year.buildICS(y) === fs.readFileSync(path.join(ROOT, 'sunpath', 'turnings-' + y + '.ics'), 'utf8'),
+      'the published ' + y + ' calendar is what the generator writes');
+  });
+
   console.log('\n=== a new year is pinned at the weight the ratchet will measure ===\n');
 
   // js/page-weight.test.js weighs each page with every script it loads,

@@ -33,7 +33,7 @@ const MONUMENTS_PATH = resolve(REPO_ROOT, 'assets/sunpath/monuments.json');
 
 const REQUIRED_TURNING_FIELDS = [
   'year', 'key', 'kanji', 'name', 'instantUTC', 'displayDate', 'temple',
-  'h1', 'tagline', 'title', 'description', 'ogTitle', 'ogDescription',
+  'h1', 'tagline', 'description', 'ogDescription',
   'twitterDescription', 'ariaLabel', 'noscriptIntro', 'articleDescription',
   'schemaAboutName', 'schemaAboutDescription', 'dateModified', 'lead', 'claims'
 ];

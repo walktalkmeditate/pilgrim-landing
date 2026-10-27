@@ -24,7 +24,7 @@ const SKY_DAYS = readJson('assets/sunpath/sky-days.json').days;
 const CARD_TEMPLATE = readFileSync(resolve(REPO_ROOT, 'scripts/render-og-plate.html'), 'utf8');
 const PLATE_CSS = readFileSync(resolve(REPO_ROOT, 'css/turning-leaf.css'), 'utf8');
 
-const TURNING_KEYS = ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'];
+const TURNING_KEYS = core.TURNINGS;
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'

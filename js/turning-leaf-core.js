@@ -568,6 +568,8 @@
     // days
     localDate: localDate,
     localMidnight: localMidnight,
+    wrap180: wrap180,
+    f1: f1,
     plateDay: plateDay,
     seasonDates: seasonDates,
     seasonDays: seasonDays,
