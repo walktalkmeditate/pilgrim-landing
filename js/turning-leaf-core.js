@@ -171,6 +171,17 @@
   // --- projection ---
 
   function skyX(az, facing) { return SCENE.cx + wrap180(az - facing) * SCENE.ax; }
+  // A sun that passes the azimuth at the viewer's back leaves one edge of
+  // the panorama and enters at the other; no real step between samples is
+  // half the plate wide, so a wider one is that seam and breaks the path.
+  function splitAtSeam(pts) {
+    var runs = [[]];
+    pts.forEach(function (p, i) {
+      if (i && Math.abs(p.x - pts[i - 1].x) > SCENE.w / 2) runs.push([]);
+      runs[runs.length - 1].push(p);
+    });
+    return runs;
+  }
   function skyY(alt) { return SCENE.hy - alt * SCENE.ay; }
   // The ground is oblique, with the viewer's side down: a shadow points away
   // from the sun, so its across-component is -sin(az - facing) and its
@@ -236,8 +247,10 @@
       geo.polar = anyUp ? 'day' : 'night';
       geo.note = 'The sun does not ' + (anyUp ? 'set ' : 'rise ') + whereOf(place) + ' on ' + longDate(o.date) + '.';
     } else {
-      geo.arc = aboveRuns(samples, place, t0, 0).map(function (run) {
-        return run.map(function (p) { return { m: p.m, alt: p.alt, az: p.az, x: skyX(p.az, facing), y: skyY(p.alt) }; });
+      aboveRuns(samples, place, t0, 0).forEach(function (run) {
+        geo.arc = geo.arc.concat(splitAtSeam(run.map(function (p) {
+          return { m: p.m, alt: p.alt, az: p.az, x: skyX(p.az, facing), y: skyY(p.alt) };
+        })));
       });
       samples.forEach(function (p) {
         if (p.m % 60 || p.m === 1440 || p.alt <= 0) return;
@@ -349,7 +362,7 @@
       var t0 = localMidnight(day.date, place.tzMin);
       var runs = aboveRuns(daySamples(place, t0, 15), place, t0, 0);
       var d = runs.map(function (run) {
-        return relPath(run.map(function (p) { return { x: skyX(p.az, facing), y: skyY(p.alt) }; }));
+        return splitAtSeam(run.map(function (p) { return { x: skyX(p.az, facing), y: skyY(p.alt) }; })).map(relPath).join('');
       }).join('');
       if (!d) return;
       g += day.color

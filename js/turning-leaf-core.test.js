@@ -329,6 +329,40 @@ async function main() {
   ok(elements(polarLayer, 'path', 'sunpath').length === 0 && elements(polarLayer, 'path', 'hair').length === 0 &&
     elements(polarLayer, 'path', 'trace').length === 0, 'and no arc or shadow is drawn');
 
+  // Between the tropics the noon sun crosses from one side of the sky to the
+  // other within a season, and in midnight sun it circles behind the viewer,
+  // so a sun path can pass the azimuth at the reader's back. A plate drawn
+  // facing one way must break such a path there, not draw a line from one
+  // edge of the sky to the other: a real arc never steps half the plate.
+  function widestStep(svg) {
+    let widest = 0;
+    elements(svg, 'path').forEach(function (p) {
+      p.d.split(/(?=M)/).forEach(function (sub) {
+        const pts = pathPoints(sub);
+        for (let i = 1; i < pts.length; i++) widest = Math.max(widest, Math.abs(pts[i][0] - pts[i - 1][0]));
+      });
+    });
+    return widest;
+  }
+  [
+    ['Mumbai, 19°N', { lat: 19.07, lon: 72.88, tzMin: 330, where: 'reader' }, turning(2026, 'summer-solstice')],
+    ['Jakarta, 6°S', { lat: -6.2, lon: 106.8, tzMin: 420, where: 'reader' }, w26],
+    ['Tromsø, 70°N', { lat: 69.65, lon: 18.96, tzMin: 120, where: 'reader' }, turning(2027, 'summer-solstice')]
+  ].forEach(function (c) {
+    const date = C.localDate(c[2].instant, c[1].tzMin);
+    const scene = C.sceneSvg({ place: c[1], date: date, instant: c[2].instant, season: c[2].season.days });
+    const step = widestStep(group(scene, 'season-arcs'));
+    ok(step < C.SCENE.w / 2, c[0] + ': the season\'s arcs break behind the reader, never crossing the sky  (widest step ' + step.toFixed(1) + ' px)');
+    // The player draws a scrubbed day in the plate's own facing, so its arc
+    // lies on the same sky as the season's.
+    const facing = C.dayGeometry({ place: c[1], date: date }).facing;
+    c[2].season.days.forEach(function (d) {
+      const day = C.dayLayer(C.dayGeometry({ place: c[1], date: d.date, facing: facing }));
+      const s = widestStep(day.replace(/<g class="ground"[\s\S]*$/, ''));
+      if (s >= C.SCENE.w / 2) ok(false, c[0] + ': ' + d.date + '\'s own arc crosses the sky  (step ' + s.toFixed(1) + ' px)');
+    });
+  });
+
   console.log('\n=== the season\'s arcs ===\n');
 
   const arcs = elements(group(w26.scene, 'season-arcs'), 'path');

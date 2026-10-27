@@ -885,6 +885,23 @@ section('AE11: drawn where the reader stands');
   ok(env.is('is-located') && env.rings() === 1, 'the day replays where the reader stands, bell and all');
 }
 {
+  // Jakarta, 6°S. On 22 Dec the noon sun stands south of it, so the plate
+  // faces south; on 1 Oct the noon sun stood north. A scrubbed day keeps the
+  // plate's facing, so its arc lies on the same sky as the season's arcs
+  // drawn behind it rather than mirrored against them.
+  const env = setup(WINTER);
+  env.$('.tl-here').click();
+  env.locate(-6.2, 106.8);
+  env.slide(8);
+  const bar = env.$('.tl-strip').querySelectorAll('rect')[8];
+  // 1 Oct in the test's Sydney clock, before daylight saving: UTC+10.
+  const place = { lat: -6.2, lon: 106.8, tzMin: 600, where: 'reader' };
+  ok(C.dayGeometry({ place: place, date: '2026-10-01' }).facing === 0,
+    'on its own, 1 October at 6°S would face north');
+  ok(env.$('g.day').innerHTML === dayLayer({ place: place, date: '2026-10-01', photo: bar.getAttribute('data-t'), facing: 180 }),
+    'a scrubbed 1 October is drawn facing south, as the plate does');
+}
+{
   const env = setup(WINTER);
   env.$('.tl-here').click();
   env.locate(78.22, 15.63);

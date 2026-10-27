@@ -108,6 +108,9 @@
     // idle, replaying or scrubbing; `here` is set once located. `asked`
     // numbers location requests so only the latest one's answer counts.
     var mode = 'idle', shown = -1, frame = 0, here = null, asked = 0, audio = null, soundOn = false;
+    // The plate faces one way for the whole season (KTD10: toward the noon
+    // sun on the turning's day), so a scrubbed day shares its sky.
+    var facing;
 
     function scene(sel) { return figure.querySelector(sel); }
     function reduced() { return root.matchMedia('(prefers-reduced-motion: reduce)').matches; }
@@ -122,9 +125,10 @@
     function dayOptions(day) {
       var place = placeFor(day);
       return day
-        ? { place: place, date: day.date, photo: day.time }
+        ? { place: place, date: day.date, photo: day.time, facing: facing }
         : { place: place, date: C.localDate(instant, place.tzMin), instant: instant };
     }
+    function face() { facing = C.dayGeometry(dayOptions(null)).facing; }
 
     // The one render: a scrubbed day, or the turning itself when no day is
     // given, at the plate's current place.
@@ -214,6 +218,7 @@
     function located(coords) {
       release();
       here = coords;
+      face();
       var o = dayOptions(null);
       o.season = days;
       figure.innerHTML = C.sceneSvg(o);
@@ -228,6 +233,7 @@
     function atTemple() {
       release();
       here = null;
+      face();
       figure.innerHTML = kept.figure;
       stamp.style.display = walk.style.display = '';
       caption.innerHTML = kept.caption;
@@ -254,6 +260,7 @@
       }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
     }
 
+    face();
     playBtn.hidden = false;
     playBtn.addEventListener('click', play);
     backBtn.addEventListener('click', function () { release(); wrap.focus(); });
