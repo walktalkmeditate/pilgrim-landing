@@ -76,11 +76,7 @@
   // The season's days, rebuilt from the strip's bars (one per day, in date
   // order). With no strip, every day came before the photos began.
   function seasonOf(C, tl, strip) {
-    if (!strip) {
-      return C.seasonDates(new Date(tl.prev), new Date(tl.instant)).map(function (date) {
-        return { date: date, color: null, time: null, state: 'before' };
-      });
-    }
+    if (!strip) return C.seasonDays(new Date(tl.prev), new Date(tl.instant), []).days;
     var start = Date.parse(strip.getAttribute('data-start'));
     return Array.prototype.map.call(strip.querySelectorAll('rect'), function (bar, i) {
       var time = bar.getAttribute('data-t');

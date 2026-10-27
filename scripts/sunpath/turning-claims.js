@@ -29,11 +29,7 @@ var KM_PER_DEG = 6371 * DEG;
 // island's name would be false.
 var SHORE_KM = 25;
 
-function hav(lat1, lon1, lat2, lon2) {
-  var a = Math.pow(Math.sin((lat2 - lat1) * DEG / 2), 2) +
-    Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG) * Math.pow(Math.sin((lon2 - lon1) * DEG / 2), 2);
-  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
-}
+var hav = M.greatCircleKm;
 function overLand(land, lat, lon) {
   var inside = false;
   land.forEach(function (ring) {
@@ -146,7 +142,7 @@ function dailyMotion(instant) {
 // from due east as it moves, sampled every 30 s. A real shadow follows the
 // sun as seen, so the altitude carries refraction (Bennett).
 function tipStray(instant, temple) {
-  var t0 = Date.parse(C.plateDay(instant) + 'T00:00:00Z') - temple.tzMin * MIN_MS;
+  var t0 = C.localMidnight(C.plateDay(instant), temple.tzMin);
   var prev = null, most = 0;
   for (var s = 0; s <= 2880; s++) {
     var p = C.sunAltAz(new Date(t0 + s * 30000), temple.lat, temple.lon);

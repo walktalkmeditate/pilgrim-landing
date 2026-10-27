@@ -90,6 +90,7 @@
   }
   function localDate(instant, tzMin) { return isoDate(+instant + tzMin * MIN_MS); }
   function localMidnight(date, tzMin) { return dateMs(date) - tzMin * MIN_MS; }
+  function whereOf(place) { return place.where === 'reader' ? 'where you are' : 'at the temple'; }
   function longDate(date) {
     var d = new Date(dateMs(date));
     return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
@@ -187,13 +188,18 @@
     return p;
   }
 
-  // Runs of the day where the sun is above `minAlt`, sampled every `step`
-  // minutes, each closed by the exact horizon crossing so arcs meet it.
-  function aboveRuns(place, t0, step, minAlt) {
+  // The sun every `step` minutes of the day from local midnight t0.
+  function daySamples(place, t0, step) {
+    var out = [];
+    for (var m = 0; m <= 1440; m += step) { var s = sample(t0 + m * MIN_MS, place); s.m = m; out.push(s); }
+    return out;
+  }
+
+  // Runs of the day's samples where the sun is above `minAlt`, each closed
+  // by the exact horizon crossing so arcs meet it.
+  function aboveRuns(samples, place, t0, minAlt) {
     var runs = [], run = null, prev = null;
-    for (var m = 0; m <= 1440; m += step) {
-      var s = sample(t0 + m * MIN_MS, place);
-      s.m = m;
+    samples.forEach(function (s) {
       var up = s.alt > minAlt;
       if (up && !run) {
         run = [];
@@ -203,7 +209,7 @@
       if (up) run.push(s);
       if (!up && run) { run.push(crossing(prev, s, place, minAlt, t0)); run = null; }
       prev = s;
-    }
+    });
     return runs;
   }
   function crossing(a, b, place, minAlt, t0) {
@@ -223,16 +229,14 @@
     var facing = o.facing === undefined ? facingFor(place.lat, o.date, place.tzMin) : o.facing;
     var geo = { place: place, date: o.date, facing: facing, polar: null, note: null, arc: [], hours: [], tips: [], instant: null, photo: null };
 
-    var samples = [];
-    for (var m = 0; m <= 1440; m += 5) { var s = sample(t0 + m * MIN_MS, place); s.m = m; samples.push(s); }
+    var samples = daySamples(place, t0, 5);
     var anyUp = samples.some(function (p) { return p.alt > 0; });
     var allUp = samples.every(function (p) { return p.alt > 0; });
-    var where = place.where === 'reader' ? 'where you are' : 'at the temple';
     if (!anyUp || allUp) {
       geo.polar = anyUp ? 'day' : 'night';
-      geo.note = 'The sun does not ' + (anyUp ? 'set ' : 'rise ') + where + ' on ' + longDate(o.date) + '.';
+      geo.note = 'The sun does not ' + (anyUp ? 'set ' : 'rise ') + whereOf(place) + ' on ' + longDate(o.date) + '.';
     } else {
-      geo.arc = aboveRuns(place, t0, 5, 0).map(function (run) {
+      geo.arc = aboveRuns(samples, place, t0, 0).map(function (run) {
         return run.map(function (p) { return { m: p.m, alt: p.alt, az: p.az, x: skyX(p.az, facing), y: skyY(p.alt) }; });
       });
       samples.forEach(function (p) {
@@ -241,7 +245,7 @@
         if (p.alt >= SHADOW_MIN_ALT) { var g = groundXY(p.alt, p.az, facing); h.gx = g[0]; h.gy = g[1]; }
         geo.hours.push(h);
       });
-      geo.tips = aboveRuns(place, t0, 5, SHADOW_MIN_ALT).map(function (run) {
+      geo.tips = aboveRuns(samples, place, t0, SHADOW_MIN_ALT).map(function (run) {
         return run.map(function (p) { var g = groundXY(p.alt, p.az, facing); return { m: p.m, x: g[0], y: g[1] }; });
       });
     }
@@ -269,7 +273,7 @@
 
   // The scrub readout for one strip day (KTD9).
   function photoLine(day, place) {
-    var where = place.where === 'reader' ? 'where you are' : 'at the temple';
+    var where = whereOf(place);
     var head = dayLabel(day.date) + ' · ';
     if (day.state === 'before') return { text: head + 'before the daily sky photos began on ' + longDate(PHOTOS_BEGIN), mark: false };
     if (!day.time) return { text: head + 'no photograph this day', mark: false };
@@ -342,7 +346,8 @@
   function seasonArcs(place, days, facing) {
     var g = '';
     days.forEach(function (day) {
-      var runs = aboveRuns(place, localMidnight(day.date, place.tzMin), 15, 0);
+      var t0 = localMidnight(day.date, place.tzMin);
+      var runs = aboveRuns(daySamples(place, t0, 15), place, t0, 0);
       var d = runs.map(function (run) {
         return relPath(run.map(function (p) { return { x: skyX(p.az, facing), y: skyY(p.alt) }; }));
       }).join('');
@@ -549,6 +554,7 @@
     templePlace: templePlace,
     // days
     localDate: localDate,
+    localMidnight: localMidnight,
     plateDay: plateDay,
     seasonDates: seasonDates,
     seasonDays: seasonDays,
