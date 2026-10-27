@@ -42,7 +42,6 @@ const GLOBE_SCRIPTS = [
   '/js/vendor/topojson-client.min.js',
   '/js/sunpath-globe-svg.js',
   '/js/sunpath.js',
-  '/js/sunpath-turnings.js',
   '/js/sunpath-temporal.js'
 ];
 
@@ -369,7 +368,9 @@ ${archiveItems}
   </footer>
 
   <!-- The globe's scripts are named on its section and added by the
-       player as the reader nears it. -->
+       player as the reader nears it. The turning's facts, monuments and
+       pilgrimages (js/sunpath-turnings.js) need none of them and load
+       with the page. -->
   <script src="/js/moon.js"></script>
   <script src="/js/turnings.js"></script>
   <script src="/js/universe.js"></script>
@@ -377,6 +378,7 @@ ${archiveItems}
   <script defer src="/js/sunpath-math.js"></script>
   <script defer src="/js/turning-leaf-core.js"></script>
   <script defer src="/js/turning-leaf.js"></script>
+  <script defer src="/js/sunpath-turnings.js"></script>
 </body>
 </html>
 `;

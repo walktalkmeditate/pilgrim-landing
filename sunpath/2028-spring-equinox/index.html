@@ -120,7 +120,7 @@
 
       <section class="sunpath-flourish" id="sunpath-turning-flourish" hidden></section>
 
-      <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood at the spring equinox 2028" data-lazy-scripts="/js/sunpath-globe-math.js /js/sunpath-capability.js /js/vendor/d3-array.min.js /js/vendor/d3-geo.min.js /js/vendor/topojson-client.min.js /js/sunpath-globe-svg.js /js/sunpath.js /js/sunpath-turnings.js /js/sunpath-temporal.js">
+      <section class="sunpath-section sunpath-section--hero" aria-label="Where the sun stood at the spring equinox 2028" data-lazy-scripts="/js/sunpath-globe-math.js /js/sunpath-capability.js /js/vendor/d3-array.min.js /js/vendor/d3-geo.min.js /js/vendor/topojson-client.min.js /js/sunpath-globe-svg.js /js/sunpath.js /js/sunpath-temporal.js">
         <h2 class="sunpath-title">Spring Equinox 2028</h2>
         <p class="sunpath-tagline">the northern crossing — 20 March, 02:17 UTC</p>
 
@@ -209,7 +209,9 @@
   </footer>
 
   <!-- The globe's scripts are named on its section and added by the
-       player as the reader nears it. -->
+       player as the reader nears it. The turning's facts, monuments and
+       pilgrimages (js/sunpath-turnings.js) need none of them and load
+       with the page. -->
   <script src="/js/moon.js"></script>
   <script src="/js/turnings.js"></script>
   <script src="/js/universe.js"></script>
@@ -217,5 +219,6 @@
   <script defer src="/js/sunpath-math.js"></script>
   <script defer src="/js/turning-leaf-core.js"></script>
   <script defer src="/js/turning-leaf.js"></script>
+  <script defer src="/js/sunpath-turnings.js"></script>
 </body>
 </html>

@@ -66,22 +66,23 @@ const BASELINE_KB = {
   // The player's loader (js/turning-leaf.js +0.41) and the globe's late
   // start, turned to the place under the sun (js/sunpath.js +0.04), less
   // the document's script tags and inline instant (-0.08).
-  // +0.36–0.41 each, from the code review: a sun path breaks where it
+  // +0.47–0.52 each, from the code review: a sun path breaks where it
   // passes behind the reader, a scrubbed day keeps the plate's facing, and
   // only a tap (never a scroll) ends the replay (js/turning-leaf-core.js,
-  // js/turning-leaf.js).
-  'sunpath/2026-spring-equinox/index.html':    124.37,
-  'sunpath/2026-summer-solstice/index.html':   128.66,
-  'sunpath/2026-autumn-equinox/index.html':    128.35,
-  'sunpath/2026-winter-solstice/index.html':   125.60,
-  'sunpath/2027-spring-equinox/index.html':    125.60,
-  'sunpath/2027-summer-solstice/index.html':   128.77,
-  'sunpath/2027-autumn-equinox/index.html':    128.20,
-  'sunpath/2027-winter-solstice/index.html':   126.00,
-  'sunpath/2028-spring-equinox/index.html':    125.76,
-  'sunpath/2028-summer-solstice/index.html':   128.84,
-  'sunpath/2028-autumn-equinox/index.html':    128.01,
-  'sunpath/2028-winter-solstice/index.html':   125.86,
+  // js/turning-leaf.js); js/sunpath-turnings.js moves from the globe's lazy
+  // list to the page, so the turning's facts never wait on the globe.
+  'sunpath/2026-spring-equinox/index.html':    124.49,
+  'sunpath/2026-summer-solstice/index.html':   128.77,
+  'sunpath/2026-autumn-equinox/index.html':    128.46,
+  'sunpath/2026-winter-solstice/index.html':   125.72,
+  'sunpath/2027-spring-equinox/index.html':    125.71,
+  'sunpath/2027-summer-solstice/index.html':   128.88,
+  'sunpath/2027-autumn-equinox/index.html':    128.32,
+  'sunpath/2027-winter-solstice/index.html':   126.11,
+  'sunpath/2028-spring-equinox/index.html':    125.88,
+  'sunpath/2028-summer-solstice/index.html':   128.95,
+  'sunpath/2028-autumn-equinox/index.html':    128.12,
+  'sunpath/2028-winter-solstice/index.html':   125.97,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js

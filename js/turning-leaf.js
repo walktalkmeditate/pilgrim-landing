@@ -354,11 +354,13 @@
       doc.head.appendChild(s);
     }
 
+    // The turning and instant the page is about: js/sunpath-turnings.js,
+    // loaded after this, writes that turning's facts, and js/sunpath.js
+    // freezes the globe at the instant and turns it to face.
+    root.__sunpathForce = { turning: tl.key, date: tl.instant };
     var near = new root.IntersectionObserver(function (entries) {
       if (!entries.some(function (e) { return e.isIntersecting; })) return;
       near.disconnect();
-      // The instant js/sunpath.js freezes the globe at and turns it to face.
-      root.__sunpathForce = { turning: tl.key, date: tl.instant };
       add(0);
     }, { rootMargin: '100% 0px' });
     near.observe(section);

@@ -950,11 +950,14 @@ section('Back from the back-forward cache, the plate is idle');
 const ROOT = path.join(__dirname, '..');
 // The scripts the turning pages loaded with the page before the globe was
 // held back (b3a07c3), in that order: js/sunpath.js, what it draws with,
-// and the two that write into its section after it.
+// and the one that writes into its section after it. js/sunpath-turnings.js
+// is not among them: it writes the turning's facts, monuments and
+// pilgrimages above the globe and needs nothing the globe brings, so that
+// content never waits on, or fails with, the globe.
 const GLOBE = [
   '/js/sunpath-globe-math.js', '/js/sunpath-capability.js', '/js/vendor/d3-array.min.js',
   '/js/vendor/d3-geo.min.js', '/js/vendor/topojson-client.min.js', '/js/sunpath-globe-svg.js',
-  '/js/sunpath.js', '/js/sunpath-turnings.js', '/js/sunpath-temporal.js'
+  '/js/sunpath.js', '/js/sunpath-temporal.js'
 ];
 const TURNING_PAGES = fs.readdirSync(path.join(ROOT, 'sunpath'))
   .filter(function (d) { return /^\d{4}-[a-z]+-[a-z]+$/.test(d); })
@@ -978,6 +981,9 @@ section('The turning pages hold the globe back');
     ok(GLOBE.every(function (s) { return eager.indexOf(s) === -1; }), rel + ': no globe script loads with the page');
     equal(declared.join(' '), GLOBE.join(' '), rel + ': its globe section declares them, in order');
     ok(declared.every(function (s) { return fs.existsSync(path.join(ROOT, s)); }), rel + ': and each one is on disk');
+    ok(eager.indexOf('/js/sunpath-turnings.js') > eager.indexOf('/js/turning-leaf.js') &&
+      /<script defer src="\/js\/sunpath-turnings\.js">/.test(html),
+      rel + ': the turning\'s facts load with the page, deferred, after the player');
   });
 }
 
@@ -987,6 +993,8 @@ section('Nearing the globe brings its scripts in order, once');
   const watchers = env.observers.filter(function (o) { return o.targets.indexOf(env.$('[data-lazy-scripts]')) >= 0; });
   equal(watchers.length, 1, 'one observer watches the globe\'s section');
   equal(env.scripts().length, 0, 'until the reader nears it, no globe script is asked for');
+  equal(JSON.stringify(globalThis.__sunpathForce), JSON.stringify({ turning: 'winter-solstice', date: WINTER.instant }),
+    'the plate\'s turning and instant are set as the player starts, for the facts that load with the page');
   env.nearGlobe();
   equal(env.scripts().join(' '), GLOBE[0], 'nearing it asks for the first script alone');
   for (let i = 0; i < GLOBE.length; i++) env.doc.head.children[i].onload();
