@@ -536,6 +536,30 @@ for (let y = 0; y <= 0.6; y += 0.01) {
 ok(darkRead, 'dark: a darker sky only deepens the contrast of pale words');
 ok(/float bokashi\(float y, float dark\)/.test(C.bokashiGlsl()), 'the shader washes the sky with the same curve the test reads');
 
+console.log('\n=== each whisper dries into its own wash ===\n');
+
+const still = C.bloomFor('Be still');
+ok(Array.isArray(still) && still.length === 3 && still.every(function (b) { return /^\d+% \d+% at \d+% \d+%$/.test(b); }),
+  'a whisper\'s wash is three blooms, each a size and a place  (' + (still || []).join(' | ') + ')');
+ok(JSON.stringify(C.bloomFor('Be still')) === JSON.stringify(still), 'the same words always dry into the same shape');
+const lines = ['Be still', 'Breathe', 'You are here', 'Take a breath', 'You are spinning through space', 'This moment is a gift', 'Set something down'];
+const washes = lines.map(function (t) { return C.bloomFor(t).join(' | '); });
+ok(new Set(washes).size === lines.length, 'and no two of these seven whispers share a shape');
+// Each bloom is an ellipse (radii, then centre, as % of the wash's box). One
+// that reaches past the box is cut off there in a hard straight edge, so
+// every bloom must fade out inside it; and the first leans to the start of
+// the words, the second to their end, the third between.
+let clipped = 0, misplaced = 0;
+lines.forEach(function (t) {
+  C.bloomFor(t).forEach(function (b, i) {
+    const n = b.match(/\d+/g).map(Number), rx = n[0], ry = n[1], x = n[2], y = n[3];
+    if (x - rx < 0 || x + rx > 100 || y - ry < 0 || y + ry > 100) clipped++;
+    if (!(i === 0 ? x < 40 : i === 1 ? x > 60 : x >= 40 && x <= 60)) misplaced++;
+  });
+});
+ok(clipped === 0, 'every bloom fades out inside the wash, so none is cut into a hard edge  (' + clipped + ' clipped)');
+ok(misplaced === 0, 'the first bloom leans to the start of the words, the second to their end, the third between');
+
 console.log('\n=== Summary ===\n');
 console.log('passed: ' + passed);
 console.log('failed: ' + failed);

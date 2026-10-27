@@ -1122,18 +1122,31 @@
   new MutationObserver(repaint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
   new MutationObserver(repaint).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-  // Each new whisper arrives on a gust, in the whisper's own colour.
+  // Each new whisper arrives on a gust in its energy's hue; the words
+  // themselves are ink, so the hue is read from --energy, not the text.
+  function energyOf(el) {
+    var style = getComputedStyle(el);
+    return C.hexToRgb(style.getPropertyValue('--energy')) || parseRgb(style.color);
+  }
+  // Each whisper's wash takes the shape its own words make.
+  function bloom(el) {
+    C.bloomFor(el.textContent).forEach(function (b, i) { el.style.setProperty('--bloom-' + (i + 1), b); });
+  }
   var quotes = hero.querySelector('.hero-quotes');
   if (quotes) {
+    Array.prototype.forEach.call(quotes.querySelectorAll('.hero-quote'), bloom);
     new MutationObserver(function (records) {
       for (var i = 0; i < records.length; i++) {
         var el = records[i].target;
-        if (el.classList && el.classList.contains('active')) {
-          gustFront(parseRgb(getComputedStyle(el).color));
+        if (records[i].type === 'childList') {
+          Array.prototype.forEach.call(records[i].addedNodes, function (n) { if (n.nodeType === 1) bloom(n); });
+        } else if (el.classList && el.classList.contains('active')) {
+          bloom(el);
+          gustFront(energyOf(el));
           return;
         }
       }
-    }).observe(quotes, { attributes: true, attributeFilter: ['class'], subtree: true });
+    }).observe(quotes, { attributes: true, attributeFilter: ['class'], subtree: true, childList: true });
   }
 
   setInterval(function () { readSky(); paintStill(); }, 60000);

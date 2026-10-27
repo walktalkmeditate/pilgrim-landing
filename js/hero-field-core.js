@@ -577,6 +577,23 @@
     return Math.round(clamp(n, 7000, 28000));
   }
 
+  // The wash behind a whisper (css/hero-field.css): three blooms toward the
+  // start, the end and the middle of the words, sized and placed from the
+  // words themselves, so a line always dries into the same shape. Each
+  // ellipse fits inside the wash's box, or the box would cut it straight.
+  var BLOOMS = [{ x: [24, 36], rx: [16, 24] }, { x: [64, 76], rx: [16, 24] }, { x: [42, 58], rx: [22, 30] }];
+  function bloomFor(text) {
+    var h = 2166136261;
+    for (var i = 0; i < String(text).length; i++) h = Math.imul(h ^ String(text).charCodeAt(i), 16777619);
+    var rand = mulberry32(h);
+    var pick = function (r) { return Math.round(r[0] + rand() * (r[1] - r[0])); };
+    return BLOOMS.map(function (b) {
+      var x = pick(b.x), y = pick([44, 56]);
+      var rx = Math.min(pick(b.rx), x, 100 - x), ry = Math.min(pick([34, 44]), y, 100 - y);
+      return rx + '% ' + ry + '% at ' + x + '% ' + y + '%';
+    });
+  }
+
   function mulberry32(seed) {
     var a = seed >>> 0;
     return function () {
@@ -776,6 +793,7 @@
     bladeBudget: bladeBudget,
     layoutBlades: layoutBlades,
     hexToRgb: hexToRgb,
+    bloomFor: bloomFor,
     palette: palette,
     seasonField: seasonField,
     particlesFor: particlesFor
