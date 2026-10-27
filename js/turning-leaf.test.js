@@ -593,7 +593,13 @@ section('User input wins: a tap snaps the replay to its end');
   env.frame(0);
   env.frame(2000);
   ok(env.all('.hr').some(function (h) { return h.style.opacity; }), 'mid-replay, later hours are still ghosts');
+  // A finger that lands to scroll the page sends pointerdown and then
+  // pointercancel, never a click; only a tap clicks.
   env.point(env.$('.tl-caption'), 'pointerdown', { pointerType: 'touch' });
+  env.point(env.$('.tl-caption'), 'pointercancel', { pointerType: 'touch' });
+  ok(env.is('is-replaying'), 'a finger that starts a scroll leaves the replay running');
+  env.point(env.$('.tl-caption'), 'pointerdown', { pointerType: 'touch' });
+  env.point(env.$('.tl-caption'), 'click', { pointerType: 'touch' });
   ok(!env.is('is-replaying'), 'a tap anywhere ends the replay at once');
   ok(env.$('g.day').innerHTML === env.original.day, '...on the finished plate, exactly as drawn');
   ok(env.sun().x < 0, '...the live sun gone');
@@ -754,6 +760,10 @@ section('Touch and mouse');
   equal(env.readout(), 'Wed 14 Oct · no photograph this day', 'a drag selects a day that stays shown after the finger lifts');
   ok(env.is('is-scrubbing') && !back.hidden, '...with "back to the turning" offered');
   env.point(env.$('.tl-figure'), 'pointerdown', { pointerType: 'touch' });
+  env.point(env.$('.tl-figure'), 'pointercancel', { pointerType: 'touch' });
+  ok(env.is('is-scrubbing'), 'scrolling down to read the day keeps it shown');
+  env.point(env.$('.tl-figure'), 'pointerdown', { pointerType: 'touch' });
+  env.point(env.$('.tl-figure'), 'click', { pointerType: 'touch' });
   ok(!env.is('is-scrubbing'), 'a tap outside the strip returns the plate to the turning');
   ok(env.$('g.day').innerHTML === env.original.day && back.hidden, '...exactly, and "back" leaves');
 

@@ -314,7 +314,11 @@
     }
 
     // Any tap ends a replay, and a tap off the strip lets a scrubbed day go.
-    doc.addEventListener('pointerdown', function (e) {
+    // A click, not a pointerdown: a finger that lands to scroll the page
+    // never clicks. The plate's own controls act for themselves.
+    var controls = $('.tl-controls');
+    doc.addEventListener('click', function (e) {
+      if (controls.contains(e.target)) return;
       if (mode === 'replaying' || (mode === 'scrubbing' && !wrap.contains(e.target))) still();
     });
 
