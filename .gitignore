@@ -44,3 +44,6 @@ __pycache__/
 
 # Black Marble source tiles — ~90 MB each, fetched by scripts/darkness/fetch_tiles.py
 scripts/darkness/data/
+
+# Compound Engineering local prototypes
+.context/compound-engineering/
