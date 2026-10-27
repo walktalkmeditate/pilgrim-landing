@@ -6,6 +6,7 @@
 // noscriptIntro is intentionally raw HTML — the data file embeds <strong>.
 
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -20,6 +21,8 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const readJson = (rel) => JSON.parse(readFileSync(resolve(REPO_ROOT, rel), 'utf8'));
 const TEMPLES = readJson('assets/sunpath/temples.json');
 const SKY_DAYS = readJson('assets/sunpath/sky-days.json').days;
+const CARD_TEMPLATE = readFileSync(resolve(REPO_ROOT, 'scripts/render-og-plate.html'), 'utf8');
+const PLATE_CSS = readFileSync(resolve(REPO_ROOT, 'css/turning-leaf.css'), 'utf8');
 
 const TURNING_KEYS = ['spring-equinox', 'summer-solstice', 'autumn-equinox', 'winter-solstice'];
 const MONTHS = [
@@ -140,11 +143,31 @@ function plateMarkup(data, lead, { fullSeason }) {
 ${strip ? `      <div class="tl-stripwrap">${strip}<p class="tl-strip-hint" hidden>drag along the days</p></div>\n` : ''}${season.note ? `      <p class="tl-note">${htmlText(season.note)}</p>\n` : ''}    </section>`;
 }
 
+// KTD3: a card is named by a short hash of the card template and the
+// page's plate, whose words are the lead and the date line, so a changed
+// card gets a new URL and cached link previews fetch it again.
+export function cardHash(template, plate) {
+  return createHash('sha256').update(template).update('\0').update(plate).digest('hex').slice(0, 10);
+}
+
+// R2: the link card is the page's own plate, as published (never the
+// full-season weighing), laid out by scripts/render-og-plate.html.
+export function linkCard(data) {
+  const plate = plateMarkup(data, renderLead(data), { fullSeason: false });
+  const html = CARD_TEMPLATE
+    .replace('{{kanji}}', () => encodeURIComponent(kanjiOf(data.key, templeOf(data))))
+    .replace('{{plate-css}}', () => PLATE_CSS)
+    .replace('{{plate}}', () => plate);
+  // The card inlines the plate CSS, so its look names the card as surely
+  // as its words do.
+  return { png: `assets/og-${data.year}-${data.key}-${cardHash(CARD_TEMPLATE + '\0' + PLATE_CSS, plate)}.png`, html };
+}
+
 // options.fullSeason draws the strip and season arcs as if every day had
 // its photo: the weight scripts/sunpath/year.mjs pins (KTD15).
 export function renderPermalink(data, archive, { fullSeason = false } = {}) {
   const canonical = `https://pilgrimapp.org/sunpath/${data.year}-${data.key}`;
-  const ogImage = `https://pilgrimapp.org/assets/og-${data.year}-${data.key}.png`;
+  const ogImage = `https://pilgrimapp.org/${linkCard(data).png}`;
   const sourcePath = `sunpath/${data.year}-${data.key}/index.html`;
   const lead = renderLead(data);
   const kanji = kanjiOf(data.key, templeOf(data));

@@ -3,11 +3,16 @@
 #
 # Outputs:
 #   assets/og-sunpath.png
-#   assets/og-{year}-{key}.png   for each turning
+#   assets/og-{year}-{key}-{hash}.png   for each turning: the page's own
+#       plate on scripts/render-og-plate.html, named by the hash the page's
+#       og:image already carries (scripts/sunpath/permalink-template.mjs)
 #
 # Run from repo root:
 #   bash scripts/build-og-sunpath.sh           # default year = 2026
 #   bash scripts/build-og-sunpath.sh 2027      # render a specific year
+#
+# A turning keeps only the card its page names: older hashed cards are
+# removed, and the unhashed og-{year}-{key}.png once no file names it.
 #
 # Requires: Google Chrome (or Chromium) at the standard macOS path,
 # and ImageMagick `convert` (Chrome's --screenshot leaves ~40px of
@@ -47,32 +52,38 @@ render() {
   rm -f "$raw"
 }
 
+# $1: the turning (2026-winter-solstice); $2: the card its page names.
+prune() {
+  local turning="$1"
+  local keep="$ASSETS/$(basename "$2")"
+  local old
+  for old in "$ASSETS/og-$turning"-*.png; do
+    if [ -e "$old" ] && [ "$old" != "$keep" ]; then
+      echo "  ✗ ${old#"$ROOT"/}"
+      rm -f "$old"
+    fi
+  done
+  old="$ASSETS/og-$turning.png"
+  if [ -e "$old" ] && ! grep -rIqF --exclude-dir='.*' --exclude-dir=docs \
+      "og-$turning.png" "$ROOT"; then
+    echo "  ✗ ${old#"$ROOT"/}"
+    rm -f "$old"
+  fi
+}
+
 echo "rendering Sun Path OG images (year=$YEAR)…"
 
 render "file://$SCRIPTS/render-og-sunpath.html" \
        "$ASSETS/og-sunpath.png"
 
-# URL-encode a string for use as a query-string value.
-urlencode() {
-  python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))"
-}
+CARDS="$(mktemp -d)"
+trap 'rm -rf "$CARDS"' EXIT
 
-# For each turning, pull the displayDate out of the year's data file so
-# the OG image's date string matches the turning's actual UTC instant
-# (otherwise we'd render every year with 2026's dates baked into the
-# template defaults). Falls back to the template default if the file is
-# missing (e.g. running for an unseeded year).
-for KEY in spring-equinox summer-solstice autumn-equinox winter-solstice; do
-  DATA="$ROOT/assets/sunpath/turnings/$YEAR-$KEY.json"
-  DATE_PARAM=""
-  if [ -f "$DATA" ]; then
-    DATE=$(python3 -c "import json; print(json.load(open('$DATA'))['displayDate'])")
-    if [ -n "$DATE" ]; then
-      DATE_PARAM="&date=$(printf '%s' "$DATE" | urlencode)"
-    fi
-  fi
-  render "file://$SCRIPTS/render-og-turning.html?key=$KEY&year=$YEAR$DATE_PARAM" \
-         "$ASSETS/og-$YEAR-$KEY.png"
-done
+node "$SCRIPTS/sunpath/build-permalinks.mjs" "$YEAR" --cards "$CARDS" > "$CARDS/cards.tsv"
+
+while IFS=$'\t' read -r PAGE PNG <&3; do
+  render "file://$PAGE" "$ROOT/$PNG"
+  prune "$(basename "$PAGE" .html)" "$PNG"
+done 3< "$CARDS/cards.tsv"
 
 echo "done."

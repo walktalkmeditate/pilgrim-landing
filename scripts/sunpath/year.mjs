@@ -13,7 +13,8 @@
 //   4. Write sunpath/turnings-YEAR.ics (regenerable).
 //   5. Render sunpath/YEAR-{key}/index.html via build-permalinks.mjs.
 //   6. Pin each new page's weight in js/page-weight.test.js.
-//   7. Render assets/og-YEAR-{key}.png via build-og-sunpath.sh.
+//   7. Render assets/og-YEAR-{key}-{hash}.png via build-og-sunpath.sh: each
+//      page's own plate, under the name its og:image already carries.
 //   8. Append YEAR to assets/sunpath/years.json.
 //   9. Append four <url> entries to sitemap.xml.
 //
@@ -424,7 +425,8 @@ async function main() {
   log(await pinPageWeights(year, { dry }));
   console.log();
 
-  // 6. OG images (regenerable; uses headless Chrome).
+  // 6. OG images (regenerable; uses headless Chrome), after the pages so
+  //    each card lands under the name its page names.
   console.log('OG images:');
   log(runChild('bash', ['scripts/build-og-sunpath.sh', String(year)], { dry }));
   console.log();

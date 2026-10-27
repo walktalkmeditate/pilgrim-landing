@@ -6,19 +6,23 @@
 //   node scripts/sunpath/build-permalinks.mjs
 //   node scripts/sunpath/build-permalinks.mjs 2027        # only this year
 //   node scripts/sunpath/build-permalinks.mjs --check     # diff vs disk; non-zero on drift
+//   node scripts/sunpath/build-permalinks.mjs 2027 --cards DIR
+//                       # write each turning's link-card page into DIR and print
+//                       # "<card page>\t<png>" lines for scripts/build-og-sunpath.sh
 //
 // --check (run by the pre-commit hook) also fails when a turning in the next
-// 24 months has no page, or when a lead carries a number typed outside its
-// slots. The first reads the clock on purpose: with no CI, from 20 Mar 2027,
-// when the 2029 spring equinox enters the window, every commit is told to
-// run scripts/sunpath/year.mjs 2029 until it has been.
+// 24 months has no page, when a page's link card is not on disk, or when a
+// lead carries a number typed outside its slots. The first reads the clock
+// on purpose: with no CI, from 20 Mar 2027, when the 2029 spring equinox
+// enters the window, every commit is told to run scripts/sunpath/year.mjs
+// 2029 until it has been.
 
 import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { renderPermalink, TURNING_KEYS } from './permalink-template.mjs';
+import { renderPermalink, linkCard, TURNING_KEYS } from './permalink-template.mjs';
 import { turningInstant } from './meeus.mjs';
 
 const require = createRequire(import.meta.url);
@@ -89,6 +93,17 @@ export function leadProblems(turnings) {
   return problems;
 }
 
+// pages: [{ outFile, html }]. Returns the pages whose og:image is not on
+// disk, each with the card it names.
+export function missingCards(pages) {
+  return pages
+    .map((p) => {
+      const og = /<meta property="og:image" content="https:\/\/pilgrimapp\.org\/([^"]+)">/.exec(p.html);
+      return { outFile: p.outFile, card: og ? og[1] : '(no og:image)' };
+    })
+    .filter((p) => !existsSync(resolve(REPO_ROOT, p.card)));
+}
+
 function publishedPages(now) {
   const out = new Set();
   for (let year = now.getUTCFullYear(); year <= now.getUTCFullYear() + 2; year++) {
@@ -113,7 +128,7 @@ async function buildYear(year, group, { check, onlyYear }) {
     if (check) {
       const existing = existsSync(outFile) ? await readFile(outFile, 'utf8') : '';
       const drift = existing !== html;
-      results.push({ outFile, drift });
+      results.push({ outFile, drift, html: existing });
       continue;
     }
 
@@ -124,9 +139,23 @@ async function buildYear(year, group, { check, onlyYear }) {
   return results;
 }
 
+async function writeCards(group, dir) {
+  await mkdir(dir, { recursive: true });
+  const lines = [];
+  for (const key of TURNING_KEYS) {
+    const data = group.find((t) => t.key === key);
+    const card = linkCard(data);
+    const page = resolve(dir, `${data.year}-${data.key}.html`);
+    await writeFile(page, card.html);
+    lines.push(`${page}\t${card.png}`);
+  }
+  return lines;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const check = args.includes('--check');
+  const cardsDir = args.includes('--cards') ? args[args.indexOf('--cards') + 1] : null;
   const yearArg = args.find((a) => /^\d{4}$/.test(a));
   const onlyYear = yearArg ? Number(yearArg) : null;
 
@@ -141,6 +170,13 @@ async function main() {
     console.error(`No turning data found for year ${onlyYear} in ${TURNINGS_DIR}.`);
     process.exit(1);
   }
+  if (cardsDir) {
+    if (onlyYear === null) throw new Error('--cards needs a year: build-permalinks.mjs 2027 --cards DIR');
+    validateYearGroup(onlyYear, byYear.get(onlyYear));
+    for (const line of await writeCards(byYear.get(onlyYear), resolve(cardsDir))) console.log(line);
+    return;
+  }
+
   const allResults = [];
   for (const [year, group] of [...byYear.entries()].sort(([a], [b]) => a - b)) {
     const r = await buildYear(year, group, { check, onlyYear });
@@ -160,6 +196,14 @@ async function main() {
       for (const l of leads) console.error('  ', l);
       process.exit(2);
     }
+    const cards = missingCards(allResults);
+    if (cards.length) {
+      console.error('Pages whose link card is not on disk:');
+      for (const c of cards) console.error('  ', c.outFile, '→', c.card);
+      const years = [...new Set(cards.map((c) => /sunpath\/(\d{4})-/.exec(c.outFile)[1]))];
+      console.error(`Run: ${years.map((y) => `bash scripts/build-og-sunpath.sh ${y}`).join(' && ')}`);
+      process.exit(2);
+    }
     const now = new Date();
     const missing = missingAhead(now, publishedPages(now));
     if (missing.length) {
@@ -169,7 +213,7 @@ async function main() {
       console.error(`Run: ${years.map((y) => `node scripts/sunpath/year.mjs ${y}`).join(' && ')}`);
       process.exit(2);
     }
-    console.log('All permalink HTMLs match their generated form, every lead is from its menu, and pages reach two years ahead.');
+    console.log('All permalink HTMLs match their generated form, every lead is from its menu, every card is on disk, and pages reach two years ahead.');
     return;
   }
 
