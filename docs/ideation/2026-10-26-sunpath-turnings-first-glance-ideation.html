@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ideation: The first glance at /sunpath and every turning</title>
+<style>
+  :root {
+    --bg: #F5F0E8;
+    --card: #FBF8F2;
+    --ink: #2C2A26;
+    --muted: #5E564C;
+    --rule: #DCD3C5;
+    --seal: #A8412F;
+    --gold: #9A6B22;
+    --soft: #F1E6D6;
+    --warn-soft: #F6E2DA;
+    --warn-ink: #7E2E20;
+    --winter: #2378A4;
+    --spring: #3F7E5E;
+    --summer: #9A7A1C;
+    --autumn: #8B4455;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14120F;
+      --card: #1C1A16;
+      --ink: #EAE3D6;
+      --muted: #B4AA9A;
+      --rule: #3A352D;
+      --seal: #D8694F;
+      --gold: #D9A84E;
+      --soft: #2A241B;
+      --warn-soft: #34201A;
+      --warn-ink: #F0B5A4;
+      --winter: #6FB4DB;
+      --spring: #7DC3A0;
+      --summer: #D9B85A;
+      --autumn: #D08A9B;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0 auto;
+    max-width: 920px;
+    padding: 3rem 1.5rem 4rem;
+    color: var(--ink);
+    background: var(--bg);
+    font: 16px/1.6 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Hiragino Mincho ProN", serif;
+  }
+  p, li, dd { max-width: 72ch; }
+  h1 { font-size: 1.85rem; line-height: 1.25; margin: 0.25rem 0 1rem; font-weight: 600; }
+  h2 { font-size: 1.4rem; margin: 3rem 0 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule); font-weight: 600; }
+  h3 { font-size: 1.2rem; margin: 0 0 0.75rem; font-weight: 600; }
+  .eyebrow { font: 600 0.72rem/1.2 ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; margin: 0 0 1.5rem; font-size: 0.92rem; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  code { font: 0.86em/1.4 ui-monospace, "SF Mono", Menlo, monospace; background: var(--soft); padding: 0.05em 0.3em; border-radius: 3px; }
+  strong { color: inherit; }
+  a { color: var(--seal); }
+  .stats { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+  .stats li { background: var(--soft); border-radius: 999px; padding: 0.25rem 0.8rem; font: 0.85rem/1.4 ui-sans-serif, -apple-system, sans-serif; }
+  .callout { background: var(--warn-soft); border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+  .callout .eyebrow { color: var(--warn-ink); }
+  .callout ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+  .callout li { margin: 0.4rem 0; }
+  .jump { columns: 2; column-gap: 2rem; padding-left: 1.2rem; margin: 0 0 1.5rem; }
+  .jump li { break-inside: avoid; margin: 0.15rem 0; }
+  article.idea { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1.4rem 1.5rem 1.2rem; margin: 1.5rem 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.9rem; padding: 0; list-style: none; }
+  .chips li { background: var(--soft); border-radius: 999px; padding: 0.15rem 0.65rem; font: 0.78rem/1.5 ui-sans-serif, -apple-system, sans-serif; color: var(--ink); }
+  .chips li.id { background: var(--seal); color: #FFF8F0; font-weight: 600; }
+  dl.fields { margin: 0; }
+  dl.fields dt { font: 600 0.72rem/1.2 ui-sans-serif, -apple-system, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 0.9rem; }
+  dl.fields dd { margin: 0.25rem 0 0; }
+  dl.fields dd ul { margin: 0.2rem 0 0; padding-left: 1.1rem; }
+  dl.fields dd li { margin: 0.2rem 0; }
+  figure { margin: 1rem 0 0.5rem; overflow-x: auto; }
+  figure svg { display: block; width: 100%; height: auto; min-width: 520px; }
+  figcaption { font-size: 0.86rem; color: var(--muted); margin-top: 0.35rem; max-width: 72ch; }
+  svg text { font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif; }
+  .svg-line { stroke: var(--muted); }
+  .svg-faint { stroke: var(--rule); }
+  .svg-ink { stroke: var(--ink); }
+  .svg-label { fill: var(--ink); }
+  .svg-muted { fill: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  th, td { text-align: left; vertical-align: top; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--rule); }
+  th { font: 600 0.75rem/1.3 ui-sans-serif, -apple-system, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  td:first-child { white-space: nowrap; color: var(--muted); }
+  .table-wrap { overflow-x: auto; }
+  footer.composition-signal { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: 0.82rem; color: var(--muted); }
+  @media (max-width: 640px) {
+    body { padding: 2rem 1rem 3rem; }
+    .jump { columns: 1; }
+    article.idea { padding: 1.1rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Ideation · Pilgrim landing · Sun Path</p>
+  <h1>Ideation: The first glance at /sunpath and every turning</h1>
+  <dl class="meta">
+    <dt>Date</dt><dd><time datetime="2026-10-26">2026-10-26</time></dd>
+    <dt>Topic</dt><dd>sunpath-turnings-first-glance</dd>
+    <dt>Focus</dt><dd>Design something that wows people the first time they see /sunpath and every solstice and equinox page after it, so that each turning can stand as its own Hacker News post, now that the homepage hero has been redesigned.</dd>
+    <dt>Mode</dt><dd>repo-grounded</dd>
+  </dl>
+  <ul class="stats">
+    <li>46 raw ideas from 5 lenses</li>
+    <li>17 merged directions</li>
+    <li>7 survivors, now 5 ranked ideas after one merge</li>
+    <li>5 topic axes, all covered</li>
+    <li>3 live errors found while checking</li>
+  </ul>
+</header>
+
+<section id="before-any-post">
+  <div class="callout">
+    <p class="eyebrow">Found while checking · fix before any post</p>
+    <ul>
+      <li><strong>The equinox pages put the sun about 0.4° off the equator.</strong> At the equinox instants, <code>declination()</code> returns −0.42° (20 Mar 2026), +0.44° (23 Sep 2026), −0.32° (20 Mar 2027) and +0.35° (23 Sep 2027). The frozen equinox pages show this to readers: <code>js/sunpath.js:346–353</code> writes "the sun is overhead at 0.4°N". The footer on the same page (<code>sunpath/index.html:301</code>) promises "declination accurate to about 0.05°". The cause is that the Spencer series (<code>js/sunpath-math.js:49</code>) depends only on the day of the year, not the time within it, and near an equinox the sun moves about 0.4° a day. The fix is to use the Meeus position, which <code>js/turnings.js</code> already uses, for frozen turning instants. The next equinox page is 20 Mar 2027.</li>
+      <li><strong>"Sunrise due east, everywhere" is the equinox tagline HN will correct.</strong> Atmospheric refraction, plus the convention that sunrise is the top edge of the sun appearing, puts the equinox sunrise about 0.6° north of east at Tokyo, 0.8° at 45°N and 1.7° at Reykjavík. "Within about two degrees of due east" is true.</li>
+      <li><strong>The countdown links will 404 after the 2027 winter solstice.</strong> Only the 2026 and 2027 pages exist, and <code>js/sunpath-countdown.js:72–80</code> says so in a comment. The generator in idea 1 closes this gap.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="grounding-context">
+  <h2>Grounding Context</h2>
+  <p class="eyebrow">Codebase Context</p>
+  <ul>
+    <li><strong>The hub (/sunpath).</strong>
+      <ul>
+        <li>The first thing on the page is a three.js WebGL globe in a dark sky panel. It shows the live day and night line, the point on Earth directly under the sun, monument beacons, aurora and city lights, with an SVG fallback.</li>
+        <li>Beneath it are about ten instruments: deep-time drift, a 24-hour timelapse, a year scrub, Walk through time, a calendar of turnings, the analemma, how long the dark lasts, where dawn comes from, Walk to the sun, and tomorrow vs today.</li>
+        <li>The globe opens on Greenwich for every visitor (<code>js/sunpath.js:29</code>), and the first caption is "listening for the sun…".</li>
+        <li>The hub's script and style budget stands at +11.85 of 12.00 KB gzipped over its baseline (<code>js/sunpath-budget.test.js</code>).</li>
+      </ul>
+    </li>
+    <li><strong>Turning pages.</strong>
+      <ul>
+        <li>Eight pages (2026–2027) are generated by <code>scripts/sunpath/permalink-template.mjs</code> from <code>assets/sunpath/turnings/{year}-{key}.json</code>.</li>
+        <li>Each one is the hub globe frozen at the turning instant (<code>window.__sunpathForce</code>) plus boilerplate. Solstice pages carry a deep-time drift block; equinox pages have nothing of their own.</li>
+        <li>The pages fall under <code>js/page-weight.test.js</code>, not the hub budget.</li>
+        <li>No year after 2027 exists yet.</li>
+      </ul>
+    </li>
+    <li><strong>Link previews.</strong> The preview images are static SVG art from <code>render-og-turning.html</code>, because <code>build-og-sunpath.sh</code> runs in headless Chrome with the GPU off and cannot capture the WebGL globe. Nothing on /sunpath lets a reader share a moment.</li>
+    <li><strong>The homepage field (Oct 2026).</strong> It is a raw-WebGL ink painting of susuki grass under the real moon and sun at the visitor's own hour, with seasons, meteors, geese, lanterns, a vermilion seal and an ink path. The look is <em>In Praise of Shadows</em>. /sunpath's gold-in-deep-space look came before it and differs from it.</li>
+  </ul>
+  <p class="eyebrow">External Context</p>
+  <p>Hacker News results, checked through hn.algolia.com, shape the plan:</p>
+  <ul>
+    <li><strong>Reposting the same site on the same date fades.</strong> Manhattanhenge went from 120 points in 2012 to 3 in 2024.</li>
+    <li><strong>A specific, surprising claim does well.</strong>
+      <ul>
+        <li>"The equinox is not when day and night have equal lengths": 142 points, 110 comments.</li>
+        <li>"The ancient monuments saluting the winter solstice": 201 points, the best solstice story on HN.</li>
+        <li>"Showing a sunrise/sunset realtime 24/7 with unsecured CCTV cameras": 324 points.</li>
+      </ul>
+    </li>
+    <li><strong>Tool-style Show HNs and well-known facts flop.</strong>
+      <ul>
+        <li>Analemma Show HNs: 1 point each.</li>
+        <li>"Earliest sunset ≠ shortest day": 1–3 points.</li>
+      </ul>
+    </li>
+    <li><strong>There is a small day-of ritual.</strong> "Tell HN: Happy Solstice" posts score 16–37 points.</li>
+  </ul>
+  <p>So each turning needs a <em>new</em> claim and a new picture, not a repost of the page.</p>
+  <p class="eyebrow">Past learnings</p>
+  <p>The repo has no learnings store. Project memory adds three lessons:</p>
+  <ul>
+    <li><strong>Provenance is armor.</strong> Use alignment markers only where a bearing is sourced; Meoto Iwa was rejected for having none.</li>
+    <li><strong>Test what renders.</strong> Assert on the output a reader sees, not on the model behind it.</li>
+    <li><strong>Watch the shared weight.</strong> Shared stylesheets and scripts count against other pages' budgets.</li>
+  </ul>
+</section>
+
+<section id="topic-axes">
+  <h2>Topic Axes</h2>
+  <ol>
+    <li><strong>The hub's first glance:</strong> what /sunpath shows in its first seconds.</li>
+    <li><strong>Each turning page's first glance:</strong> what makes one solstice or equinox page astonishing on its own, and different from the others.</li>
+    <li><strong>The preview before the click:</strong> the HN title, the link card and the one line that earns the click.</li>
+    <li><strong>Renewal across turnings:</strong> why the fifth or ninth turning page still surprises.</li>
+    <li><strong>Kinship with the field:</strong> how /sunpath shares the homepage's ink world, or deliberately departs from it.</li>
+  </ol>
+</section>
+
+<section id="ranked-ideas">
+  <h2>Ranked Ideas</h2>
+  <p>You picked ideas 1 and 2 from the first ranking and asked how 3, 4 and 6 fit. The staff (old 4) is now merged into the backbone (old 1 + 2) as its picture. That combined idea is the next step, aimed at the 21 Dec 2026 page. The rest follow as phases:</p>
+  <ul>
+    <li><strong>Idea 2 (begin at your horizon)</strong> is the next phase, before the 20 Mar 2027 equinox. It brings the same staff onto the hub.</li>
+    <li><strong>Idea 4 (the gold screen)</strong> is a look-test on a branch.</li>
+    <li><strong>Ideas 3 and 5</strong> remain alternative pictures for later turnings.</li>
+  </ul>
+  <ol class="jump">
+    <li><a href="#i1">1. The Turning Leaf: each turning's own place, claim and shadow</a></li>
+    <li><a href="#i2">2. Begin at your horizon</a></li>
+    <li><a href="#i3">3. Famous Views of the Turnings</a></li>
+    <li><a href="#i4">4. The gold screen in the inner room</a></li>
+    <li><a href="#i5">5. The turning, photographed</a></li>
+  </ol>
+
+  <article class="idea" id="i1">
+    <h3>1. The Turning Leaf: each turning's own place, claim and shadow</h3>
+    <ul class="chips">
+      <li class="id">1</li>
+      <li>Axis: Each turning page's first glance</li>
+      <li>Confidence: 80%</li>
+      <li>Complexity: Medium</li>
+    </ul>
+    <dl class="fields">
+      <dt>Description</dt>
+      <dd>
+        <p>Every turning page opens on one plate. It is drawn at build time, in Node, from that turning's data. The same SVG is the first paint, the og:image and the noscript view. The live globe and the instruments load below it.</p>
+        <p><strong>The words</strong> are one computed claim that is true only of that turning. The same line is the HN title, the og:title and the caption.</p>
+        <ul>
+          <li><strong>The main claim is the turning's place:</strong> the point directly under the sun at the instant, named by the nearest land.</li>
+          <li><strong>Fallbacks when the place is open ocean:</strong>
+            <ul>
+              <li>the sun standing still (0.0035° a day at the solstice, against about 0.4° at an equinox);</li>
+              <li>the shortest season (winter 2026–27 lasts 88 d 23 h);</li>
+              <li>the sunrise moving less than its own width for about 19 days at 40°N;</li>
+              <li>the Tropic of Cancer sitting 32 km south of where Eratosthenes measured it;</li>
+              <li>on the 2026 longest night, the moon riding higher than the midsummer noon sun.</li>
+            </ul>
+          </li>
+        </ul>
+        <p><strong>The picture</strong> is a pilgrim's staff (金剛杖) planted on paper. Its hourly shadows are ink strokes, and a line traces the path of the shadow's tip through the day. One generator gives four different pictures:</p>
+        <ul>
+          <li><strong>Equinox:</strong> the tip runs in a dead-straight line.</li>
+          <li><strong>Winter solstice:</strong> the widest curve, with the year's longest noon shadow.</li>
+          <li><strong>Summer solstice:</strong> the curve pulls in toward the staff.</li>
+        </ul>
+        <p>The built plate uses a stated reference latitude. After load, a script redraws it for the visitor's latitude.</p>
+        <p>The machinery behind it:</p>
+        <ul>
+          <li>A generator in <code>scripts/sunpath/</code> derives instants, places and claims from <code>turnings.js</code> and the sun's position, and writes the turning JSON through 2100. That closes the next-year 404.</li>
+          <li>The generator uses the Meeus position, which fixes the equinox error.</li>
+          <li>The shadow math lives in one pure, tested module. The build uses it now, and the hub can reuse it later (idea 2).</li>
+        </ul>
+      </dd>
+      <dt>First glance</dt>
+      <dd>
+        <ul>
+          <li><strong>Laptop:</strong> a full-width paper plate in the turning's accent ink. The staff stands left of centre, with nine hourly shadow strokes fanning out. Their tips are joined by a curve at a solstice or a ruler-straight line at an equinox. One large line reads: "At 20:51 UTC the sun turned north over open Pacific, about 170 km from Mangareva."</li>
+          <li><strong>Phone:</strong> the plate fills the portrait screen, with the staff at the top and the shadows falling down the screen. No globe sits above the fold.</li>
+          <li><strong>Link previews</strong> show exactly the same plate.</li>
+          <li><strong>HN titles:</strong>
+            <ul>
+              <li>"On Monday the sun turns north 170 km from Mangareva" (21 Dec 2026)</li>
+              <li>"On the equinox, the tip of a shadow moves in a straight line" (20 Mar 2027)</li>
+              <li>"This year the solstice happens over the Queensland outback" (22 Dec 2027)</li>
+            </ul>
+          </li>
+        </ul>
+      </dd>
+      <dt>Basis</dt>
+      <dd>
+        <ul>
+          <li><code>direct:</code> <code>M.subsolarPoint</code> gives:
+            <ul>
+              <li>−23.42°, −133.34° on 2026-12-21 at 20:51:22Z, about 170 km from Mangareva;</li>
+              <li>−23.42°, 138.67° on 2027-12-22 at 02:43:27Z, about 139 km from Boulia;</li>
+              <li>−23.43°, 54.24° on 2028-12-21 at 08:21Z, about 290 km from Réunion.</li>
+            </ul>
+          </li>
+          <li><code>direct:</code> <code>build-og-sunpath.sh</code> renders <code>render-og-turning.html</code> as "static SVG art" because it "runs GPU-disabled and cannot render live Three.js".</li>
+          <li><code>direct:</code> Turning pages fall under <code>js/page-weight.test.js</code>, not the hub's 12 KB budget.</li>
+          <li><code>direct:</code> <code>js/sunpath-countdown.js:72–80</code> says "If next year's permalink doesn't exist yet, the link 404s". <code>years.json</code> lists only 2026 and 2027.</li>
+          <li><code>direct:</code> Equinox pages skip the drift block and have nothing in its place.</li>
+          <li><code>external:</code> On HN, reposting the same site on the same date fades (Manhattanhenge, 120 points down to 3), while a specific claim wins ("The equinox is not when day and night have equal lengths", 142).</li>
+          <li><code>external:</code> Field-craft manuals use the stick-and-pebbles method to find east and west, and schools run the Eratosthenes Experiment each March.</li>
+          <li><code>reasoned:</code> The sun's rays through the staff's tip form a cone around the Earth's axis, and the shadow tip lies where the ground cuts that cone. At δ = 0 the cone flattens to a plane, so the trace is the straight line sundials call the equinoctial line; on other days it is a hyperbola.</li>
+          <li><code>computed:</code> The noon shadow on 21 Dec 2026 is 3.7 times your height in London, about 24 times in Reykjavík and 1.7 times in Tokyo.</li>
+          <li><code>reasoned:</code> Each year the instant comes about 5 h 49 m later, so the place jumps about 88° west and never repeats in the archive's lifetime.</li>
+        </ul>
+      </dd>
+      <dt>Rationale</dt>
+      <dd>This is the backbone and the picture in one:
+        <ul>
+          <li>every turning gets a new, checkable claim, the only thing that beats the repost decay;</li>
+          <li>the link card is the page;</li>
+          <li>first paint is instant on phones and older iPhones;</li>
+          <li>a recurring character ties /sunpath to walking without a CTA;</li>
+          <li>a reader can test the claim with a stick that day, the comment dynamic HN rewards.</li>
+        </ul>
+      </dd>
+      <dt>Downsides</dt>
+      <dd>
+        <ul>
+          <li>It adds a second renderer, a Node SVG alongside the WebGL globe.</li>
+          <li>Open-ocean turnings need a fallback claim, and place names need a sourced gazetteer.</li>
+          <li>The built plate shows one reference latitude and must say which.</li>
+          <li>The line is straight "to the eye", and the copy has to say so.</li>
+          <li>It is a quiet diagram, so the ink craft has to carry the wow.</li>
+          <li>It depends on the equinox fix.</li>
+          <li>One tempting hook is false: "the point returns every 33 years". The 2059 point lands about 730 km away.</li>
+        </ul>
+      </dd>
+      <dt>Confidence</dt><dd>80%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+    <figure>
+      <svg viewBox="0 0 720 200" role="img" aria-label="Where the sun turns: winter solstice points for 2026, 2027 and 2028 along the Tropic of Capricorn, jumping about 88 degrees west each year">
+        <line x1="20" y1="37.5" x2="620" y2="37.5" class="svg-faint" stroke-width="1"/>
+        <line x1="20" y1="100" x2="620" y2="100" class="svg-faint" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="20" y1="162.5" x2="620" y2="162.5" class="svg-line" stroke-width="1.2"/>
+        <text x="628" y="41" font-size="11" class="svg-muted">Cancer</text>
+        <text x="628" y="104" font-size="11" class="svg-muted">Equator</text>
+        <text x="628" y="166" font-size="11" class="svg-muted">Capricorn</text>
+        <text x="20" y="16" font-size="10" class="svg-muted">180°</text>
+        <text x="170" y="16" font-size="10" class="svg-muted">90°W</text>
+        <text x="315" y="16" font-size="10" class="svg-muted">0°</text>
+        <text x="458" y="16" font-size="10" class="svg-muted">90°E</text>
+        <text x="596" y="16" font-size="10" class="svg-muted">180°</text>
+        <circle cx="409.7" cy="37.5" r="3" fill="var(--summer)" opacity="0.55"/>
+        <circle cx="265.6" cy="37.5" r="3" fill="var(--summer)" opacity="0.55"/>
+        <circle cx="119.5" cy="37.5" r="3" fill="var(--summer)" opacity="0.55"/>
+        <circle cx="112.5" cy="100" r="3" fill="var(--spring)" opacity="0.55"/>
+        <circle cx="465.8" cy="100" r="3" fill="var(--autumn)" opacity="0.55"/>
+        <circle cx="565.7" cy="100" r="3" fill="var(--spring)" opacity="0.55"/>
+        <circle cx="322.5" cy="100" r="3" fill="var(--autumn)" opacity="0.55"/>
+        <circle cx="97.8" cy="162.5" r="6" fill="var(--seal)"/>
+        <circle cx="551.1" cy="162.5" r="6" fill="var(--seal)"/>
+        <circle cx="410.4" cy="162.5" r="6" fill="var(--seal)"/>
+        <text x="40" y="186" font-size="11" class="svg-label">冬至 2026 · ~170 km from Mangareva</text>
+        <text x="330" y="186" font-size="11" class="svg-label">冬至 2028 · ~290 km from Réunion</text>
+        <text x="618" y="150" font-size="11" class="svg-label" text-anchor="end">冬至 2027 · ~139 km from Boulia</text>
+      </svg>
+      <figcaption>Each winter solstice happens over a different place. The large dots are the 2026–2028 winter-solstice points, from the repo's own math. The faint dots are the other turnings of those years. The equinox dots are drawn on the equator, where they truly belong: the live math currently misplaces them by 0.2–0.4°.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 640 236" role="img" aria-label="Plan view of a staff and the paths its shadow tip traces: a straight line at the equinox, a wide curve at the winter solstice, a curve close to the staff at the summer solstice">
+        <path d="M170 4 Q320 80 470 4" fill="none" stroke="var(--summer)" stroke-width="1.6"/>
+        <line x1="100" y1="64" x2="545" y2="64" stroke="var(--spring)" stroke-width="2"/>
+        <path d="M110 215 Q320 5 530 215" fill="none" stroke="var(--winter)" stroke-width="1.6"/>
+        <line x1="320" y1="30" x2="320" y2="110" class="svg-ink" stroke-width="1.4" stroke-dasharray="3 3"/>
+        <circle cx="320" cy="30" r="5" class="svg-ink" fill="var(--ink)"/>
+        <circle cx="320" cy="110" r="4" fill="var(--seal)"/>
+        <text x="330" y="24" font-size="11" class="svg-label">staff</text>
+        <text x="478" y="14" font-size="11" class="svg-muted">summer solstice</text>
+        <text x="552" y="68" font-size="11" class="svg-label">equinox</text>
+        <text x="135" y="230" font-size="11" class="svg-muted">winter solstice: the widest curve</text>
+        <text x="330" y="124" font-size="11" class="svg-label">noon</text>
+      </svg>
+      <figcaption>The shadow tip's path, seen from above in the northern hemisphere with north toward the bottom. It is straight only at the equinoxes. The curves are illustrative. The plate is built at a stated reference latitude, then redrawn for the reader's.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 640 150" role="img" aria-label="One build step turns the turning data into three identical outputs: first paint, link card, noscript">
+        <rect x="16" y="52" width="150" height="46" rx="6" fill="none" class="svg-line" stroke-width="1.2"/>
+        <text x="91" y="72" font-size="12" class="svg-label" text-anchor="middle">turning data</text>
+        <text x="91" y="88" font-size="10" class="svg-muted" text-anchor="middle">instant · claim · lens</text>
+        <line x1="166" y1="75" x2="222" y2="75" class="svg-line" stroke-width="1.2"/>
+        <rect x="222" y="52" width="150" height="46" rx="6" fill="none" class="svg-ink" stroke-width="1.6"/>
+        <text x="297" y="72" font-size="12" class="svg-label" text-anchor="middle">renderLeaf()</text>
+        <text x="297" y="88" font-size="10" class="svg-muted" text-anchor="middle">Node, at build</text>
+        <line x1="372" y1="75" x2="430" y2="25" class="svg-line" stroke-width="1.2"/>
+        <line x1="372" y1="75" x2="430" y2="75" class="svg-line" stroke-width="1.2"/>
+        <line x1="372" y1="75" x2="430" y2="125" class="svg-line" stroke-width="1.2"/>
+        <rect x="430" y="8" width="194" height="34" rx="6" fill="var(--soft)"/>
+        <text x="527" y="30" font-size="12" class="svg-label" text-anchor="middle">first paint (inline SVG)</text>
+        <rect x="430" y="58" width="194" height="34" rx="6" fill="var(--soft)"/>
+        <text x="527" y="80" font-size="12" class="svg-label" text-anchor="middle">og:image 1200 × 630</text>
+        <rect x="430" y="108" width="194" height="34" rx="6" fill="var(--soft)"/>
+        <text x="527" y="130" font-size="12" class="svg-label" text-anchor="middle">noscript view</text>
+      </svg>
+      <figcaption>One build step produces one picture, used in three places. The WebGL globe arrives afterwards, as enhancement.</figcaption>
+    </figure>
+  </article>
+
+<article class="idea" id="i2">
+    <h3>2. Begin at your horizon</h3>
+    <ul class="chips">
+      <li class="id">2</li>
+      <li>Axis: The hub's first glance</li>
+      <li>Confidence: 65%</li>
+      <li>Complexity: Medium</li>
+    </ul>
+    <dl class="fields">
+      <dt>Description</dt>
+      <dd>
+        <p>The hub opens on the visitor's own horizon instead of a planet seen from space. Today's sun path is drawn in ink, between the summer, equinox and winter arcs, with the sun disc at its true position for this minute.</p>
+        <p>Location comes from the browser's time zone, using the coordinates the IANA time-zone database lists for each zone (<code>zone1970.tab</code>). There is no permission prompt and no network call, and the existing opt-in "your sky" button refines it.</p>
+        <p>After a 2.5 s camera rise, or on scroll, the view lifts off the ground into the existing gold globe. It brings one exact line with it: "Night is 2,560 km away, in the direction your shadow points."</p>
+        <p>It can reuse idea 1's staff: your staff on your ground, casting its shadow now. The camera then follows that shadow over the curve of the Earth to the night side of the globe. The shadow math is the same module the turning plates use.</p>
+        <p>A cheaper first step is the "year in one breath". On first load, the day and night line swings through a whole year in 3 seconds and settles on now. Because declination follows a sine curve, the swing lingers at each solstice and rushes through the equinoxes. The same 3 seconds also make the launch GIF that was never made.</p>
+      </dd>
+      <dt>First glance</dt>
+      <dd>
+        <ul>
+          <li><strong>Laptop:</strong> a wide band of sky over a thin ink horizon. Three faint arcs span it, with today's arc just above the winter one and a small gold sun on it. The caption reads "Tokyo, from your clock · 14:05 · 8 weeks from the sun's lowest road".</li>
+          <li><strong>Phone:</strong> the same sky drawn as a circular sun-path chart filling the width, which cuts to the globe as you scroll.</li>
+        </ul>
+      </dd>
+      <dt>Basis</dt>
+      <dd>
+        <ul>
+          <li><code>direct:</code> <code>js/sunpath.js:29</code> sets <code>var rotation = [0, -10];</code>, so every visitor opens on Greenwich.</li>
+          <li><code>direct:</code> The first caption is "listening for the sun…".</li>
+          <li><code>direct:</code> The hub stands at +11.85 of its 12.00 KB budget.</li>
+          <li><code>external:</code> The Eames' <em>Powers of Ten</em> (1977) opens on a picnic blanket, then makes one continuous move outward.</li>
+          <li><code>external:</code> Architects' sun-path charts already draw this view: Andrew Marsh's 3D Sun-Path and the University of Oregon's SRML sun charts.</li>
+          <li><code>external:</code> On HN, the live, located, real CCTV sunrise post reached 324 points.</li>
+          <li><code>reasoned:</code> The nearest night lies in the direction your shadow points. Its distance is the sun's altitude in degrees times 111.19 km.</li>
+        </ul>
+      </dd>
+      <dt>Rationale</dt>
+      <dd>In its first seconds, the hub answers "what does this mean for me?" with a true number the reader can check. It also explains what a turning is before the globe appears: the outer arcs are the limits the sun is travelling toward.</dd>
+      <dt>Downsides</dt>
+      <dd>
+        <ul>
+          <li><strong>Weight.</strong> The time-zone table and horizon frame add about 4–6 KB gzipped to a full budget. That needs a budget raise or lazy-loading the below-fold tools; <code>sunpath-tools.js</code> is 4.3 KB.</li>
+          <li><strong>Precision.</strong> A time zone gives longitude to within about 7.5° and borrows the main city's latitude, so the copy must say "from your clock".</li>
+          <li><strong>The chosen hero.</strong> This changes the hero chosen for HN, so the globe must still arrive within seconds.</li>
+        </ul>
+      </dd>
+      <dt>Confidence</dt><dd>65%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+    <figure>
+      <svg viewBox="0 0 640 215" role="img" aria-label="A horizon with the summer, equinox and winter sun-path arcs, today's arc in ink just above the winter arc, and the sun on it">
+        <path d="M80 170 A240 130 0 0 1 560 170" fill="none" stroke="var(--summer)" stroke-width="1.4" opacity="0.8"/>
+        <path d="M140 170 A180 90 0 0 1 500 170" fill="none" stroke="var(--spring)" stroke-width="1.4" opacity="0.8"/>
+        <path d="M210 170 A110 45 0 0 1 430 170" fill="none" stroke="var(--winter)" stroke-width="1.4" opacity="0.8"/>
+        <path d="M180 170 A140 62 0 0 1 460 170" fill="none" class="svg-ink" stroke-width="2.2"/>
+        <circle cx="230" cy="122.5" r="7" fill="var(--gold)"/>
+        <line x1="40" y1="170" x2="600" y2="170" class="svg-ink" stroke-width="1.6"/>
+        <text x="320" y="34" font-size="11" class="svg-muted" text-anchor="middle">夏至 summer</text>
+        <text x="320" y="74" font-size="11" class="svg-muted" text-anchor="middle">equinox</text>
+        <text x="320" y="101" font-size="11" class="svg-label" text-anchor="middle">today</text>
+        <text x="320" y="142" font-size="11" class="svg-muted" text-anchor="middle">冬至 winter</text>
+        <text x="62" y="188" font-size="11" class="svg-muted">east</text>
+        <text x="578" y="188" font-size="11" class="svg-muted" text-anchor="end">west</text>
+        <text x="320" y="206" font-size="11" class="svg-label" text-anchor="middle">Tokyo, from your clock · 14:05 · 8 weeks from the sun's lowest road</text>
+      </svg>
+      <figcaption>The opening frame, before the camera lifts to the globe. The arc shapes are illustrative; the real ones come from the hub's own math for the visitor's latitude.</figcaption>
+    </figure>
+  </article>
+
+<article class="idea" id="i3">
+    <h3>3. Famous Views of the Turnings</h3>
+    <ul class="chips">
+      <li class="id">3</li>
+      <li>Axis: Kinship with the field</li>
+      <li>Confidence: 55%</li>
+      <li>Complexity: High</li>
+    </ul>
+    <dl class="fields">
+      <dt>Description</dt>
+      <dd>
+        <p>Make every turning page one numbered print in a series, after Hiroshige's <em>One Hundred Famous Views of Edo</em>, which is ordered by season rather than by place.</p>
+        <p>Each print is computed SVG in the tall, narrow ōban print format:</p>
+        <ul>
+          <li>a monument with a sourced solar alignment in the foreground;</li>
+          <li>the sun at its computed position for that morning;</li>
+          <li>a bokashi (graded-ink) sky;</li>
+          <li>a title cartouche ("冬至 · 二〇二六 · Newgrange");</li>
+          <li>a vermilion seal carrying the series number.</li>
+        </ul>
+        <p>The print can be a turning's plate in idea 1, as the picture for a monument year.</p>
+        <p>Print No. 1, the 21 Dec 2026 page, is Newgrange. Below the print sits a to-scale plan of the 19 m passage, showing today's beam beside the computed beam of 3200 BC. They are about 1.3° and 0.4 m apart at the chamber.</p>
+      </dd>
+      <dt>First glance</dt>
+      <dd>
+        <ul>
+          <li><strong>Phone:</strong> the print fills the portrait screen. A kerbstone runs across the bottom third, the roof-box is a black slot, and a low winter sun sits on the ridge exactly where the azimuth puts it. The cartouche is at the upper right and the seal at the lower left.</li>
+          <li><strong>Laptop:</strong> the print is a tall left panel, with the title, instant and claim in the right margin like a print's notes.</li>
+          <li><strong>Over time:</strong> by 2028 the archive reads as a series.</li>
+        </ul>
+      </dd>
+      <dt>Basis</dt>
+      <dd>
+        <ul>
+          <li><code>direct:</code> <code>monuments.json</code> sources Newgrange to O'Kelly (1982), and Stonehenge's 49.6° axis to Lockyer &amp; Penrose (1901) and Ruggles (1997). <code>turning-events-2026.json:135</code> has "Newgrange chamber illumination ≈ 09:00 local, ~17 minutes".</li>
+          <li><code>direct:</code> The field already has the vocabulary: <code>bokashiGlsl()</code> and the seal colours <code>--seal #A8412F / #C4573F</code>.</li>
+          <li><code>computed:</code> At Newgrange (53.69°N), the winter sunrise azimuth is 132.20° in 2026 and 133.47° in 3200 BC, which is 0.42 m apart over 19 m.</li>
+          <li><code>external:</code> Hiroshige's 名所江戸百景 (1856–59) is 118 prints arranged by season.</li>
+          <li><code>external:</code> Later turnings have sourced sites:
+            <ul>
+              <li>Angkor Wat: Stencel, Gifford &amp; Morón, <em>Science</em> 1976.</li>
+              <li>Chankillo: Ghezzi &amp; Ruggles, <em>Science</em> 2007.</li>
+              <li>Fajada Butte: Sofaer et al., <em>Science</em> 1979.</li>
+            </ul>
+          </li>
+          <li><code>external:</code> The best solstice story ever on HN was about monuments (201 points).</li>
+        </ul>
+      </dd>
+      <dt>Rationale</dt>
+      <dd>It turns eight frozen copies of the hub into a series worth collecting. Every turning brings a new place and a new composition, and the series form keeps them recognisable as one set. It carries the field's ink language onto /sunpath without touching the hub's globe.</dd>
+      <dt>Downsides</dt>
+      <dd>
+        <ul>
+          <li>Each site needs its own foreground art, real design work every quarter.</li>
+          <li>Only sites with a sourced bearing qualify, following the Meoto Iwa rule.</li>
+          <li>The 3200 BC beam assumes a flat horizon. Check it against Ray (<em>Nature</em>, 1989) before quoting it.</li>
+          <li>A near-black first frame needs a light-theme answer.</li>
+        </ul>
+      </dd>
+      <dt>Confidence</dt><dd>55%</dd>
+      <dt>Complexity</dt><dd>High</dd>
+    </dl>
+    <figure>
+      <svg viewBox="0 0 640 222" role="img" aria-label="Four tall prints in a row, one per turning: Newgrange, Angkor Wat, Stonehenge, Chichen Itza">
+        <g>
+          <rect x="35" y="10" width="120" height="176" rx="2" fill="var(--soft)" class="svg-line" stroke-width="1"/>
+          <rect x="35" y="146" width="120" height="40" fill="var(--ink)" opacity="0.8"/>
+          <circle cx="112" cy="140" r="9" fill="var(--gold)"/>
+          <rect x="122" y="18" width="26" height="40" fill="none" class="svg-line" stroke-width="1"/>
+          <rect x="42" y="168" width="12" height="12" fill="var(--seal)"/>
+          <text x="95" y="203" font-size="11" class="svg-label" text-anchor="middle">No. 1 · 冬至 2026</text>
+          <text x="95" y="217" font-size="11" class="svg-muted" text-anchor="middle">Newgrange</text>
+        </g>
+        <g>
+          <rect x="185" y="10" width="120" height="176" rx="2" fill="var(--soft)" class="svg-line" stroke-width="1"/>
+          <rect x="185" y="146" width="120" height="40" fill="var(--ink)" opacity="0.8"/>
+          <circle cx="245" cy="122" r="9" fill="var(--gold)"/>
+          <rect x="272" y="18" width="26" height="40" fill="none" class="svg-line" stroke-width="1"/>
+          <rect x="192" y="168" width="12" height="12" fill="var(--seal)"/>
+          <text x="245" y="203" font-size="11" class="svg-label" text-anchor="middle">No. 2 · 春分 2027</text>
+          <text x="245" y="217" font-size="11" class="svg-muted" text-anchor="middle">Angkor Wat</text>
+        </g>
+        <g>
+          <rect x="335" y="10" width="120" height="176" rx="2" fill="var(--soft)" class="svg-line" stroke-width="1"/>
+          <rect x="335" y="146" width="120" height="40" fill="var(--ink)" opacity="0.8"/>
+          <circle cx="368" cy="128" r="9" fill="var(--gold)"/>
+          <rect x="422" y="18" width="26" height="40" fill="none" class="svg-line" stroke-width="1"/>
+          <rect x="342" y="168" width="12" height="12" fill="var(--seal)"/>
+          <text x="395" y="203" font-size="11" class="svg-label" text-anchor="middle">No. 3 · 夏至 2027</text>
+          <text x="395" y="217" font-size="11" class="svg-muted" text-anchor="middle">Stonehenge</text>
+        </g>
+        <g>
+          <rect x="485" y="10" width="120" height="176" rx="2" fill="var(--soft)" class="svg-line" stroke-width="1"/>
+          <rect x="485" y="146" width="120" height="40" fill="var(--ink)" opacity="0.8"/>
+          <circle cx="560" cy="116" r="9" fill="var(--gold)"/>
+          <rect x="572" y="18" width="26" height="40" fill="none" class="svg-line" stroke-width="1"/>
+          <rect x="492" y="168" width="12" height="12" fill="var(--seal)"/>
+          <text x="545" y="203" font-size="11" class="svg-label" text-anchor="middle">No. 4 · 秋分 2027</text>
+          <text x="545" y="217" font-size="11" class="svg-muted" text-anchor="middle">Chichen Itza</text>
+        </g>
+      </svg>
+      <figcaption>The series idea, shown as a layout sketch: a dark foreground, the sun placed by computation, the cartouche at the upper right and the seal at the lower left. The site choices are examples with published alignments, not final.</figcaption>
+    </figure>
+  </article>
+
+<article class="idea" id="i4">
+    <h3>4. The gold screen in the inner room</h3>
+    <ul class="chips">
+      <li class="id">4</li>
+      <li>Axis: Kinship with the field</li>
+      <li>Confidence: 60%</li>
+      <li>Complexity: Medium</li>
+    </ul>
+    <dl class="fields">
+      <dt>Description</dt>
+      <dd>
+        <p>Keep the hub's gold WebGL globe and its spectacle, but change its materials so it belongs to the field's house:</p>
+        <ul>
+          <li>the day side becomes hammered gold leaf, and the seams between the leaves are the 30° grid;</li>
+          <li>the night side becomes black lacquer, with city lights as maki-e gold dust;</li>
+          <li>the day and night line is the only glow;</li>
+          <li>the page ground is lacquer, with the vermilion seal.</li>
+        </ul>
+        <p>The homepage field is the garden at night, and /sunpath is the room inside. Tanizaki describes a gold screen there catching "a distant glimmer from the garden".</p>
+      </dd>
+      <dt>First glance</dt>
+      <dd>
+        <ul>
+          <li><strong>Laptop:</strong> a lacquer-black page with a gold-leaf sphere whose seams catch the light as it turns. Gold-dust cities sit on the night half, an amber band marks the edge of day, and a seal beside the title carries the next turning's kanji.</li>
+          <li><strong>Phone:</strong> the globe at full width, with only 12 leaf seams so it stays legible.</li>
+          <li><strong>Light theme:</strong> gold on a paper-and-wood screen ground.</li>
+        </ul>
+      </dd>
+      <dt>Basis</dt>
+      <dd>
+        <ul>
+          <li><code>direct:</code> The hub's palette is "deep space #0a0a12, amber/gold light".</li>
+          <li><code>direct:</code> Three existing layers map one-to-one onto the new materials:
+            <ul>
+              <li>the 30° grid becomes the leaf seams;</li>
+              <li>the city lights (250 or 600, depending on the device) become the maki-e;</li>
+              <li>the atmosphere rim becomes the sheen.</li>
+            </ul>
+          </li>
+          <li><code>direct:</code> /sunpath's look "predates and differs from" the field's Tanizaki language.</li>
+          <li><code>direct:</code> For the /sunpath hero the user chose "maximize HN engagement" and full three.js.</li>
+          <li><code>external:</code> Tanizaki, <em>In Praise of Shadows</em> (1933; Harper &amp; Seidensticker translation, 1977). Check the exact wording before quoting it.</li>
+          <li><code>external:</code> Kinpaku gold leaf comes in squares of about 10.9 cm.</li>
+        </ul>
+      </dd>
+      <dt>Rationale</dt>
+      <dd>It answers "should /sunpath look like the field?" with a reason rather than a reskin, and keeps the spectacle chosen for HN. Most of the work is shader materials on layers that already exist.</dd>
+      <dt>Downsides</dt>
+      <dd>
+        <ul>
+          <li>It depends on taste.</li>
+          <li>Matching dark and light themes is real work.</li>
+          <li>It needs a fresh mobile GPU pass, watching for the shader precision mismatch that broke the field twice.</li>
+        </ul>
+      </dd>
+      <dt>Confidence</dt><dd>60%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+<article class="idea" id="i5">
+    <h3>5. The turning, photographed</h3>
+    <ul class="chips">
+      <li class="id">5</li>
+      <li>Axis: Renewal across turnings</li>
+      <li>Confidence: 50%</li>
+      <li>Complexity: Medium–High</li>
+    </ul>
+    <dl class="fields">
+      <dt>Description</dt>
+      <dd>
+        <p>Before the instant, each turning page shows the globe from the weather satellite whose view the day and night line crosses nearest the centre. It is labelled "predicted".</p>
+        <p>After the instant, a build step swaps in that satellite's real full-disc image at the instant, self-hosted, with a slider between the prediction and the photograph.</p>
+        <p>For 21 Dec 2026 at 20:50 UTC that is Himawari-9, over 140.7°E. The dawn line crosses the equator near 137°E and leans with the season.</p>
+        <p>Each turning gets a different satellite and different weather, so no two pages can match.</p>
+      </dd>
+      <dt>First glance</dt>
+      <dd>
+        <ul>
+          <li><strong>Before the instant:</strong> the globe as Himawari-9 will see it, labelled predicted.</li>
+          <li><strong>After:</strong> the real disc against black, with a slanted blade of dawn across Australia and the western Pacific, captioned "photographed 20:50 UTC".</li>
+          <li><strong>Phone:</strong> the disc at full width, with a thin predicted/photographed slider below.</li>
+        </ul>
+      </dd>
+      <dt>Basis</dt>
+      <dd>
+        <ul>
+          <li><code>computed:</code> The sun stands over −23.42°, −133.34°, so on the equator the dawn line is near 136.7°E, where local solar time is 06:00. That is 4° west of Himawari-9's sub-satellite point. Japan is at 05:51 JST, before sunrise.</li>
+          <li><code>computed:</code> At later turnings the line is near other satellites: GOES-West for summer 2027 (14:11 UTC), and Meteosat at 0° for September 2027.</li>
+          <li><code>external:</code> GOES takes a full-disc image every 10 minutes, and its imagery is US public domain.</li>
+          <li><code>external:</code> JMA content falls under the Government of Japan Standard Terms of Use, which are compatible with CC BY. The exact Himawari product still needs confirming.</li>
+          <li><code>external:</code> NASA Earth Observatory has published equinox and solstice comparisons of the day and night line from satellites.</li>
+        </ul>
+      </dd>
+      <dt>Rationale</dt>
+      <dd>A photograph is provenance nobody can fake, and the strongest possible first glance. The predicted-versus-photographed pair is itself the reveal.</dd>
+      <dt>Downsides</dt>
+      <dd>
+        <ul>
+          <li>It adds a fetch-and-deploy step after every turning.</li>
+          <li>It adds a 150–250 KB image to turning pages, loaded lazily.</li>
+          <li>Each satellite needs a licence check; EUMETSAT's terms are stricter.</li>
+          <li>The photograph exists only after the moment, so a launch post goes out the same day once the image has landed.</li>
+        </ul>
+      </dd>
+      <dt>Confidence</dt><dd>50%</dd>
+      <dt>Complexity</dt><dd>Medium–High</dd>
+    </dl>
+  </article>
+</section>
+
+<section id="rejection-summary">
+  <h2>Rejection Summary</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Idea</th><th>Reason Rejected</th></tr></thead>
+    <tbody>
+      <tr><td>R1</td><td>The point under the sun returns every 33 years</td><td>Refuted. The 2059 winter-solstice point lands at −140.45°, 7° and about 730 km west of 2026. The date repeats, but the hour drifts 28 minutes.</td></tr>
+      <tr><td>R2</td><td>The Straight Line: a side-on globe where the day and night line is straight and tilted by the season</td><td>The geometry is right, but a half-lit disc reads as a half-moon at first glance. Idea 1's staff makes the same "straight at the equinox" point at ground level, where readers can test it.</td></tr>
+      <tr><td>R3</td><td>Four postures: polar views for solstices, edge-on views for equinoxes</td><td>Weaker than the staff (idea 1) and the prints (idea 3). The terminator runs through both poles only at δ = 0.</td></tr>
+      <tr><td>R4</td><td>A folding fan of sunrises, closing almost shut at the equinox</td><td>A strong equinox picture that duplicates the staff's role. Keep it as an alternative plate design inside idea 1.</td></tr>
+      <tr><td>R5</td><td>A field of sunrise arrows, all pointing due east at the equinox</td><td>Duplicates R4 and the staff in idea 1, and invites the "not exactly due east" correction.</td></tr>
+      <tr><td>R6</td><td>The turning at your hour (local date and time of the instant)</td><td>A localisation detail, not a first-glance wow. The page already labels its date in UTC, so "21 December" is not an error. The 05:51 JST, 22 Dec framing can live inside idea 2.</td></tr>
+      <tr><td>R7</td><td>Your horizon at the instant (ink horizon on turning pages)</td><td>Merged into ideas 2 and 3.</td></tr>
+      <tr><td>R8</td><td>A computed solargraph between turnings (also a private plate and the ghost of your last visit)</td><td>Beautiful but derivative of real solargraphy, and it rewards return visits more than the first glance.</td></tr>
+      <tr><td>R9</td><td>A solargraph exposed by real weather (ERA5 cloud data)</td><td>A new data pipeline with attribution and a 5-day delay, which clashes with "the page is the moment".</td></tr>
+      <tr><td>R10</td><td>A year ring with true unequal seasons, and a contact-sheet archive</td><td>Modest wow. The "winter is 4.7 days shorter" fact moves into idea 1's claims, and the contact sheet follows naturally from idea 1's plates.</td></tr>
+      <tr><td>R11</td><td>A claim registry and a "record miner" ledger to 2100</td><td>Merged into idea 1.</td></tr>
+      <tr><td>R12</td><td>Headlines you can check with a stick</td><td>Merged into idea 1.</td></tr>
+      <tr><td>R13</td><td>Count the last arcseconds before the turn</td><td>Pays off only on the day itself, not at first glance, and depends on the equinox fix.</td></tr>
+      <tr><td>R14</td><td>The instant performed live, with the line settling in the final minute</td><td>Same as R13.</td></tr>
+      <tr><td>R15</td><td>A witnessed minute: lamps rise where people are watching, then sealed</td><td>Sends data from a quiet instrument page, against the no-tracking brand, and pays off only on the day.</td></tr>
+      <tr><td>R16</td><td>The last day, played: the globe rolls through 24 hours and stops on the instant</td><td>Polish for idea 1's plate rather than a direction of its own.</td></tr>
+      <tr><td>R17</td><td>The year in one breath</td><td>Folded into idea 2 as its cheap first step and launch GIF.</td></tr>
+      <tr><td>R18</td><td>Cut the hub to one globe</td><td>Deletes instruments shipped weeks ago (#19, "after the sun") and works against the almanac direction. Lazy-load them instead, to fund idea 2.</td></tr>
+      <tr><td>R19</td><td>Live link card rendered at unfurl time</td><td>Needs new Worker infrastructure, platforms cache unfurls inconsistently, and it does nothing for the page's own first glance.</td></tr>
+      <tr><td>R20</td><td>桜前線 for light: the earliest-sunset front moving poleward each week</td><td>Sound but low wow as one ring and a caption. The example latitude was not verified.</td></tr>
+      <tr><td>R21</td><td>The field at the instant: the homepage scene on turning pages</td><td>Imports the field's 13 KB engine onto every turning page. Ideas 3 and 4 reach the same kinship with SVG and materials.</td></tr>
+      <tr><td>R22</td><td>Hanko sun, and night as ink with day as paper</td><td>Duplicates idea 4 for the hub and idea 3 for the turning pages.</td></tr>
+      <tr><td>R23</td><td>On the longest night, the moon takes the summer sun's road</td><td>True for 2026: over London the moon is at 63.0° and the midsummer noon sun at 62.0°. Kept as one of idea 1's claims rather than a page design.</td></tr>
+      <tr><td>R24</td><td>Newgrange as an optical lever (passage plan with the 3200 BC beam)</td><td>Merged into idea 3 as print No. 1's instrument. A near-black hero alone is risky.</td></tr>
+      <tr><td>R25</td><td>Zero-JavaScript turning pages, and the computed card</td><td>Merged into idea 1.</td></tr>
+      <tr><td>R26</td><td>The hub opens facing your longitude</td><td>Merged into idea 2.</td></tr>
+      <tr><td>R27</td><td>Separate entries for the per-turning place and claim, the card as first frame, and the staff and its shadow</td><td>Merged by the user's choice into idea 1, the Turning Leaf. The three source entries were replaced by the one combined entry.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<footer class="composition-signal">Composed 2026-10-26T14:15Z by ce-ideate from the user's prompt in this session ("make /sunpath and every solstice/equinox page wow at first glance").</footer>
+
+</body>
+</html>

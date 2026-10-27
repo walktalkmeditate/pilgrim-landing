@@ -6,7 +6,7 @@
    solstice, autumn equinox, and winter solstice of any given
    year (Northern Hemisphere convention).
 
-   Accuracy: better than ~1 minute for years 1000–3000, a few
+   Accuracy, in TT (UTC is ΔT earlier, ~69 s in 2026): ~1 minute for years 1000–3000, a few
    minutes for years 826–1000. Range supported: ~year 826
    through ~year 3225 — twelve centuries on either side of 2026.
    ============================================= */

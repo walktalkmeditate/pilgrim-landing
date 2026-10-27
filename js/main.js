@@ -776,9 +776,9 @@
     var name = window.Turnings.getTurningOnDate(new Date());
     if (!name) return;
     var data = {
-      springEquinox:  { kanji: '春分', text: 'Today, day equals night' },
+      springEquinox:  { kanji: '春分', text: 'Today the sun crosses the equator' },
       summerSolstice: { kanji: '夏至', text: 'Today the sun stands still' },
-      autumnEquinox:  { kanji: '秋分', text: 'Today, day equals night' },
+      autumnEquinox:  { kanji: '秋分', text: 'Today the sun crosses the equator' },
       winterSolstice: { kanji: '冬至', text: 'Today the sun stands still' }
     }[name];
     document.getElementById('turning-echo-kanji').textContent = data.kanji;

@@ -412,8 +412,8 @@ gates were written for.
 | | gzipped (Node `zlib`, level 9, per file) |
 |---|---|
 | `/sunpath` at `b270938` (spec only, no code) | 90.63 KB |
-| **after §A** | **107.73 KB — +11.85 KB** |
-| budget | 12.00 KB |
+| **after §A** | **107.96 KB — +12.09 KB** |
+| budget | 12.00 KB, plus 0.10 KB for each archive year after 2027 (12.10 KB with 2028) |
 | §B, had it shipped | +10.50 KB → 22.36 KB total, over |
 
 The figure is **pinned by a test** (`js/sunpath-budget.test.js`), which recomputes it
@@ -428,6 +428,14 @@ the subtraction.
 Of the +11.86 KB, +4.91 was §A as first written and the rest is the review fix waves —
 overwhelmingly comment, plus the polar branch, the shared caption facts and the widened
 axis.
+
+The row now also carries the site's shared sun-position fix (`js/sunpath-math.js`) and the
+year archive's 2028 tab, which takes it past 12.00 KB. The archive lists every published
+year, and the turning pages stay published two years ahead, so every year it gains a tab and
+a panel of four links, about 87 B gzipped. Cutting other hub content to make room for that
+is not the trade D9 was written to force, so each archive year after 2027 adds 0.10 KB to
+the budget. The allowance and its reason live in `js/sunpath-budget.test.js`, which counts
+the years from the page itself; nothing else raises the budget.
 
 ### Contrast
 

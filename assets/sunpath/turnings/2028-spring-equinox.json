@@ -1,0 +1,74 @@
+{
+  "year": 2028,
+  "key": "spring-equinox",
+  "kanji": "春分",
+  "name": "Spring Equinox",
+  "instantUTC": "2028-03-20T02:17:07Z",
+  "displayDate": "20 March, 02:17 UTC",
+  "temple": 9,
+  "h1": "Spring Equinox 2028",
+  "tagline": "the northern crossing — 20 March, 02:17 UTC",
+  "description": "On 20 March 2028 at 02:17 UTC, the sun crossed the equator heading north. Real-time globe, ancient sun-aligned monuments, and pilgrimages from many traditions.",
+  "ogDescription": "The moment the sun crossed the equator heading north, with monuments and pilgrimages tied to the turning.",
+  "twitterDescription": "The moment the sun crossed the equator heading north.",
+  "ariaLabel": "Where the sun stood at the spring equinox 2028",
+  "noscriptIntro": "On <strong>20 March 2028 at 02:17 UTC</strong>, the sun crossed the equator heading north.",
+  "articleDescription": "On 20 March 2028 at 02:17 UTC, the sun crossed the equator heading north.",
+  "schemaAboutName": "March equinox",
+  "schemaAboutDescription": "The astronomical moment when the sun crosses the celestial equator heading north.",
+  "dateModified": "2026-10-26",
+  "lead": {
+    "claim": "place",
+    "text": "The equinox sun crosses north over open sea, about {km} km from {place}"
+  },
+  "claims": [
+    {
+      "id": "place",
+      "template": "The sun crossed the equator heading north over open sea, about {km} km from {place}, {country}.",
+      "values": {
+        "km": 220,
+        "place": "Ndrilo Island",
+        "country": "Papua New Guinea"
+      },
+      "unreliable": false,
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Nearest land: GeoNames (CC BY 4.0) and Natural Earth (public domain)."
+    },
+    {
+      "id": "motion",
+      "template": "The day after this equinox, the sun moved {deg}° north; the day after the December solstice, just {solDeg}°.",
+      "values": {
+        "deg": "0.40",
+        "solDeg": "0.0040"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Declination one day after each instant."
+    },
+    {
+      "id": "season",
+      "template": "From the December solstice to this equinox, {days} days and {hours} hours, the shortest of the year's four seasons.",
+      "values": {
+        "days": 88,
+        "hours": 23,
+        "minutes": 34
+      },
+      "source": "Turning instants: Meeus, Astronomical Algorithms, ch. 27."
+    },
+    {
+      "id": "straight",
+      "template": "On this equinox, the tip of the staff's shadow at {temple} runs due east, never more than {deg}° off, all day.",
+      "values": {
+        "temple": "Horin-ji",
+        "deg": "0.5"
+      },
+      "source": "Sun position: NOAA solar series (Meeus), js/sunpath-math.js. Shadow tip at the temple while the sun is 2° up or more; refraction by Bennett's formula."
+    },
+    {
+      "id": "tropic",
+      "template": "Since Eratosthenes measured the sun at Syene, around {bc} BC, each tropic has crept {km} km toward the equator.",
+      "values": {
+        "bc": 240,
+        "km": 32
+      },
+      "source": "Obliquity of the ecliptic: Meeus 22.2, js/sunpath-math.js."
+    }
+  ]
+}

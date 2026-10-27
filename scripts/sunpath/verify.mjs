@@ -32,10 +32,10 @@ const TURNINGS_DIR = resolve(REPO_ROOT, 'assets/sunpath/turnings');
 const MONUMENTS_PATH = resolve(REPO_ROOT, 'assets/sunpath/monuments.json');
 
 const REQUIRED_TURNING_FIELDS = [
-  'year', 'key', 'kanji', 'name', 'instantUTC', 'displayDate',
-  'h1', 'tagline', 'title', 'description', 'ogTitle', 'ogDescription',
+  'year', 'key', 'kanji', 'name', 'instantUTC', 'displayDate', 'temple',
+  'h1', 'tagline', 'description', 'ogDescription',
   'twitterDescription', 'ariaLabel', 'noscriptIntro', 'articleDescription',
-  'schemaAboutName', 'schemaAboutDescription', 'dateModified'
+  'schemaAboutName', 'schemaAboutDescription', 'dateModified', 'lead', 'claims'
 ];
 
 const REQUIRED_PILGRIMAGE_FIELDS = ['name', 'tradition', 'where', 'what', 'source'];

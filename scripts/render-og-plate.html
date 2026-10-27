@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<!--
+  The link card of a turning page: assets/og-{year}-{key}-{hash}.png, 1200×630.
+
+  scripts/sunpath/permalink-template.mjs fills it with the page's own plate,
+  byte for byte, and names the PNG by a hash of this file and that plate,
+  so any change to the card gives it a new URL (KTD3). The plate's ink is
+  css/turning-leaf.css, set in its light paper theme; this file only lays
+  the pieces out as prototype avenue A's card: the scene's 800×606 at the
+  left, the words beside the seal and stamp, the walk map below them and
+  the strip along the foot. The staff caption, the controls and the season
+  note stay on the page.
+
+  Driver: bash scripts/build-og-sunpath.sh
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Render og-plate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@600&text={{kanji}}&display=swap" rel="stylesheet">
+  <style>
+{{plate-css}}
+  </style>
+  <style>
+    :root {
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    html, body { width: 1200px; height: 630px; margin: 0; overflow: hidden; }
+
+    .tl-plate {
+      position: relative;
+      display: block;
+      box-sizing: border-box;
+      width: 1200px;
+      height: 630px;
+      padding: 0;
+    }
+
+    .tl-figure {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 800px;
+      height: 606px;
+      -webkit-mask-image: linear-gradient(to right, #000 84%, transparent);
+      mask-image: linear-gradient(to right, #000 84%, transparent);
+    }
+
+    .tl-scene { width: 800px; height: 606px; }
+
+    .tl-marks {
+      position: absolute;
+      top: 54px;
+      left: 1060px;
+      flex-direction: column;
+      gap: 18px;
+      padding: 0;
+    }
+
+    .tl-seal { width: 70px; }
+    .tl-stamp { width: 72px; }
+
+    .tl-text {
+      position: absolute;
+      top: 50px;
+      right: 170px;
+      width: 440px;
+      display: block;
+      padding: 0;
+      text-align: end;
+    }
+
+    .tl-lead {
+      margin: 0 0 16px;
+      font-size: 38px;
+      line-height: 1.18;
+    }
+
+    .tl-when { margin: 0; font-size: 21px; }
+
+    .tl-caption,
+    .tl-note,
+    .tl-strip-hint { display: none; }
+
+    .tl-walkwrap {
+      position: absolute;
+      right: 170px;
+      bottom: 44px;
+      padding: 0;
+    }
+
+    .tl-walk { width: 176px; }
+
+    .tl-stripwrap {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .tl-strip { width: 1200px; height: 24px; }
+  </style>
+</head>
+<body>
+{{plate}}
+</body>
+</html>

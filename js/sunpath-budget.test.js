@@ -40,6 +40,15 @@ var zlib = require('zlib');
 
 var ROOT = path.join(__dirname, '..');
 var BUDGET_KB = 12.0;
+// The year archive lists every published year, and each year after 2027
+// adds a tab and a panel of four links, about 87 B gzipped. Two years of
+// turning pages stay published ahead (R19), so the archive grows every
+// year; cutting other hub content to make room for it is not the trade
+// D9 was written to force. Each year after 2027 the page lists earns this
+// much on top of the budget, and the archive is the only thing that does
+// (docs/specs/2026-08-13-after-the-sun.md, "Page weight").
+var ARCHIVE_KB_PER_YEAR = 0.10;
+var ARCHIVE_ALLOWANCE_AFTER = 2027;
 var SPEC_PATH = path.join(ROOT, 'docs/specs/2026-08-13-after-the-sun.md');
 
 /* Gzipped bytes per file at b270938 — the spec commit, before a line of
@@ -104,6 +113,10 @@ var page = fs.readFileSync(path.join(ROOT, PAGE_REL), 'utf8');
 // gzipped weight already contains every inline <script> and <style>, which
 // were the other thing the old scan could not see.
 var files = referencedFiles(page).concat([PAGE_REL]);
+var archiveYears = (page.match(/<button[^>]*class="sunpath-archive-year[^"]*"[^>]*data-year="\d{4}"/g) || [])
+  .map(function (tab) { return +/data-year="(\d{4})"/.exec(tab)[1]; })
+  .filter(function (y) { return y > ARCHIVE_ALLOWANCE_AFTER; });
+var allowedKb = BUDGET_KB + ARCHIVE_KB_PER_YEAR * archiveYears.length;
 var inlineScriptBytes = (page.match(/<script(?![^>]*\ssrc=)[^>]*>[\s\S]*?<\/script>/g) || [])
   .reduce(function (a, m) { return a + m.length; }, 0);
 
@@ -172,12 +185,16 @@ console.log('\n  (of which ' + inlineScriptBytes + ' B is inline <script>, insid
 console.log('\n  baseline b270938 : ' + baseKb.toFixed(2) + ' KB');
 console.log('  now              : ' + nowKb.toFixed(2) + ' KB');
 console.log('  delta            : ' + (deltaKb >= 0 ? '+' : '') + deltaKb.toFixed(2)
-  + ' KB against a ' + BUDGET_KB.toFixed(2) + ' KB budget\n');
+  + ' KB against a ' + BUDGET_KB.toFixed(2) + ' KB budget'
+  + (archiveYears.length ? ' + ' + (ARCHIVE_KB_PER_YEAR * archiveYears.length).toFixed(2)
+      + ' KB for the archive\'s ' + archiveYears.join(', ') : '') + '\n');
 
-ok(deltaKb <= BUDGET_KB,
+ok(deltaKb <= allowedKb,
   '/sunpath is ' + (deltaKb >= 0 ? '+' : '') + deltaKb.toFixed(2) + ' KB against its '
     + BUDGET_KB + ' KB budget'
-    + (deltaKb > BUDGET_KB
+    + (archiveYears.length ? ' plus ' + (ARCHIVE_KB_PER_YEAR * archiveYears.length).toFixed(2)
+        + ' KB for the archive\'s ' + archiveYears.join(', ') : '')
+    + (deltaKb > allowedKb
         ? ' — the growth is in ' + grew.slice(0, 3).map(function (g) {
             return g.file + ' (' + (g.delta / 1024).toFixed(2) + ' KB)';
           }).join(', ') + '. Raise the budget deliberately in the spec, or cut something.'

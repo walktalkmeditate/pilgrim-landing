@@ -40,16 +40,51 @@ const ROOT = path.join(__dirname, '..');
 // stricter contract, and two pinned numbers for one page means two places to
 // update and one of them going stale.
 const BASELINE_KB = {
-  'daylight/index.html':                       112.48,
-  'sunpath/2026-winter-solstice/index.html':    90.33,
-  'sunpath/2027-winter-solstice/index.html':    90.33,
-  'sunpath/2027-summer-solstice/index.html':    90.28,
-  'sunpath/2026-summer-solstice/index.html':    90.27,
-  'sunpath/2026-autumn-equinox/index.html':     90.14,
-  'sunpath/2027-autumn-equinox/index.html':     90.12,
-  'sunpath/2027-spring-equinox/index.html':     90.11,
-  'sunpath/2026-spring-equinox/index.html':     90.10,
-  'moonpath/index.html':                        68.70,
+  // +0.05 (112.53): the sun's position moves from the Spencer series to the
+  // NOAA one (js/sunpath-math.js +0.05).
+  'daylight/index.html':                       112.53,
+  // The turning pages. +0.07 each: the same series, and the subsolar
+  // caption printing the equator as 0.0° (js/sunpath-math.js +0.05,
+  // js/sunpath.js +0.02); 2028's were added by scripts/sunpath/year.mjs on
+  // 2026-10-26.
+  // +33.44 to +37.69 (to 123.61–128.06): the turning leaf. Each page opens
+  // on its plate, drawn inline: the scene with the staff, the day's arc and
+  // its hourly shadows, and behind them the season's arcs, one per day
+  // (6.8–9.3 KB of it, most for the long summer and autumn seasons), with
+  // the strip, seal, stamp and walk map (the document +14.80 to +19.05);
+  // the core that drew it and redraws a scrubbed day
+  // (js/turning-leaf-core.js 9.80), the player (js/turning-leaf.js 5.05)
+  // and the plate's ink (css/turning-leaf.css 3.50).
+  // KTD15: each is pinned at FULL-SEASON weight, as if every day of its
+  // strip had a photo, measured by scripts/sunpath/year.mjs's
+  // fullSeasonPageKb, so a strip filling in day by day never trips the
+  // drift before its turning. Until then a page reads up to ~1 KB lighter;
+  // that is room its photos will use, not slack to take back.
+  // +0.37 each (to 123.98–128.43): the globe below the plate waits until
+  // the reader nears it (KTD11). Its nine scripts are named on its section
+  // rather than loaded with the page, and still weigh here (lazyFiles).
+  // The player's loader (js/turning-leaf.js +0.41) and the globe's late
+  // start, turned to the place under the sun (js/sunpath.js +0.04), less
+  // the document's script tags and inline instant (-0.08).
+  // +0.47–0.52 each, from the code review: a sun path breaks where it
+  // passes behind the reader, a scrubbed day keeps the plate's facing, and
+  // only a tap (never a scroll) ends the replay (js/turning-leaf-core.js,
+  // js/turning-leaf.js); js/sunpath-turnings.js moves from the globe's lazy
+  // list to the page, so the turning's facts never wait on the globe.
+  'sunpath/2026-spring-equinox/index.html':    124.49,
+  'sunpath/2026-summer-solstice/index.html':   128.77,
+  'sunpath/2026-autumn-equinox/index.html':    128.46,
+  'sunpath/2026-winter-solstice/index.html':   125.72,
+  'sunpath/2027-spring-equinox/index.html':    125.71,
+  'sunpath/2027-summer-solstice/index.html':   128.88,
+  'sunpath/2027-autumn-equinox/index.html':    128.32,
+  'sunpath/2027-winter-solstice/index.html':   126.11,
+  'sunpath/2028-spring-equinox/index.html':    125.88,
+  'sunpath/2028-summer-solstice/index.html':   128.95,
+  'sunpath/2028-autumn-equinox/index.html':    128.12,
+  'sunpath/2028-winter-solstice/index.html':   125.97,
+  // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
+  'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
   // (3.74), js/traces-glyphs.js (2.18) and the inline wisp (1.35), less the
   // rules this removed from styles.css. The seven cairn paintings (20.1 KB
@@ -200,6 +235,9 @@ const BASELINE_KB = {
 // nobody needs to think about. The growth this exists to catch was +2.79 KB.
 const DRIFT_KB = 0.50;
 
+// Pinned at full-season weight (KTD15): lighter until their strips fill.
+const FULL_SEASON = /^sunpath\/\d{4}-[a-z-]+\/index\.html$/;
+
 let passed = 0, failed = 0;
 const failures = [];
 
@@ -233,10 +271,24 @@ function referencedFiles(html, pageRel) {
   return out;
 }
 
+// Scripts a page names in data-lazy-scripts and injects later (KTD11).
+// They never appear as a src, so without this they would weigh nothing.
+function lazyFiles(html) {
+  const out = [];
+  const re = /\sdata-lazy-scripts="([^"]*)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    m[1].trim().split(/\s+/).filter(Boolean).forEach(function (src) {
+      out.push(src.replace(/[?#].*$/, '').replace(/^\//, ''));
+    });
+  }
+  return out;
+}
+
 function weigh(pageRel) {
   const abs = path.join(ROOT, pageRel);
   const html = fs.readFileSync(abs, 'utf8');
-  const refs = referencedFiles(html, pageRel);
+  const refs = referencedFiles(html, pageRel).concat(lazyFiles(html));
   const parts = [{ file: pageRel, bytes: zlib.gzipSync(fs.readFileSync(abs), { level: 9 }).length }];
   const missing = [];
   refs.forEach(function (rel) {
@@ -290,7 +342,7 @@ rows.forEach(function (r) {
       + '. Update the baseline in js/page-weight.test.js deliberately, or cut something.');
   } else {
     ok(true, r.page + ' is ' + r.now.toFixed(2) + ' KB'
-      + (delta < -DRIFT_KB ? ' — LIGHTER by ' + Math.abs(delta).toFixed(2)
+      + (delta < -DRIFT_KB && !FULL_SEASON.test(r.page) ? ' — LIGHTER by ' + Math.abs(delta).toFixed(2)
           + ' KB; lower the baseline to keep the ratchet tight' : ''));
   }
 });
@@ -305,6 +357,19 @@ const plain = zlib.gzipSync(probe, { level: 9 }).length;
 const grown = zlib.gzipSync(Buffer.concat([probe, require('crypto').randomBytes(4096)]), { level: 9 }).length;
 ok(grown - plain > 3500,
   'adding 4096 incompressible bytes moves the measurement by ' + (grown - plain) + ' B');
+
+// A script a page injects later is a script its reader still downloads.
+// The turning pages hold their globe back this way (KTD11), so at least
+// one page must declare lazy assets, or this check proves nothing.
+const lazyPages = rows
+  .map(function (r) { return { row: r, lazy: lazyFiles(fs.readFileSync(path.join(ROOT, r.page), 'utf8')) }; })
+  .filter(function (p) { return p.lazy.length; });
+ok(lazyPages.length > 0, lazyPages.length + ' pages declare scripts they load later');
+lazyPages.forEach(function (p) {
+  const weighed = p.row.parts.map(function (part) { return part.file; });
+  ok(p.lazy.every(function (f) { return weighed.indexOf(f) !== -1; }),
+    p.row.page + ': its ' + p.lazy.length + ' lazily loaded scripts are weighed with it');
+});
 
 // Every page in the baseline must still exist, and every page on disk must
 // be in the baseline. A page that drops out of this map stops being weighed

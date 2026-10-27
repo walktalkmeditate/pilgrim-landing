@@ -38,38 +38,32 @@
 
   // --- Solar position ---
 
-  // Fractional year angle γ in radians, accurate to within hours.
-  // Per NOAA Solar Calculator (Spencer 1971 truncated series).
-  function fractionalYear(date) {
-    var n = dayOfYear(date);
-    var hours = fractionalUTCHours(date);
-    return (2 * Math.PI / 365) * (n - 1 + (hours - 12) / 24);
+  // NOAA Solar Calculator series (Meeus ch. 25, 28): declination in degrees,
+  // equation of time in minutes.
+  function solarCoords(date) {
+    var jd = date.getTime() / 86400000 + 2440587.5;
+    var T = (jd - 2451545) / 36525;
+    var L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) * DEG;
+    var M = (357.52911 + T * (35999.05029 - T * 0.0001537)) * DEG;
+    var e = 0.016708634 - T * (0.000042037 + T * 0.0000001267);
+    var C = Math.sin(M) * (1.914602 - T * (0.004817 + T * 0.000014))
+      + Math.sin(2 * M) * (0.019993 - T * 0.000101)
+      + Math.sin(3 * M) * 0.000289;
+    var omega = (125.04 - 1934.136 * T) * DEG;
+    var lambda = L0 + (C - 0.00569 - 0.00478 * Math.sin(omega)) * DEG;
+    var eps = (obliquityAtJD(jd) + 0.00256 * Math.cos(omega)) * DEG;
+    var y = Math.pow(Math.tan(eps / 2), 2);
+    return {
+      decl: Math.asin(Math.sin(eps) * Math.sin(lambda)) * RAD,
+      eot: 4 * RAD * (y * Math.sin(2 * L0) - 2 * e * Math.sin(M)
+        + 4 * e * y * Math.sin(M) * Math.cos(2 * L0)
+        - 0.5 * y * y * Math.sin(4 * L0) - 1.25 * e * e * Math.sin(2 * M))
+    };
   }
 
-  // Solar declination in degrees. Accurate to ~0.05° via Spencer truncated series.
-  function declination(date) {
-    var g = fractionalYear(date);
-    var rad = 0.006918
-      - 0.399912 * Math.cos(g)
-      + 0.070257 * Math.sin(g)
-      - 0.006758 * Math.cos(2 * g)
-      + 0.000907 * Math.sin(2 * g)
-      - 0.002697 * Math.cos(3 * g)
-      + 0.00148  * Math.sin(3 * g);
-    return rad * RAD;
-  }
+  function declination(date) { return solarCoords(date).decl; }
 
-  // Equation of time in minutes via Spencer truncated series. ~0.5 min accuracy.
-  function equationOfTime(date) {
-    var g = fractionalYear(date);
-    return 229.18 * (
-      0.000075
-      + 0.001868 * Math.cos(g)
-      - 0.032077 * Math.sin(g)
-      - 0.014615 * Math.cos(2 * g)
-      - 0.040849 * Math.sin(2 * g)
-    );
-  }
+  function equationOfTime(date) { return solarCoords(date).eot; }
 
   // Subsolar point: lat/lon where the sun is directly overhead at the given UTC instant.
   function subsolarPoint(date) {
@@ -139,7 +133,7 @@
 
   // UTC instant of sunrise at a given lat/lon on a given date.
   // Returns null for polar day (daylightHours = 24) or polar night (daylightHours = 0).
-  // Solar noon UTC = 12 - lon/15 - EoT/60 (Spencer EoT sign convention: subtract).
+  // Solar noon UTC = 12 - lon/15 - EoT/60 (EoT sign convention: subtract).
   function sunriseUTC(lat, lon, date) {
     var dlh = daylightHours(lat, date);
     if (dlh === 0 || dlh === 24) return null;
@@ -690,9 +684,9 @@
   // permanent astronomical night begins where even that peak stays below −18°,
   // at (90 − declination + 18). The mirror of the 48.56° limit at the other end.
   //
-  // 84.5, not the textbook 84.56: that figure uses obliquity 23.44°, and the
-  // Spencer series above peaks at 23.4556°, putting the real edge at 84.5444°.
-  // The test file re-derives it from the series and fails if they part company.
+  // 84.5, just inside it: the series above peaks near 23.438°, putting the
+  // real edge near 84.56°. The test file re-derives it from the series and
+  // fails if they part company.
   var MAX_MODELLED_LAT_DEG = 84.5;
 
   function modelsNightHere(lat) {

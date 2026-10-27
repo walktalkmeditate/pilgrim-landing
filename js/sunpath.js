@@ -35,8 +35,6 @@
 
   var dom = {};
 
-  document.addEventListener('DOMContentLoaded', init);
-
   function init() {
     dom.globeContainer = document.getElementById('sunpath-globe');
     dom.subsolarCaption = document.getElementById('sunpath-subsolar');
@@ -60,6 +58,7 @@
     // setting window.__sunpathForce.date before this script runs.
     if (window.__sunpathForce && window.__sunpathForce.date) {
       scrubDate = new Date(window.__sunpathForce.date);
+      rotateTo(M.subsolarPoint(scrubDate));
     }
 
     if (typeof d3 === 'undefined') {
@@ -347,7 +346,8 @@
 
   function updateSubsolarCaption(sub, date) {
     if (!dom.subsolarCaption) return;
-    var latStr = Math.abs(sub.lat).toFixed(1) + '°' + (sub.lat >= 0 ? 'N' : 'S');
+    var latStr = Math.abs(sub.lat).toFixed(1) + '°';
+    if (latStr !== '0.0°') latStr += sub.lat > 0 ? 'N' : 'S';
     var lonStr = Math.abs(sub.lon).toFixed(1) + '°' + (sub.lon >= 0 ? 'E' : 'W');
     var dateStr = scrubDate ? date.toUTCString().slice(0, 16) : 'right now';
     dom.subsolarCaption.textContent = 'the sun is overhead at ' + latStr + ' · ' + lonStr + ' (' + dateStr + ')';
@@ -434,7 +434,7 @@
       btn.appendChild(htmlEl('span', 'sunpath-monument-name', m.name));
       btn.appendChild(htmlEl('span', 'sunpath-monument-meta', m.country + ' · ' + yearLabel(m.constructed)));
       btn.addEventListener('click', function () {
-        rotateToMonument(m);
+        rotateTo(m);
         if (dom.globeContainer) {
           dom.globeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -445,7 +445,7 @@
     });
   }
 
-  function rotateToMonument(m) {
+  function rotateTo(m) {
     rotation = [-m.lon, -m.lat];
     redrawAll();
   }
@@ -708,4 +708,7 @@
     redrawAll();
     renderTilt(new Date());
   }
+
+  if (document.readyState === 'interactive' || document.readyState === 'complete') init();
+  else document.addEventListener('DOMContentLoaded', init);
 })();

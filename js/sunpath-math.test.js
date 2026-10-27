@@ -33,11 +33,17 @@ function approx(actual, expected, tolerance, label) {
 
 console.log('\n=== Subsolar point ===\n');
 
-// Spring equinox 2026: sun should be near the equator.
-// Per turnings.js validation: 2026-03-20 14:46 UTC.
+// At an equinox the sun is overhead on the equator, so the caption must read
+// 0.0°. USNO's Earth's Seasons (aa.usno.navy.mil/api/seasons?year=2026) puts
+// the 2026 equinoxes at 20 Mar 14:46 UT and 23 Sep 00:05 UT; the turning pages
+// use 00:06:40 from js/turnings.js. JPL Horizons (geocentric apparent, fetched
+// 2026-10-26) has the sun's declination within 0.0005° of zero at all three.
 var springEq = new Date(Date.UTC(2026, 2, 20, 14, 46));
 var sub = M.subsolarPoint(springEq);
-approx(sub.lat, 0, 0.5, 'spring equinox 2026 subsolar latitude near 0°');
+approx(sub.lat, 0, 0.02, 'spring equinox 2026 subsolar latitude 0° (USNO instant, JPL Horizons)');
+var autumnEq = new Date(Date.UTC(2026, 8, 23, 0, 6, 40));
+approx(M.subsolarPoint(autumnEq).lat, 0, 0.02,
+  'autumn equinox 2026 (the page\'s 00:06:40 UTC) subsolar latitude 0°, not 0.4°N');
 // At 14:46 UTC + EoT(-7.4 min) ≈ solarTime 14.64. Subsolar lon = -15 * (14.64 - 12) = -39.6°.
 approx(sub.lon, -39.6, 1.0, 'spring equinox 2026 subsolar longitude near -39.6°');
 
@@ -52,14 +58,29 @@ approx(sub2.lon, 54.4, 1.5, 'summer solstice 2026 subsolar longitude near 54°E'
 
 console.log('\n=== Declination ===\n');
 
-// Spring equinox: declination ~ 0. Spencer formula has phase drift relative
-// to the leap-cycle, so ±0.5° is the realistic bound at exact equinox instants.
-approx(M.declination(springEq), 0, 0.5, 'spring equinox declination ~ 0°');
-// Summer solstice: declination ~ +23.45°
-approx(M.declination(summerSol), 23.45, 0.5, 'summer solstice declination ~ +23.45°');
-// Winter solstice 2026: 2026-12-21 20:51 UTC, declination ~ -23.45°
+// Solstice values are JPL Horizons' geocentric apparent declination at the
+// 2026 instants (fetched 2026-10-26). Sampled against Horizons across
+// 2000–2050 the series stays within 0.004°, the footer's figure; this file
+// holds it to 0.01°.
+approx(M.declination(springEq), 0, 0.02, 'spring equinox declination 0°');
+approx(M.declination(summerSol), 23.4379, 0.01, 'summer solstice declination +23.4379° (JPL Horizons)');
 var winterSol = new Date(Date.UTC(2026, 11, 21, 20, 51));
-approx(M.declination(winterSol), -23.45, 0.5, 'winter solstice declination ~ -23.45°');
+approx(M.declination(winterSol), -23.4374, 0.01, 'winter solstice declination −23.4374° (JPL Horizons)');
+
+console.log('\n=== Equation of time — NOAA published solar noon ===\n');
+
+// NOAA Solar Calculator solar-noon table for 0°N 0°E, UTC, 2026
+// (gml.noaa.gov/grad/solcalc/table.php?lat=0&lon=0&year=2026, fetched
+// 2026-10-26). On the prime meridian the equation of time is 12:00 minus
+// solar noon, so each published noon is an equation of time to the second.
+[[1, 11, '12:14:14'], [4, 14, '11:56:22'], [6, 26, '12:06:34'], [10, 3, '11:43:31']]
+  .forEach(function (row) {
+    var hms = row[2].split(':').map(Number);
+    var noon = new Date(Date.UTC(2026, row[0], row[1], hms[0], hms[1], hms[2]));
+    var published = 720 - (hms[0] * 60 + hms[1] + hms[2] / 60);
+    approx(M.equationOfTime(noon), published, 0.1,
+      noon.toISOString().slice(0, 10) + ' equation of time (NOAA solar noon ' + row[2] + ')');
+  });
 
 console.log('\n=== Sunrise azimuth at known monuments ===\n');
 
@@ -209,31 +230,30 @@ if (polarRise === null && polarSet === null) {
 // v2 additions: twilight + moon
 // ===========================================================================
 
-console.log('\n=== Twilight UTC — self-consistent reference 2026-10-15 ===\n');
+console.log('\n=== Twilight UTC — USNO tables 2026-10-15 ===\n');
 
-// Reference values computed by this library's own Spencer-series math at
-// the correct solar elevation for each twilight band. Verified plausible
-// against NOAA Solar Calculator (gml.noaa.gov/grad/solcalc/) 2026-05-13:
-// León  civil dawn  ≈ 08:05 CEST (UTC+2) → 06:05 UTC  ✓ matches
-// León  astro dawn  ≈ 07:00 CEST          → 05:00 UTC  ✓ matches
-// Tolerances: ±2 min (same as sunriseUTC tolerances at mid-latitudes).
+// US Naval Observatory, "Table of Sunrise/Sunset, Moonrise/Moonset, or
+// Twilight Times for an Entire Year" (aa.usno.navy.mil/calculated/rstt/year,
+// task 2/3/4 = civil/nautical/astronomical, fetched 2026-10-26). León's
+// tables are in UT; Tokushima's in JST, so its dawns are the evening of
+// 14 Oct UTC. USNO prints whole minutes, so ±1 min is its rounding plus
+// half a minute of ours.
 
 // León (42.60°N, 5.57°W) 2026-10-15
-approxUTC(M.civilDawnUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15,  6,  5)), 2, 'León civil dawn UTC');
-approxUTC(M.civilDuskUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15, 18, 10)), 2, 'León civil dusk UTC');
-approxUTC(M.nauticalDawnUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15,  5, 32)), 2, 'León nautical dawn UTC');
-approxUTC(M.nauticalDuskUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15, 18, 43)), 2, 'León nautical dusk UTC');
-approxUTC(M.astronomicalDawnUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15,  5,  0)), 2, 'León astronomical dawn UTC');
-approxUTC(M.astronomicalDuskUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15, 19, 15)), 2, 'León astronomical dusk UTC');
+approxUTC(M.civilDawnUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15,  6,  7)), 1, 'León civil dawn UTC');
+approxUTC(M.civilDuskUTC(42.60, -5.57, oct15),        new Date(Date.UTC(2026, 9, 15, 18,  9)), 1, 'León civil dusk UTC');
+approxUTC(M.nauticalDawnUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15,  5, 34)), 1, 'León nautical dawn UTC');
+approxUTC(M.nauticalDuskUTC(42.60, -5.57, oct15),     new Date(Date.UTC(2026, 9, 15, 18, 41)), 1, 'León nautical dusk UTC');
+approxUTC(M.astronomicalDawnUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15,  5,  1)), 1, 'León astronomical dawn UTC');
+approxUTC(M.astronomicalDuskUTC(42.60, -5.57, oct15), new Date(Date.UTC(2026, 9, 15, 19, 14)), 1, 'León astronomical dusk UTC');
 
 // Tokushima (34.16°N, 134.50°E) 2026-10-15
-// All dawn times fall on Oct 14 UTC (JST is UTC+9)
-approxUTC(M.civilDawnUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 14, 20, 40)), 2, 'Tokushima civil dawn UTC');
-approxUTC(M.civilDuskUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 15,  8, 54)), 2, 'Tokushima civil dusk UTC');
-approxUTC(M.nauticalDawnUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 14, 20, 11)), 2, 'Tokushima nautical dawn UTC');
-approxUTC(M.nauticalDuskUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 15,  9, 23)), 2, 'Tokushima nautical dusk UTC');
-approxUTC(M.astronomicalDawnUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 14, 19, 42)), 2, 'Tokushima astronomical dawn UTC');
-approxUTC(M.astronomicalDuskUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  9, 52)), 2, 'Tokushima astronomical dusk UTC');
+approxUTC(M.civilDawnUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 14, 20, 42)), 1, 'Tokushima civil dawn UTC');
+approxUTC(M.civilDuskUTC(34.16, 134.50, oct15),        new Date(Date.UTC(2026, 9, 15,  8, 54)), 1, 'Tokushima civil dusk UTC');
+approxUTC(M.nauticalDawnUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 14, 20, 13)), 1, 'Tokushima nautical dawn UTC');
+approxUTC(M.nauticalDuskUTC(34.16, 134.50, oct15),     new Date(Date.UTC(2026, 9, 15,  9, 23)), 1, 'Tokushima nautical dusk UTC');
+approxUTC(M.astronomicalDawnUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 14, 19, 43)), 1, 'Tokushima astronomical dawn UTC');
+approxUTC(M.astronomicalDuskUTC(34.16, 134.50, oct15), new Date(Date.UTC(2026, 9, 15,  9, 52)), 1, 'Tokushima astronomical dusk UTC');
 
 // Ordering invariant: for any site, astro dawn < nautical dawn < civil dawn < sunrise
 var twilightOrderPairs = [
@@ -679,13 +699,11 @@ if (M.azimuthToUnit(141, 90, 50) === null) {
 // nautical (−12°). /daylight's bar already draws that boundary and calls
 // it true dark, and one almanac should not carry two definitions.
 //
-// The table below is the spec's own, recomputed here from the shipped
-// twilight functions rather than copied from it. That keeps the document
-// honest about what the code does — and NOTHING more: a test that
-// recomputes from the thing it is testing pins the code to itself and can
-// never find an error in it. The external anchors further down are what
-// tie this section to something outside the repo, as every other section
-// of this file is tied.
+// The table below was once the spec's own, recomputed from the shipped
+// twilight functions — which pinned the code to itself: when the Spencer
+// series behind it put the September equinox 0.4° off, the table agreed.
+// It is now the US Naval Observatory's, so it can find an error. The
+// anchors further down add a second, independent almanac.
 // ===========================================================================
 
 console.log('\n=== Dark hours — the picker\'s five latitudes ===\n');
@@ -701,13 +719,18 @@ function ok(cond, label) {
   }
 }
 
-// lat, Jun 21, Sep 23, Dec 21 — the spec's table, ±0.1 h.
+// lat, then the nights of Jun 21, Sep 23 and Dec 21 2026, ±0.1 h. Each is
+// USNO's astronomical twilight table at 0°E (aa.usno.navy.mil/calculated/
+// rstt/year, task 4, fetched 2026-10-26), from dusk on the date to dawn the
+// next morning; at 60° and 70° in late June the table has no twilight at
+// all. The spec's Spencer-derived table had 8.5, 6.9 and 3.3 for September
+// at 45°, 60° and 70°.
 var DARK_TABLE = [
-  [0,    9.4,  9.6,  9.4],
-  [23.5, 7.5,  9.4,  10.6],
-  [45,   3.3,  8.5,  11.7],
-  [60,   0.0,  6.9,  12.6],
-  [70,   0.0,  3.3,  13.6]
+  [0,    9 + 22/60, 9 + 36/60, 9 + 23/60],
+  [23.5, 7 + 30/60, 9 + 24/60, 10 + 38/60],
+  [45,   3 + 16/60, 8 + 35/60, 11 + 41/60],
+  [60,   0,         7 + 1/60,  12 + 36/60],
+  [70,   0,         3 + 42/60, 13 + 35/60]
 ];
 
 DARK_TABLE.forEach(function (row) {
@@ -760,7 +783,7 @@ approx(Math.min.apply(null, yearBelow), 1.32, 0.1,
   '48°: the shortest night is about 1.3 h — small, and positive');
 
 ok(M.darkHoursYear(48.5, 2026).every(function (h) { return h > 0; }),
-  '48.5° is still below the boundary — 0.39 h at its shortest, but never nothing');
+  '48.5° is still below the boundary — 0.45 h at its shortest, but never nothing');
 ok(M.darkHoursYear(48.6, 2026).some(function (h) { return h === 0; }),
   '48.6° is above it, and the zeros begin');
 ok(M.darkHoursYear(66.56 - 18 - 0.1, 2026).every(function (h) { return h > 0; })
@@ -853,9 +876,9 @@ ok(M.zeroDarkRuns([0, 0, 0]).length === 1, 'an all-zero series is one run, not t
 
 // "No threshold is guessed at" is a contract, and until now nothing held
 // it: relaxing `h === 0` to `h < 0.1` survives both suites, because the
-// shortest real night any latitude produces is 0.142 h (just under the
-// 48.56° boundary) and nothing in the year lands below a tenth of an
-// hour. So the case is constructed. A 0.05-hour night is three minutes of
+// shortest real night either suite draws is 0.123 h (beside the short run
+// just past the 48.56° boundary) and nothing it draws lands below a tenth
+// of an hour. So the case is constructed. A 0.05-hour night is three minutes of
 // true dark — a night, and not the absence of one.
 var brief = M.zeroDarkRuns([5, 0, 0, 0.05, 0, 0]);
 ok(brief.length === 2,
@@ -882,9 +905,10 @@ var DEC_SOLSTICE = new Date(Date.UTC(2026, 11, 21, 12));
 var JUN_SOLSTICE = new Date(Date.UTC(2026, 5, 21, 12));
 
 // Re-derived from the declination series in use, not from textbook
-// obliquity — 23.44° would put the edge at 84.56°, and the Spencer series
-// peaks at 23.4556°, which is why the first constant sat 0.016° inside the
-// band it excluded. If the series is ever changed, this is what notices.
+// obliquity. The Spencer series this replaced peaked at 23.4556°, which is
+// why the first constant sat 0.016° inside the band it excluded; the NOAA
+// series peaks near 23.438°, putting the edge near 84.56°. If the series is
+// ever changed, this is what notices.
 var seriesPeakDec = 0;
 for (var pd = 0; pd < 366; pd++) {
   for (var ph = 0; ph < 24; ph++) {
