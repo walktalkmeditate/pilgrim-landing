@@ -15,12 +15,13 @@
 //   6. Pin each new page's weight in js/page-weight.test.js.
 //   7. Render assets/og-YEAR-{key}-{hash}.png via build-og-sunpath.sh: each
 //      page's own plate, under the name its og:image already carries.
-//   8. Append YEAR to assets/sunpath/years.json.
+//   8. Append YEAR to assets/sunpath/years.json, and rewrite the
+//      subscription feed sunpath/turnings.ics from every year listed there.
 //   9. Append four <url> entries to sitemap.xml.
 //
 // Idempotent: refuses to overwrite existing data files unless --force, and
-// --force keeps a lead the user has picked. HTML, ICS, OG images, sitemap,
-// years.json are always regenerated.
+// --force keeps a lead the user has picked. HTML, ICS (yearly and feed), OG
+// images, sitemap, years.json are always regenerated.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
@@ -184,10 +185,44 @@ export function buildTurningData(year, key, { gazetteer: places = loadGazetteer(
   };
 }
 
+const ICS_DESC = 'X-WR-CALDESC:The four hinges of the year — solstices and equinoxes — at their exact UTC instants. From pilgrimapp.org/sunpath.';
+
+function buildCalendar(headers, events) {
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Pilgrim//Sun Path//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...headers,
+    '',
+    events.join('\n\n'),
+    '',
+    'END:VCALENDAR',
+    ''
+  ].join('\n');
+}
+
 export function buildICS(year) {
+  return buildCalendar([`X-WR-CALNAME:Sun Path — Four Turnings ${year}`, ICS_DESC], turningEvents(year));
+}
+
+// The subscription feed: every published year in one calendar, which a
+// subscribed calendar re-reads weekly, so a year added later arrives on its
+// own. Its events keep the yearly files' UIDs.
+export function buildFeedICS(years) {
+  return buildCalendar([
+    'X-WR-CALNAME:Sun Path — Four Turnings',
+    ICS_DESC,
+    'REFRESH-INTERVAL;VALUE=DURATION:P1W',
+    'X-PUBLISHED-TTL:P1W'
+  ], [...years].sort((a, b) => a - b).flatMap(turningEvents));
+}
+
+function turningEvents(year) {
   const stamp = `${year}0101T000000Z`; // stable across regenerations
 
-  const events = TURNING_KEYS.map((key) => {
+  return TURNING_KEYS.map((key) => {
     const meta = TURNING_META[key];
     const dt = instantOf(year, key);
     const start = icsTimestamp(dt);
@@ -212,21 +247,6 @@ export function buildICS(year) {
       'END:VEVENT'
     ].join('\n');
   });
-
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Pilgrim//Sun Path//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:Sun Path — Four Turnings ${year}`,
-    `X-WR-CALDESC:The four hinges of the year — solstices and equinoxes — at their exact UTC instants. From pilgrimapp.org/sunpath.`,
-    '',
-    events.join('\n\n'),
-    '',
-    'END:VCALENDAR',
-    ''
-  ].join('\n');
 }
 
 function buildEventsSkeleton(year) {
@@ -266,6 +286,14 @@ async function updateYearsManifest(year, { dry }) {
   if (dry) return { path, dry: true, would: 'update' };
   await writeFile(path, out);
   return { path, written: true };
+}
+
+// Read after the manifest is updated; a dry run never writes it, so the
+// year is added here as well.
+async function writeFeed(year, { dry }) {
+  const { years } = JSON.parse(await readFile(resolve(REPO_ROOT, 'assets/sunpath/years.json'), 'utf8'));
+  const all = years.includes(year) ? years : [...years, year];
+  return writeAlways(resolve(REPO_ROOT, 'sunpath/turnings.ics'), buildFeedICS(all), { dry });
 }
 
 async function updateSitemap(year, { dry }) {
@@ -425,9 +453,10 @@ async function main() {
   log(runChild('bash', ['scripts/build-og-sunpath.sh', String(year)], { dry }));
   console.log();
 
-  // 7. years.json + sitemap.xml (additive, idempotent).
+  // 7. years.json, the subscription feed of every year in it, sitemap.xml.
   console.log('Manifests:');
   log(await updateYearsManifest(year, { dry }));
+  log(await writeFeed(year, { dry }));
   log(await updateSitemap(year, { dry }));
   console.log();
 

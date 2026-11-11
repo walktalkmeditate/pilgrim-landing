@@ -134,6 +134,32 @@ async function main() {
       'the published ' + y + ' calendar is what the generator writes');
   });
 
+  console.log('\n=== one feed to subscribe to carries every published year ===\n');
+
+  const years = readJson('assets/sunpath/years.json').years;
+  const feedPath = path.join(ROOT, 'sunpath', 'turnings.ics');
+  const feed = fs.existsSync(feedPath) ? fs.readFileSync(feedPath, 'utf8') : '';
+  ok(feed === year.buildFeedICS(years),
+    'the published feed is what the generator writes for ' + years.join(', '));
+  const uids = feed.match(/^UID:.*$/gm) || [];
+  ok(uids.length === years.length * 4 && new Set(uids).size === uids.length,
+    'the feed holds four turnings a year, each once  (' + uids.length + ' events)');
+  ok(years.every(function (y) {
+    return KEYS.every(function (k) { return uids.includes('UID:turning-' + k + '-' + y + '@pilgrimapp.org'); });
+  }), 'each event keeps the UID its yearly calendar gives it');
+  ok(/^REFRESH-INTERVAL;VALUE=DURATION:P1W$/m.test(feed) && /^X-PUBLISHED-TTL:P1W$/m.test(feed),
+    'a subscribed calendar is asked to re-read the feed weekly');
+
+  const webcal = 'href="webcal://pilgrimapp.org/sunpath/turnings.ics"';
+  const google = 'href="https://calendar.google.com/calendar/render?cid=webcal%3A%2F%2Fpilgrimapp.org%2Fsunpath%2Fturnings.ics"';
+  const linking = ['sunpath/index.html'].concat(years.flatMap(function (y) {
+    return KEYS.map(function (k) { return 'sunpath/' + y + '-' + k + '/index.html'; });
+  }));
+  linking.forEach(function (rel) {
+    const html = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    ok(html.includes(webcal) && html.includes(google), rel + ' offers the feed to Apple, Outlook and Google');
+  });
+
   console.log('\n=== a new year is pinned at the weight the ratchet will measure ===\n');
 
   // js/page-weight.test.js weighs each page with every script it loads,

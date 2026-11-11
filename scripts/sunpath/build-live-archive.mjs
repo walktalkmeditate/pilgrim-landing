@@ -17,7 +17,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TURNING_KEYS } from './permalink-template.mjs';
+import { TURNING_KEYS, calendarLinks } from './permalink-template.mjs';
 import { htmlText } from './escape.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -59,9 +59,7 @@ function renderArchiveSection(years, byYear, activeYear) {
 
     const hidden = y === activeYear ? '' : ' hidden';
     return `      <div class="sunpath-archive-year-panel" data-year="${y}"${hidden}>
-        <p class="sunpath-ics">
-          <a href="/sunpath/turnings-${y}.ics" download>Add to your calendar (.ics)</a>
-        </p>
+${calendarLinks(y)}
         <ul class="sunpath-archive-list">
 ${items}
         </ul>
