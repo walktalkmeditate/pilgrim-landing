@@ -1225,6 +1225,13 @@ body.constellation .sunpath-flourish-app-note {
 
 .sunpath-ics a:hover { border-bottom-color: var(--ink); }
 
+.sunpath-ics-subscribe {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--stone);
+  font-size: 0.85rem;
+}
+
 .sunpath-ics-meta {
   color: var(--stone);
   font-style: italic;
@@ -1236,6 +1243,8 @@ body.constellation .sunpath-ics a {
   color: rgba(232, 224, 255, 0.92);
   border-bottom-color: rgba(232, 224, 255, 0.4);
 }
+
+body.constellation .sunpath-ics-subscribe { color: rgba(232, 224, 255, 0.7); }
 
 body.constellation .sunpath-ics a:hover {
   border-bottom-color: rgba(232, 224, 255, 0.85);

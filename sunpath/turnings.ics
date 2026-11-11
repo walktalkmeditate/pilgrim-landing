@@ -1,0 +1,203 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pilgrim//Sun Path//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Sun Path — Four Turnings
+X-WR-CALDESC:The four hinges of the year — solstices and equinoxes — at their exact UTC instants. From pilgrimapp.org/sunpath.
+REFRESH-INTERVAL;VALUE=DURATION:P1W
+X-PUBLISHED-TTL:P1W
+
+BEGIN:VEVENT
+UID:turning-spring-equinox-2026@pilgrimapp.org
+DTSTAMP:20260101T000000Z
+DTSTART:20260320T144557Z
+DTEND:20260320T154557Z
+SUMMARY:Spring Equinox 2026 · 春分
+DESCRIPTION:The sun crosses the equator heading north.\n\nFrom here, northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2026-spring-equinox
+URL:https://pilgrimapp.org/sunpath/2026-spring-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Spring Equinox tomorrow — the sun crosses the equator heading north
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-summer-solstice-2026@pilgrimapp.org
+DTSTAMP:20260101T000000Z
+DTSTART:20260621T082429Z
+DTEND:20260621T092429Z
+SUMMARY:Summer Solstice 2026 · 夏至
+DESCRIPTION:The sun stands at its furthest north. The longest northern day.\n\nFrom here, northern days shorten until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2026-summer-solstice
+URL:https://pilgrimapp.org/sunpath/2026-summer-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Summer Solstice tomorrow — the longest light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-autumn-equinox-2026@pilgrimapp.org
+DTSTAMP:20260101T000000Z
+DTSTART:20260923T000511Z
+DTEND:20260923T010511Z
+SUMMARY:Autumn Equinox 2026 · 秋分
+DESCRIPTION:The sun crosses the equator again, heading south.\n\nFrom here, northern nights grow longer until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2026-autumn-equinox
+URL:https://pilgrimapp.org/sunpath/2026-autumn-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Autumn Equinox tomorrow — the sun crosses the equator heading south
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-winter-solstice-2026@pilgrimapp.org
+DTSTAMP:20260101T000000Z
+DTSTART:20261221T205013Z
+DTEND:20261221T215013Z
+SUMMARY:Winter Solstice 2026 · 冬至
+DESCRIPTION:The sun reaches its furthest south. The longest northern night.\n\nFrom here, light returns. Northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2026-winter-solstice
+URL:https://pilgrimapp.org/sunpath/2026-winter-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Winter Solstice tomorrow — the longest dark, and the turning back toward light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-spring-equinox-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270320T202441Z
+DTEND:20270320T212441Z
+SUMMARY:Spring Equinox 2027 · 春分
+DESCRIPTION:The sun crosses the equator heading north.\n\nFrom here, northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-spring-equinox
+URL:https://pilgrimapp.org/sunpath/2027-spring-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Spring Equinox tomorrow — the sun crosses the equator heading north
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-summer-solstice-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270621T141048Z
+DTEND:20270621T151048Z
+SUMMARY:Summer Solstice 2027 · 夏至
+DESCRIPTION:The sun stands at its furthest north. The longest northern day.\n\nFrom here, northern days shorten until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-summer-solstice
+URL:https://pilgrimapp.org/sunpath/2027-summer-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Summer Solstice tomorrow — the longest light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-autumn-equinox-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20270923T060141Z
+DTEND:20270923T070141Z
+SUMMARY:Autumn Equinox 2027 · 秋分
+DESCRIPTION:The sun crosses the equator again, heading south.\n\nFrom here, northern nights grow longer until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-autumn-equinox
+URL:https://pilgrimapp.org/sunpath/2027-autumn-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Autumn Equinox tomorrow — the sun crosses the equator heading south
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-winter-solstice-2027@pilgrimapp.org
+DTSTAMP:20270101T000000Z
+DTSTART:20271222T024209Z
+DTEND:20271222T034209Z
+SUMMARY:Winter Solstice 2027 · 冬至
+DESCRIPTION:The sun reaches its furthest south. The longest northern night.\n\nFrom here, light returns. Northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2027-winter-solstice
+URL:https://pilgrimapp.org/sunpath/2027-winter-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Winter Solstice tomorrow — the longest dark, and the turning back toward light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-spring-equinox-2028@pilgrimapp.org
+DTSTAMP:20280101T000000Z
+DTSTART:20280320T021707Z
+DTEND:20280320T031707Z
+SUMMARY:Spring Equinox 2028 · 春分
+DESCRIPTION:The sun crosses the equator heading north.\n\nFrom here, northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2028-spring-equinox
+URL:https://pilgrimapp.org/sunpath/2028-spring-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Spring Equinox tomorrow — the sun crosses the equator heading north
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-summer-solstice-2028@pilgrimapp.org
+DTSTAMP:20280101T000000Z
+DTSTART:20280620T200158Z
+DTEND:20280620T210158Z
+SUMMARY:Summer Solstice 2028 · 夏至
+DESCRIPTION:The sun stands at its furthest north. The longest northern day.\n\nFrom here, northern days shorten until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2028-summer-solstice
+URL:https://pilgrimapp.org/sunpath/2028-summer-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Summer Solstice tomorrow — the longest light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-autumn-equinox-2028@pilgrimapp.org
+DTSTAMP:20280101T000000Z
+DTSTART:20280922T114517Z
+DTEND:20280922T124517Z
+SUMMARY:Autumn Equinox 2028 · 秋分
+DESCRIPTION:The sun crosses the equator again, heading south.\n\nFrom here, northern nights grow longer until winter solstice.\n\nhttps://pilgrimapp.org/sunpath/2028-autumn-equinox
+URL:https://pilgrimapp.org/sunpath/2028-autumn-equinox
+CATEGORIES:Equinox,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Autumn Equinox tomorrow — the sun crosses the equator heading south
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+BEGIN:VEVENT
+UID:turning-winter-solstice-2028@pilgrimapp.org
+DTSTAMP:20280101T000000Z
+DTSTART:20281221T081939Z
+DTEND:20281221T091939Z
+SUMMARY:Winter Solstice 2028 · 冬至
+DESCRIPTION:The sun reaches its furthest south. The longest northern night.\n\nFrom here, light returns. Northern days grow until summer solstice.\n\nhttps://pilgrimapp.org/sunpath/2028-winter-solstice
+URL:https://pilgrimapp.org/sunpath/2028-winter-solstice
+CATEGORIES:Solstice,Astronomy
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Winter Solstice tomorrow — the longest dark, and the turning back toward light
+TRIGGER:-P1D
+END:VALARM
+END:VEVENT
+
+END:VCALENDAR

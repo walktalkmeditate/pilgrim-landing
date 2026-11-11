@@ -47,6 +47,21 @@ const GLOBE_SCRIPTS = [
 
 export { TURNING_KEYS };
 
+export const FEED_PATH = '/sunpath/turnings.ics';
+const FEED_WEBCAL = `webcal://pilgrimapp.org${FEED_PATH}`;
+
+// The year's file to download, and the feed to subscribe to, which later
+// years join on their own. webcal:// opens Apple Calendar and Outlook;
+// Google Calendar subscribes from its cid parameter.
+export function calendarLinks(year) {
+  return `        <p class="sunpath-ics">
+          <a href="/sunpath/turnings-${year}.ics" download>Add to your calendar (.ics)</a>
+          <span class="sunpath-ics-subscribe">or subscribe, and new years arrive on their own:
+            <a href="${FEED_WEBCAL}">Apple &amp; Outlook</a> ·
+            <a href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(FEED_WEBCAL)}">Google Calendar</a></span>
+        </p>`;
+}
+
 function pad2(n) { return String(n).padStart(2, '0'); }
 function isoSecond(date) { return date.toISOString().replace('.000Z', 'Z'); }
 // A clock reading names the minute containing the instant, as the data's
@@ -332,9 +347,7 @@ ${deepTimeBlock}
       </section>
 
       <section class="sunpath-section sunpath-archive" aria-label="Other turnings of ${data.year}">
-        <p class="sunpath-ics">
-          <a href="/sunpath/turnings-${data.year}.ics" download>Add to your calendar (.ics)</a>
-        </p>
+${calendarLinks(data.year)}
         <ul class="sunpath-archive-list">
 ${archiveItems}
         </ul>

@@ -74,18 +74,21 @@ const BASELINE_KB = {
   // -0.07 to -0.08 each: the strip's readout keeps its room while hidden
   // (css/turning-leaf.css), and the home page's energy hues leave the shared
   // css/styles.css.
-  'sunpath/2026-spring-equinox/index.html':    124.42,
-  'sunpath/2026-summer-solstice/index.html':   128.70,
-  'sunpath/2026-autumn-equinox/index.html':    128.39,
-  'sunpath/2026-winter-solstice/index.html':   125.65,
-  'sunpath/2027-spring-equinox/index.html':    125.64,
-  'sunpath/2027-summer-solstice/index.html':   128.81,
-  'sunpath/2027-autumn-equinox/index.html':    128.25,
-  'sunpath/2027-winter-solstice/index.html':   126.04,
-  'sunpath/2028-spring-equinox/index.html':    125.80,
-  'sunpath/2028-summer-solstice/index.html':   128.88,
-  'sunpath/2028-autumn-equinox/index.html':    128.05,
-  'sunpath/2028-winter-solstice/index.html':   125.90,
+  // +0.15–0.17 each: the calendar line offers the subscription feed
+  // (sunpath/turnings.ics) to Apple, Outlook and Google beside the year's
+  // file (css/sunpath.css +0.03).
+  'sunpath/2026-spring-equinox/index.html':    124.57,
+  'sunpath/2026-summer-solstice/index.html':   128.86,
+  'sunpath/2026-autumn-equinox/index.html':    128.56,
+  'sunpath/2026-winter-solstice/index.html':   125.80,
+  'sunpath/2027-spring-equinox/index.html':    125.81,
+  'sunpath/2027-summer-solstice/index.html':   128.97,
+  'sunpath/2027-autumn-equinox/index.html':    128.41,
+  'sunpath/2027-winter-solstice/index.html':   126.20,
+  'sunpath/2028-spring-equinox/index.html':    125.97,
+  'sunpath/2028-summer-solstice/index.html':   129.04,
+  'sunpath/2028-autumn-equinox/index.html':    128.21,
+  'sunpath/2028-winter-solstice/index.html':   126.06,
   // +0.05 (68.75): the same series (js/sunpath-math.js +0.05).
   'moonpath/index.html':                        68.75,
   // +9.39: traces real glyphs. css/traces-glyphs.css (2.71), js/traces-cairn.js
