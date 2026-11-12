@@ -1,0 +1,111 @@
+# Once a day, carries the newest sky photos from the ig repo into the
+# turning pages' sky strip: bakes their colours, rebuilds the pages and any
+# link card whose picture changed, checks the build, and publishes.
+#
+# The strip is baked, not fetched, so the pages paint without script; this
+# is what keeps the bake current. "Run workflow" on the Actions tab runs it
+# at once (the launch-day path: photograph the sky, run, post). A pull
+# request touching this file or the card script runs it as a dry run and
+# uploads the cards it rendered, without publishing.
+
+name: Daily sky strip
+
+on:
+  schedule:
+    # 06:00 UTC, after the evening's photo in the photographer's own day.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/sky-strip.yml
+      - scripts/build-og-sunpath.sh
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: sky-strip
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      # The bake reads ../photos, so the two repos sit side by side.
+      - uses: actions/checkout@v4
+        with:
+          path: site
+      - uses: actions/checkout@v4
+        with:
+          repository: momentmaker/ig
+          path: photos
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bake the daily sky colours
+        id: bake
+        working-directory: site
+        run: |
+          node scripts/sunpath/bake-sky.mjs
+          if git diff --quiet -- assets/sunpath/sky-days.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new sky photos; nothing to publish."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild the turning pages and their cards
+        if: steps.bake.outputs.changed == 'true'
+        working-directory: site
+        run: |
+          command -v magick >/dev/null || command -v convert >/dev/null || sudo apt-get install -y imagemagick
+          node scripts/sunpath/build-permalinks.mjs
+          for year in $(node -p "require('./assets/sunpath/years.json').years.join(' ')"); do
+            bash scripts/build-og-sunpath.sh "$year"
+          done
+          git add -A -- assets sunpath
+          git status --short
+
+      # The same gates the pre-commit hook and the weight ratchet hold a
+      # hand-made change to. The build's two-years-ahead rule reads the
+      # clock, so it also fails here the day a new year of pages is due.
+      - name: Check the build
+        if: steps.bake.outputs.changed == 'true'
+        working-directory: site
+        run: |
+          node scripts/sunpath/build-permalinks.mjs --check
+          node scripts/validate-metadata.mjs
+          node js/page-weight.test.js
+          node scripts/sunpath/plate-markup.test.js
+          node scripts/sunpath/og-cards.test.js
+          node js/forbidden-claims.test.js
+
+      - name: Keep the new cards for review
+        if: steps.bake.outputs.changed == 'true' && github.event_name == 'pull_request'
+        working-directory: site
+        run: |
+          mkdir -p ../new-cards
+          git diff --cached --name-only --diff-filter=A -- 'assets/*.png' | xargs -I{} cp {} ../new-cards/
+      - uses: actions/upload-artifact@v4
+        if: steps.bake.outputs.changed == 'true' && github.event_name == 'pull_request'
+        with:
+          name: new-cards
+          path: new-cards
+          if-no-files-found: ignore
+
+      # A push made with this job's own token may not start the Pages
+      # deploy, so the build is requested outright.
+      - name: Publish
+        if: steps.bake.outputs.changed == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          last=$(node -p "require('./assets/sunpath/sky-days.json').days.slice(-1)[0][0]")
+          git commit -q -m "content(sunpath): the sky through $last"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds"
