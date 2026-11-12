@@ -13,7 +13,7 @@
 //   4. Write sunpath/turnings-YEAR.ics (regenerable).
 //   5. Render sunpath/YEAR-{key}/index.html via build-permalinks.mjs.
 //   6. Pin each new page's weight in js/page-weight.test.js.
-//   7. Render assets/og-YEAR-{key}-{hash}.png via build-og-sunpath.sh: each
+//   7. Render any missing assets/og-YEAR-{key}-{hash}.png via build-og-sunpath.sh: each
 //      page's own plate, under the name its og:image already carries.
 //   8. Append YEAR to assets/sunpath/years.json, and rewrite the
 //      subscription feed sunpath/turnings.ics from every year listed there.
